@@ -147,7 +147,7 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
 
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   background: var(--card); border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -164,6 +164,23 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
   opacity: 0; pointer-events: none; transition: .25s; z-index: 20; max-width: calc(100% - 32px);
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Fotos */
+.thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0 14px; }
+.thumb { position: relative; display: block; width: 100%; padding: 0; border: 0; border-radius: 10px; overflow: hidden; background: var(--line); cursor: zoom-in; }
+.thumb img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
+.thumbs .thumb span { position: absolute; left: 6px; bottom: 6px; background: rgba(0,0,0,.6); color: #fff; font-size: .72rem; padding: 2px 7px; border-radius: 99px; }
+.compare-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.compare-selects label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); }
+.compare-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.compare-pair figure { margin: 0; }
+.compare-pair figcaption { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+.compare-diff { text-align: center; font-weight: 600; margin: 10px 0 0; }
+.viewer { border: 0; padding: 0; background: transparent; max-width: 100vw; max-height: 100vh; width: 100%; height: 100%; }
+.viewer::backdrop { background: rgba(0,0,0,.95); }
+.viewer[open] { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; }
+.viewer img { max-width: 100%; max-height: calc(100% - 80px); object-fit: contain; border-radius: 10px; }
+.viewer-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; width: 100%; max-width: 600px; color: #fff; font-size: .9rem; }
 
 @media (max-width: 420px) {
   .grid-form { grid-template-columns: 1fr; }

@@ -147,6 +147,50 @@
       </div>
     </section>
 
+    <!-- FOTOS -->
+    <section id="view-fotos" class="view" aria-labelledby="tab-fotos">
+      <div class="card">
+        <h2>Nueva foto de progreso</h2>
+        <form id="form-photo" class="grid-form">
+          <label>Fecha<input type="date" name="date" required></label>
+          <label>Pose
+            <select name="pose">
+              <option value="frente">Frente</option>
+              <option value="perfil">Perfil</option>
+              <option value="espalda">Espalda</option>
+            </select>
+          </label>
+          <label class="span-2">Foto<input type="file" name="file" accept="image/*" required></label>
+          <div class="span-2 form-actions">
+            <button class="btn" type="submit">Guardar foto</button>
+            <span class="muted small">Para comparar mejor: misma luz, mismo lugar y misma hora, cada 2–4 semanas.</span>
+          </div>
+        </form>
+      </div>
+
+      <div class="card" id="compare-card">
+        <div class="card-head">
+          <h2>Comparar</h2>
+          <div class="seg" id="compare-pose">
+            <button data-pose="frente" class="on">Frente</button>
+            <button data-pose="perfil">Perfil</button>
+            <button data-pose="espalda">Espalda</button>
+          </div>
+        </div>
+        <div class="compare-selects">
+          <label>Antes<select id="compare-a"></select></label>
+          <label>Después<select id="compare-b"></select></label>
+        </div>
+        <div class="compare" id="compare-view"></div>
+      </div>
+
+      <div class="card">
+        <h2>Galería</h2>
+        <div id="gallery"></div>
+        <p class="muted small">Las fotos se guardan solo en este dispositivo y se incluyen en «Exportar JSON».</p>
+      </div>
+    </section>
+
     <!-- PERFIL -->
     <section id="view-perfil" class="view" aria-labelledby="tab-perfil">
       <div class="card">
@@ -208,12 +252,25 @@
     <button role="tab" id="tab-panel" data-view="panel" class="on"><span aria-hidden="true">📊</span>Panel</button>
     <button role="tab" id="tab-registro" data-view="registro"><span aria-hidden="true">⚖️</span>Registro</button>
     <button role="tab" id="tab-comidas" data-view="comidas"><span aria-hidden="true">🍽️</span>Comidas</button>
+    <button role="tab" id="tab-fotos" data-view="fotos"><span aria-hidden="true">📷</span>Fotos</button>
     <button role="tab" id="tab-perfil" data-view="perfil"><span aria-hidden="true">👤</span>Perfil</button>
   </nav>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <dialog id="photo-viewer" class="viewer">
+    <img alt="">
+    <div class="viewer-bar">
+      <span id="viewer-caption"></span>
+      <div class="row-actions">
+        <button class="btn btn-danger" id="viewer-delete">Eliminar</button>
+        <button class="btn" id="viewer-close">Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
   <script src="calc.js"></script>
+  <script src="photos.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

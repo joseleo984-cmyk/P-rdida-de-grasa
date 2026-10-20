@@ -286,6 +286,155 @@
     el.trained.checked = !!h.trained;
   }
 
+  // ---------- Fotos ----------
+  const POSES = { frente: 'Frente', perfil: 'Perfil', espalda: 'Espalda' };
+  let photos = [];
+  let comparePose = 'frente';
+  const photoUrls = new Map();
+  const photoUrl = (p) => {
+    if (!photoUrls.has(p.id)) photoUrls.set(p.id, URL.createObjectURL(p.blob));
+    return photoUrls.get(p.id);
+  };
+  const sortedPhotos = () => [...photos].sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+
+  async function loadPhotos() {
+    try {
+      photoUrls.forEach((u) => URL.revokeObjectURL(u));
+      photoUrls.clear();
+      photos = await Photos.all();
+    } catch {
+      photos = [];
+      toast('No se pudieron cargar las fotos');
+    }
+    renderPhotos(true);
+  }
+
+  // Peso registrado el mismo día o el más cercano (máximo 3 días de diferencia).
+  function weightNear(iso) {
+    const day = Calc.toDay(iso);
+    let best = null;
+    for (const e of state.entries) {
+      if (!e.weight) continue;
+      const diff = Math.abs(Calc.toDay(e.date) - day);
+      if (diff <= 3 && (!best || diff < best.diff)) best = { diff, entry: e };
+    }
+    return best?.entry || null;
+  }
+
+  const photoForm = $('#form-photo');
+  photoForm.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const file = photoForm.elements.file.files[0];
+    if (!file) return;
+    const btn = photoForm.querySelector('button[type=submit]');
+    btn.disabled = true;
+    try {
+      const { blob, width, height } = await Photos.compress(file);
+      const photo = { id: uid(), date: photoForm.elements.date.value, pose: photoForm.elements.pose.value, blob, width, height, createdAt: Date.now() };
+      await Photos.put(photo);
+      photos.push(photo);
+      comparePose = photo.pose;
+      photoForm.elements.file.value = '';
+      toast('Foto guardada');
+      renderPhotos(true);
+    } catch (err) {
+      toast(err.message || 'No se pudo guardar la foto');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('#compare-pose').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button[data-pose]');
+    if (!b) return;
+    comparePose = b.dataset.pose;
+    renderPhotos(true);
+  });
+  $('#compare-a').addEventListener('change', () => renderCompare(false));
+  $('#compare-b').addEventListener('change', () => renderCompare(false));
+
+  const viewer = $('#photo-viewer');
+  let viewing = null;
+  document.addEventListener('click', (ev) => {
+    const t = ev.target.closest('[data-photo]');
+    if (!t) return;
+    viewing = photos.find((p) => p.id === t.dataset.photo);
+    if (!viewing) return;
+    $('img', viewer).src = photoUrl(viewing);
+    const w = weightNear(viewing.date);
+    $('#viewer-caption').textContent = `${fmtDate(viewing.date)} · ${POSES[viewing.pose]}${w ? ' · ' + fmt(w.weight) + ' kg' : ''}`;
+    viewer.showModal();
+  });
+  $('#viewer-close').addEventListener('click', () => viewer.close());
+  viewer.addEventListener('click', (ev) => { if (ev.target === viewer) viewer.close(); });
+  $('#viewer-delete').addEventListener('click', async () => {
+    if (!viewing || !confirm('¿Eliminar esta foto?')) return;
+    try {
+      await Photos.remove(viewing.id);
+      URL.revokeObjectURL(photoUrls.get(viewing.id));
+      photoUrls.delete(viewing.id);
+      photos = photos.filter((p) => p.id !== viewing.id);
+      viewer.close();
+      toast('Foto eliminada');
+      renderPhotos();
+    } catch {
+      toast('No se pudo eliminar la foto');
+    }
+  });
+
+  function renderPhotos(resetSelection = false) {
+    $$('#compare-pose button').forEach((b) => b.classList.toggle('on', b.dataset.pose === comparePose));
+    renderCompare(resetSelection);
+
+    const byDate = {};
+    for (const p of sortedPhotos().reverse()) (byDate[p.date] ||= []).push(p);
+    const dates = Object.keys(byDate);
+    $('#gallery').innerHTML = dates.length ? dates.map((d) => {
+      const w = weightNear(d);
+      return `<div class="photo-day">
+        <div class="meal-head"><strong>${fmtDate(d)}</strong><span class="muted">${w ? fmt(w.weight) + ' kg' : ''}</span></div>
+        <div class="thumbs">${byDate[d].map((p) => `
+          <button class="thumb" data-photo="${p.id}" aria-label="Ver foto ${POSES[p.pose]} del ${fmtDate(d)}">
+            <img src="${photoUrl(p)}" alt="" loading="lazy"><span>${POSES[p.pose]}</span>
+          </button>`).join('')}</div>
+      </div>`;
+    }).join('') : '<p class="muted small">Aún no hay fotos.</p>';
+  }
+
+  // resetSelection: elige automáticamente la primera y la última foto de la pose.
+  function renderCompare(resetSelection) {
+    const list = sortedPhotos().filter((p) => p.pose === comparePose);
+    const selA = $('#compare-a'), selB = $('#compare-b');
+    const prevA = selA.value, prevB = selB.value;
+    const opts = list.map((p) => `<option value="${p.id}">${fmtDate(p.date)}</option>`).join('');
+    selA.innerHTML = opts;
+    selB.innerHTML = opts;
+    const has = (id) => list.some((p) => p.id === id);
+    selA.value = !resetSelection && has(prevA) ? prevA : list[0]?.id ?? '';
+    selB.value = !resetSelection && has(prevB) ? prevB : list[list.length - 1]?.id ?? '';
+
+    const box = $('#compare-view');
+    if (list.length < 2) {
+      box.innerHTML = `<p class="muted small">Necesitas al menos 2 fotos de ${POSES[comparePose].toLowerCase()} para comparar.</p>`;
+      return;
+    }
+    const a = list.find((p) => p.id === selA.value);
+    const b = list.find((p) => p.id === selB.value);
+    const wa = weightNear(a.date), wb = weightNear(b.date);
+    const days = Calc.toDay(b.date) - Calc.toDay(a.date);
+    const parts = [`${Math.abs(days)} días`];
+    if (wa && wb) {
+      const d = wb.weight - wa.weight;
+      parts.push(`${d > 0 ? '+' : ''}${fmt(d)} kg`);
+    }
+    const fig = (p, w, label) => `<figure>
+        <button class="thumb" data-photo="${p.id}"><img src="${photoUrl(p)}" alt="${label}"></button>
+        <figcaption><strong>${label}</strong> · ${fmtDate(p.date)}${w ? ' · ' + fmt(w.weight) + ' kg' : ''}</figcaption>
+      </figure>`;
+    box.innerHTML = `<div class="compare-pair">${fig(a, wa, 'Antes')}${fig(b, wb, 'Después')}</div>
+      <p class="small compare-diff">${parts.join(' · ')}</p>`;
+  }
+
   // ---------- Panel ----------
   function renderPanel() {
     const p = state.profile;
@@ -442,7 +591,12 @@
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
-  $('#btn-export').addEventListener('click', () => download(`perdida-grasa-${today()}.json`, JSON.stringify(state, null, 2), 'application/json'));
+  $('#btn-export').addEventListener('click', async () => {
+    let photoData = [];
+    try { photoData = await Photos.exportAll(); }
+    catch { toast('No se pudieron incluir las fotos en la copia'); }
+    download(`perdida-grasa-${today()}.json`, JSON.stringify({ ...state, photos: photoData }, null, 2), 'application/json');
+  });
   $('#btn-export-csv').addEventListener('click', () => {
     const rows = [['fecha', 'peso_kg', 'cintura_cm', 'cuello_cm', 'cadera_cm', 'grasa_pct', 'kcal', 'proteina_g', 'pasos', 'nota']];
     const dates = new Set([...state.entries.map((e) => e.date), ...Object.keys(state.foods), ...Object.keys(state.habits)]);
@@ -461,8 +615,12 @@
       const data = JSON.parse(await file.text());
       if (!data || !Array.isArray(data.entries)) throw new Error('formato');
       if (!confirm('Esto reemplazará los datos actuales. ¿Continuar?')) return;
-      state = { ...emptyState(), ...data };
+      const { photos: photoData, ...rest } = data;
+      state = { ...emptyState(), ...rest };
       save();
+      // Las copias anteriores a las fotos no traen la clave `photos`: se conservan las actuales.
+      if (Array.isArray(photoData)) await Photos.importAll(photoData);
+      await loadPhotos();
       fillProfileForm();
       toast('Datos importados');
       render();
@@ -472,10 +630,12 @@
       ev.target.value = '';
     }
   });
-  $('#btn-reset').addEventListener('click', () => {
-    if (!confirm('¿Borrar todos los datos de este dispositivo? No se puede deshacer.')) return;
+  $('#btn-reset').addEventListener('click', async () => {
+    if (!confirm('¿Borrar todos los datos de este dispositivo (incluidas las fotos)? No se puede deshacer.')) return;
     state = emptyState();
     save();
+    try { await Photos.clear(); } catch { toast('No se pudieron borrar las fotos'); }
+    await loadPhotos();
     profileForm.reset();
     fillProfileForm();
     toast('Datos borrados');
@@ -489,9 +649,12 @@
     renderEntries();
     renderFoods();
     renderPlan();
+    renderPhotos();
   }
 
   entryForm.elements.date.value = today();
+  photoForm.elements.date.value = today();
+  loadPhotos();
   fillProfileForm();
   render();
   if (!state.profile) show('perfil');
