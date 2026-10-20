@@ -28,8 +28,12 @@ npm start        # http://localhost:8080
 npm test         # pruebas de los cálculos
 ```
 
-Para usarla desde el móvil, publícala con GitHub Pages (Settings → Pages → rama `main`)
-y elige "Añadir a pantalla de inicio".
+## Publicación (GitHub Pages)
+
+El workflow `.github/workflows/pages.yml` ejecuta las pruebas y publica la app en cada push a `main`.
+Solo hay que activarlo una vez: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+La app quedará en `https://joseleo984-cmyk.github.io/P-rdida-de-grasa/`; desde el móvil, ábrela y
+elige "Añadir a pantalla de inicio".
 
 > Las cifras son estimaciones orientativas, no consejo médico. Ajusta las calorías según
 > tu tendencia real de peso cada 2–3 semanas.
