@@ -15,9 +15,11 @@ Sin dependencias ni servidor: todos los datos se guardan en el propio dispositiv
 - **Diario de comidas**: calorías y macros por comida, con autocompletado de alimentos ya usados
   y barras de progreso frente al objetivo.
 - **Hábitos**: pasos, agua, sueño y entrenamiento de fuerza.
+- **Fotos de progreso**: frente, perfil y espalda, comprimidas y guardadas en el dispositivo (IndexedDB).
+  Galería por fecha con el peso de ese día y comparador antes/después por pose.
 - **Recomendaciones automáticas**: avisa de estancamientos, pérdida demasiado rápida,
   proteína baja, poco sueño o falta de entrenamiento.
-- **Datos**: exportar/importar JSON (respaldo) y exportar CSV.
+- **Datos**: exportar/importar JSON (respaldo, incluye las fotos) y exportar CSV.
 
 ## Uso
 
