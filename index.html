@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Seguimiento de procesos de pérdida de grasa: peso, medidas, % de grasa, calorías y macros.">
+  <title>Pérdida de Grasa</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Pérdida de Grasa</h1>
+    <span id="today-label" class="muted"></span>
+  </header>
+
+  <main>
+    <!-- PANEL -->
+    <section id="view-panel" class="view active" aria-labelledby="tab-panel">
+      <div id="onboarding" class="card hidden">
+        <h2>¡Bienvenido!</h2>
+        <p>Completa tu <strong>perfil</strong> para calcular tus calorías, macros y proyección.</p>
+        <button class="btn" data-goto="perfil">Ir al perfil</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span class="stat-label">Peso actual</span><span class="stat-value" id="st-weight">—</span><span class="stat-sub" id="st-weight-sub"></span></div>
+        <div class="stat"><span class="stat-label">Perdido</span><span class="stat-value" id="st-lost">—</span><span class="stat-sub" id="st-lost-sub"></span></div>
+        <div class="stat"><span class="stat-label">% Grasa</span><span class="stat-value" id="st-bf">—</span><span class="stat-sub" id="st-bf-sub"></span></div>
+        <div class="stat"><span class="stat-label">Ritmo semanal</span><span class="stat-value" id="st-rate">—</span><span class="stat-sub" id="st-rate-sub"></span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Progreso hacia la meta</h2>
+          <span class="muted" id="goal-eta"></span>
+        </div>
+        <div class="progress"><div class="progress-bar" id="goal-bar"></div></div>
+        <p class="muted small" id="goal-text"></p>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Evolución del peso</h2>
+          <div class="seg" id="range-seg">
+            <button data-range="30" class="on">30 d</button>
+            <button data-range="90">90 d</button>
+            <button data-range="0">Todo</button>
+          </div>
+        </div>
+        <canvas id="chart" height="220" aria-label="Gráfico de peso"></canvas>
+        <p class="legend"><span class="dot dot-raw"></span>Peso diario <span class="dot dot-trend"></span>Tendencia (media 7 días) <span class="dot dot-goal"></span>Meta</p>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Hoy</h2>
+          <button class="btn btn-ghost" data-goto="comidas">Registrar comida</button>
+        </div>
+        <div class="macro-grid" id="today-macros"></div>
+      </div>
+
+      <div class="card" id="tips-card">
+        <h2>Recomendaciones</h2>
+        <ul id="tips" class="tips"></ul>
+      </div>
+    </section>
+
+    <!-- REGISTRO -->
+    <section id="view-registro" class="view" aria-labelledby="tab-registro">
+      <div class="card">
+        <h2>Nuevo registro corporal</h2>
+        <form id="form-entry" class="grid-form">
+          <label>Fecha<input type="date" name="date" required></label>
+          <label>Peso (kg)<input type="number" name="weight" step="0.1" min="20" max="400" inputmode="decimal"></label>
+          <label>Cintura (cm)<input type="number" name="waist" step="0.1" min="30" max="250" inputmode="decimal"></label>
+          <label>Cuello (cm)<input type="number" name="neck" step="0.1" min="15" max="80" inputmode="decimal"></label>
+          <label class="female-only">Cadera (cm)<input type="number" name="hip" step="0.1" min="40" max="250" inputmode="decimal"></label>
+          <label>% Grasa manual<input type="number" name="bodyFat" step="0.1" min="2" max="70" inputmode="decimal" placeholder="Opcional"></label>
+          <label class="span-2">Nota<input type="text" name="note" maxlength="140" placeholder="Opcional: cómo te sentiste, sueño, etc."></label>
+          <div class="span-2 form-actions">
+            <button class="btn" type="submit">Guardar</button>
+            <span class="muted small">Si ingresas cintura y cuello (y cadera en mujeres) se estima el % de grasa (método US Navy).</span>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Historial</h2>
+        <div class="table-wrap">
+          <table class="table" id="entries-table">
+            <thead><tr><th>Fecha</th><th>Peso</th><th>Cintura</th><th>% Grasa</th><th>Masa magra</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="muted small" id="entries-empty">Aún no hay registros.</p>
+      </div>
+    </section>
+
+    <!-- COMIDAS -->
+    <section id="view-comidas" class="view" aria-labelledby="tab-comidas">
+      <div class="card">
+        <div class="card-head">
+          <h2>Diario de comidas</h2>
+          <input type="date" id="food-date" aria-label="Fecha del diario">
+        </div>
+        <div class="macro-grid" id="day-macros"></div>
+      </div>
+
+      <div class="card">
+        <h2>Agregar alimento</h2>
+        <form id="form-food" class="grid-form">
+          <label class="span-2">Alimento<input type="text" name="name" required maxlength="80" list="food-suggestions" placeholder="Ej.: Pechuga de pollo 150 g"></label>
+          <datalist id="food-suggestions"></datalist>
+          <label>Comida
+            <select name="meal">
+              <option>Desayuno</option><option>Almuerzo</option><option>Cena</option><option>Snack</option>
+            </select>
+          </label>
+          <label>Calorías<input type="number" name="kcal" min="0" max="5000" required inputmode="numeric"></label>
+          <label>Proteína (g)<input type="number" name="protein" min="0" max="500" step="0.1" inputmode="decimal"></label>
+          <label>Carbohidratos (g)<input type="number" name="carbs" min="0" max="1000" step="0.1" inputmode="decimal"></label>
+          <label>Grasas (g)<input type="number" name="fat" min="0" max="500" step="0.1" inputmode="decimal"></label>
+          <div class="span-2 form-actions">
+            <button class="btn" type="submit">Agregar</button>
+            <span class="muted small">Los alimentos que registres se recuerdan para autocompletar.</span>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Registrado este día</h2>
+        <div id="food-list"></div>
+      </div>
+
+      <div class="card">
+        <h2>Actividad y hábitos del día</h2>
+        <form id="form-habits" class="grid-form">
+          <label>Pasos<input type="number" name="steps" min="0" max="100000" inputmode="numeric"></label>
+          <label>Agua (litros)<input type="number" name="water" min="0" max="15" step="0.1" inputmode="decimal"></label>
+          <label>Sueño (horas)<input type="number" name="sleep" min="0" max="24" step="0.1" inputmode="decimal"></label>
+          <label class="check"><input type="checkbox" name="trained"> Entrené fuerza</label>
+          <div class="span-2 form-actions"><button class="btn btn-ghost" type="submit">Guardar hábitos</button></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- PERFIL -->
+    <section id="view-perfil" class="view" aria-labelledby="tab-perfil">
+      <div class="card">
+        <h2>Tu perfil</h2>
+        <form id="form-profile" class="grid-form">
+          <label>Nombre<input type="text" name="name" maxlength="40"></label>
+          <label>Sexo
+            <select name="sex" required>
+              <option value="male">Hombre</option>
+              <option value="female">Mujer</option>
+            </select>
+          </label>
+          <label>Edad<input type="number" name="age" min="14" max="100" required inputmode="numeric"></label>
+          <label>Estatura (cm)<input type="number" name="height" min="120" max="230" step="0.1" required inputmode="decimal"></label>
+          <label>Peso inicial (kg)<input type="number" name="startWeight" min="30" max="400" step="0.1" required inputmode="decimal"></label>
+          <label>Peso meta (kg)<input type="number" name="goalWeight" min="30" max="400" step="0.1" required inputmode="decimal"></label>
+          <label>Fecha de inicio<input type="date" name="startDate" required></label>
+          <label>Nivel de actividad
+            <select name="activity">
+              <option value="1.2">Sedentario (oficina, &lt;5k pasos)</option>
+              <option value="1.375">Ligero (1–3 entrenos/sem)</option>
+              <option value="1.55">Moderado (3–5 entrenos/sem)</option>
+              <option value="1.725">Alto (6–7 entrenos/sem)</option>
+              <option value="1.9">Muy alto (trabajo físico + entreno)</option>
+            </select>
+          </label>
+          <label class="span-2">Ritmo de pérdida
+            <select name="rate">
+              <option value="0.0025">Suave — 0,25 % del peso/semana</option>
+              <option value="0.005">Moderado — 0,5 % del peso/semana (recomendado)</option>
+              <option value="0.0075">Rápido — 0,75 % del peso/semana</option>
+              <option value="0.01">Agresivo — 1 % del peso/semana</option>
+            </select>
+          </label>
+          <div class="span-2 form-actions"><button class="btn" type="submit">Guardar perfil</button></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Tu plan calculado</h2>
+        <div id="plan"></div>
+        <p class="muted small">Gasto basal por Mifflin-St Jeor × factor de actividad. Proteína 2 g/kg, grasas ≥ 25 % de las calorías, el resto carbohidratos. Son estimaciones: ajústalas según tu tendencia real de peso cada 2–3 semanas.</p>
+      </div>
+
+      <div class="card">
+        <h2>Datos</h2>
+        <p class="muted small">Todo se guarda solo en este dispositivo. Exporta una copia para respaldarla o pasarla a otro dispositivo.</p>
+        <div class="row-actions">
+          <button class="btn btn-ghost" id="btn-export">Exportar JSON</button>
+          <button class="btn btn-ghost" id="btn-export-csv">Exportar CSV</button>
+          <label class="btn btn-ghost file-btn">Importar JSON<input type="file" id="file-import" accept="application/json,.json"></label>
+          <button class="btn btn-danger" id="btn-reset">Borrar todo</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" role="tablist">
+    <button role="tab" id="tab-panel" data-view="panel" class="on"><span aria-hidden="true">📊</span>Panel</button>
+    <button role="tab" id="tab-registro" data-view="registro"><span aria-hidden="true">⚖️</span>Registro</button>
+    <button role="tab" id="tab-comidas" data-view="comidas"><span aria-hidden="true">🍽️</span>Comidas</button>
+    <button role="tab" id="tab-perfil" data-view="perfil"><span aria-hidden="true">👤</span>Perfil</button>
+  </nav>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="calc.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "perdida-de-grasa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App web para llevar el seguimiento de procesos de pérdida de grasa.",
+  "scripts": {
+    "start": "npx --yes http-server -c-1 -p 8080 .",
+    "test": "node --test tests/calc.test.js"
+  }
+}
