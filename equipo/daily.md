@@ -23,3 +23,6 @@ Reglas de la noche: nada a `main`, nada publicado, solo trabajo sobre decisiones
 - S2-1 (pantalla legal) integrada: 47/47 unitarias, 48 E2E Playwright, 8 suites QA en verde. QA revisándola.
 - S2-4 (datos v4 para sync: UUID, updatedAt, borrado lógico) en curso con Backend.
 - ⏸ ~04:35–09:30 UTC: los agentes se detuvieron por el límite de uso de la cuenta. Reanudados al restablecerse; sin trabajo perdido.
+- S2-1 ✅ (D1, D3 cerrados; D2 = rellenar datos del responsable, del Stakeholder). S2-4 ✅ (D1 fotos duplicadas en 2 pestañas, D2 fusión, reloj adelantado, copias acotadas).
+- Textos legales reescritos para la FASE PILOTO (sin servidor); Supabase pasa a "cambios previstos R1".
+- **Sprint 2 CERRADO.** 61 unitarias · 79 E2E · 8 suites QA en verde. Ver sprint2-review-retro.md → "Para arrancar el piloto".
