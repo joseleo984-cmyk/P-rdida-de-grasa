@@ -98,6 +98,8 @@ function makeDevice({ userId, clock, health = true, cloud = false }) {
     getMeta: () => ({ ...meta }),
     setMeta: (m) => { meta = { ...m }; },
     healthAllowed: () => dev.flags.health,
+    owner: userId,                                   // dueño de los datos locales (lo fija la app al confirmar)
+    ownerId: () => dev.owner,
     photosCloudAllowed: () => dev.flags.cloud,
     photos: {
       async list() { return [...photos.values()]; },

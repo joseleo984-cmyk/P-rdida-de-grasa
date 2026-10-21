@@ -178,6 +178,7 @@
   //   getState(), saveMerged(state)        ← guarda SIN stampChanges (no re-sella updatedAt; §5.3 regla crítica)
   //   getMeta(), setMeta(meta)              ← { userId, deviceId, cursor, pushedUpTo, lastOkAt, lastError }
   //   healthAllowed()                       ← false si el bloqueo de salud (healthPart) impide escribir: no se sincroniza
+  //   ownerId()                             ← userId dueño de los datos locales; si no coincide con la sesión, no se sincroniza
   //   photosCloudAllowed?()                 ← autorización "copia de fotos en la nube"
   //   photos?: { list(), getBlob(id), applyRemote({ upserts, deletes }) }
   //   saveComments?(comments)
@@ -193,6 +194,10 @@
       const meta0 = store.getMeta() || {};
       if (!meta0.userId) throw Object.assign(new Error('Sin sesión'), { code: 'auth' });
       if (!store.healthAllowed()) return { blocked: true };
+      // Dueño de los datos locales (QA S3-2 O1): NUNCA se suben datos que no sean de la cuenta en sesión. Sin dueño
+      // confirmado ('unconfirmed') o con otro dueño ('conflict') no se sincroniza hasta que el usuario decida en la UI.
+      const owner = typeof store.ownerId === 'function' ? store.ownerId() : null;
+      if (owner !== meta0.userId) return { owner: owner ? 'conflict' : 'unconfirmed' };
       const meta = { cursor: CURSOR0, pushedUpTo: null, ...meta0 };
       const userId = meta.userId;
       const cloud = !!(store.photosCloudAllowed && store.photosCloudAllowed() && store.photos);
@@ -284,6 +289,7 @@
       setStatus({ state: 'syncing' });
       running = cycle().then((r) => {
         if (r.blocked) { setStatus({ state: 'blocked' }); return { status: 'blocked' }; }
+        if (r.owner) { setStatus({ state: 'owner', lastError: r.owner }); return { status: 'owner', reason: r.owner }; }
         failures = 0;
         setStatus({ state: 'ok', lastOkAt: new Date(now()).toISOString(), lastError: null, nextRetryAt: null });
         return { status: 'ok', ...r };

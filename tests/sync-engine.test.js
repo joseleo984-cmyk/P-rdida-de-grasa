@@ -307,3 +307,17 @@ test('si el pull falla tras un push correcto, pushedUpTo queda guardado (no se r
   await A.sync.run();
   assert.strictEqual(pushes(), before, 'el siguiente ciclo no vuelve a subir el pesaje');
 });
+
+test('dueño de los datos (QA S3-2 O1): sin dueño confirmado o con otro dueño NO se sube ni se baja nada', async () => {
+  const w = world();
+  const A = w.mk();
+  weigh(A, '2026-10-20', 80);
+  A.owner = null;
+  assert.deepStrictEqual(await A.sync.run(), { status: 'owner', reason: 'unconfirmed' });
+  A.owner = '22222222-2222-4222-8222-222222222222';
+  assert.deepStrictEqual(await A.sync.run(), { status: 'owner', reason: 'conflict' });
+  assert.strictEqual(A.sync.status().state, 'owner');
+  assert.strictEqual(w.server.calls.length, 0, 'ninguna llamada: los datos de otra persona nunca se suben');
+  A.owner = U1;
+  assert.strictEqual((await A.sync.run()).status, 'ok', 'al confirmar el dueño, sincroniza');
+});

@@ -79,6 +79,13 @@ DoD:
 - [x] Sin cambios en `app.js`, `index.html` ni `sw.js`: `sync.js` aún no se carga en la app. Al integrarlo hay que
       añadirlo a `index.html`, `ASSETS` (con `CACHE` subido) y `pages.yml`.
 
+ADENDA (aviso del SM tras la revisión de S3-2, O1):
+- **Dueño de los datos locales**: `store.ownerId()` debe devolver el `userId` dueño de los datos del dispositivo
+  (lo guarda el Frontend al confirmar «¿estos datos son tuyos?»).
+  - Si no hay dueño → estado `owner` con motivo `unconfirmed`; si es otra cuenta → `owner` / `conflict`.
+  - En ambos casos **no se hace ninguna llamada**: nunca se suben datos de otra persona.
+  - Test nuevo en `tests/sync-engine.test.js` (19 pruebas en total).
+
 CAMBIOS DE INTERFAZ PARA EL CONTRATO (@Arquitecto, @Frontend):
 1. `remote.sync.pull(since, { overlap = true } = {})` → RPC `grasa.sync_pull(p_since, p_limit, p_overlap)`. El fake
    debe hacer lo mismo: `>= since - (overlap ? 30 s : 0)`.
