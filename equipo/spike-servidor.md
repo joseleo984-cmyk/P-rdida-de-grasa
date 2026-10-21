@@ -530,3 +530,140 @@ contenido. Evaluar envoltorio nativo si las métricas de push/instalación lo ju
 - Mercado Pago — Split de pagos 1:1 (Colombia): [mercadopago.com.co/developers](https://www.mercadopago.com.co/developers/es/docs/split-payments/split-1-1/overview).
 - Wompi — pagos a terceros: [La República](https://www.larepublica.co/finanzas/wompi-lanza-un-servicio-que-facilitara-a-los-comercios-la-gestion-de-pagos-a-terceros-3928650), [Valora Analitik](https://www.valoraanalitik.com/wompi-lanza-servicio-que-permite-a-los-comercios-la-gestion-de-pagos-a-terceros/).
 - Supabase — precios 2026 (fuentes secundarias; confirmar en supabase.com/pricing): [MakerKit](https://makerkit.dev/blog/saas/supabase-pricing), [JetAdmin](https://www.jetadmin.io/blog/supabase-pricing-2026-guide-to-plans-limits-and-real-world-costs/).
+
+---
+
+## 11. SPIKE-02 (adenda) — Plataforma para varias apps
+
+Fecha: 2026-10-21 · Base: `equipo/decisiones-negocio.md`. **Las secciones 0–10 no se reescriben.** Esta adenda las
+corrige donde choca con las nuevas decisiones (se indica en 11.6).
+
+### 11.1 Requisitos nuevos que cambian la evaluación
+1. **Varias apps (2–5)** del mismo Stakeholder, alojadas de forma económica y, si conviene, **con cuentas compartidas**.
+2. **Toda persona tiene cuenta** (cliente y coach). Se elimina el "modo sin cuenta", pero la app sigue siendo local-first.
+3. **El coach ve fotos desde R1**, con consentimiento explícito del cliente.
+4. **Solo Colombia**, USD 5 por cliente activo al mes. Fase 2: el cliente paga dentro de la app (reparto coach/plataforma).
+
+Dos conceptos que conviene separar:
+- **Cuenta compartida**: el mismo email/usuario sirve en todas las apps (una sola tabla de identidades). Es barato.
+- **SSO de verdad**: si ya iniciaste sesión en la app A, entras en la app B sin volver a autenticarte. En dominios
+  distintos exige un proveedor de identidad central con redirecciones (OIDC). Con login por código OTP, iniciar sesión en
+  cada app cuesta 20 segundos: **la cuenta compartida basta para R1–R2**; el SSO real queda para cuando haya demanda.
+
+### 11.2 Opciones evaluadas
+
+**1a. Supabase, un proyecto por app.** Plan Pro por organización (USD 25/mes) que incluye USD 10 de crédito de cómputo:
+cubre **un** proyecto Micro; cada proyecto adicional suma su propio cómputo (~USD 10/mes Micro). El ejemplo oficial da
+USD 35/mes con dos proyectos Micro (a verificar en supabase.com/pricing). Aislamiento total entre apps, pero **cada
+proyecto tiene su propio Auth**: no hay cuentas compartidas sin trabajo adicional (Supabase acepta JWT de proveedores
+externos y ha anunciado funciones de proveedor OAuth/OIDC; si un proyecto puede servir de identidad a los demás está
+a verificar).
+
+**1b. Supabase, un proyecto compartido con un esquema por app.** Un solo `auth.users` → **cuentas compartidas de serie**.
+Esquema `core` (perfiles, organizaciones, membresías y acceso por app, consentimientos, facturación) y un esquema por
+app (`grasa`, `app2`…), expuestos en la API de datos. Un solo bucket por app o prefijo `app/{user}/…` en Storage. Coste:
+el de un proyecto (escala el cómputo cuando haga falta). Contras: las apps comparten cuotas, copias de seguridad,
+ventanas de mantenimiento y **radio de impacto** (una tabla sin RLS en cualquier app expone datos de todas);
+migraciones de varias apps en un mismo repositorio de SQL.
+
+**2. Render** (web services + Render Postgres + auth propia o librería). Varias apps en un mismo *workspace* y una base
+Postgres puede alojar varias bases/esquemas. Precios aproximados (fuentes secundarias, **a verificar** en render.com/pricing):
+web service Starter ~USD 7/mes (siempre encendido), Postgres de pago desde ~USD 6/mes (planes con más memoria
+~USD 19+), plan de workspace Hobby USD 0 o Pro/Professional ~USD 19–25 por usuario. Plan gratuito: los servicios se
+**duermen tras 15 min** sin tráfico y tardan ~1 min en despertar; el Postgres gratuito **caduca** (30 o 90 días según la
+fuente): no sirve para producción. **Render no ofrece almacenamiento de objetos** con URLs firmadas: las fotos irían a
+Cloudflare R2 o AWS S3 (R2: 10 GB gratis y sin coste de salida, a verificar). Auth, RLS (o filtros en la API), invitaciones,
+sync y URLs firmadas hay que construirlos (Better Auth / Auth.js, o un servicio como Clerk/WorkOS, que añade coste y
+otro proveedor). Regiones: Oregon, Ohio, Virginia, Frankfurt, Singapur; **ninguna en Sudamérica**.
+
+**3. Combinación: Supabase (Auth + Postgres + Storage) + Render u otro hosting para frontends/APIs.** El frontend es
+estático (PWA) y se puede servir gratis en Render Static Sites, Cloudflare Pages o el GitHub Pages actual. Render solo
+añade valor si una app necesita un servidor de larga duración (procesos pesados, colas, websockets propios) que no encaje
+en Supabase Edge Functions. Para estas apps hoy **no** es necesario: webhooks de pago y push caben en Edge Functions.
+
+**4. Alternativa: Firebase (Auth + Firestore + Cloud Storage).** Un proyecto de Firebase admite varias apps con **Auth
+compartido de serie**, el SDK de Firestore trae **caché offline y sincronización** (encaja con local-first), Storage con
+reglas de seguridad. Precio por uso (plan Blaze): con ~1.000 usuarios suele quedar en USD 0–25/mes (a verificar).
+Contras: base NoSQL (el panel del coach con agregados y la migración del esquema actual se complican), reglas de
+seguridad menos expresivas que SQL+RLS para "coach con consentimiento por categoría", lock-in **alto** con Google.
+Otra alternativa más barata y artesanal es Cloudflare (Workers + D1 + R2), pero exige construir auth y sync: misma
+carga que Render.
+
+### 11.3 Comparación
+
+Supuestos: piloto = 2 coaches × 5 clientes por app; "~1.000 usuarios" = total entre todas las apps; fotos en R2/Storage
+< 20 GB. Importes en USD/mes, sin email transaccional (USD 0–20) ni dominio. **Todos los precios: a verificar.**
+
+| Criterio | 1a Supabase proyecto por app | 1b Supabase proyecto compartido | 2 Render + R2 + auth propia | 3 Supabase compartido + hosting estático | 4 Firebase |
+|---|---|---|---|---|---|
+| Coste piloto, 2 apps | ~35 | **~25** | ~20–60 (2×7 API + Postgres 6–19 + workspace 0–25) | **~25** (frontends gratis) | ~0–5 |
+| Coste piloto, 5 apps | ~65 | **~25–40** | ~45–90 | **~25–40** | ~0–10 |
+| Coste ~1.000 usuarios (5 apps) | ~75–110 | **~40–70** (subir a cómputo Small) | ~70–130 | **~40–70** | ~10–40 |
+| Cuentas compartidas / SSO | No de serie (a verificar con OIDC) | **Sí** (un solo Auth); SSO real a futuro | Sí si se construye un servicio de auth central | **Sí** | **Sí** |
+| Fotos privadas + URL firmada | Sí | Sí | Sí vía R2/S3 (a integrar) | Sí | Sí (reglas de Storage) |
+| RLS / seguridad | RLS; aislamiento total entre apps | RLS; **radio de impacto compartido** (mitigable con test de CI en todos los esquemas) | A mano en cada endpoint | Como 1b | Reglas de seguridad (sin SQL) |
+| Región / latencia desde Colombia | São Paulo o us-east (Virginia) | Igual | Solo EE.UU./UE/Asia: **Virginia** | Igual que 1b | southamerica-east1 o us-east1 |
+| Ley 1581 (transferencia internacional) | Fuera de Colombia en todos los casos → requisito igual para todas las opciones; EE.UU. figura en la lista de países adecuados de la SIC (a verificar vigencia; Brasil a verificar) | | | | |
+| Operación para equipo de agentes | Baja, pero N proyectos que mantener alineados | **Baja**: un proyecto, SQL en el repo | **Alta**: auth, sync, storage, parches de dependencias | **Baja** | Baja; reglas y datos NoSQL menos revisables |
+| Lock-in | Medio-bajo (Postgres) | Medio-bajo | Bajo | Medio-bajo | **Alto** |
+| Cold starts en planes baratos | Pro no se pausa; Edge Functions con arranque en frío corto (a verificar) | Igual | Gratis: duerme 15 min, ~1 min en despertar; Starter no duerme | Igual que 1b | Firestore sin arranque en frío; Cloud Functions sí |
+| Tiempo hasta R1 | ~5–6 semanas (+ coste por app) | **~5–6 semanas** | ~10–14 semanas | **~5–6 semanas** | ~6–8 semanas (rehacer modelo de datos) |
+
+**Latencia:** desde Bogotá suele haber menos latencia hacia la costa este de EE.UU. (Miami/Virginia) que hacia São
+Paulo (a verificar con una medición: `ping`/`curl` desde Colombia a ambas regiones durante el piloto). Propuesta:
+**us-east-1 (Virginia)** salvo que la medición o la revisión legal digan lo contrario. La región no se puede cambiar
+después sin migrar datos: se decide antes de cargar datos reales.
+
+### 11.4 Recomendación (una)
+
+**Opción 3: un solo proyecto Supabase Pro compartido ("plataforma") con un esquema por app, en us-east-1, y frontends
+estáticos gratuitos (GitHub Pages / Cloudflare Pages / Render Static Sites).**
+
+Justificación Lean:
+- Es la opción **más barata que cumple todo** (cuentas compartidas, fotos con URL firmada, RLS) con 2–5 apps: ~USD 25–40
+  en piloto frente a ~65 de un proyecto por app, y sin construir auth/sync/storage como en Render.
+- Render no aporta nada que estas apps necesiten hoy y añade semanas de trabajo; queda como opción para un servicio
+  concreto que no quepa en Edge Functions (decisión por app, no de plataforma).
+- Firebase sería más barato y trae offline, pero su lock-in y el modelo NoSQL encajan peor con el panel del coach y con
+  el código actual; no compensa la diferencia de ~USD 20–30/mes.
+
+Reglas para que el proyecto compartido no se vuelva un problema:
+1. **Regla de graduación:** una app pasa a su propio proyecto si supera ~5.000 usuarios activos, tiene requisitos de datos
+   distintos (p. ej. otra ley o datos de menores) o su carga afecta a las demás. Las cuentas compartidas se mantendrían
+   entonces con la función de proveedor OIDC o un proveedor externo (a verificar en ese momento).
+2. **Test de CI que recorre todos los esquemas** y falla si una tabla no tiene RLS; la matriz de QA se ejecuta por app.
+3. Tabla `core.app_access(user_id, app_id, role)`: tener cuenta no da acceso a todas las apps; cada política de una app
+   comprueba también el acceso a esa app. Consentimientos con `app_id` (se consiente por app y finalidad, Ley 1581).
+4. Migraciones SQL por carpeta de app (`supabase/migrations/` con prefijo de app) y revisión del Arquitecto en cada una.
+5. Spend cap activado y alerta de uso.
+
+### 11.5 Riesgo añadido
+- **R-8 Radio de impacto compartido:** un fallo de seguridad o de carga en una app afecta a todas. Mitigación: reglas
+  11.4 (2–4) y graduación (1). Probabilidad baja mientras haya pocas apps y un solo equipo que revisa todo el SQL.
+
+### 11.6 Qué cambia en el plan de R1 (y en las secciones anteriores)
+1. **Infraestructura:** organización Supabase Pro + **un** proyecto `plataforma` (us-east-1, a confirmar tras medir latencia
+   y revisión legal) con esquemas `core` y `grasa`; `staging` como segundo proyecto o rama (a verificar coste de ramas).
+   Frontend sigue en GitHub Pages por ahora (o Cloudflare Pages si se necesita dominio propio por app con cabeceras CSP).
+2. **Modelo de datos (§3):** `profiles`, `organizations`, `org_members`, `consent_events`, `subscriptions` pasan a `core`
+   con `app_id`; las tablas de salud a `grasa`. Nueva `core.app_access`. `coach_can_see()` vive en `grasa`.
+3. **Sin modo sin cuenta (§4.3 punto 4, decisión 4 del §9 y nota de HU-P04 quedan anuladas):** la primera apertura pide
+   iniciar sesión (requiere red una vez); después la app funciona offline con la sesión en caché y el refresh token se
+   renueva al volver la red. Los usuarios actuales con datos locales pasan por la "adopción" de §4.3 al crear cuenta.
+4. **Fotos en el panel desde R1 (cambia §8 "R1.1"):** se activa la UI de fotos en la ficha del coach. Consentimiento por
+   categoría "fotos" (desmarcado por defecto) **más** opción de ocultar fotos concretas (`photos.shared_with_coach`,
+   por defecto = valor de la categoría). `photo_access_log` y aviso al cliente pasan a ser obligatorios en R1. QA añade
+   pruebas de URL firmada caducada, foto oculta y consentimiento revocado. La subida de fotos a la nube entra en R1.
+5. **Precio:** USD 5 por cliente activo/mes, cobrado fuera de la app; R1 solo construye el conteo de clientes activos por
+   coach (definición de "activo" a cerrar con el Analista).
+6. **R2 (cliente paga en la app):** pasarela con reparto en Colombia → **Mercado Pago split** como primera candidata
+   (§6.1), webhooks en Edge Function; Wompi/PayU a verificar. Requiere saber si el Stakeholder opera como empresa o
+   persona natural (pendiente en `decisiones-negocio.md`).
+7. **Sin cambios:** auth por código OTP, sync last-write-wins por registro, reparto de trabajo entre agentes de §8 (el Dev
+   Backend añade `core.app_access` y el test de RLS multi-esquema).
+
+Fuentes de esta adenda (precios a verificar en las páginas oficiales): [Supabase pricing](https://supabase.com/pricing.md),
+[JetAdmin – Supabase 2026](https://www.jetadmin.io/blog/supabase-pricing-2026-guide-to-plans-limits-and-real-world-costs/),
+[CloudZero – Supabase](https://www.cloudzero.com/blog/supabase-pricing/), [Render regions](https://render.com/docs/regions),
+[Render – coste de hosting](https://render.com/articles/how-much-does-cloud-application-hosting-cost-for-small-businesses),
+[Temps – Render 2026](https://temps.sh/blog/render-pricing-2026), [Kuberns – Render 2026](https://kuberns.com/blogs/render-pricing/).
