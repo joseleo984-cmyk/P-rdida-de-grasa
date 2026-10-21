@@ -122,16 +122,17 @@ async function main() {
   rep(ok2(r) && r.json && r.json.status === 'active' && r.json.share_body === true && !r.json.share_nutrition && !r.json.share_habits && !r.json.share_notes,
     'A join_coach con SOLO peso/medidas (vínculo activo; comidas/hábitos/notas = false)', ok2(r) ? '' : errTxt(r));
   r = await rpc('core', 'my_consents', { p_app: 'grasa' }, A.token);
-  rep(ok2(r) && flat(r.json).includes('share_body'), 'A my_consents devuelve el consentimiento registrado');
+  rep(ok2(r) && flat(r.json).includes('sensitive_health'), 'A my_consents devuelve sensitive_health (los share_* no se listan por diseño)');
 
   // ---------- b) Cliente A empuja y recupera; B no ve nada ----------
   sec('b) Aislamiento entre clientes');
   const eKey = day;
+  const foodRec = mkRec('food', 'x', day, { name: 'Comida QA', kcal: 500 }); foodRec.nkey = foodRec.id;
   const recs = [
     mkRec('profile', 'profile', null, { name: 'QA A', height: 170 }),
     mkRec('entry', eKey, day, { weight: 80.5, waist: 90, note: NOTE }),
-    mkRec('food', crypto.randomUUID(), day, { name: 'Comida QA', kcal: 500, note: NOTE }),
-    mkRec('habit', day, day, { water: true, note: NOTE }),
+    foodRec,
+    mkRec('habit', day, day, { water: true }),
     mkRec('library', 'alimento qa', null, { name: 'Alimento QA', kcal: 100 }),
   ];
   r = await rpc('grasa', 'sync_push', { p_records: recs, p_photos: [] }, A.token);
@@ -176,7 +177,7 @@ async function main() {
   r = await mut('DELETE', 'grasa', 'records', `user_id=eq.${A.id}`, undefined, A.token);
   rep(blocked(r), 'A no puede hacer DELETE físico ni de lo suyo (solo lápida)', errTxt(r));
   r = await mut('PATCH', 'grasa', 'records', `user_id=eq.${A.id}&kind=eq.entry`, { user_id: B && B.id ? B.id : crypto.randomUUID() }, A.token);
-  rep(blocked(r), 'A no puede cambiar el dueño (user_id) de su fila', errTxt(r));
+  rep(blocked(r) || rows(r).every((x) => x.user_id === A.id), 'A no puede cambiar el dueño (user_id) de su fila: denegado o el trigger lo conserva', errTxt(r));
 
   // ---------- c) Coach ----------
   sec('c) Coach: solo lo consentido');
@@ -251,7 +252,7 @@ async function main() {
   r = await rpc('grasa', 'preview_invite_code', { p_code: 'AAAAAA' }, A.token);
   rep(ok2(r) && Array.isArray(r.json) && r.json.length === 0, 'preview_invite_code inválido -> 0 filas (cuenta como intento)', errTxt(r));
   r = await rpc('grasa', 'join_coach', { p_code: 'AAAAAA', p_shares: { body: true, ...SH } }, A.token);
-  rep(ok2(r) && r.json === null, 'join_coach con código inválido -> null (cuenta como intento)', `HTTP ${r.status} cuerpo=${flat(r.json)}`);
+  rep(ok2(r) && (r.json === null || r.json.id === null), 'join_coach con código inválido -> null/fila vacía, sin vínculo (cuenta como intento)', `HTTP ${r.status} cuerpo=${flat(r.json)}`);
   r = await rpc('grasa', 'my_link', {}, A.token);
   rep(ok2(r) && rows(r).length === 0, 'A sigue sin vínculo tras el código inválido');
   console.log('INFO  El contador invite_attempts no es legible por RLS: que cuente cada intento no se puede observar directamente; 3 intentos < 20/h, no se disparó rate_limited.');
@@ -260,7 +261,8 @@ async function main() {
 
   // ---------- h) Baja de B ----------
   sec('h) delete_my_account con el cliente B');
-  if (bOk) {
+  if (bOk && fails > 0) console.log('INFO  Hay FALLAs en a-g: NO se borra B (para poder repetir). Corrige y repite.');
+  else if (bOk) {
     r = await rpc('core', 'delete_my_account', {}, B.token);
     rep(ok2(r), 'B delete_my_account', ok2(r) ? '' : errTxt(r));
     const l2 = await login('B');

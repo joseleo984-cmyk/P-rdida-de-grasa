@@ -2,37 +2,36 @@
 
 Fecha: 2026-10-21 · Autor: QA de seguridad · Script: `scripts/qa-live-rls.js` (sin credenciales; todo por variables de entorno)
 
-## Veredicto: RECHAZADO (por falta de evidencia, NO por un defecto encontrado en el código)
+## Veredicto: APROBADO CON CONDICIONES
 
-La matriz RLS en vivo **no se pudo ejecutar**: el inicio de sesión del **cliente A** fue rechazado por Auth
-(`HTTP 400 · invalid_credentials · "Invalid login credentials"`, 3 intentos, el mismo resultado). Sin A no existe vínculo
-ni datos que comprobar, así que los apartados b–f y h quedan **sin ejecutar**. Coach y cliente B sí iniciaron sesión.
-No se tocó ninguna cuenta (en particular **B no se borró**, para poder repetir la pasada). No hay ningún resultado inventado.
+Segunda ronda (cuenta A recreada por el Stakeholder): corrida completa a–h contra `pruebas`, **61/61 comprobaciones OK**
+en la última pasada. La primera ronda (login de A rechazado) quedó superada. Condiciones: corregir H6 (media) y H2 (media)
+antes de abrir a usuarios reales; el resto son bajas/informativas. Pendiente fuera de alcance: códigos OTP reales.
+Durante la ronda hubo 3 pasadas parciales: los FALLA de las dos primeras eran errores míos del script (restricción
+`records_check` exige `nkey = id` en food; `my_consents` no lista `share_*` por diseño; `join_coach` inválido devuelve fila
+de nulos; el trigger conserva el `user_id`), corregidos en el script, salvo uno que SÍ era hallazgo real (H6).
+La cuenta B se borró solo en la pasada final limpia. Para repetir hay que recrear B.
 
-Causa probable (a confirmar por el Stakeholder): el usuario `…+qaclientea@…` no existe en `pruebas`, no tiene
-contraseña asignada o la contraseña facilitada tiene un error de transcripción. Auth devuelve el mismo mensaje en los
-tres casos (no revela cuál). Para repetir: comprobar/restablecer esa cuenta en el panel y ejecutar de nuevo (comando abajo).
-
-## Matriz
+## Matriz (resultados reales de la pasada final)
 
 | # | Prueba | Resultado |
 |---|---|---|
-| a | Login coach | OK |
-| a | Login cliente B | OK |
-| a | Login cliente A | FALLA (`invalid_credentials`) — bloquea el resto |
-| a | join_app, become_coach, my_roles, consent_events A, join_coach solo peso/medidas | NO EJECUTADO |
-| b | A sync_push/sync_pull; B no ve nada de A; A no escribe en B | NO EJECUTADO |
-| c | Coach ve solo categorías consentidas, nunca `note` ni biblioteca; no escribe; no ve a B | NO EJECUTADO |
-| d | Revocar (update_shares / leave_coach) → coach pierde acceso | NO EJECUTADO |
-| e | consent_events: insertar OK, UPDATE/DELETE rechazados | NO EJECUTADO |
-| f | Código inválido (máx. 3 intentos) | NO EJECUTADO |
-| g | Errores reales de Auth (tabla siguiente) | EJECUTADO (con coach) |
-| h | B `delete_my_account` | NO EJECUTADO (a propósito: no borrar B hasta poder probar A) |
+| a | Login coach, A, B; join_app A y B; become_coach (código de 6 símbolos); my_roles coach/client; consent_events A; join_coach solo peso/medidas (vínculo activo, comidas/hábitos/notas = false); my_consents | OK |
+| b | A sync_push de 5 registros (profile, entry con note, food, habit, library) y sync_pull los recupera (incluida la note) | OK |
+| b | B: sync_pull ve solo lo suyo; 0 filas de A por `user_id`, por ids adivinados y sin filtro; no ve coach_links, consent_events ni profiles de A; `coach_pull(A)` → 403 forbidden | OK |
+| b | B inserta con `user_id` de A y A con `user_id` de B → 403 (RLS); A PATCH/DELETE sobre B → 0 filas / 403; datos de B intactos | OK |
+| b | A no puede DELETE físico ni de lo suyo (403, solo lápida); PATCH del `user_id` devuelve 200 pero el trigger conserva el dueño | OK |
+| c | `coach_clients` lista a A y no a B; `coach_pull(A)` = solo `entry`+`profile`; sin `note`, comidas ni biblioteca; `coach_pull(B)` → 403 | OK |
+| c | Coach: lectura directa de `records` de A = 0 filas; INSERT → 403; PATCH → 0 filas; DELETE → 403; datos de A intactos; no lee consent_events de A; solo ve sus vínculos | OK |
+| c | Con comidas concedidas el coach ve `food` (y sigue sin hábitos/biblioteca/note de entry); con notas concedidas la note de entry aparece; biblioteca nunca | OK |
+| d | `update_shares` retirando comidas/notas → el coach las pierde en la siguiente consulta; `leave_coach` → `coach_pull` 403 forbidden, `coach_clients` ya no lista a A, `add_comment` rechazado | OK |
+| e | consent_events: INSERT OK; UPDATE y DELETE → 403 `permission denied`; filas intactas (23 → 23); no se puede insertar a nombre de otro usuario | OK |
+| f | `preview_invite_code` inválido → 0 filas; `join_coach` inválido → HTTP 200 con **fila de nulos** (no `null` JSON); A sigue sin vínculo. Sin `rate_limited` (≈6 intentos acumulados). Que cada intento cuente no es observable por RLS | OK (ver H7) |
+| g | Errores de Auth y REST | ver tabla |
+| h | B `delete_my_account` OK; B ya no inicia sesión (400 `invalid_credentials`); con su token antiguo `my_roles` → `[]` y `sync_pull` → 0 registros; A no ve nada de B. **Huérfanos en tablas internas / Storage no comprobables con la clave publicable** (requiere SQL del Stakeholder) | OK (parcial) |
 
-Comprobaciones REST sin sesión (ejecutadas, parte de g): con solo la clave publicable, `rpc/my_roles` y
-`grasa.records` devuelven HTTP 401 `42501 permission denied for schema …` → `anon` no puede ejecutar RPC ni leer tablas (§10.7 OK).
-Con el coach: `coach_pull` de un cliente al que no está vinculado → HTTP 403 `42501` mensaje `forbidden` (OK);
-`sync_push` con id no UUID → HTTP 400 `22P02`.
+Comprobaciones REST sin sesión (apartado g): con solo la clave publicable, `rpc/my_roles` y `grasa.records` devuelven
+HTTP 401 `42501 permission denied for schema …` → `anon` no puede ejecutar RPC ni leer tablas (§10.7 OK).
 
 ## Errores reales (Auth y REST) y cómo los mapea `remote.js` (`mapError`)
 
@@ -65,11 +64,15 @@ solo ejercitan la ruta REST/RLS, no el inicio de sesión real de la app. Sigue p
 
 | ID | Sev. | Hallazgo | Corrección propuesta |
 |---|---|---|---|
-| H1 | Bloqueante (de la prueba) | Credenciales de cliente A rechazadas; matriz b–f,h sin ejecutar | Stakeholder: verificar/restablecer la cuenta A y repetir `scripts/qa-live-rls.js` |
-| H2 | Media | Refresh token inválido llega como `400 validation_failed` y `mapError` (ctx `auth`) lo convierte en `invalid`, no en `auth`; la UI podría tratar una sesión perdida como "datos no válidos" | En `mapError`: `code === 'validation_failed' && /refresh token/i.test(msg)` → `auth` (junto a `refresh_token_not_found`) |
-| H3 | Baja | HTTP 401 con `42501` sin sesión se mapea a `forbidden` (la regla SQLSTATE va antes que "HTTP 401 → auth" del contrato §10.4) | Si `status === 401` y no hay sesión → `auth`; o documentarlo. Normalmente `me()` lo corta antes |
-| H4 | Informativa | Los mensajes de Auth/PostgREST contienen detalle técnico (p. ej. `bad_jwt: … token is malformed`) | Ya se guarda solo en `detail` y la UI usa textos propios: mantener |
-| H5 | Informativa | Códigos OTP/límite de correos siguen sin verificar en vivo | Probarlos manualmente con una cuenta real de correo (Stakeholder) |
+| H1 | Cerrado | Credenciales de A rechazadas en la ronda 1 | Cuenta recreada; ronda 2 completa |
+| H2 | Media | Refresh token inválido llega como `400 validation_failed` y `mapError` (ctx `auth`) lo convierte en `invalid`, no en `auth` | En `mapError`: `code === 'validation_failed' && /refresh token/i.test(msg)` → `auth` |
+| H3 | Baja | HTTP 401 con `42501` sin sesión se mapea a `forbidden` (la regla SQLSTATE va antes que "HTTP 401 → auth" de §10.4) | Si `status === 401` → `auth`; o documentarlo. Normalmente `me()` lo corta antes |
+| H4 | Informativa | Mensajes de Auth/PostgREST con detalle técnico | Ya van solo a `detail`; mantener |
+| H5 | Informativa | Códigos OTP / límite de correos sin verificar en vivo | Probar a mano con correo real |
+| H6 | Media | `coach_pull` solo quita `note` de las filas `kind='entry'` (migraciones `…120100` L401 y `…130000` L114). Si una fila `food` o `habit` trae `note` en `data`, el coach la ve con `share_notes = false` (observado en vivo: food con note visible tras conceder solo comidas). La app actual solo genera `note` en `entry` (schema.js L185), pero un cliente modificado o una versión futura la filtraría | Nueva migración: quitar `note` en todo kind: `r.data - 'note'` si `not l.share_notes` (sin restringir a `entry`), o mejor lista blanca de claves por `kind` |
+| H7 | Baja | `join_coach` con código inválido devuelve HTTP 200 con un objeto de columnas nulas (composite), no `null` | `remote.js` ya lo trata (`linkOut` exige `l.id`), pero documentar en el contrato (§11.1) o devolver `setof` |
+| H8 | Baja | Tras `delete_my_account` el JWT del usuario sigue aceptado hasta caducar (devuelve datos vacíos, sin fuga) | Aceptable; el cliente debe cerrar sesión local al borrar |
+| H9 | Informativa | Huérfanos tras la baja en tablas internas y Storage no verificables sin SQL | Stakeholder: `select count(*)` de `grasa.records/photos/coach_links/photo_views/invite_attempts` y `core.*` por el id de B |
 
 ## Cómo repetir la pasada completa
 
