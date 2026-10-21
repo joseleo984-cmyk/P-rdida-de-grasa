@@ -5,6 +5,6 @@
   "description": "App web para llevar el seguimiento de procesos de pérdida de grasa.",
   "scripts": {
     "start": "npx --yes http-server -c-1 -p 8080 .",
-    "test": "node --test tests/calc.test.js"
+    "test": "node --test tests/*.test.js"
   }
 }

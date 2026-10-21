@@ -1,0 +1,36 @@
+{
+  "profile": {
+    "name": "Ana",
+    "sex": "female",
+    "age": 35,
+    "height": 165,
+    "startWeight": 70,
+    "goalWeight": 62,
+    "startDate": "2026-10-01",
+    "activity": 1.375,
+    "rate": 0.005
+  },
+  "entries": [
+    { "id": "k3j9x0aa", "date": "2026-10-01", "weight": 70 },
+    { "id": "p0q8z1bb", "date": "2026-10-08", "weight": 69.3, "waist": 80, "neck": 33, "hip": 100, "note": "<b>nota</b> & \"comillas\"" },
+    { "id": "m2n7c4cc", "date": "2026-10-15", "weight": 68.8, "bodyFat": 31.5 }
+  ],
+  "foods": {
+    "2026-10-15": [
+      { "id": "f1a2b3cc", "name": "Avena 60 g", "meal": "Desayuno", "kcal": 230, "protein": 8, "carbs": 40, "fat": 4 },
+      { "id": "f4d5e6dd", "name": "Pechuga de pollo 150 g", "meal": "Almuerzo", "kcal": 250, "protein": 46, "carbs": 0, "fat": 5 }
+    ]
+  },
+  "habits": {
+    "2026-10-15": { "steps": 9000, "water": 2.5, "sleep": 7.5, "trained": true },
+    "2026-10-14": { "trained": false }
+  },
+  "library": {
+    "avena 60 g": { "name": "Avena 60 g", "kcal": 230, "protein": 8, "carbs": 40, "fat": 4 },
+    "pechuga de pollo 150 g": { "name": "Pechuga de pollo 150 g", "kcal": 250, "protein": 46, "carbs": 0, "fat": 5 }
+  },
+  "photos": [
+    { "id": "ph01abcd", "date": "2026-10-01", "pose": "frente", "width": 1, "height": 1, "createdAt": 1790000000000, "data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" },
+    { "id": "ph02abcd", "date": "2026-10-15", "pose": "frente", "width": 1, "height": 1, "createdAt": 1790600000000, "data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" }
+  ]
+}

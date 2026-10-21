@@ -1,7 +1,10 @@
 (function () {
   'use strict';
 
+  // La clave conserva el nombre histórico ":v1"; la versión real va dentro del dato (`schemaVersion`).
   const STORAGE_KEY = 'perdida-grasa:v1';
+  const BACKUP_KEY = 'perdida-grasa:backup';      // copia del dato crudo antes de migrarlo o corregirlo
+  const CORRUPT_KEY = 'perdida-grasa:corrupto';   // dato ilegible que no se pudo cargar
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
   const fmt = (n, d = 1) => (n == null || Number.isNaN(n) ? '—' : Number(n).toLocaleString('es', { minimumFractionDigits: d, maximumFractionDigits: d }));
@@ -20,21 +23,49 @@
   }
 
   // ---------- Estado ----------
-  const emptyState = () => ({ profile: null, entries: [], foods: {}, habits: {}, library: {} });
+  const emptyState = Schema.emptyState;
+  let loadNotice = '';   // aviso a mostrar tras el arranque (toast aún no está listo aquí)
+  let saveBlocked = false;
   let state = load();
   let chartRange = 30;
 
+  // Migra y normaliza lo guardado. Si está dañado, la app arranca igualmente y el dato crudo se conserva.
   function load() {
+    let raw;
+    try { raw = localStorage.getItem(STORAGE_KEY); } catch { return emptyState(); }
+    if (!raw) return emptyState();
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? { ...emptyState(), ...JSON.parse(raw) } : emptyState();
-    } catch {
+      const parsed = JSON.parse(raw);
+      const { state: s, warnings } = Schema.normalize(Schema.migrate(parsed));
+      if (warnings.length || parsed.schemaVersion !== Schema.CURRENT_VERSION) {
+        try { localStorage.setItem(BACKUP_KEY, raw); } catch { /* sin espacio: seguimos */ }
+      }
+      if (warnings.length) {
+        loadNotice = `Se corrigieron ${warnings.length} datos dañados (copia en "${BACKUP_KEY}")`;
+        console.warn('Datos corregidos al cargar:', warnings);
+      }
+      return s;
+    } catch (err) {
+      try { localStorage.setItem(CORRUPT_KEY, raw); } catch { /* sin espacio: seguimos */ }
+      // Datos de una versión más nueva: no se sobrescriben desde esta versión antigua.
+      saveBlocked = /más nueva/.test(err.message);
+      loadNotice = saveBlocked
+        ? 'Tus datos son de una versión más nueva de la app: recarga para actualizar'
+        : `No se pudieron leer los datos guardados (copia en "${CORRUPT_KEY}")`;
+      console.error('Datos guardados ilegibles:', err);
       return emptyState();
     }
   }
+  // Lanza si no se puede escribir (lo usa la importación para ser atómica).
+  function persist(s) {
+    if (saveBlocked) throw new Error('Guardado bloqueado');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...s, schemaVersion: Schema.CURRENT_VERSION }));
+  }
+  const QUOTA_MSG = 'Almacenamiento lleno: exporta una copia y borra fotos antiguas';
+  const isQuotaError = (err) => err && (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22);
   function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-    catch { toast('No se pudo guardar en este navegador'); }
+    try { persist(state); }
+    catch (err) { toast(saveBlocked ? loadNotice : isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador'); }
   }
 
   const sortedEntries = () => [...state.entries].sort((a, b) => a.date.localeCompare(b.date));
@@ -79,7 +110,7 @@
   profileForm.addEventListener('submit', (ev) => {
     ev.preventDefault();
     const f = new FormData(profileForm);
-    state.profile = {
+    const profile = {
       name: f.get('name').trim(),
       sex: f.get('sex'),
       age: Number(f.get('age')),
@@ -90,10 +121,10 @@
       activity: Number(f.get('activity')),
       rate: Number(f.get('rate')),
     };
-    if (state.profile.goalWeight >= state.profile.startWeight) {
-      toast('La meta debe ser menor que el peso inicial');
-      return;
-    }
+    // Se valida antes de tocar el estado: un perfil inválido nunca llega a guardarse.
+    const err = Schema.profileError(profile);
+    if (err) { toast(err); return; }
+    state.profile = profile;
     // El peso inicial cuenta como primer registro si aún no hay ninguno ese día.
     if (!state.entries.some((e) => e.date === state.profile.startDate)) {
       state.entries.push({ id: uid(), date: state.profile.startDate, weight: state.profile.startWeight });
@@ -182,7 +213,7 @@
         <td>${e.waist ? fmt(e.waist) + ' cm' : '—'}</td>
         <td>${bf != null ? fmt(bf) + ' %' : '—'}</td>
         <td>${lean != null ? fmt(lean) + ' kg' : '—'}</td>
-        <td><button class="icon-btn" data-del-entry="${e.id}" aria-label="Eliminar">✕</button></td>
+        <td><button class="icon-btn" data-del-entry="${esc(e.id)}" aria-label="Eliminar">✕</button></td>
       </tr>`;
     }).join('');
     $$('.female-only').forEach((el) => el.classList.toggle('hidden', state.profile?.sex !== 'female'));
@@ -272,7 +303,7 @@
       if (!xs.length) return '';
       const sum = xs.reduce((s, x) => s + x.kcal, 0);
       return `<div class="meal"><div class="meal-head"><strong>${m}</strong><span class="muted">${Math.round(sum)} kcal</span></div>
-        ${xs.map((x) => `<div class="food-row"><span>${esc(x.name)}</span><span class="muted small">${x.kcal} kcal · P${fmt(x.protein, 0)} C${fmt(x.carbs, 0)} G${fmt(x.fat, 0)}</span><button class="icon-btn" data-del-food="${x.id}" aria-label="Eliminar">✕</button></div>`).join('')}
+        ${xs.map((x) => `<div class="food-row"><span>${esc(x.name)}</span><span class="muted small">${esc(x.kcal)} kcal · P${fmt(x.protein, 0)} C${fmt(x.carbs, 0)} G${fmt(x.fat, 0)}</span><button class="icon-btn" data-del-food="${esc(x.id)}" aria-label="Eliminar">✕</button></div>`).join('')}
       </div>`;
     }).join('') : '<p class="muted small">Nada registrado este día.</p>';
 
@@ -394,8 +425,8 @@
       return `<div class="photo-day">
         <div class="meal-head"><strong>${fmtDate(d)}</strong><span class="muted">${w ? fmt(w.weight) + ' kg' : ''}</span></div>
         <div class="thumbs">${byDate[d].map((p) => `
-          <button class="thumb" data-photo="${p.id}" aria-label="Ver foto ${POSES[p.pose]} del ${fmtDate(d)}">
-            <img src="${photoUrl(p)}" alt="" loading="lazy"><span>${POSES[p.pose]}</span>
+          <button class="thumb" data-photo="${esc(p.id)}" aria-label="Ver foto ${esc(POSES[p.pose])} del ${esc(fmtDate(d))}">
+            <img src="${esc(photoUrl(p))}" alt="" loading="lazy"><span>${esc(POSES[p.pose])}</span>
           </button>`).join('')}</div>
       </div>`;
     }).join('') : '<p class="muted small">Aún no hay fotos.</p>';
@@ -406,7 +437,7 @@
     const list = sortedPhotos().filter((p) => p.pose === comparePose);
     const selA = $('#compare-a'), selB = $('#compare-b');
     const prevA = selA.value, prevB = selB.value;
-    const opts = list.map((p) => `<option value="${p.id}">${fmtDate(p.date)}</option>`).join('');
+    const opts = list.map((p) => `<option value="${esc(p.id)}">${esc(fmtDate(p.date))}</option>`).join('');
     selA.innerHTML = opts;
     selB.innerHTML = opts;
     const has = (id) => list.some((p) => p.id === id);
@@ -428,7 +459,7 @@
       parts.push(`${d > 0 ? '+' : ''}${fmt(d)} kg`);
     }
     const fig = (p, w, label) => `<figure>
-        <button class="thumb" data-photo="${p.id}"><img src="${photoUrl(p)}" alt="${label}"></button>
+        <button class="thumb" data-photo="${esc(p.id)}"><img src="${esc(photoUrl(p))}" alt="${esc(label)}"></button>
         <figcaption><strong>${label}</strong> · ${fmtDate(p.date)}${w ? ' · ' + fmt(w.weight) + ' kg' : ''}</figcaption>
       </figure>`;
     box.innerHTML = `<div class="compare-pair">${fig(a, wa, 'Antes')}${fig(b, wb, 'Después')}</div>
@@ -595,7 +626,7 @@
     let photoData = [];
     try { photoData = await Photos.exportAll(); }
     catch { toast('No se pudieron incluir las fotos en la copia'); }
-    download(`perdida-grasa-${today()}.json`, JSON.stringify({ ...state, photos: photoData }, null, 2), 'application/json');
+    download(`perdida-grasa-${today()}.json`, JSON.stringify({ ...state, schemaVersion: Schema.CURRENT_VERSION, exportedAt: new Date().toISOString(), photos: photoData }, null, 2), 'application/json');
   });
   $('#btn-export-csv').addEventListener('click', () => {
     const rows = [['fecha', 'peso_kg', 'cintura_cm', 'cuello_cm', 'cadera_cm', 'grasa_pct', 'kcal', 'proteina_g', 'pasos', 'nota']];
@@ -608,24 +639,45 @@
     });
     download(`perdida-grasa-${today()}.csv`, rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n'), 'text/csv');
   });
+  // Importación atómica: se valida TODO en memoria; si algo falla no se toca ni localStorage ni IndexedDB.
   $('#file-import').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];
     if (!file) return;
     try {
-      const data = JSON.parse(await file.text());
-      if (!data || !Array.isArray(data.entries)) throw new Error('formato');
-      if (!confirm('Esto reemplazará los datos actuales. ¿Continuar?')) return;
-      const { photos: photoData, ...rest } = data;
-      state = { ...emptyState(), ...rest };
-      save();
+      let data;
+      try { data = JSON.parse(await file.text()); }
+      catch { throw new Error('El archivo no es un JSON válido'); }
+      const { state: next, warnings } = Schema.normalize(Schema.migrate(data));
       // Las copias anteriores a las fotos no traen la clave `photos`: se conservan las actuales.
-      if (Array.isArray(photoData)) await Photos.importAll(photoData);
+      // Si la trae con un formato que no es lista, normalizePhotos lanza y no se importa nada.
+      const hasPhotos = data.photos !== undefined && data.photos !== null;
+      const ph = hasPhotos ? Schema.normalizePhotos(data.photos) : { photos: [], warnings: [] };
+      const discarded = warnings.length + ph.warnings.length;
+      if (discarded) console.warn('Importación: datos descartados o corregidos', [...warnings, ...ph.warnings]);
+      const summary = `${next.entries.length} registros, ${Object.keys(next.foods).length} días de comidas` +
+        (hasPhotos ? `, ${ph.photos.length} fotos` : '') +
+        (discarded ? `. Se descartarán o corregirán ${discarded} datos no válidos` : '');
+      if (!confirm(`Se importarán ${summary}.\nEsto reemplazará los datos actuales. ¿Continuar?`)) return;
+
+      const prevRaw = localStorage.getItem(STORAGE_KEY);
+      // Si falla (p. ej. sin espacio) se lanza antes de tocar las fotos.
+      try { persist(next); } catch (err) { throw new Error(isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador'); }
+      if (hasPhotos) {
+        try { await Photos.importAll(ph.photos); }
+        catch {
+          // Deshace localStorage para que la importación sea todo o nada.
+          if (prevRaw == null) localStorage.removeItem(STORAGE_KEY); else localStorage.setItem(STORAGE_KEY, prevRaw);
+          throw new Error('No se pudieron guardar las fotos; no se cambió nada');
+        }
+      }
+      state = next;
       await loadPhotos();
+      profileForm.reset();
       fillProfileForm();
-      toast('Datos importados');
+      toast(discarded ? `Datos importados (${discarded} corregidos o descartados)` : 'Datos importados');
       render();
-    } catch {
-      toast('Archivo no válido');
+    } catch (err) {
+      toast('No se importó. ' + (err.message || 'Archivo no válido'));
     } finally {
       ev.target.value = '';
     }
@@ -634,6 +686,9 @@
     if (!confirm('¿Borrar todos los datos de este dispositivo (incluidas las fotos)? No se puede deshacer.')) return;
     state = emptyState();
     save();
+    // Las marcas de copia de seguridad (HU-01) también son datos del dispositivo.
+    setPref(LAST_BACKUP_KEY, null);
+    setPref(BACKUP_SNOOZE_KEY, null);
     try { await Photos.clear(); } catch { toast('No se pudieron borrar las fotos'); }
     await loadPhotos();
     profileForm.reset();
@@ -722,6 +777,7 @@
   fillProfileForm();
   render();
   if (!state.profile) show('perfil');
+  if (loadNotice) toast(loadNotice);
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
