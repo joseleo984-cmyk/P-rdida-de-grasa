@@ -1,6 +1,6 @@
 // Cache simple para que la app funcione sin conexión.
-const CACHE = 'perdida-grasa-v18';
-const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'sync.js', 'coach.js', 'photos.js', 'app.js', 'config.js', 'vendor/supabase-2.117.2.js', 'remote.js', 'account.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
+const CACHE = 'perdida-grasa-v19';
+const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'sync.js', 'coach.js', 'photos.js', 'app.js', 'config.js', 'vendor/supabase-2.117.2.js', 'remote.js', 'account.js', 'coach-panel.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -22,8 +22,8 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     fetch(e.request)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy));
+        // Solo respuestas correctas: un 404/500 no debe quedar en la caché y servirse sin conexión (QA S3-2 O2).
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
         return res;
       })
       .catch(() => caches.match(e.request))

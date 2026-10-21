@@ -116,4 +116,21 @@ const test = base.extend({
   },
 });
 
-module.exports = { test, expect, acceptLegalIfPresent, CONSENT, KEY, FIXTURE_V1, NOW, D, PROFILE, state };
+// S3-2 O1: tras entrar con el código, si el teléfono tiene datos sin dueño la app pregunta "¿Estos datos son tuyos?".
+// Este helper responde "Sí, son míos" (los flujos que prueban otra respuesta lo hacen a mano).
+async function answerOwnerIfAsked(page) {
+  const next = page.locator('#acc-step-owner, #acc-step-other, #acc-step-role, #acc-step-done').filter({ visible: true }).first();
+  await expect(next).toBeVisible();
+  if (await page.locator('#acc-step-owner').isVisible()) await page.getByRole('button', { name: /Sí, son míos/ }).click();
+}
+
+// S3-2 O1: si entra OTRA cuenta en un teléfono con datos de la anterior, no se mezclan. Para seguir probando con la
+// cuenta nueva se borran los datos del teléfono ("Borrar todo") y se acepta de nuevo la pantalla legal.
+async function wipeOtherAndContinue(page) {
+  await expect(page.locator('#acc-step-other')).toBeVisible();
+  await page.getByRole('button', { name: 'Borrar los datos de este teléfono y continuar' }).click();
+  await acceptLegalIfPresent(page);
+  await expect(page.locator('#acc-step-role, #acc-step-done').filter({ visible: true }).first()).toBeVisible();
+}
+
+module.exports = { test, expect, acceptLegalIfPresent, answerOwnerIfAsked, wipeOtherAndContinue, CONSENT, KEY, FIXTURE_V1, NOW, D, PROFILE, state };

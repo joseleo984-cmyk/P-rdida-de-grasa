@@ -159,7 +159,7 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
 
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; /* 5 pestañas, 6 con «Clientes» (coach) */
   background: var(--card); border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -281,3 +281,30 @@ body.account-open { padding-bottom: 16px; }
 .acc-share .check { display: flex; align-items: flex-start; gap: 10px; }
 .acc-share input { width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
 .acc-invite { font-size: 1.6rem; font-weight: 700; letter-spacing: .2em; text-align: center; padding: 12px; border: 2px dashed var(--accent); border-radius: 10px; }
+
+/* S3-4: panel del coach y notas del coach */
+.coach-clients, .coach-notes, .coach-photos { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.client-btn { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; width: 100%; text-align: left; font: inherit; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+.client-btn:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.client-btn .light { grid-row: span 2; align-self: center; }
+.client-btn .who { font-weight: 700; overflow-wrap: anywhere; }
+.client-btn .meta { font-size: .82rem; color: var(--muted); }
+.light { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: .82rem; }
+.light::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: currentColor; flex: none; }
+.light-rojo { color: #b91c1c; } .light-amarillo { color: #a16207; } .light-verde { color: #15803d; }
+@media (prefers-color-scheme: dark) { .light-rojo { color: #f87171; } .light-amarillo { color: #facc15; } .light-verde { color: #4ade80; } }
+.coach-invite { font-size: 1.5rem; font-weight: 700; letter-spacing: .2em; margin: 0 0 6px; }
+.coach-notes li { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; overflow-wrap: anywhere; }
+.coach-notes li.unread { border-color: var(--accent); }
+.coach-notes .note-meta { font-size: .8rem; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-top: 6px; }
+.coach-notes .note-body { white-space: pre-wrap; margin: 0; }
+.badge { display: inline-block; min-width: 1.4em; padding: 0 6px; border-radius: 99px; background: var(--accent); color: #fff; font-size: .75rem; text-align: center; vertical-align: middle; }
+#comment-body { width: 100%; font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+#comment-date { font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+#form-comment .btn { margin-top: 10px; }
+#coach-photo-view img { max-width: 100%; border-radius: 10px; display: block; }
+.coach-photos { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+#form-shares, #form-logout { margin-top: 12px; }
+#form-shares fieldset, #form-logout fieldset { border: 0; padding: 0; margin: 0 0 10px; display: grid; gap: 8px; }
+#form-shares .check, #form-logout .check { display: flex; align-items: flex-start; gap: 10px; }

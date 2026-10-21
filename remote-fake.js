@@ -20,6 +20,7 @@
   const PULL_OVERLAP_MS = 30 * 1000;
   const BATCH = 500;
   const SESSION_KEY = 'pg-fake-session';
+  const HASH_RE = /^[0-9a-f]{64}$/;
 
   class RemoteError extends Error {
     constructor(code, message) {
@@ -177,6 +178,7 @@
       return u;
     }
     const done = (x) => { be._persist(); return x; };
+    const clampMs = (v) => Math.min(Date.parse(v), be.clock.now() + MAX_SKEW_MS);
 
     const auth = {
       async sendCode(email) {
@@ -238,10 +240,11 @@
         const u = await authed();
         if (!Array.isArray(events) || !events.length) fail('invalid', 'Sin eventos');
         const rows = events.map((ev) => {
-          if (!ev || !CONSENT_KINDS.includes(ev.kind) || typeof ev.granted !== 'boolean' || typeof ev.version !== 'string' || !ev.version || ev.version.length > 20 || Number.isNaN(Date.parse(ev.clientAt))) {
+          if (!ev || !CONSENT_KINDS.includes(ev.kind) || typeof ev.granted !== 'boolean' || typeof ev.version !== 'string' || !ev.version || ev.version.length > 20 || Number.isNaN(Date.parse(ev.clientAt)) || !HASH_RE.test(ev.textHash || '')) {
             fail('invalid', 'Evento de consentimiento no válido');
           }
-          return { id: randUUID(), userId: u.id, appId: app, kind: ev.kind, granted: ev.granted, version: ev.version, coachId: ev.coachId || null, clientAt: ev.clientAt, createdAt: iso(be.clock.now()) };
+          // v1.1 §10.1: text_hash obligatorio; client_at acotado a +5 min.
+          return { id: randUUID(), userId: u.id, appId: app, kind: ev.kind, granted: ev.granted, version: ev.version, textHash: ev.textHash, coachId: ev.coachId || null, clientAt: iso(clampMs(ev.clientAt)), createdAt: iso(be.clock.now()) };
         });
         be.consentEvents.push(...rows); // solo inserción
         return done(undefined);
@@ -250,7 +253,7 @@
         const u = await authed();
         const out = {};
         for (const ev of be.consentEvents.filter((x) => x.userId === u.id && x.appId === app)) {
-          out[ev.kind] = { granted: ev.granted, version: ev.version, clientAt: ev.clientAt };
+          out[ev.kind] = { granted: ev.granted, version: ev.version, textHash: ev.textHash, clientAt: ev.clientAt };
         }
         return out;
       },
@@ -272,7 +275,6 @@
     };
 
     // ---------- Sincronización (dueño) ----------
-    const clampMs = (v) => Math.min(Date.parse(v), be.clock.now() + MAX_SKEW_MS);
     const newer = (a, b) => { // ¿gana la fila entrante a sobre la del servidor b? (desempate determinista)
       const ta = Date.parse(a.updatedAt), tb = Date.parse(b.updatedAt);
       return ta > tb || (ta === tb && JSON.stringify(a.data) > JSON.stringify(b.data));
@@ -317,9 +319,12 @@
         }
         return done({ serverNow: iso(be.clock.now()), rejected });
       },
-      async pull(since, limit = 1000) {
+      async pull(since, opts) {
+        // §11.8: pull(since, { overlap, limit }); también acepta el número `limit` de la firma anterior.
+        const o = typeof opts === 'number' ? { limit: opts } : (opts || {});
+        const limit = o.limit || 1000;
         const u = await authed();
-        const from = (Date.parse(since) || 0) - PULL_OVERLAP_MS;
+        const from = (Date.parse(since) || 0) - (o.overlap === false ? 0 : PULL_OVERLAP_MS);
         const after = (x) => Date.parse(x.serverUpdatedAt) > from;
         const rows = [
           ...Object.values(be.records).filter((r) => r.userId === u.id && after(r)).map((r) => ({ t: 'r', x: r })),
@@ -361,12 +366,22 @@
         habits: o.habits === undefined ? true : o.habits === true, photos: o.photos === true };
     };
     const linkOut = (l) => (l ? { id: l.id, coachId: l.coachId, businessName: (be.coaches[l.coachId] || {}).businessName || '', shares: { ...l.shares }, since: l.createdAt } : null);
-    const shareEvents = (u, l) => SHARE_KEYS.map((k) => ({ id: randUUID(), userId: u.id, appId: app, kind: 'share_' + k, granted: l.shares[k], version: 'link', coachId: l.coachId, clientAt: iso(be.clock.now()), createdAt: iso(be.clock.now()) }));
+    // v1.1 §10.1: `shares` lleva `version` y `textHash` del texto de la pantalla de compartir.
+    const shareText = (s) => {
+      if (!s || typeof s.version !== 'string' || !s.version || s.version.length > 20 || !HASH_RE.test(s.textHash || '')) fail('invalid', 'Falta la versión o el hash del texto de compartir');
+      return { version: s.version, textHash: s.textHash };
+    };
+    const shareEvents = (u, l, t) => SHARE_KEYS.map((k) => ({ id: randUUID(), userId: u.id, appId: app, kind: 'share_' + k, granted: l.shares[k], version: t.version, textHash: t.textHash, coachId: l.coachId, clientAt: iso(be.clock.now()), createdAt: iso(be.clock.now()) }));
+    // v1.1 §10.2: un código caducado o agotado responde como inexistente.
     const findCoachByCode = (code) => {
       const c = String(code || '').trim().toUpperCase().replace(/[\s-]/g, '');
       if (!/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/.test(c)) return null;
       const id = Object.keys(be.coaches).find((k) => be.coaches[k].inviteCode === c && be.coaches[k].active);
-      return id ? { id, ...be.coaches[id] } : null;
+      if (!id) return null;
+      const co = be.coaches[id];
+      if (co.inviteExpiresAt && Date.parse(co.inviteExpiresAt) <= be.clock.now()) return null;
+      if (co.inviteMaxUses && (co.inviteUses || 0) >= co.inviteMaxUses) return null;
+      return { id, ...co };
     };
 
     const client = {
@@ -385,12 +400,14 @@
         if (!c || c.id === u.id) { be._persist(); fail('invalid_code', 'Código de coach no válido'); }
         const sh = normShares(shares);
         if (!sh.body) fail('invalid', 'Compartir tu progreso corporal es obligatorio para vincularte');
+        const t = shareText(shares);
         const prev = be.activeLink(u.id);
         if (prev) { prev.status = 'ended'; prev.endedAt = iso(be.clock.now()); }
         const l = { id: randUUID(), coachId: c.id, clientId: u.id, status: 'active', shares: sh, createdAt: iso(be.clock.now()), endedAt: null, updatedAt: iso(be.clock.now()) };
         be.links.push(l);
+        be.coaches[c.id].inviteUses = (be.coaches[c.id].inviteUses || 0) + 1;
         be._grant(u.id, 'client', app);
-        be.consentEvents.push(...shareEvents(u, l));
+        be.consentEvents.push(...shareEvents(u, l, t));
         return done(linkOut(l));
       },
       async myLink() { const u = await authed(); return linkOut(be.activeLink(u.id)); },
@@ -400,9 +417,10 @@
         if (!l) fail('not_found', 'No tienes coach');
         const sh = normShares({ ...l.shares, ...shares });
         if (!sh.body) fail('invalid', 'Compartir tu progreso corporal es obligatorio mientras tengas coach');
+        const t = shareText(shares);
         l.shares = sh;
         l.updatedAt = iso(be.clock.now());
-        be.consentEvents.push(...shareEvents(u, l));
+        be.consentEvents.push(...shareEvents(u, l, t));
         return done(linkOut(l));
       },
       async leaveCoach() {
@@ -435,7 +453,9 @@
       if (!be.coaches[u.id] || !be.roles(u.id, app).includes('coach')) fail('forbidden', 'No eres coach');
       return u;
     }
+    // v1.1 §10.3 coach_can_see: vínculo activo + coach activo (+ categoría, que comprueba cada función).
     function activeLinkCoach(coachId, clientId) {
+      if (!be.coaches[coachId] || !be.coaches[coachId].active) fail('forbidden', 'Coach desactivado');
       const l = be.links.find((x) => x.coachId === coachId && x.clientId === clientId && x.status === 'active');
       if (!l) fail('forbidden', 'Sin vínculo activo con ese cliente');
       return l;
@@ -452,13 +472,21 @@
       async myCoach() {
         const u = await authed();
         const c = be.coaches[u.id];
-        return c ? { businessName: c.businessName, inviteCode: c.inviteCode, freeClients: c.freeClients } : null;
+        return c ? { businessName: c.businessName, inviteCode: c.inviteCode, freeClients: c.freeClients,
+          expiresAt: c.inviteExpiresAt || null, maxUses: c.inviteMaxUses || null, uses: c.inviteUses || 0 } : null;
       },
-      async rotateCode() {
+      // v1.1 §10.2: rotateCode({ validDays, maxUses }); sin opciones = sin caducidad ni límite.
+      async rotateCode({ validDays, maxUses } = {}) {
         const u = await asCoach();
-        be.coaches[u.id].inviteCode = be._newInviteCode();
-        be.coaches[u.id].codeRotatedAt = iso(be.clock.now());
-        return done(be.coaches[u.id].inviteCode);
+        if (validDays != null && !(Number.isInteger(validDays) && validDays >= 1 && validDays <= 365)) fail('invalid', 'Validez no válida');
+        if (maxUses != null && !(Number.isInteger(maxUses) && maxUses >= 1 && maxUses <= 500)) fail('invalid', 'Número de usos no válido');
+        const c = be.coaches[u.id];
+        c.inviteCode = be._newInviteCode();
+        c.codeRotatedAt = iso(be.clock.now());
+        c.inviteExpiresAt = validDays ? iso(be.clock.now() + validDays * 86400000) : null;
+        c.inviteMaxUses = maxUses || null;
+        c.inviteUses = 0;
+        return done(c.inviteCode);
       },
       async clients() {
         const u = await asCoach();

@@ -25,13 +25,12 @@
     }
   }
 
-  // ¿Se permite el modo falso en esta página? Solo en localhost, o con ?remote=fake fuera de producción.
+  // ¿Se permite el modo falso en esta página? LISTA BLANCA (QA S3-2 D2): solo localhost / 127.0.0.1 / [::1].
+  // Nunca en producción, en un dominio propio, en un fork ni en vistas previas, aunque lleven ?remote=fake.
   function fakeAllowed(loc) {
     if (!loc) return false;
     const host = String(loc.hostname || '');
-    if (PRODUCTION_HOSTS.includes(host)) return false;
-    const param = /[?&]remote=fake(&|$)/.test(String(loc.search || ''));
-    return LOCAL_HOSTS.includes(host) || param;
+    return !PRODUCTION_HOSTS.includes(host) && LOCAL_HOSTS.includes(host);
   }
 
   // Devuelve la configuración efectiva o null (sin servidor). `env` permite probarlo en Node.
@@ -47,13 +46,20 @@
     return { url, key, mode: 'real' };
   }
 
+  // v1.1 §10.1: SHA-256 hex del texto EXACTO mostrado (saltos de línea normalizados a \n). Mismo resultado que el
+  // servidor (core.record_consent) para el mismo texto.
+  async function textHash(text) {
+    const norm = String(text == null ? '' : text).replace(/\r\n?/g, '\n');
+    const c = (typeof crypto !== 'undefined' && crypto.subtle) ? crypto : (typeof require === 'function' ? require('node:crypto').webcrypto : null);
+    if (!c || !c.subtle) throw new RemoteError('server', 'Este navegador no puede calcular el hash del texto');
+    const buf = await c.subtle.digest('SHA-256', new TextEncoder().encode(norm));
+    return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
   function createFake(opts = {}) {
     const F = root.RemoteFake;
     if (!F) throw new RemoteError('server', 'remote-fake.js no está cargado');
     const r = F.createFake(opts);
-    // §11.8: sync.js llama pull(since, { overlap }); el fake acepta pull(since, limit). Se adapta aquí la firma.
-    const pull = r.sync.pull;
-    r.sync.pull = (since, o) => pull(since, typeof o === 'number' ? o : (o && o.limit) || undefined);
     return r;
   }
 
@@ -443,7 +449,7 @@
     return { kind: 'real', auth, account, sync, client, coach };
   }
 
-  const api = { config, create, createFake, fakeAllowed, mapError, RemoteError, PRODUCTION_HOSTS, BUCKET };
+  const api = { config, create, createFake, fakeAllowed, textHash, mapError, RemoteError, PRODUCTION_HOSTS, BUCKET };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Remote = api;
 })(typeof window !== 'undefined' ? window : globalThis);
