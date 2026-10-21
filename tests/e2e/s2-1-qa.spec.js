@@ -9,10 +9,9 @@ const box = (page, name) => page.locator(`#form-consent [name=${name}]`);
 const noHealth = { ...CONSENT, sensitiveHealth: false, photos: false };
 const f = (id, name, meal, kcal) => ({ id, name, meal, kcal, protein: 10, carbs: 10, fat: 5 });
 
-// S2-1 D1: los formularios están protegidos (s2-1.spec.js), pero copiar/repetir comidas y borrar registros o alimentos
-// no pasan por un <form> y escriben igual. `test.fail` lo documenta hasta que se corrija.
+// S2-1 D1 (corregido): copiar/repetir comidas y borrar registros o alimentos no pasan por un <form>; el control
+// central en persist() las rechaza igual que a los formularios.
 test('sin autorización de salud, NINGUNA vía escribe datos de salud (no solo formularios)', async ({ app, page }) => {
-  test.fail(true, 'S2-1 D1: copiar/repetir comidas y borrar escriben sin autorización de salud');
   const s = state({
     consent: noHealth,
     entries: [{ id: 'e1', date: D(20), weight: 70 }, { id: 'e2', date: D(1), weight: 69 }],

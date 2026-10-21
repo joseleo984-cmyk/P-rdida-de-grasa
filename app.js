@@ -64,12 +64,15 @@
   function keepCopy(key, raw) {
     try { if (localStorage.getItem(key) == null) localStorage.setItem(key, raw); } catch { /* sin espacio: seguimos */ }
   }
+  let healthBaseline = null; // LEGAL-01: datos de salud tal como están guardados (ver healthWriteBlocked)
   // Lanza si no se puede escribir (lo usa la importación para ser atómica).
   function persist(s, draft = pending && pending.profile) {
     if (saveBlocked) throw new Error('Guardado bloqueado');
+    if (healthWriteBlocked(s)) throw Object.assign(new Error(HEALTH_LOCK_MSG), { code: 'health-lock' });
     const json = JSON.stringify({ ...s, profile: s.profile || draft || null, schemaVersion: Schema.CURRENT_VERSION });
     localStorage.setItem(STORAGE_KEY, json);
     savedJSON = json;
+    healthBaseline = healthPart(s);
   }
   const QUOTA_MSG = 'Almacenamiento lleno: exporta una copia y borra fotos antiguas';
   const isQuotaError = (err) => err && (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22);
@@ -78,7 +81,7 @@
   function save() {
     try { persist(state); return true; }
     catch (err) {
-      toast(saveBlocked ? loadNotice : isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador', true);
+      toast(err.code === 'health-lock' ? err.message : saveBlocked ? loadNotice : isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador', true);
       try { state = savedJSON ? Schema.normalize(Schema.migrate(JSON.parse(savedJSON))).state : emptyState(); }
       catch { /* se mantiene el estado en memoria */ }
       render();
@@ -437,6 +440,8 @@
     try {
       photoUrls.forEach((u) => URL.revokeObjectURL(u));
       photoUrls.clear();
+      // LEGAL-01: sin autorización de fotos no se leen ni se muestran (tampoco en la galería oculta).
+      if (!photosAllowed()) { photos = []; renderPhotos(true); return; }
       // Fotos guardadas por versiones anteriores sin validar (BUG-13): se ocultan si no tienen fecha válida.
       const stored = await Photos.all();
       photos = stored.map(Schema.normalizeStoredPhoto).filter((p) => p && p.blob instanceof Blob);
@@ -768,7 +773,7 @@
 
       const prevRaw = localStorage.getItem(STORAGE_KEY);
       // Si falla (p. ej. sin espacio) se lanza antes de tocar las fotos.
-      try { persist(next, rejected.profile || null); } catch (err) { throw new Error(isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador'); }
+      try { persist(next, rejected.profile || null); } catch (err) { throw new Error(err.code === 'health-lock' ? err.message : isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador'); }
       if (hasPhotos) {
         try { await Photos.importAll(ph.photos); }
         catch {
@@ -1028,6 +1033,20 @@
   // dispositivo: al importar un respaldo se conserva el consentimiento actual (no se adopta el de otra persona).
   // Resumen de cambios que se muestra al pedir re-aceptación, por versión nueva (vacío = sin resumen).
   const LEGAL_CHANGES = { terms: {}, privacy: {} };
+
+  // Control central de escritura de datos de salud: TODO pasa por persist() (formularios, copiar/repetir/deshacer
+  // comidas, borrar registros o alimentos, importar). Sin autorización vigente de salud se rechaza cualquier cambio en
+  // perfil, registros, comidas, hábitos o biblioteca; solo se permiten cambios del consentimiento y dejarlo todo vacío.
+  const HEALTH_LOCK_MSG = 'Sin tu autorización de datos de salud no se guardan cambios en tu seguimiento';
+  function healthPart(s) { return JSON.stringify([s.profile || null, s.entries || [], s.foods || {}, s.habits || {}, s.library || {}]); }
+  function healthWriteBlocked(s) {
+    const c = s.consent;
+    if (Schema.consentStatus(c) === 'ok' && c.sensitiveHealth === true) return false;
+    const empty = !s.profile && !(s.entries || []).length && ![s.foods, s.habits, s.library].some((d) => d && Object.keys(d).length);
+    return !empty && healthPart(s) !== healthBaseline;
+  }
+  function photosAllowed() { const c = state.consent; return Schema.consentStatus(c) === 'ok' && c.photos === true; }
+  healthBaseline = healthPart(state);
   const consentForm = $('#form-consent');
   const REQUIRED = ['terms', 'privacy', 'adult'];
   const nowISO = () => new Date().toISOString();
@@ -1063,6 +1082,14 @@
       }
       upd.classList.toggle('hidden', status !== 'outdated');
       consentForm.reset();
+      // Re-aceptación: las autorizaciones facultativas que ya tenía vienen marcadas (puede desmarcarlas);
+      // las obligatorias se vuelven a marcar a mano. Nada que no hubiera autorizado se marca por defecto.
+      const prev = status === 'outdated' ? Schema.normalizeConsent(state.consent) : null;
+      for (const k of ['sensitiveHealth', 'photos']) {
+        const had = !!(prev && prev[k]);
+        consentForm.elements[k].checked = had;
+        $('#prev-' + k).classList.toggle('hidden', !had);
+      }
       updateConsentButton();
       $('#consent-title').focus();
     }
@@ -1078,6 +1105,7 @@
   }
   consentForm.addEventListener('change', updateConsentButton);
   $('#btn-consent-reset').addEventListener('click', () => $('#btn-reset').click());
+  $('#btn-consent-reload').addEventListener('click', () => location.reload());
   consentForm.addEventListener('submit', (ev) => {
     ev.preventDefault();
     const el = consentForm.elements;
@@ -1090,6 +1118,7 @@
     if (!save()) { state.consent = prev; return; }
     render();
     if (!state.profile) show('perfil');
+    loadPhotos();
     ($('.tabbar button.on') || $('#tab-panel')).focus();
     // Si al arrancar hubo un aviso de carga (datos corregidos, perfil a revisar…), se repite: quedó tras la pantalla legal.
     toast(loadNotice || 'Aceptación guardada');
@@ -1126,7 +1155,9 @@
   }
   function grant(key) {
     if (!confirm(GRANT_TEXT[key])) return;
-    if (setFlag(key, true)) toast(key === 'photos' ? 'Fotos autorizadas' : 'Datos de salud autorizados');
+    if (!setFlag(key, true)) return;
+    if (key === 'photos') loadPhotos();
+    toast(key === 'photos' ? 'Fotos autorizadas' : 'Datos de salud autorizados');
   }
   async function revoke(key) {
     if (key === 'sensitiveHealth') {
@@ -1141,7 +1172,10 @@
       catch { toast('No se pudieron borrar las fotos', true); }
       await loadPhotos();
       render();
-    } else toast('Autorización de fotos retirada');
+    } else {
+      await loadPhotos(); // deja de tenerlas cargadas en memoria
+      toast('Autorización de fotos retirada');
+    }
   }
   $('#btn-toggle-health').addEventListener('click', () => (can('sensitiveHealth') ? revoke('sensitiveHealth') : grant('sensitiveHealth')));
   $('#btn-toggle-photos').addEventListener('click', () => (can('photos') ? revoke('photos') : grant('photos')));

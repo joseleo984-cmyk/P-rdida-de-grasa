@@ -220,6 +220,9 @@ body.consent-open { padding-bottom: 16px; }
 .consent-item p { margin: 6px 0 0 34px; }
 .legal-link { display: inline-block; margin: 6px 0 0 34px; padding: 6px 0; color: var(--accent); font-weight: 600; }
 .req, .opt { font-style: normal; color: var(--muted); font-size: .85em; }
+.consent-item .prev-note { color: var(--text); font-weight: 600; }
+.danger-link { color: var(--danger); text-decoration: underline; padding-left: 0; }
+#consent-blocked .btn { margin: 4px 0 8px; }
 #form-consent .btn { margin-top: 8px; width: 100%; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 input[type=checkbox]:focus-visible, a:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }

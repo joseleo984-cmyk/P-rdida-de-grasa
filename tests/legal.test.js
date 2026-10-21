@@ -31,10 +31,19 @@ test('LEGAL-01: los HTML legales están en la caché del service worker y en el 
 
 test('LEGAL-01: el HTML no muestra notas internas ni la cabecera de trabajo (siguen en los .md)', () => {
   for (const d of Legal.build()) {
-    assert.ok(!/NOTA|Alternativas:|A confirmar|Autor: Agente/.test(d.html), d.out + ' muestra notas internas');
+    assert.ok(!/NOTA|Alternativas:|A confirmar|Autor: Agente|Dudas para el abogado/.test(d.html), d.out + ' muestra notas internas');
     assert.ok(/NOTA/.test(fs.readFileSync(path.join(ROOT, d.src), 'utf8')), d.src + ' debería conservar sus notas');
   }
   assert.strictEqual(Legal.publicMarkdown('> cabecera\n\n# T\n- a\n- *NOTA: x*\n\nTexto *NOTA, y:* **z** *(Alternativas: w)*'), '# T\n- a\n\nTexto **z**');
+});
+
+test('LEGAL-01: anclas de sección para los enlaces de la app (#s4 fotos/salud, #s7 menores)', () => {
+  const privacy = Legal.build().find((d) => d.out === 'legal/privacidad.html').html;
+  assert.match(privacy, /<h2 id="s4">4\. Datos sensibles/);
+  assert.match(privacy, /<h2 id="s7">7\. Menores de edad/);
+  const index = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  for (const id of index.match(/legal\/privacidad\.html#(s[\d-]+)/g) || []) assert.ok(privacy.includes(`id="${id.split('#')[1]}"`), id);
+  assert.strictEqual(Legal.publicMarkdown('# T\n## 1. A\nx\n## Dudas para el abogado\n- ¿y?\n### sub\nz\n## 2. B\ny'), '# T\n## 1. A\nx\n## 2. B\ny');
 });
 
 test('mdToHtml: escapa HTML y convierte formato básico', () => {
