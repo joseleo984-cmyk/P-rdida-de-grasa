@@ -25,6 +25,16 @@
         <button class="btn" data-goto="perfil">Ir al perfil</button>
       </div>
 
+      <div id="backup-banner" role="status" aria-live="polite">
+        <div id="backup-banner-body" class="card backup-banner hidden">
+          <p id="backup-banner-text"></p>
+          <div class="row-actions">
+            <button type="button" class="btn" id="btn-backup-now">Hacer copia ahora</button>
+            <button type="button" class="btn btn-ghost" id="btn-backup-later">Recordar más tarde</button>
+          </div>
+        </div>
+      </div>
+
       <div class="stats">
         <div class="stat"><span class="stat-label">Peso actual</span><span class="stat-value" id="st-weight">—</span><span class="stat-sub" id="st-weight-sub"></span></div>
         <div class="stat"><span class="stat-label">Perdido</span><span class="stat-value" id="st-lost">—</span><span class="stat-sub" id="st-lost-sub"></span></div>
@@ -238,6 +248,10 @@
       <div class="card">
         <h2>Datos</h2>
         <p class="muted small">Todo se guarda solo en este dispositivo. Exporta una copia para respaldarla o pasarla a otro dispositivo.</p>
+        <ul class="data-status small">
+          <li id="storage-status">Comprobando el almacenamiento…</li>
+          <li id="backup-status" class="muted"></li>
+        </ul>
         <div class="row-actions">
           <button class="btn btn-ghost" id="btn-export">Exportar JSON</button>
           <button class="btn btn-ghost" id="btn-export-csv">Exportar CSV</button>
