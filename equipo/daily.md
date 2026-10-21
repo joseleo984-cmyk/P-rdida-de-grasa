@@ -10,3 +10,8 @@ Reglas de la noche: nada a `main`, nada publicado, solo trabajo sobre decisiones
 - Backend: empieza S2-3 (CSV completo + "Ver copia de un cliente" para el coach)
 
 ## Registro
+- S1-2 ✅ aprobada (QA) · S1-1 ✅ aprobada tras corregir 2 casos de pérdida de datos · S1-3 corregida, QA re-verificando.
+- SM resolvió un conflicto de merge en app.js entre S1-1 (avisos de error) y S1-3 (botón Deshacer); 31/31 unitarias y las 5 E2E en verde.
+- Analista: borradores de T&C y Política de datos en equipo/legal/ + LEGAL-01 y HU-P10 en backlog.
+  ⚠ Riesgo legal: la Ley 1581 (art. 6) no permite condicionar el servicio a entregar datos sensibles; el servicio central ES seguimiento de salud → consultar con abogado.
+- En curso: S2-1 LEGAL-01 (Frontend), S2-3 kit piloto (Backend). QA: re-verifica S1-3 y luego monta E2E en CI (S2-2).
