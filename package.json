@@ -5,6 +5,11 @@
   "description": "App web para llevar el seguimiento de procesos de pérdida de grasa.",
   "scripts": {
     "start": "npx --yes http-server -c-1 -p 8080 .",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "playwright test -c tests/e2e/playwright.config.js",
+    "test:all": "npm test && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
   }
 }

@@ -168,6 +168,62 @@ const box = (page, sel) => page.locator(sel).first().boundingBox();
     await ctx.close();
   }
 
+  // ===== Re-verificación de las correcciones (4f3aaa9): cuota llena + copiar + deshacer =====
+  {
+    const { page, errors, ctx } = await setup(browser, '2026-10-21T12:00:00-05:00');
+    const QUOTA_ON = () => page.evaluate(() => { window.__o = Storage.prototype.setItem; Storage.prototype.setItem = function (k, v) { if (k === 'perdida-grasa:v1') throw new DOMException('lleno', 'QuotaExceededError'); return window.__o.call(this, k, v); }; });
+    const QUOTA_OFF = () => page.evaluate(() => { Storage.prototype.setItem = window.__o; });
+    const rows = () => page.locator('#food-list .food-row').count();
+    await page.click('#tab-comidas');
+    // U1: cuota llena + "Copiar de ayer" → error, sin "Deshacer", sin filas
+    await QUOTA_ON();
+    await page.click('#btn-copy-prev'); await page.waitForTimeout(100);
+    let t = await toast(page);
+    log('U1: cuota + copiar → toast de error, sin éxito ni "Deshacer", lista sin cambios',
+      t.startsWith('Almacenamiento lleno') && (await page.locator('#toast .toast-action').count()) === 0 && (await rows()) === 0 && /error/.test(await page.locator('#toast').getAttribute('class')), t);
+    // U1b: cuota + "Repetir desayuno de ayer"
+    await page.locator('[data-repeat-meal="Desayuno"]').click(); await page.waitForTimeout(100);
+    t = await toast(page);
+    log('U1b: cuota + repetir bloque → error y sin filas', t.startsWith('Almacenamiento lleno') && (await rows()) === 0, t);
+    await QUOTA_OFF();
+    // U2: copiar OK, cuota llena, Deshacer → error y la copia sigue (es lo guardado)
+    await page.click('#btn-copy-prev'); await page.waitForTimeout(100);
+    log('U2: copia con "Deshacer" en el toast', (await rows()) === 2 && (await page.locator('#toast .toast-action').textContent()) === 'Deshacer', await toast(page));
+    await QUOTA_ON();
+    await page.locator('#toast .toast-action').click(); await page.waitForTimeout(100);
+    t = await toast(page);
+    const f2 = (await foods(page))[D21] || [];
+    log('U2b: cuota + Deshacer → error, no dice "Copia deshecha", pantalla = guardado (2)', t.startsWith('Almacenamiento lleno') && (await rows()) === 2 && f2.length === 2, `toast="${t}" filas=${await rows()} guardado=${f2.length}`);
+    await QUOTA_OFF();
+    // U3: Deshacer respeta lo registrado después
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('perdida-grasa:v1')); delete s.foods['2026-10-21']; localStorage.setItem('perdida-grasa:v1', JSON.stringify(s)); });
+    await page.reload(); await page.click('#tab-comidas');
+    await page.click('#btn-copy-prev'); await page.waitForTimeout(100);
+    const undoBtn = page.locator('#toast .toast-action');
+    await page.locator('#form-food [name=name]').fill('Café'); await page.locator('#form-food [name=kcal]').fill('20');
+    await page.locator('#form-food button[type=submit]').click(); await page.waitForTimeout(100);
+    log('U3: registrar otro alimento sustituye el toast (el "Deshacer" se pierde)', (await undoBtn.count()) === 0, await toast(page));
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('perdida-grasa:v1')); delete s.foods['2026-10-21']; localStorage.setItem('perdida-grasa:v1', JSON.stringify(s)); });
+    await page.reload(); await page.click('#tab-comidas');
+    await page.click('#btn-copy-prev'); await page.waitForTimeout(100);
+    // Deshacer tras añadir algo en otra pestaña sin toast intermedio: hábitos no tocan foods → usar alimento vía estado
+    await page.locator('#toast .toast-action').tap(); await page.waitForTimeout(100);
+    log('U4: "Deshacer" con toque (touch) funciona y deja el día vacío', (await rows()) === 0 && (await toast(page)) === 'Copia deshecha' && !((await foods(page))[D21]), await toast(page));
+    const tb = await box(page, '#toast');
+    log('U5: toast con acción cabe a 390 px', tb && tb.x >= 0 && tb.x + tb.width <= 390, tb && `${Math.round(tb.x)}..${Math.round(tb.x + tb.width)}`);
+    await page.click('#btn-copy-prev'); await page.waitForTimeout(100);
+    await page.clock.fastForward(7000); await page.waitForTimeout(100);
+    log('U6: a los 6 s el toast se oculta y "Deshacer" ya no es alcanzable', !(await page.locator('#toast .toast-action').isVisible().catch(() => false)));
+    // U7: foco tras repetir bloque
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('perdida-grasa:v1')); delete s.foods['2026-10-21']; localStorage.setItem('perdida-grasa:v1', JSON.stringify(s)); });
+    await page.reload(); await page.click('#tab-comidas');
+    await page.locator('[data-repeat-meal="Desayuno"]').focus(); await page.keyboard.press('Enter'); await page.waitForTimeout(100);
+    const act = await page.evaluate(() => document.activeElement.dataset.mealTitle || document.activeElement.dataset.repeatMeal || document.activeElement.id || document.activeElement.tagName);
+    log('U7: foco tras "Repetir desayuno de ayer" no cae en <body>', act !== 'BODY', act);
+    log('U8: sin errores de consola (re-verificación)', errors.length === 0, errors.join(' | '));
+    await ctx.close();
+  }
+
   await browser.close();
   const fails = results.filter((x) => !x).length;
   console.log(`\n${results.length - fails}/${results.length} OK`);
