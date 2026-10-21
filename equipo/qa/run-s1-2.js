@@ -58,11 +58,24 @@ const log = (n, ok, d = '') => { if (!ok) fails++; console.log((ok ? 'OK   ' : '
   log('Copia hace 8 días: banner', (await banner()) === 1 && (await page.locator('#backup-banner-text').textContent()).includes('hace 8 días'));
 
   // Exportar desde el banner
-  const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#btn-backup-now').click()]);
+  const confirmOn = () => page.locator('#backup-confirm:not(.hidden)').count();
+  const before = await ls('perdida-grasa:lastBackup');
+  // D5: con "No" no se registra la copia
+  let [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#btn-backup-now').click()]);
   log('"Hacer copia ahora" descarga el JSON', /perdida-grasa-.*\.json$/.test(dl.suggestedFilename()), dl.suggestedFilename());
+  log('Tras exportar se pregunta "¿Se guardó el archivo?" con foco en "Sí"', (await confirmOn()) === 1 && (await page.evaluate(() => document.activeElement.id)) === 'btn-backup-yes');
+  log('Antes de confirmar no se registra la copia', (await ls('perdida-grasa:lastBackup')) === before);
+  await page.locator('#btn-backup-no').click();
+  log('"No": no registra la copia y el banner sigue', (await ls('perdida-grasa:lastBackup')) === before && (await banner()) === 1 && (await confirmOn()) === 0);
+  log('"No": el foco vuelve a "Hacer copia ahora"', (await page.evaluate(() => document.activeElement.id)) === 'btn-backup-now');
+  [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#btn-backup-now').click()]);
+  await page.screenshot({ path: SHOTS + 's1-2-confirmacion.png' });
+  await page.locator('#btn-backup-yes').click();
   const last = await ls('perdida-grasa:lastBackup');
-  log('Exportar actualiza la fecha', last && Date.now() - Date.parse(last) < 60000, last);
-  log('Tras exportar el banner desaparece', (await banner()) === 0);
+  log('"Sí": exportar actualiza la fecha', last && Date.now() - Date.parse(last) < 60000, last);
+  log('Tras confirmar el banner desaparece', (await banner()) === 0);
+  const act = await page.evaluate(() => ({ id: document.activeElement.id, visible: !!document.activeElement.offsetParent }));
+  log('Foco tras ocultar el banner va al resumen del panel', act.id === 'panel-summary' && act.visible, JSON.stringify(act));
 
   await page.locator('.tabbar button[data-view=perfil]').click();
   await page.locator('#backup-status').scrollIntoViewIfNeeded();

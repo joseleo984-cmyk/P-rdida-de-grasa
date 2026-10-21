@@ -20,6 +20,11 @@ Sin dependencias ni servidor: todos los datos se guardan en el propio dispositiv
 - **Recomendaciones automáticas**: avisa de estancamientos, pérdida demasiado rápida,
   proteína baja, poco sueño o falta de entrenamiento.
 - **Datos**: exportar/importar JSON (respaldo, incluye las fotos) y exportar CSV.
+- **Protección de datos**: al abrir, la app pide al navegador almacenamiento protegido y en
+  Perfil → Datos muestra si lo está, el espacio usado y la fecha de la última copia.
+  Si hay registros y han pasado 7 días o más sin copia, el panel muestra un aviso con
+  "Hacer copia ahora" o "Recordar más tarde" (lo pospone 3 días). Tras exportar, la app pregunta
+  si el archivo se guardó, y solo cuenta la copia si respondes "Sí".
 
 ## Uso
 

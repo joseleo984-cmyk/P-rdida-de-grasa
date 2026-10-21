@@ -716,26 +716,61 @@
     const ago = validLast ? Calc.toDay(today()) - Calc.toDay(validLast) : null;
     const agoText = ago == null ? '' : ago <= 0 ? 'hoy' : ago === 1 ? 'ayer' : `hace ${ago} días`;
 
-    $('#backup-status').textContent = validLast
+    setText($('#backup-status'), validLast
       ? `Última copia exportada: ${fmtDate(validLast)} (${agoText}).`
-      : 'Aún no has exportado ninguna copia.';
-    $('#backup-banner-text').textContent = validLast
+      : 'Aún no has exportado ninguna copia.');
+    // El banner es una región viva: solo se toca si cambia, para que el lector no lo repita.
+    setText($('#backup-banner-text'), validLast
       ? `Tu última copia de seguridad es de ${agoText}. Tus datos solo están en este dispositivo: exporta una copia para no perderlos.`
-      : 'Aún no tienes copia de seguridad. Tus datos solo están en este dispositivo: exporta una copia para no perderlos.';
-    $('#backup-banner-body').classList.toggle('hidden', !due);
+      : 'Aún no tienes copia de seguridad. Tus datos solo están en este dispositivo: exporta una copia para no perderlos.');
+    const body = $('#backup-banner-body');
+    if (body.classList.contains('hidden') === due) body.classList.toggle('hidden', !due);
+  }
+  function setText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
+
+  // Foco a un lugar estable cuando el elemento enfocado desaparece.
+  function focusSafe(el) {
+    (el && el.offsetParent ? el : $('#panel-summary')).focus();
   }
 
-  // Se registra junto al listener de exportación existente (mismo clic).
-  $('#btn-export').addEventListener('click', () => {
+  // Tras exportar no sabemos si el archivo se guardó (en iOS se puede cancelar):
+  // se pregunta y solo con "Sí" se registra la copia.
+  let confirmReturn = null;
+  $('#btn-export').addEventListener('click', (ev) => {
+    confirmReturn = ev.isTrusted ? ev.currentTarget : $('#btn-backup-now');
+    $('#toast').classList.remove('show');
+    $('#backup-confirm').classList.remove('hidden');
+    $('#btn-backup-yes').focus();
+  });
+  function closeConfirm() {
+    $('#backup-confirm').classList.add('hidden');
+    const back = confirmReturn;
+    confirmReturn = null;
+    return back;
+  }
+  $('#btn-backup-yes').addEventListener('click', () => {
     setPref(LAST_BACKUP_KEY, new Date().toISOString());
     setPref(BACKUP_SNOOZE_KEY, null);
+    const back = closeConfirm();
     renderBackup();
+    focusSafe(back);
+    toast('Copia registrada');
+  });
+  $('#btn-backup-no').addEventListener('click', () => {
+    focusSafe(closeConfirm());
+    toast('Copia no registrada');
   });
   $('#btn-backup-now').addEventListener('click', () => $('#btn-export').click());
   $('#btn-backup-later').addEventListener('click', () => {
     setPref(BACKUP_SNOOZE_KEY, Calc.addDays(today(), SNOOZE_DAYS));
     renderBackup();
+    focusSafe(null);
     toast(`Te lo recordaremos en ${SNOOZE_DAYS} días`);
+  });
+
+  // En iPhone la PWA se reanuda sin recargar: recalcular al volver (cambio de día).
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') render();
   });
 
   async function checkStorage() {
