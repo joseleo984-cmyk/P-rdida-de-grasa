@@ -15,3 +15,5 @@ Reglas de la noche: nada a `main`, nada publicado, solo trabajo sobre decisiones
 - Analista: borradores de T&C y Política de datos en equipo/legal/ + LEGAL-01 y HU-P10 en backlog.
   ⚠ Riesgo legal: la Ley 1581 (art. 6) no permite condicionar el servicio a entregar datos sensibles; el servicio central ES seguimiento de salud → consultar con abogado.
 - En curso: S2-1 LEGAL-01 (Frontend), S2-3 kit piloto (Backend). QA: re-verifica S1-3 y luego monta E2E en CI (S2-2).
+- S2-3 ✅ entregada por Backend (CSV completo para Excel es-CO + "Abrir copia de cliente" en solo lectura; 37/37 unitarias, E2E 18/18 verifica que los datos propios quedan intactos). SM resolvió conflicto en piloto-r0.md. Pendiente de QA.
+- S2-4 (datos v3 para sync) espera a que S2-1 termine su migración de consentimiento, para no crear dos "v3" en paralelo.
