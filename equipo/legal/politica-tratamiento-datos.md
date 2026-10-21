@@ -6,7 +6,7 @@
 >
 > | Marcador | Qué poner | Ejemplo |
 > |---|---|---|
-> | `[NOMBRE COMPLETO DEL RESPONSABLE]` | Nombre y apellidos tal como aparecen en la cédula | Ana María Pérez Gómez |
+> | `[NOMBRE COMPLETO DEL RESPONSABLE]` ✅ José Granados (confirmar si en la cédula figura un segundo apellido) | Nombre y apellidos tal como aparecen en la cédula | Ana María Pérez Gómez |
 > | `[NÚMERO DE CÉDULA]` | Cédula de ciudadanía | 1.234.567.890 |
 > | `[DIRECCIÓN]` | Dirección de notificación | Calle 1 # 2-3, apto 4 |
 > | `[CIUDAD]` | Ciudad de domicilio | Medellín |
@@ -26,7 +26,7 @@
 
 | | |
 |---|---|
-| **Responsable del tratamiento** | [NOMBRE COMPLETO DEL RESPONSABLE], persona natural |
+| **Responsable del tratamiento** | José Granados, persona natural |
 | **Cédula de ciudadanía** | [NÚMERO DE CÉDULA] |
 | **Domicilio y dirección** | [DIRECCIÓN], [CIUDAD], Colombia |
 | **Correo para datos personales** | [CORREO DE DATOS PERSONALES] |

@@ -6,7 +6,7 @@
 >
 > | Marcador | Qué poner |
 > |---|---|
-> | `[NOMBRE COMPLETO DEL RESPONSABLE]` | Nombre y apellidos como en la cédula |
+> | `[NOMBRE COMPLETO DEL RESPONSABLE]` ✅ José Granados (confirmar si en la cédula figura un segundo apellido) | Nombre y apellidos como en la cédula |
 > | `[NÚMERO DE CÉDULA]` | Cédula de ciudadanía |
 > | `[CIUDAD]` | Ciudad de domicilio |
 > | `[CORREO DE CONTACTO]` | Correo de soporte y reclamos (puede ser el mismo de datos personales) |
@@ -20,7 +20,7 @@
 
 ## 1. Quiénes somos y qué aceptas
 
-La app "Pérdida de Grasa" (la "app") la ofrece **[NOMBRE COMPLETO DEL RESPONSABLE]**, persona natural, con cédula **[NÚMERO DE CÉDULA]**, domiciliada en **[CIUDAD]**, Colombia, correo **[CORREO DE CONTACTO]**, teléfono **[TELÉFONO / WHATSAPP]** ("nosotros").
+La app "Pérdida de Grasa" (la "app") la ofrece **José Granados**, persona natural, con cédula **[NÚMERO DE CÉDULA]**, domiciliada en **[CIUDAD]**, Colombia, correo **[CORREO DE CONTACTO]**, teléfono **[TELÉFONO / WHATSAPP]** ("nosotros").
 
 Al usar la app aceptas estos Términos y la **Política de Tratamiento de Datos Personales** (documento aparte). La app guarda en tu teléfono la versión y la fecha de lo que aceptaste. Si no estás de acuerdo, no uses la app.
 
@@ -114,7 +114,7 @@ Estos Términos se rigen por las **leyes de la República de Colombia**. Antes d
 
 ## 15. Contacto
 
-[NOMBRE COMPLETO DEL RESPONSABLE] · [CORREO DE CONTACTO] · [TELÉFONO / WHATSAPP] · [CIUDAD], Colombia.
+José Granados · [CORREO DE CONTACTO] · [TELÉFONO / WHATSAPP] · [CIUDAD], Colombia.
 
 ## Historial de versiones
 
