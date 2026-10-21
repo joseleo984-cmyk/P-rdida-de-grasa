@@ -26,6 +26,18 @@ Origen: Arquitecto A2, A3, M1, M4 · QA BUG-01, BUG-02 y bug "100200".
 
 Orden: S1-1 primero (S1-3 depende del esquema). QA revisa cada historia con la DoD.
 
+## Sprint 2 — PLANIFICADO por el SM (Stakeholder ausente; solo trabajo basado en decisiones ya tomadas)
+**Objetivo:** "Dejar la app lista para arrancar el piloto con 2 coaches."
+
+| Listo | En curso | En revisión | Hecho |
+|---|---|---|---|
+| S2-1 LEGAL-01 Aceptar T&C y Política (Front) — tras borradores del Analista | | | |
+| S2-2 QA-01 E2E Playwright en CI en cada PR (QA + Dev) | | | |
+| S2-3 Kit piloto en la app: CSV completo (hábitos) + "Ver copia de un cliente" sin reemplazar mis datos (Back) | | | |
+| S2-4 DATOS-v3: UUID, updatedAt, borrado lógico (Back) — prepara sync | | | |
+
+Fuera de alcance sin el Stakeholder: merge a main/publicación, crear el proyecto Supabase, textos legales definitivos.
+
 ## Sprint 0 — Diagnóstico ✅ HECHO
 | Hecho |
 |---|
