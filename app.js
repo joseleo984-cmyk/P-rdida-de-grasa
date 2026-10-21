@@ -819,40 +819,60 @@
   // Schema.normalize y esc(). Las fotos se muestran con object URLs que se liberan al cerrar o al abrir otra.
   const coachViewer = $('#coach-viewer');
   let coachUrls = [];
+  let coachGen = 0;   // cambia al abrir otra o cerrar: corta la decodificación de fotos en curso
   const revokeCoachUrls = () => { coachUrls.forEach((u) => URL.revokeObjectURL(u)); coachUrls = []; };
-  coachViewer.addEventListener('close', () => { revokeCoachUrls(); $('#coach-body').innerHTML = ''; });
+  const setCoachError = (msg) => { const e = $('#coach-error'); e.textContent = msg; e.classList.toggle('hidden', !msg); };
+  coachViewer.addEventListener('close', () => { coachGen++; revokeCoachUrls(); $('#coach-body').innerHTML = ''; setCoachError(''); });
   $('#coach-close').addEventListener('click', () => coachViewer.close());
+
+  // Con el visor abierto el toast queda debajo del modal: el error se muestra dentro del visor (role="alert").
+  function coachFail(msg) {
+    if (coachViewer.open) setCoachError(`${msg}. Sigues viendo la copia anterior.`);
+    else toast(msg, true);
+  }
+
+  // Decodifica las fotos de una en una, cediendo el hilo entre ellas para no congelar la UI con copias grandes.
+  async function decodeCoachThumbs(list, gen) {
+    const box = $('#coach-thumbs');
+    for (const ph of list) {
+      await new Promise((r) => setTimeout(r));
+      if (gen !== coachGen) return;
+      try {
+        const url = URL.createObjectURL(Photos.decode(ph.data));
+        coachUrls.push(url);
+        box.insertAdjacentHTML('beforeend', `<figure class="thumb"><img src="${esc(url)}" alt="${esc(POSES[ph.pose])} del ${esc(fmtDate(ph.date))}" loading="lazy"><span>${esc(POSES[ph.pose])} · ${esc(fmtDate(ph.date))}</span></figure>`);
+      } catch { /* foto ilegible: se omite */ }
+    }
+  }
 
   async function openCoachCopy(file) {
     let data;
     try { data = JSON.parse(await file.text()); }
-    catch { toast('No se pudo abrir. El archivo no es un JSON válido', true); return; }
+    catch { coachFail(`No se pudo abrir «${file.name}». El archivo no es un JSON válido`); return; }
     let copy, photoList = [], photoNote = '';
     try { copy = Schema.normalize(Schema.migrate(data)); }
-    catch (err) { toast('No se pudo abrir. ' + err.message, true); return; }
+    catch (err) { coachFail(`No se pudo abrir «${file.name}». ${err.message}`); return; }
     try {
       photoList = Schema.normalizePhotos(data.photos).photos;
     } catch { photoNote = 'Las fotos de la copia no tienen un formato válido.'; }
-    // Día de referencia: el de la exportación si viene en el archivo (el coach suele abrirlo al día siguiente).
-    const exported = typeof data.exportedAt === 'string' ? new Date(data.exportedAt) : null;
-    const ref = exported && !Number.isNaN(exported.getTime()) ? toISO(exported) : today();
+    // Día de referencia: el de la exportación si viene en el archivo (el coach suele abrirlo al día siguiente),
+    // pero nunca posterior a hoy (reloj del cliente adelantado).
+    const exportedAt = typeof data.exportedAt === 'string' ? new Date(data.exportedAt) : null;
+    const exported = exportedAt && !Number.isNaN(exportedAt.getTime()) ? toISO(exportedAt) : null;
+    const ref = exported && exported < today() ? exported : today();
+    const refLabel = !exported ? ' (hoy)' : exported > today() ? ' (hoy; la fecha de exportación es posterior)' : ' (fecha de exportación)';
     const r = Coach.summarize(copy.state, { today: ref });
 
+    const gen = ++coachGen;
     revokeCoachUrls();
-    const thumbs = [];
-    for (const ph of photoList.sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt)) {
-      try {
-        const url = URL.createObjectURL(Photos.decode(ph.data));
-        coachUrls.push(url);
-        thumbs.push(`<figure class="thumb"><img src="${esc(url)}" alt="${esc(POSES[ph.pose])} del ${esc(fmtDate(ph.date))}" loading="lazy"><span>${esc(POSES[ph.pose])} · ${esc(fmtDate(ph.date))}</span></figure>`);
-      } catch { /* foto ilegible: se omite */ }
-    }
+    setCoachError('');
+    photoList.sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
     const kg = (v) => (v == null ? '—' : fmt(v) + ' kg');
     const sign = (v, d = 1) => (v == null ? '—' : (v > 0 ? '+' : '') + fmt(v, d));
     const w = r.weight;
     const prot = (a) => (a.proteinAvg == null ? '—' : `${esc(a.proteinAvg)} g${r.target ? ' / ' + esc(r.target.protein) + ' g' : ''}`);
     $('#coach-title').textContent = r.name ? `Copia de ${r.name}` : 'Copia de cliente';
-    $('#coach-file').textContent = `${file.name} · referencia ${fmtDate(r.reference)}${exported ? ' (fecha de exportación)' : ' (hoy)'}`;
+    $('#coach-file').textContent = `${file.name} · referencia ${fmtDate(r.reference)}${refLabel}`;
     const discarded = copy.warnings.length;
     $('#coach-body').innerHTML = `
       ${discarded ? `<p class="warn small">${esc(discarded)} datos no válidos de la copia se ignoraron.</p>` : ''}
@@ -874,9 +894,11 @@
       ${r.notes.length ? `<ul class="coach-notes small">${r.notes.map((n) => `<li><strong>${esc(fmtDate(n.date))}</strong>: ${esc(n.note)}</li>`).join('')}</ul>` : '<p class="muted small">Sin notas.</p>'}
       <h3>Fotos</h3>
       ${photoNote ? `<p class="warn small">${esc(photoNote)}</p>` : ''}
-      ${thumbs.length ? `<div class="thumbs">${thumbs.join('')}</div>` : '<p class="muted small">La copia no trae fotos.</p>'}`;
+      ${photoList.length ? '<div class="thumbs" id="coach-thumbs"></div>' : '<p class="muted small">La copia no trae fotos.</p>'}`;
     if (!coachViewer.open) coachViewer.showModal();
     coachViewer.scrollTop = 0;
+    $('#coach-title').focus();   // el lector de pantalla anuncia primero de quién es la copia
+    if (photoList.length) decodeCoachThumbs(photoList, gen);
   }
   for (const id of ['#file-coach', '#file-coach-other']) {
     $(id).addEventListener('change', async (ev) => {

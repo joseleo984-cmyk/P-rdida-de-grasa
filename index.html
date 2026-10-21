@@ -297,7 +297,7 @@
   <dialog id="coach-viewer" class="coach-viewer" aria-labelledby="coach-title">
     <div class="coach-bar">
       <div>
-        <h2 id="coach-title">Copia de cliente</h2>
+        <h2 id="coach-title" tabindex="-1">Copia de cliente</h2>
         <p class="muted small" id="coach-file"></p>
       </div>
       <div class="row-actions">
@@ -305,6 +305,7 @@
         <button type="button" class="btn" id="coach-close">Cerrar</button>
       </div>
     </div>
+    <p id="coach-error" class="warn small hidden" role="alert"></p>
     <p class="coach-ro small">Solo lectura: estos datos no se guardan ni se mezclan con los tuyos.</p>
     <div id="coach-body"></div>
   </dialog>
