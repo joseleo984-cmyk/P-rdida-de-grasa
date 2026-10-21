@@ -20,3 +20,6 @@ Reglas de la noche: nada a `main`, nada publicado, solo trabajo sobre decisiones
 - Sprint 1 CERRADO (review y retro en sprint1-review-retro.md). S2-2 (E2E Playwright + CI en GitHub) ✅. S2-3 ✅ con ajustes.
 - CI falló en GitHub: el visor de copia de cliente desbordaba 13 px a 390 px con las fuentes de Linux (fallo real en móviles con letra grande). SM lo corrigió (tabla con scroll propio); CI ✅ verde en 674aa83.
 - S2-1 (pantalla legal) implementada por Frontend; al integrarla hubo 6 conflictos → devuelta al autor para resolver (acción de la retro).
+- S2-1 (pantalla legal) integrada: 47/47 unitarias, 48 E2E Playwright, 8 suites QA en verde. QA revisándola.
+- S2-4 (datos v4 para sync: UUID, updatedAt, borrado lógico) en curso con Backend.
+- ⏸ ~04:35–09:30 UTC: los agentes se detuvieron por el límite de uso de la cuenta. Reanudados al restablecerse; sin trabajo perdido.

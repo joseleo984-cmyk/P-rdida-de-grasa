@@ -48,7 +48,15 @@ HECHO (sin red ni Supabase: solo modelo de datos y funciones puras):
 - **`photos.js`**: `Photos.migrateIds({ isValid, uid, epoch })`. Pasa a UUID las fotos de IndexedDB de versiones
   anteriores y les pone `updatedAt`, en **una** transacción (borrar la clave vieja y escribir la nueva van juntas).
   Se llama en `loadPhotos()`.
-- `sw.js`: `CACHE = 'perdida-grasa-v12'`. No toqué la pantalla legal ni la lógica de consentimiento.
+- `sw.js`: `CACHE = 'perdida-grasa-v14'` (tras integrar la v13 de la rama). No toqué la pantalla legal ni la lógica
+  de consentimiento.
+- **Control de salud (D1 del Frontend, integrado con `git merge`)**: se conserva tal cual.
+  - `healthPart()` incluye ahora también las lápidas de salud (`deleted.entries/foods/habits`). Los ids y el
+    `updatedAt` ya iban dentro de cada registro. Sin autorización, borrar tampoco se guarda.
+  - La migración v3→v4 al cargar escribe en `load()` directamente: no es una escritura del usuario, así que no pasa
+    por `persist()`, y `healthBaseline` se toma después.
+  - `stampChanges` no altera los registros sin cambios, así que guardar solo el consentimiento no cambia `healthPart`.
+  - Test E2E nuevo: datos v3 con `sensitiveHealth: false` → migran a v4 al cargar.
 
 PRUEBAS NUEVAS:
 - `tests/sync.test.js` (11 pruebas) y el fixture nuevo `tests/fixtures/backup-v3.json`, que no se debe modificar.
@@ -62,8 +70,9 @@ PRUEBAS NUEVAS:
   - `purgeDeleted`.
   - `mergeRecords`: LWW, empate conmutativo, lápida frente a edición, clave natural con el id remoto.
   - `mergeState` y la ida y vuelta de `toRecords`/`fromRecords`.
-- `tests/e2e/s2-4.spec.js` (4 tests, 390x844):
+- `tests/e2e/s2-4.spec.js` (5 tests, 390x844):
   - Carga de datos v3: v4, UUID estables tras recargar, EPOCH, `:backup-v3` idéntico al crudo y consentimiento conservado.
+  - Sin autorización de salud, la migración al cargar no se bloquea.
   - Fotos antiguas de IndexedDB → UUID y galería igual.
   - Editar, crear, borrar y volver a registrar desde la UI. Comprueba `updatedAt`, lápidas, tabla y CSV sin el día
     borrado, y el id del hábito conservado.
@@ -72,7 +81,7 @@ PRUEBAS NUEVAS:
 
 PRUEBAS EXISTENTES AJUSTADAS (cambio legítimo de formato, no de comportamiento):
 - `tests/schema.test.js` y `tests/legal.test.js`: versión 4. El contenido se compara sin `id`/`updatedAt` y se exige UUID.
-- `tests/e2e/import.spec.js`: igual que la anterior.
+- `tests/e2e/import.spec.js` y `tests/e2e/s2-1-qa.spec.js` («migración v1 → v3… conserva todo»): igual que la anterior.
 - **`tests/e2e/helpers.js` `importJSON`: vacía `#toast` antes de importar.** Antes, un «Datos importados» anterior
   satisfacía la espera y la prueba leía un resultado viejo. Sin esto, «archivos rechazados» podía pasar sin probar nada.
 - `equipo/qa/qa-s1-1.js`:
@@ -86,12 +95,13 @@ DEFINICIÓN DE HECHO:
       ignoradas por UI, cálculos, CSV y visor; purga opcional documentada; hábitos y pesaje por fecha;
       `mergeRecords` LWW puro; respaldos v1/v2/v3 importan; exportar lleva los campos nuevos; importar no adopta
       un consentimiento ajeno.
-- [x] `npm test` en verde: **58/58**.
-- [x] `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npm run test:e2e` en verde: **52 passed**, con la nueva `s2-4.spec.js`.
-- [x] `node equipo/qa/run-all.js` en verde: 8 suites (resultado en el mensaje de entrega).
+- [x] `npm test` en verde: **59/59**.
+- [x] `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npm run test:e2e` en verde: **64 passed**, con la nueva `s2-4.spec.js`.
+      El `test.fail` de S2-1 D2 (marcadores legales) sigue fallando como se espera.
+- [x] `node equipo/qa/run-all.js` en verde: **8 suites en verde**, tras el merge.
 - [x] Sin errores de consola: el fixture de la E2E falla si hay alguno.
 - [x] Seguridad: lápidas y UUID validados en `normalize`; nada nuevo se interpola en `innerHTML`.
-- [x] PWA: `CACHE` v12 (no hay assets nuevos).
+- [x] PWA: `CACHE` v14 (no hay assets nuevos).
 - [x] Handoff escrito. El tablero lo actualiza el SM.
 
 AVISO DE ENTORNO (importante para QA/CI local):

@@ -1,123 +1,126 @@
 > ⚠️ **Borrador — debe revisarlo un abogado antes de usarse con datos reales; no es asesoría legal.**
-> Autor: Agente Analista de Producto · 2026-10-21 · Los `[CAMPOS]` deben completarse. Las notas en *cursiva* marcadas "NOTA" son internas y se quitan antes de publicar.
+> Autor: Agente Analista de Producto · 2026-10-21 · Edición **piloto** (rev. 2): describe la app **sin servidor**. Lo previsto para la versión con cuentas está en §13 y exigirá aceptar de nuevo. Las notas en *cursiva* marcadas "NOTA" son internas: no se publican (`npm run legal` las quita).
+> Número de versión: se mantiene en 0.1 mientras sea borrador (nadie real lo ha aceptado). Se subirá cuando el abogado apruebe el texto definitivo, que será la versión con la que arranca el piloto.
+>
+> **Datos que debe completar el Stakeholder** (los mismos que en la Política; no debe quedar ningún marcador):
+>
+> | Marcador | Qué poner |
+> |---|---|
+> | `[NOMBRE COMPLETO DEL RESPONSABLE]` | Nombre y apellidos como en la cédula |
+> | `[NÚMERO DE CÉDULA]` | Cédula de ciudadanía |
+> | `[CIUDAD]` | Ciudad de domicilio |
+> | `[CORREO DE CONTACTO]` | Correo de soporte y reclamos (puede ser el mismo de datos personales) |
+> | `[TELÉFONO / WHATSAPP]` | Número de contacto |
+> | `[FECHA DE VIGENCIA]` | Día en que se publica esta versión |
+> | `[FECHA DE FIN DEL PILOTO]` | Último día del piloto |
 
 # Términos y Condiciones de Uso — "Pérdida de Grasa"
 
-**Versión:** 0.1 (borrador) · **Vigentes desde:** [FECHA]
+**Versión:** 0.1 · **Edición:** piloto, sin servidor · **Vigentes desde:** [FECHA DE VIGENCIA]
 
 ## 1. Quiénes somos y qué aceptas
 
-La app "Pérdida de Grasa" (la "app" o el "servicio") la ofrece **[NOMBRE COMPLETO]**, persona natural, con cédula **[NÚMERO]**, domiciliada en **[CIUDAD]**, Colombia, correo **[CORREO]** ("nosotros").
+La app "Pérdida de Grasa" (la "app") la ofrece **[NOMBRE COMPLETO DEL RESPONSABLE]**, persona natural, con cédula **[NÚMERO DE CÉDULA]**, domiciliada en **[CIUDAD]**, Colombia, correo **[CORREO DE CONTACTO]**, teléfono **[TELÉFONO / WHATSAPP]** ("nosotros").
 
-Al crear una cuenta o usar la app aceptas estos Términos y nuestra **Política de Tratamiento de Datos Personales** (documento aparte). Si no estás de acuerdo, no uses la app. La aceptación se registra con la fecha y la versión.
+Al usar la app aceptas estos Términos y la **Política de Tratamiento de Datos Personales** (documento aparte). La app guarda en tu teléfono la versión y la fecha de lo que aceptaste. Si no estás de acuerdo, no uses la app.
 
-## 2. Qué es (y qué no es) el servicio
+## 2. Qué es (y qué no es) la app
 
-- La app te ayuda a **registrar y ver tu progreso** en un proceso de pérdida de grasa: peso, medidas, comidas, hábitos y fotos. También calcula estimaciones (calorías, macros, % de grasa) y, si tienes coach, te permite **compartir tu progreso** con él o ella.
+- La app te ayuda a **registrar y ver tu progreso** en un proceso de pérdida de grasa: peso, medidas, comidas, hábitos y fotos. Calcula estimaciones (calorías, macros, % de grasa) y te da recomendaciones generales.
 - **No es un servicio médico ni nutricional.** Las cifras y recomendaciones son **estimaciones orientativas** basadas en fórmulas generales. **No reemplazan** el diagnóstico ni el tratamiento de un médico, nutricionista u otro profesional de la salud.
 - Consulta a un profesional antes de cambiar tu alimentación o actividad física, en especial si estás embarazada o lactando, o tienes diabetes, enfermedades cardíacas, renales, trastornos de la conducta alimentaria u otra condición de salud. Si tienes síntomas, deja de seguir el plan y busca atención médica.
-- Tenemos un **mínimo de calorías de seguridad**, pero eres tú quien decide cómo aplicar la información.
+- La app tiene un **mínimo de calorías de seguridad**, pero eres tú quien decide cómo aplicar la información.
 
-## 3. Quién es quién: plataforma, coach y cliente
+## 3. Cómo funciona el piloto
+
+- El piloto dura aproximadamente **4 semanas**, hasta el [FECHA DE FIN DEL PILOTO], y participan clientes invitados por sus coaches.
+- **Tus datos se guardan solo en tu teléfono.** No hay cuentas, servidor ni nube.
+- Cada semana puedes **exportar un archivo** y **enviárselo tú mismo/a** a tu coach por WhatsApp (u otro medio que acuerdes). Si eliges WhatsApp, aplican también las condiciones de ese servicio (Meta).
+- **Cuida tus datos:** si borras la app, los datos del navegador o cambias de teléfono sin exportar, **se pierden**. La app te recuerda hacer copias.
+- Tu participación es **voluntaria** y puedes salirte cuando quieras.
+
+## 4. Quién es quién: plataforma, coach y cliente
 
 | Parte | Qué hace | Qué no hace |
 |---|---|---|
-| **Nosotros (plataforma)** | Ofrecemos la herramienta tecnológica: cuentas, registro, panel del coach, comentarios y, en la fase 2, el cobro de pagos dentro de la app. | **No prestamos** el servicio de coaching ni de nutrición, ni supervisamos los planes que da cada coach. |
-| **Coach** | Es un profesional **independiente** que usa la app para acompañar a sus clientes. Fija su precio, su plan y la forma de trabajar. | No es empleado, agente ni socio nuestro. No puede usar los datos de sus clientes para fines distintos al seguimiento. |
-| **Cliente** | Registra sus datos, decide qué comparte con su coach y contrata directamente con él o ella el servicio de coaching. | — |
+| **Nosotros** | Ofrecemos la herramienta (la app) y, en el piloto, armamos un resumen semanal para tu coach con los archivos que tú envías. | **No prestamos** el servicio de coaching ni de nutrición, ni supervisamos los planes de cada coach. |
+| **Coach** | Es un profesional **independiente** que te acompaña. Fija su precio, su plan y su forma de trabajar. En el piloto trata tus archivos **por cuenta nuestra**, solo para tu seguimiento. | No es empleado, agente ni socio nuestro. No puede usar tus datos para otra cosa, ni reenviarlos o publicarlos. |
+| **Tú (cliente)** | Registras tus datos, decides qué y cuándo compartes y contratas el coaching directamente con tu coach. | — |
 
-- **El contrato de coaching es entre el coach y el cliente.** El coach responde por la calidad, la idoneidad y el cumplimiento de su servicio y de sus recomendaciones.
-- **Obligaciones del coach:** contar con la formación y, si aplica, las habilitaciones necesarias para lo que ofrece; no presentarse como médico o nutricionista si no lo es; respetar la confidencialidad; usar los datos de sus clientes solo para hacerles seguimiento, según la Política de Datos y el acuerdo de encargado que firma al registrarse; y no compartir ni publicar fotos o datos de clientes.
-- *NOTA: a validar con el abogado si el coach debe aceptar además unos "Términos para coaches" aparte, con el acuerdo de encargado de datos.*
+- **El contrato de coaching es entre tú y tu coach.** El coach responde por la calidad, la idoneidad y el cumplimiento de su servicio y de sus recomendaciones.
+- **Compromisos del coach en el piloto:** no presentarse como médico o nutricionista si no lo es; mantener la confidencialidad; usar tus archivos solo para tu seguimiento; no reenviarlos ni publicarlos; y borrarlos al terminar el piloto.
 
-## 4. Cuentas
+*NOTA: rol del coach como encargado y "Términos para coaches" aparte, a validar con el abogado (P2 y P11 de preguntas-abogado.md).*
 
-- Solo para **mayores de 18 años**. Cada persona (coach o cliente) tiene **su propia cuenta**, personal e intransferible.
-- Debes dar información verdadera y mantener seguros tu correo y tu dispositivo, porque el inicio de sesión se hace con un enlace o código enviado a tu correo.
-- Avísanos a **[CORREO]** si sospechas que alguien usa tu cuenta.
-- **Vínculo con un coach:** te unes con el código o enlace que te da tu coach. Puedes desvincularte cuando quieras; desde ese momento el coach deja de ver tus datos.
-- La app funciona **sin conexión**; los datos se sincronizan cuando vuelve la conexión. Te recomendamos no borrar los datos del navegador hasta que se sincronicen.
+## 5. Requisitos de uso
 
-## 5. Precios y pagos
+- La app es solo para **mayores de 18 años**.
+- Usa la app para tu propio seguimiento. No registres datos ni fotos de otras personas sin su permiso.
+- Protege tu teléfono con clave o biometría: cualquiera con acceso a él puede ver tus datos.
 
-### Fase 1 (actual)
-- Para el **cliente**, la app es **gratuita**. Lo que pagues por el coaching lo acuerdas y pagas **directamente con tu coach, fuera de la app**.
-- Para el **coach**, la app es gratis hasta **5 clientes**. Desde el 6.º cliente, la tarifa es de **USD 5 por cliente activo al mes**, cobrada en pesos colombianos a la tasa de [REFERENCIA: p. ej. TRM del día de la factura]. Se paga **fuera de la app** (link de pago o transferencia) por mes [vencido/anticipado].
-- "**Cliente activo**" es el cliente vinculado que registró al menos un dato en el mes. *[A confirmar por el Stakeholder.]*
-- Si el coach no paga en [10] días desde el aviso de cobro, podemos limitar su panel a 5 clientes hasta que se ponga al día. Los clientes no pierden sus datos.
+## 6. Precio
 
-### Fase 2 (futura, se avisará con anticipación)
-- El cliente podrá **pagar su mensualidad al coach dentro de la app** por medio de una pasarela de pagos [NOMBRE]. Del valor pagado, la plataforma retendrá [USD 5 por cliente / X %] y entregará el resto al coach en [PLAZO].
-- Las condiciones de cobro, reembolsos y **derecho de retracto** se publicarán antes de activar esta función y requerirán una nueva aceptación.
+- **Para ti, la app es gratuita durante el piloto.** Lo que pagues por el coaching lo acuerdas y pagas **directamente con tu coach, fuera de la app**.
+- **Para el coach**, participar en el piloto es gratuito. Las condiciones comerciales para coaches después del piloto se acordarán por separado.
 
-### Para todos
-- Los precios pueden cambiar; avisaremos con al menos [30] días de anticipación. Si no estás de acuerdo, puedes cancelar antes de que el cambio aplique.
-- No guardamos datos de tarjetas: los procesa la pasarela de pagos.
+## 7. Tu contenido y tus datos
 
-## 6. Tu contenido y tus datos
-
-- **Tus datos son tuyos.** Nos das permiso de guardarlos, procesarlos y mostrarlos solo para prestarte el servicio, según la Política de Datos.
-- Puedes **exportar** tus datos y **eliminar tu cuenta** cuando quieras desde la app.
-- No subas contenido de otras personas sin su permiso, ni contenido ilegal, ofensivo o sexual explícito. Las fotos de progreso son para tu seguimiento.
-
-## 7. Retos y comunidad (función futura)
-
-Cuando estén disponibles:
-- Unirte a un reto o a la comunidad es **voluntario**. Al hacerlo, otros participantes podrán ver tu **nombre o alias, tu posición y lo que publiques**, pero **nunca tus datos de salud ni tus fotos sin una autorización aparte**.
-- Reglas de convivencia: respeto; nada de acoso, comentarios sobre el cuerpo de otros, discriminación, promoción de prácticas peligrosas (dietas extremas, fármacos sin control médico), spam o venta no autorizada.
-- Podemos moderar, ocultar o eliminar contenido y suspender cuentas que incumplan estas reglas. Puedes reportar contenido desde la app.
-- Los premios de los retos, si los hay, los define y entrega el coach organizador, que responde por ellos.
+- **Tus datos son tuyos.** Puedes exportarlos y borrarlos cuando quieras desde la app.
+- Si nos envías tu archivo, nos autorizas a usarlo solo para lo que dice la Política de Datos (tu seguimiento y la evaluación del piloto con resultados anónimos).
+- Las fotos de progreso son solo para tu seguimiento. No subas contenido ilegal, ofensivo o sexual explícito.
 
 ## 8. Usos no permitidos
 
-No puedes: usar la app para fines ilegales; acceder a cuentas o datos de otros; intentar vulnerar la seguridad; copiar, revender o hacer ingeniería inversa del servicio sin autorización; ni usar los datos de clientes para fines comerciales distintos al seguimiento (en el caso de los coaches).
+No puedes: usar la app para fines ilegales; intentar vulnerar su seguridad; copiarla, revenderla o modificarla para hacerla pasar como propia sin autorización. Los coaches no pueden usar los datos de sus clientes para fines distintos al seguimiento.
 
-## 9. Disponibilidad y cambios del servicio
+## 9. Disponibilidad y cambios
 
-- Hacemos lo razonable para que la app funcione, pero puede tener interrupciones, errores o cambios. Es un servicio en evolución, y algunas funciones pueden ser de prueba (piloto).
-- Podemos cambiar, agregar o retirar funciones. Si retiramos el servicio, avisaremos con [30] días para que exportes tus datos.
+- La app es una **versión de prueba**: puede tener errores, interrupciones o cambios durante el piloto.
+- Podemos cambiar, agregar o retirar funciones. Si dejamos de ofrecerla, te avisaremos para que exportes tus datos.
 
 ## 10. Limitación de responsabilidad
 
 En la medida en que la ley colombiana lo permita:
 - **No respondemos** por resultados de salud, estéticos o de peso, ni por decisiones que tomes con base en las estimaciones de la app.
-- **No respondemos** por el servicio, los consejos, los planes, los precios o los premios de los coaches, que son profesionales independientes.
-- No respondemos por pérdida de datos causada por borrar el navegador o el dispositivo antes de sincronizar, por fallas de tu conexión, ni por fuerza mayor.
+- **No respondemos** por el servicio, los consejos, los planes o los precios de los coaches, que son profesionales independientes.
+- **No respondemos** por la pérdida de datos causada por borrar la app o los datos del navegador, cambiar de teléfono sin exportar, ni por fallas del dispositivo o de servicios de terceros como WhatsApp.
 - Nada de lo anterior limita los derechos que te reconoce el **Estatuto del Consumidor (Ley 1480 de 2011)** ni nuestra responsabilidad por dolo o culpa grave.
 
 ## 11. Terminación y borrado
 
-- **Tú** puedes dejar de usar la app y **eliminar tu cuenta** en cualquier momento (Perfil → Privacidad → Eliminar cuenta). Borramos tus datos según la Política de Datos.
-- **Nosotros** podemos suspender o cerrar cuentas que incumplan estos Términos, previo aviso salvo en casos graves (fraude, riesgo para otros usuarios o mandato legal).
-- Si un **coach** cierra su cuenta, sus clientes **conservan sus cuentas y datos**; solo se rompe el vínculo.
-- Antes de un cierre por nuestra parte te daremos la opción de **exportar** tus datos, salvo mandato legal.
+- **Tú** puedes dejar de usar la app cuando quieras. Para borrar lo que hay en tu teléfono: Perfil → Datos → Borrar todo. Para que borremos los archivos que enviaste (nosotros y tu coach), escríbenos a [CORREO DE CONTACTO].
+- Al terminar el piloto, los archivos enviados se borran en el plazo que indica la Política de Datos. Puedes seguir usando la app en tu teléfono.
+- Podemos pedirle a un participante que deje el piloto si incumple estos Términos.
 
 ## 12. Cambios a estos Términos
 
-Si los cambiamos de manera relevante, te avisaremos en la app y por correo y te pediremos **aceptar la nueva versión** para seguir usando el servicio. Las versiones anteriores quedarán disponibles para consulta.
+Si los cambiamos de manera relevante, la app te mostrará la nueva versión y te pedirá **aceptarla de nuevo** para seguir usándola.
 
-## 13. Ley aplicable y controversias
+## 13. Cambios previstos para la versión con cuentas (R1 y siguientes)
 
-Estos Términos se rigen por las **leyes de la República de Colombia**. Antes de acudir a otras vías, escríbenos a **[CORREO]** e intentaremos resolverlo de forma directa en [15] días hábiles. Como consumidor, puedes acudir a la **Superintendencia de Industria y Comercio** o a los jueces competentes de Colombia.
+Cuando la app tenga **cuentas e inicio de sesión**, estos Términos se reemplazarán por una nueva versión que **deberás aceptar de nuevo**. **Nada de esto aplica en el piloto.** Lo que se prevé:
 
-## 14. Contacto
+- **Cuentas personales** para coaches y clientes, con inicio de sesión por código enviado al correo; **vínculo con tu coach** por código de invitación y desvinculación cuando quieras.
+- **Datos en un servidor** (Supabase, con datos alojados probablemente en Estados Unidos) para sincronizar entre dispositivos y como copia de seguridad, según la nueva Política de Datos.
+- **Panel del coach:** el coach ve en la app lo que tú decidas compartir, fotos incluidas si las autorizas, sin que tengas que enviar archivos.
+- **Precios, fase 1:** gratis para el cliente. Para el coach, gratis hasta 5 clientes y luego **USD 5 por cliente activo al mes** (cobrado en pesos), pagado **fuera de la app**.
+- **Precios, fase 2:** el cliente podrá **pagar su mensualidad al coach dentro de la app** por medio de una pasarela de pagos, con un reparto entre el coach y la plataforma. Se publicarán las reglas de cobros, reembolsos y derecho de retracto.
+- **Retos y comunidad:** participación voluntaria, reglas de convivencia, moderación y premios a cargo del coach organizador.
+- **Eliminación de cuenta** desde la app y cierre de cuentas por incumplimiento.
 
-[NOMBRE COMPLETO] · [CORREO] · [TELÉFONO] · [CIUDAD], Colombia.
+## 14. Ley aplicable y controversias
+
+Estos Términos se rigen por las **leyes de la República de Colombia**. Antes de acudir a otras vías, escríbenos a **[CORREO DE CONTACTO]** e intentaremos resolverlo de forma directa en 15 días hábiles. Como consumidor, puedes acudir a la **Superintendencia de Industria y Comercio** o a los jueces competentes de Colombia.
+
+## 15. Contacto
+
+[NOMBRE COMPLETO DEL RESPONSABLE] · [CORREO DE CONTACTO] · [TELÉFONO / WHATSAPP] · [CIUDAD], Colombia.
+
+## Historial de versiones
 
 | Versión | Fecha | Cambio |
 |---|---|---|
-| 0.1 | 2026-10-21 | Borrador inicial (piloto y R1) |
+| 0.1 | 2026-10-21 | Primer borrador (describía la versión con servidor y pagos) |
+| 0.1 (edición piloto, rev. 2) | 2026-10-21 | Describe solo la fase piloto sin servidor y gratuita. Cuentas, servidor, pagos, retos y comunidad pasan a §13. La versión se subirá cuando el abogado apruebe el texto definitivo. |
 
----
-
-## Dudas para el abogado (T&C)
-
-1. **Relación plataforma-coach-cliente:** ¿basta con declarar al coach como "profesional independiente" para limitar nuestra responsabilidad por su servicio? ¿Aplica el régimen de **portales de contacto** (art. 53 Ley 1480 de 2011) y sus obligaciones (identificar al coach, mecanismo de PQR)?
-2. **Limitación de responsabilidad:** ¿qué cláusulas podrían considerarse **abusivas** (arts. 42–43 Ley 1480) y por tanto ineficaces?
-3. **Fase 2, pagos en la app:** ¿qué implica para una **persona natural** cobrar en nombre de coaches y repartir el pago (posible mandato o recaudo a terceros)? Facturación electrónica (DIAN), RUT y régimen tributario; retención; **derecho de retracto** en ventas a distancia (art. 47 Ley 1480, 5 días hábiles) y **reversión del pago** (art. 51).
-4. **Cobro en USD vs. COP:** ¿conviene fijar el precio directamente en COP para evitar temas cambiarios?
-5. **Coaches y profesiones de salud:** ¿hay riesgo si un coach sin título de nutricionista da planes de alimentación (Ley 73 de 1979)? ¿Qué debemos exigir o advertir?
-6. **Aceptación electrónica:** validez de la aceptación por casillas (Ley 527 de 1999) y de la aceptación por WhatsApp en el piloto.
-7. **Comunidad y retos:** responsabilidad por contenido de usuarios, moderación, y uso de imagen si alguien publica fotos; reglas para premios y concursos (¿requieren permisos de Coljuegos si hay premios?).
-8. **Mensajes comerciales:** horarios y canales permitidos para recordatorios y mensajes comerciales (Ley 2300 de 2023).
-9. ¿Necesitamos **Términos separados para coaches** (con el acuerdo de encargado de datos y las condiciones de la tarifa por cliente)?
+*NOTA de versión para Dev: igual que en la Política. Cambiar a la vez Versión, LEGAL_VERSIONS, LEGAL_CHANGES y el test de buildConsent.*

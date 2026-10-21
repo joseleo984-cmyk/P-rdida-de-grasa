@@ -29,6 +29,15 @@ test('carga de datos v3 guardados: migra a v4 una vez, con UUID estables, EPOCH 
   await expect(page.locator('#entries-table tbody tr')).toHaveCount(3);
 });
 
+test('sin autorización de datos de salud, la migración v3 → v4 al cargar no se bloquea (no es una escritura del usuario)', async ({ app }) => {
+  const noHealth = Schema.buildConsent({ terms: true, privacy: true, adult: true, sensitiveHealth: false, photos: false }, '2026-10-01T12:00:00.000Z');
+  await app.open({ state: { ...V3_STATE, consent: noHealth } });
+  const s = await app.stored();
+  expect(s.schemaVersion).toBe(4);
+  expect(s.entries.every((e) => Schema.isUUID(e.id) && e.updatedAt === EPOCH)).toBe(true);
+  expect(s.consent).toEqual(noHealth);
+});
+
 test('fotos antiguas en IndexedDB: pasan a UUID con updatedAt en una transacción y la galería sigue igual', async ({ app, page }) => {
   await app.open({ state: seedV3() });
   await page.evaluate(async (data) => {

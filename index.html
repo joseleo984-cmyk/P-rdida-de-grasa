@@ -22,8 +22,10 @@
       <h2 id="consent-title" tabindex="-1">Antes de empezar</h2>
       <p id="consent-update" class="consent-update hidden"></p>
       <div id="consent-blocked" class="consent-update hidden">
-        <p>Tus datos guardados son de una versión más nueva de la app: recarga para actualizar. Mientras tanto no se puede guardar nada.</p>
-        <button type="button" class="btn btn-danger" id="btn-consent-reset">Borrar los datos de este dispositivo</button>
+        <p>Tus datos guardados son de una versión más nueva de la app. Recarga para actualizarla; mientras tanto no se puede guardar nada.</p>
+        <button type="button" class="btn btn-tall" id="btn-consent-reload">Recargar para actualizar</button>
+        <p class="small muted">Si recargar no funciona (p. ej. sin conexión) y no necesitas esos datos:</p>
+        <button type="button" class="btn-link small danger-link" id="btn-consent-reset">Borrar los datos de este dispositivo (se pierden)</button>
       </div>
       <p class="small">Tus datos se guardan solo en este dispositivo. Lee los textos y marca lo que aceptas. Las casillas facultativas puedes cambiarlas cuando quieras en Perfil → Privacidad.</p>
       <form id="form-consent" novalidate>
@@ -38,14 +40,18 @@
         <div class="consent-item">
           <label class="check"><input type="checkbox" name="sensitiveHealth"> <span>Autorizo de forma expresa el tratamiento de mis <strong>datos sensibles de salud</strong> (peso, medidas, % de grasa, comidas, hábitos). Sé que es facultativo. <em class="opt">(facultativa)</em></span></label>
           <p class="small muted">Sin esta autorización la app no puede guardar ni mostrar tu seguimiento.</p>
-          <a class="legal-link" href="legal/privacidad.html" data-legal>Qué datos y para qué</a>
+          <p class="small prev-note hidden" id="prev-sensitiveHealth">Antes la tenías autorizada: la mantenemos marcada; puedes desmarcarla.</p>
+          <a class="legal-link" href="legal/privacidad.html#s5" data-legal>Qué datos y para qué</a>
         </div>
         <div class="consent-item">
           <label class="check"><input type="checkbox" name="photos"> <span>Autorizo el tratamiento de mis <strong>fotos de progreso</strong>. <em class="opt">(opcional)</em></span></label>
           <p class="small muted">Si no lo marcas, la pestaña Fotos queda bloqueada.</p>
+          <p class="small prev-note hidden" id="prev-photos">Antes la tenías autorizada: la mantenemos marcada; puedes desmarcarla.</p>
+          <a class="legal-link" href="legal/privacidad.html#s5" data-legal>Qué hacemos con tus fotos</a>
         </div>
         <div class="consent-item">
           <label class="check"><input type="checkbox" name="adult"> <span>Declaro que soy <strong>mayor de 18 años</strong>. <em class="req">(obligatoria)</em></span></label>
+          <a class="legal-link" href="legal/privacidad.html#s7" data-legal>Por qué solo mayores de 18</a>
         </div>
         <p id="consent-hint" class="small muted" aria-live="polite">Marca las casillas obligatorias para continuar.</p>
         <button type="submit" class="btn btn-tall" id="btn-consent" disabled aria-describedby="consent-hint">Continuar</button>
