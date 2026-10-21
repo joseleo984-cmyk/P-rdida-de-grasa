@@ -44,3 +44,25 @@ jobs:
             test-results/
           retention-days: 14
           if-no-files-found: ignore
+
+  # Base de datos de R1 (RLS, RPC, Storage): PostgreSQL LOCAL y temporal con un stub de Supabase (scripts/test-db.js).
+  # ubuntu-latest (24.04) trae PostgreSQL 16 instalado pero parado; el script crea su propio cluster con initdb
+  # en un directorio temporal y un puerto libre, así que no hace falta arrancar el servicio del sistema.
+  db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Localizar PostgreSQL (o instalar el 16 si la imagen no lo trae)
+        run: |
+          if ! ls -d /usr/lib/postgresql/*/bin >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-16
+          fi
+          PG_BIN=$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1)
+          "$PG_BIN/postgres" --version
+          echo "PG_BIN=$PG_BIN" >> "$GITHUB_ENV"
+      - name: Pruebas de la base de datos (r1.sql al día + matriz RLS + QA de seguridad)
+        run: npm run test:db
