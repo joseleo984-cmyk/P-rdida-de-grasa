@@ -61,9 +61,11 @@
     if (saveBlocked) throw new Error('Guardado bloqueado');
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...s, schemaVersion: Schema.CURRENT_VERSION }));
   }
+  const QUOTA_MSG = 'Almacenamiento lleno: exporta una copia y borra fotos antiguas';
+  const isQuotaError = (err) => err && (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22);
   function save() {
     try { persist(state); }
-    catch { toast(saveBlocked ? loadNotice : 'No se pudo guardar en este navegador'); }
+    catch (err) { toast(saveBlocked ? loadNotice : isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador'); }
   }
 
   const sortedEntries = () => [...state.entries].sort((a, b) => a.date.localeCompare(b.date));
@@ -647,7 +649,8 @@
       catch { throw new Error('El archivo no es un JSON válido'); }
       const { state: next, warnings } = Schema.normalize(Schema.migrate(data));
       // Las copias anteriores a las fotos no traen la clave `photos`: se conservan las actuales.
-      const hasPhotos = Array.isArray(data.photos);
+      // Si la trae con un formato que no es lista, normalizePhotos lanza y no se importa nada.
+      const hasPhotos = data.photos !== undefined && data.photos !== null;
       const ph = hasPhotos ? Schema.normalizePhotos(data.photos) : { photos: [], warnings: [] };
       const discarded = warnings.length + ph.warnings.length;
       if (discarded) console.warn('Importación: datos descartados o corregidos', [...warnings, ...ph.warnings]);
@@ -658,7 +661,7 @@
 
       const prevRaw = localStorage.getItem(STORAGE_KEY);
       // Si falla (p. ej. sin espacio) se lanza antes de tocar las fotos.
-      try { persist(next); } catch { throw new Error('No hay espacio para guardar en este navegador'); }
+      try { persist(next); } catch (err) { throw new Error(isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador'); }
       if (hasPhotos) {
         try { await Photos.importAll(ph.photos); }
         catch {
@@ -683,6 +686,9 @@
     if (!confirm('¿Borrar todos los datos de este dispositivo (incluidas las fotos)? No se puede deshacer.')) return;
     state = emptyState();
     save();
+    // Las marcas de copia de seguridad (HU-01) también son datos del dispositivo.
+    setPref(LAST_BACKUP_KEY, null);
+    setPref(BACKUP_SNOOZE_KEY, null);
     try { await Photos.clear(); } catch { toast('No se pudieron borrar las fotos'); }
     await loadPhotos();
     profileForm.reset();
