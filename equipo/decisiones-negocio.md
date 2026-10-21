@@ -10,6 +10,10 @@
 | 6 | Cuentas | **Cada persona con su cuenta y login** (cliente y coach). Se mantiene el funcionamiento offline (local-first) |
 | 7 | Fotos | **El coach ve fotos desde R1** (con consentimiento explícito del cliente, opt-in por foto o por categoría) |
 
+| 8 | Legal | Los usuarios (coaches y clientes) deben **aceptar Términos y Condiciones y Política de Tratamiento de Datos** antes de usar la app (también en el piloto) |
+| 9 | Figura legal | **Persona natural** (responsable del tratamiento de datos; afecta a pasarela de pagos y facturación en R2) |
+| 10 | Servidor | **Aprobado Supabase**, un proyecto compartido para varias apps (SPIKE-02) |
+
 ## Pendiente
-- Revisión legal antes del piloto (datos de salud y fotos = datos sensibles): sin respuesta aún.
-- ¿Empresa constituida o persona natural? (afecta pasarela de pagos en R2)
+- Que un abogado revise los borradores de T&C y Política antes de datos reales (recomendación del equipo).
+- Región de datos (Virginia vs. São Paulo): medir latencia desde Colombia antes de crear el proyecto.
