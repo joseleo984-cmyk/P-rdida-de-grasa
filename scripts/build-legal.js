@@ -36,7 +36,11 @@ function mdToHtml(md) {
     if (!l.trim()) { i++; continue; }
     if (isHead(l)) {
       const level = l.match(/^#+/)[0].length;
-      out.push(`<h${level}>${inline(l.slice(level).trim())}</h${level}>`);
+      const text = l.slice(level).trim();
+      // Secciones numeradas con ancla estable para enlazarlas desde la app: "4. …" → #s4, "5.1 …" → #s5-1.
+      const num = text.match(/^(\d+(?:\.\d+)*)\.?\s/);
+      const id = num ? ` id="s${num[1].replace(/\./g, '-')}"` : '';
+      out.push(`<h${level}${id}>${inline(text)}</h${level}>`);
       i++;
     } else if (isTable(l)) {
       const rows = [];
@@ -71,7 +75,8 @@ function mdToHtml(md) {
 }
 
 // Lo que el usuario NO debe ver: la cabecera de trabajo (cita inicial con autor e instrucciones; el aviso de
-// borrador la sustituye) y las notas internas en cursiva ("*NOTA…*", "*(Alternativas…)*", "*[A confirmar…]*").
+// borrador la sustituye), las notas internas en cursiva ("*NOTA…*", "*(Alternativas…)*", "*[A confirmar…]*") y las
+// secciones "Dudas para el abogado".
 // Se quedan en los .md para el abogado y el equipo.
 const INTERNAL = /\s*\*[[(]?(NOTA|Alternativas|A confirmar)\b[^*]*\*/g;
 function publicMarkdown(md) {
@@ -79,7 +84,12 @@ function publicMarkdown(md) {
   let i = 0;
   while (i < lines.length && (/^\s*>/.test(lines[i]) || !lines[i].trim())) i++;
   const out = [];
+  let skipLevel = 0; // dentro de una sección interna: se salta hasta el siguiente título de igual o mayor nivel
   for (const l of lines.slice(i)) {
+    const h = l.match(/^(#+)\s+(.*)/);
+    if (h && skipLevel && h[1].length <= skipLevel) skipLevel = 0;
+    if (h && /^Dudas para el abogado/i.test(h[2])) { skipLevel = h[1].length; continue; }
+    if (skipLevel) continue;
     const clean = l.replace(INTERNAL, '');
     // Si la línea solo era una nota (queda vacía o solo la viñeta), se quita entera.
     if (clean !== l && /^\s*([-*]|\d+\.)?\s*$/.test(clean)) continue;
