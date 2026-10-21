@@ -16,6 +16,43 @@
     <span id="today-label" class="muted"></span>
   </header>
 
+  <!-- LEGAL-01: consentimiento (pantalla completa al primer uso o si cambian los textos) -->
+  <section id="consent" class="consent hidden" aria-labelledby="consent-title" data-testid="legal-gate">
+    <div class="card">
+      <h2 id="consent-title" tabindex="-1">Antes de empezar</h2>
+      <p id="consent-update" class="consent-update hidden"></p>
+      <div id="consent-blocked" class="consent-update hidden">
+        <p>Tus datos guardados son de una versión más nueva de la app: recarga para actualizar. Mientras tanto no se puede guardar nada.</p>
+        <button type="button" class="btn btn-danger" id="btn-consent-reset">Borrar los datos de este dispositivo</button>
+      </div>
+      <p class="small">Tus datos se guardan solo en este dispositivo. Lee los textos y marca lo que aceptas. Las casillas facultativas puedes cambiarlas cuando quieras en Perfil → Privacidad.</p>
+      <form id="form-consent" novalidate>
+        <div class="consent-item">
+          <label class="check"><input type="checkbox" name="terms"> <span>Acepto los <strong>Términos y Condiciones</strong>. <em class="req">(obligatoria)</em></span></label>
+          <a class="legal-link" href="legal/terminos.html" data-legal>Leer los Términos</a>
+        </div>
+        <div class="consent-item">
+          <label class="check"><input type="checkbox" name="privacy"> <span>Acepto la <strong>Política de Tratamiento de Datos</strong>. <em class="req">(obligatoria)</em></span></label>
+          <a class="legal-link" href="legal/privacidad.html" data-legal>Leer la Política</a>
+        </div>
+        <div class="consent-item">
+          <label class="check"><input type="checkbox" name="sensitiveHealth"> <span>Autorizo de forma expresa el tratamiento de mis <strong>datos sensibles de salud</strong> (peso, medidas, % de grasa, comidas, hábitos). Sé que es facultativo. <em class="opt">(facultativa)</em></span></label>
+          <p class="small muted">Sin esta autorización la app no puede guardar ni mostrar tu seguimiento.</p>
+          <a class="legal-link" href="legal/privacidad.html" data-legal>Qué datos y para qué</a>
+        </div>
+        <div class="consent-item">
+          <label class="check"><input type="checkbox" name="photos"> <span>Autorizo el tratamiento de mis <strong>fotos de progreso</strong>. <em class="opt">(opcional)</em></span></label>
+          <p class="small muted">Si no lo marcas, la pestaña Fotos queda bloqueada.</p>
+        </div>
+        <div class="consent-item">
+          <label class="check"><input type="checkbox" name="adult"> <span>Declaro que soy <strong>mayor de 18 años</strong>. <em class="req">(obligatoria)</em></span></label>
+        </div>
+        <p id="consent-hint" class="small muted" aria-live="polite">Marca las casillas obligatorias para continuar.</p>
+        <button type="submit" class="btn btn-tall" id="btn-consent" disabled aria-describedby="consent-hint">Continuar</button>
+      </form>
+    </div>
+  </section>
+
   <main>
     <!-- PANEL -->
     <section id="view-panel" class="view active" aria-labelledby="tab-panel">
@@ -165,6 +202,11 @@
 
     <!-- FOTOS -->
     <section id="view-fotos" class="view" aria-labelledby="tab-fotos">
+      <div class="card gate photos-gate">
+        <h2>Fotos bloqueadas</h2>
+        <p>No has autorizado el tratamiento de tus <strong>fotos de progreso</strong>. Son un dato sensible y su autorización es opcional y aparte de la de tus datos de salud.</p>
+        <button type="button" class="btn" data-consent-grant="photos">Autorizar fotos</button>
+      </div>
       <div class="card">
         <h2>Nueva foto de progreso</h2>
         <form id="form-photo" class="grid-form">
@@ -209,7 +251,7 @@
 
     <!-- PERFIL -->
     <section id="view-perfil" class="view" aria-labelledby="tab-perfil">
-      <div class="card">
+      <div class="card needs-health">
         <h2>Tu perfil</h2>
         <p id="profile-issue" class="warn small hidden" role="alert"></p>
         <form id="form-profile" class="grid-form">
@@ -246,10 +288,22 @@
         </form>
       </div>
 
-      <div class="card">
+      <div class="card needs-health">
         <h2>Tu plan calculado</h2>
         <div id="plan"></div>
         <p class="muted small">Gasto basal por Mifflin-St Jeor × factor de actividad. Proteína 2 g/kg, grasas ≥ 25 % de las calorías, el resto carbohidratos. Son estimaciones: ajústalas según tu tendencia real de peso cada 2–3 semanas.</p>
+      </div>
+
+      <div class="card" id="privacy-card">
+        <h2>Privacidad</h2>
+        <dl id="privacy-list" class="privacy-list"></dl>
+        <div class="row-actions">
+          <button type="button" class="btn btn-ghost" id="btn-toggle-health"></button>
+          <button type="button" class="btn btn-ghost" id="btn-toggle-photos"></button>
+        </div>
+        <p class="small">Textos completos: <a href="legal/terminos.html" data-legal>Términos y Condiciones</a> · <a href="legal/privacidad.html" data-legal>Política de Tratamiento de Datos</a></p>
+        <p class="small muted">La app no puede usarse sin aceptar los Términos y la Política. Retirarlos implica borrar todos los datos de este dispositivo.</p>
+        <button type="button" class="btn btn-danger" id="btn-withdraw-legal">Retirar aceptación y borrar todo</button>
       </div>
 
       <div class="card">
@@ -293,6 +347,27 @@
     </div>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="legal-dialog" class="legal-dialog" aria-labelledby="legal-dialog-title">
+    <div class="legal-bar">
+      <h2 id="legal-dialog-title"></h2>
+      <button type="button" class="btn" id="legal-close">Cerrar</button>
+    </div>
+    <iframe id="legal-frame" title="Texto legal"></iframe>
+  </dialog>
+
+  <template id="tpl-health-gate">
+    <div class="card gate health-gate">
+      <h2>Seguimiento desactivado</h2>
+      <p>No has autorizado el tratamiento de tus <strong>datos de salud</strong> (peso, medidas, % de grasa, comidas y hábitos). Sin esa autorización la app no puede registrar ni mostrar tu seguimiento.</p>
+      <p class="small muted">Lo que ya tenías guardado sigue en este dispositivo hasta que lo borres. Puedes exportar una copia y después borrar todo.</p>
+      <div class="row-actions">
+        <button type="button" class="btn" data-consent-grant="sensitiveHealth">Autorizar datos de salud</button>
+        <button type="button" class="btn btn-ghost" data-gate-action="export">Exportar JSON</button>
+        <button type="button" class="btn btn-danger" data-gate-action="reset">Borrar todo</button>
+      </div>
+    </div>
+  </template>
 
   <dialog id="coach-viewer" class="coach-viewer" aria-labelledby="coach-title">
     <div class="coach-bar">

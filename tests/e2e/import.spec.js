@@ -5,7 +5,7 @@ test('importa un respaldo v1 (sin schemaVersion) con fotos, sin pérdidas', asyn
   await app.open();
   expect(await app.importJSON(FIXTURE_V1)).toBe('Datos importados');
   const s = await app.stored();
-  expect(s.schemaVersion).toBe(2);
+  expect(s.schemaVersion).toBe(require('../../schema.js').CURRENT_VERSION);
   expect(s.profile).toEqual(FIXTURE_V1.profile);
   expect(s.entries).toEqual(FIXTURE_V1.entries);
   expect(s.foods).toEqual(FIXTURE_V1.foods);
@@ -89,11 +89,14 @@ test('localStorage ilegible: arranca vacía y conserva el dato en :corrupto', as
 
 test('datos de una versión más nueva no se sobrescriben', async ({ app, page }) => {
   app.allowConsoleErrors();
-  await app.open({ state: { schemaVersion: 99, entries: [] } });
-  await app.tab('comidas');
-  await page.locator('#form-food [name=name]').fill('x');
-  await page.locator('#form-food [name=kcal]').fill('10');
-  await page.locator('#form-food button[type=submit]').click();
+  // S2-1: el consentimiento de unos datos más nuevos no se puede leer → sale la pantalla legal; aceptarla intenta
+  // guardar y NO debe sobrescribir (la pantalla sigue, con el aviso de recargar).
+  await app.open({ state: { schemaVersion: 99, entries: [] }, legal: false });
+  await expect(page.getByTestId('legal-gate')).toBeVisible();
+  for (const n of ['terms', 'privacy', 'sensitiveHealth', 'adult']) await page.locator(`#form-consent [name=${n}]`).check();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(app.toast()).toContainText('versión más nueva');
+  await expect(page.getByTestId('legal-gate')).toBeVisible();
   expect((await app.stored()).schemaVersion).toBe(99);
 });
 

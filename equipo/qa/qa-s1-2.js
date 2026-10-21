@@ -1,4 +1,5 @@
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { conConsentimiento } = require('./legal-helper.js');
 // QA adversarial de S1-2 / HU-01. Uso: node equipo/qa/qa-s1-2.js
 // Cubre: modo oscuro, foco tras ocultar el banner, live region, zonas horarias y cambio de día.
 const path = require('path');
@@ -17,6 +18,7 @@ const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - 
 
 async function setup(browser, { tz = 'America/Bogota', dark = false, now } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'es-CO', timezoneId: tz, acceptDownloads: true, colorScheme: dark ? 'dark' : 'light' });
+  await conConsentimiento(ctx); // LEGAL-01: usuario que ya aceptó (ver legal-helper.js)
   const page = await ctx.newPage();
   page.errors = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') page.errors.push(m.type() + ': ' + m.text()); });

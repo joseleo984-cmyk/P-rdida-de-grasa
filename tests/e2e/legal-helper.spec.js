@@ -1,6 +1,6 @@
-// Autoprueba del helper `acceptLegalIfPresent` con una pantalla legal simulada (S2-1 aún no está integrada).
-// Cuando llegue la pantalla real, el resto de specs la aceptan solas en app.open()/app.reload().
-const { test, expect, acceptLegalIfPresent } = require('./helpers');
+// Autoprueba del helper `acceptLegalIfPresent` con una pantalla legal simulada. La pantalla real (S2-1) se
+// evita sembrando un consentimiento vigente; su flujo completo está en s2-1.spec.js.
+const { test, expect, acceptLegalIfPresent, CONSENT, state } = require('./helpers');
 
 const gate = (withTestId) => `
 <div ${withTestId ? 'data-testid="legal-gate"' : 'id="otra-cosa"'} style="position:fixed;inset:0;background:#fff;z-index:99;padding:16px">
@@ -28,7 +28,7 @@ for (const withTestId of [true, false]) {
       const html = (await res.text()).replace('</body>', gate(withTestId) + '</body>');
       await route.fulfill({ response: res, body: html });
     });
-    await app.open({ legal: false });
+    await app.open({ legal: false, state: state({ consent: CONSENT }) });
     expect(await acceptLegalIfPresent(page, { photos: false })).toBe(true);
     expect(await page.evaluate(() => window.__legal)).toEqual([true, true, true, false, true]);
     await expect(page.getByRole('button', { name: 'Continuar' })).toHaveCount(0);
@@ -36,6 +36,6 @@ for (const withTestId of [true, false]) {
 }
 
 test('sin pantalla legal el helper no hace nada', async ({ app, page }) => {
-  await app.open({ legal: false });
+  await app.open({ legal: false, state: state({ consent: CONSENT }) });
   expect(await acceptLegalIfPresent(page)).toBe(false);
 });

@@ -14,6 +14,9 @@ test('primer uso: arranca sin errores, abre Perfil y no hay scroll horizontal', 
 
 test('perfil inválido (meta ≥ peso inicial) no se guarda; uno válido muestra el plan (BUG-04)', async ({ app, page }) => {
   await app.open();
+  // Tras aceptar la pantalla legal (S2-1) ya hay un estado guardado con `consent`: el perfil inválido no debe cambiarlo.
+  const before = await app.stored();
+  expect(before === null || before.profile === null).toBe(true);
   const f = page.locator('#form-profile');
   await f.locator('[name=sex]').selectOption('female');
   await f.locator('[name=age]').fill('35');
@@ -22,7 +25,7 @@ test('perfil inválido (meta ≥ peso inicial) no se guarda; uno válido muestra
   await f.locator('[name=goalWeight]').fill('75');
   await f.locator('button[type=submit]').click();
   await expect(app.toast()).toContainText('meta debe ser menor');
-  expect(await app.stored()).toBeNull();
+  expect(await app.stored()).toEqual(before);
   await expect(page.locator('#plan')).toContainText('Guarda tu perfil');
 
   await f.locator('[name=goalWeight]').fill('62');
@@ -30,7 +33,7 @@ test('perfil inválido (meta ≥ peso inicial) no se guarda; uno válido muestra
   await expect(app.toast()).toHaveText('Perfil guardado');
   await expect(page.locator('#plan')).toContainText('Objetivo diario');
   const s = await app.stored();
-  expect(s.schemaVersion).toBe(2);
+  expect(s.schemaVersion).toBe(require('../../schema.js').CURRENT_VERSION);
   expect(s.profile.goalWeight).toBe(62);
 });
 

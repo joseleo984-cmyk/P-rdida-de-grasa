@@ -1,6 +1,7 @@
 // E2E de S2-3 (kit piloto): CSV completo y "Ver copia de un cliente" sin tocar los datos propios.
 // Uso: node equipo/qa/run-s2-3.js [URL base] [carpeta capturas]   (por defecto file:// y equipo/qa-capturas/)
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { conConsentimiento } = require('./legal-helper.js');
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '../..');
@@ -45,6 +46,7 @@ async function openCopy(page, obj, selector = '#file-coach', name = 'cliente.jso
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'es-CO', timezoneId: 'America/Bogota', acceptDownloads: true });
+  await conConsentimiento(ctx); // LEGAL-01: usuario que ya aceptó (ver legal-helper.js)
   const page = await ctx.newPage();
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });

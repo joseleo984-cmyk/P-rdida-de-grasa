@@ -3,6 +3,7 @@
 // La app anterior se extrae con: git archive 8d8a1ad^1 index.html app.js calc.js photos.js styles.css sw.js manifest.webmanifest icon.svg | tar -x -C <carpeta>
 // Si no se pasa carpeta, se extrae automáticamente en os.tmpdir().
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { conConsentimiento } = require('./legal-helper.js');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -24,6 +25,7 @@ const KEY = 'perdida-grasa:v1';
 
 async function open(browser, url, init) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'es-CO', timezoneId: 'America/Bogota', acceptDownloads: true });
+  if (url !== OLD) await conConsentimiento(ctx); // LEGAL-01: usuario que ya aceptó (ver legal-helper.js); la app anterior no lo conoce
   if (init) await ctx.addInitScript(init.fn, init.arg);
   const page = await ctx.newPage();
   const errors = [];
@@ -152,7 +154,7 @@ const eq = (a, b) => JSON.stringify(canon(plain(a))) === JSON.stringify(canon(pl
     await page.click('#tab-perfil');
     const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('#btn-export')]);
     const newBackup = JSON.parse(fs.readFileSync(await dl2.path(), 'utf8'));
-    log('Exportación nueva lleva schemaVersion 2 y exportedAt', newBackup.schemaVersion === 2 && !Number.isNaN(Date.parse(newBackup.exportedAt)));
+    log(`Exportación nueva lleva schemaVersion ${Schema.CURRENT_VERSION} y exportedAt`, newBackup.schemaVersion === Schema.CURRENT_VERSION && !Number.isNaN(Date.parse(newBackup.exportedAt)));
     await importJSON(page, newBackup);
     log('Ida y vuelta v2 sin pérdidas', eq((await stored(page)).entries, s.entries) && eq((await stored(page)).foods, s.foods) && (await exportPhotos(page)).length === 2);
     await ctx.close();
@@ -165,7 +167,10 @@ const eq = (a, b) => JSON.stringify(canon(plain(a))) === JSON.stringify(canon(pl
     await page.click('#tab-registro');
     const rows = await page.locator('#entries-table tbody tr').count();
     log('Actualización v1→v2 en localStorage: sin avisos de corrección, 3 registros', !t.includes('corrigieron') && rows === 3 && errors.length === 0, t + ' ' + errors.join('|'));
-    log('Actualización v1→v2: copia cruda en perdida-grasa:backup', (await page.evaluate(() => localStorage.getItem('perdida-grasa:backup'))) === oldRaw);
+    // LEGAL-01: legal-helper añade `consent` al leer; se compara todo lo demás clave a clave.
+    const bkRaw = await page.evaluate(() => localStorage.getItem('perdida-grasa:backup'));
+    const { consent: _c, ...bkRest } = JSON.parse(bkRaw || 'null') || {};
+    log('Actualización v1→v2: copia cruda en perdida-grasa:backup', !!bkRaw && eq(bkRest, JSON.parse(oldRaw)));
     log('Actualización v1→v2: el perfil se conserva (no reaparece onboarding)', await page.locator('#onboarding').isHidden());
     void s;
     await ctx.close();
@@ -332,12 +337,12 @@ const eq = (a, b) => JSON.stringify(canon(plain(a))) === JSON.stringify(canon(pl
   // ===== 9. Schema (Node): casos límite de migrate/normalize =====
   {
     const throws = (f) => { try { f(); return false; } catch { return true; } };
-    log('migrate: lanza con versión "2", 2.5, 0, null, 3, array, null', ['2', 2.5, 0, null, 3].every((v) => throws(() => Schema.migrate({ schemaVersion: v, entries: [] }))) && throws(() => Schema.migrate([])) && throws(() => Schema.migrate(null)));
+    log(`migrate: lanza con versión "2", 2.5, 0, null, ${Schema.CURRENT_VERSION + 1}, array, null`, ['2', 2.5, 0, null, Schema.CURRENT_VERSION + 1].every((v) => throws(() => Schema.migrate({ schemaVersion: v, entries: [] }))) && throws(() => Schema.migrate([])) && throws(() => Schema.migrate(null)));
     const input = { entries: [{ date: '2026-01-01', weight: 80 }] };
     const frozen = JSON.stringify(input);
     Schema.normalize(Schema.migrate(input));
     log('migrate/normalize no mutan la entrada', JSON.stringify(input) === frozen);
-    log('migrate: v2 idempotente', eq(Schema.migrate(Schema.migrate({ entries: [] })), { entries: [], schemaVersion: 2 }));
+    log('migrate: idempotente (v3 añade consent: null)', eq(Schema.migrate(Schema.migrate({ entries: [] })), { entries: [], schemaVersion: Schema.CURRENT_VERSION, consent: null }));
     const n = Schema.normalize({ entries: [
       { date: '2024-02-29', weight: 80 }, { date: '2026-02-29', weight: 80 }, { date: ' 2026-10-01', weight: 80 }, { date: '2026-10-01T00:00', weight: 80 },
       { date: '2026-10-02', weight: '80,5' }, { date: '2026-10-03', weight: Infinity }, { date: '2026-10-04', weight: 19.9 }, { date: '2026-10-05', weight: 400 },
@@ -400,7 +405,8 @@ const eq = (a, b) => JSON.stringify(canon(plain(a))) === JSON.stringify(canon(pl
   {
     // D3 con datos de versión futura (guardado bloqueado)
     const { page, ctx } = await open(browser, NEW, seed(JSON.stringify({ schemaVersion: 99, entries: [] })));
-    await page.click('#tab-perfil'); await page.click('#btn-reset'); await page.waitForTimeout(300);
+    // LEGAL-01: con datos más nuevos el consentimiento no se puede leer ni guardar → la pantalla legal ofrece "Borrar".
+    await page.click('#btn-consent-reset'); await page.waitForTimeout(300);
     log('D3: Borrar todo con datos de versión más nueva los borra', (await page.evaluate(() => localStorage.getItem('perdida-grasa:v1'))) === null);
     await ctx.close();
   }

@@ -13,7 +13,7 @@ test('migrate: v1 sin schemaVersion pasa a la versión actual sin mutar la entra
   const raw = { entries: [] };
   const s = Schema.migrate(raw);
   assert.strictEqual(s.schemaVersion, Schema.CURRENT_VERSION);
-  assert.strictEqual(Schema.CURRENT_VERSION, 2);
+  assert.strictEqual(Schema.CURRENT_VERSION, 3);
   assert.strictEqual(raw.schemaVersion, undefined);
 });
 
@@ -35,7 +35,7 @@ test('respaldo v1 real: se migra sin pérdidas ni avisos', () => {
   const ph = Schema.normalizePhotos(raw.photos, { uid });
   assert.deepStrictEqual(warnings, []);
   assert.deepStrictEqual(ph.warnings, []);
-  assert.strictEqual(state.schemaVersion, 2);
+  assert.strictEqual(state.schemaVersion, 3);
   assert.deepStrictEqual(state.profile, raw.profile);
   assert.deepStrictEqual(state.entries, raw.entries);
   assert.deepStrictEqual({ ...state.foods }, raw.foods);

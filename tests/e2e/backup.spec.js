@@ -55,7 +55,7 @@ test('exportar pregunta "¿Se guardó?": "No" y Escape no registran; "Sí" regis
 
   [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#btn-backup-now').click()]);
   const exported = JSON.parse(fs.readFileSync(await dl.path(), 'utf8'));
-  expect(exported.schemaVersion).toBe(2);
+  expect(exported.schemaVersion).toBe(require('../../schema.js').CURRENT_VERSION);
   await page.locator('#btn-backup-yes').click();
   expect(await app.pref(LAST)).not.toBeNull();
   await expect(banner(page)).toBeHidden();

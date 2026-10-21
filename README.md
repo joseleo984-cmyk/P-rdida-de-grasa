@@ -30,6 +30,9 @@ Sin dependencias ni servidor: todos los datos se guardan en el propio dispositiv
   actual y tendencia, ritmo semanal, % de grasa, adherencia de 1, 2 y 4 semanas (días con registro,
   comidas, hábitos, pesajes y proteína media frente al objetivo), últimas notas y miniaturas de fotos.
   No modifica los datos del dispositivo. Se pueden abrir varias copias seguidas, y "Cerrar" vuelve a los datos propios.
+- **Términos y privacidad**: al primer uso (y si cambian los textos) se aceptan los Términos y la Política
+  y se autorizan aparte los datos de salud y las fotos. Se pueden revisar o retirar en Perfil → Privacidad.
+  Los textos (`legal/*.html`) se generan desde `equipo/legal/*.md` con `npm run legal` y funcionan sin conexión.
 - **Protección de datos**: al abrir, la app pide al navegador almacenamiento protegido y en
   Perfil → Datos muestra si lo está, el espacio usado y la fecha de la última copia.
   Si hay registros y han pasado 7 días o más sin copia, el panel muestra un aviso con

@@ -1,6 +1,7 @@
 // QA adversarial de S1-3 (HU-02 repetir comidas) + re-verificación de S1-2 (D1-D5).
 // Uso: node equipo/qa/qa-s1-3.js   (file://, 390x844 móvil, America/Bogota, reloj simulado)
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { conConsentimiento } = require('./legal-helper.js');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '../..');
 const URL = 'file://' + ROOT + '/index.html';
@@ -22,6 +23,7 @@ const seed = {
 
 async function setup(browser, time) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'es-CO', timezoneId: 'America/Bogota', acceptDownloads: true });
+  await conConsentimiento(ctx); // LEGAL-01: usuario que ya aceptó (ver legal-helper.js)
   const page = await ctx.newPage();
   await page.clock.install({ time: new Date(time) });
   const errors = [];

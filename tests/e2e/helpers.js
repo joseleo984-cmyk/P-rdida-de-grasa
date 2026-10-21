@@ -19,9 +19,9 @@ const PROFILE = { name: 'Ana', sex: 'female', age: 35, height: 165, startWeight:
 const state = (over = {}) => ({ schemaVersion: 2, profile: PROFILE, entries: [{ id: 'e1', date: D(20), weight: 70 }], foods: {}, habits: {}, library: {}, ...over });
 
 /**
- * Pantalla legal de primer uso (S2-1 / LEGAL-01). Aún no existe en la app: este helper la acepta si aparece,
- * sin depender de ids concretos. Para que sea estable, el Frontend debería marcar el contenedor con
- * `data-testid="legal-gate"`; se busca primero ese selector y, si no, una vista con casillas y "Continuar".
+ * Pantalla legal de primer uso (S2-1 / LEGAL-01): `data-testid="legal-gate"` (#consent en la app).
+ * El helper la acepta si aparece; si no, busca una vista con casillas y "Continuar". Marca todas las casillas
+ * (salvo `photos:false` / `sensitive:false`) y pulsa "Continuar", que solo se habilita con las obligatorias.
  */
 async function acceptLegalIfPresent(page, { photos = true, sensitive = true } = {}) {
   const gate = page.locator('[data-testid="legal-gate"], #legal-gate, #consent, .legal-gate').filter({ visible: true }).first();
@@ -44,6 +44,12 @@ async function acceptLegalIfPresent(page, { photos = true, sensitive = true } = 
   await expect(root).toBeHidden();
   return true;
 }
+
+// La app arrancó: o se ve la barra de pestañas o la pantalla legal (que la oculta hasta aceptar).
+const appReady = (page) => expect(page.locator('#tab-panel, [data-testid="legal-gate"]').filter({ visible: true }).first()).toBeVisible();
+
+// Consentimiento vigente (todas las casillas) para sembrar estados que no deben pasar por la pantalla legal.
+const CONSENT = require('../../schema.js').buildConsent({ terms: true, privacy: true, adult: true, sensitiveHealth: true, photos: true }, '2026-10-01T12:00:00.000Z');
 
 const test = base.extend({
   app: async ({ page }, use, testInfo) => {
@@ -68,12 +74,12 @@ const test = base.extend({
           for (const [k, v] of Object.entries(prefs)) localStorage.setItem(k, v);
         }, { ...seed, key: KEY });
         await page.goto('index.html');
-        await expect(page.locator('#tab-panel')).toBeVisible();
+        await appReady(page);
         if (legal) await acceptLegalIfPresent(page);
       },
       async reload({ legal = true } = {}) {
         await page.reload();
-        await expect(page.locator('#tab-panel')).toBeVisible();
+        await appReady(page);
         if (legal) await acceptLegalIfPresent(page);
       },
       tab: (name) => page.locator(`#tab-${name}`).click(),
@@ -107,4 +113,4 @@ const test = base.extend({
   },
 });
 
-module.exports = { test, expect, acceptLegalIfPresent, KEY, FIXTURE_V1, NOW, D, PROFILE, state };
+module.exports = { test, expect, acceptLegalIfPresent, CONSENT, KEY, FIXTURE_V1, NOW, D, PROFILE, state };
