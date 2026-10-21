@@ -82,3 +82,34 @@ PREGUNTAS:
 - @Analista/abogado: sin autorización de salud, ¿basta con bloquear el seguimiento, o hace falta el «modo mínimo» de la
   NOTA de la Política §4?
 - @Backend: al integrar S2-3, mantened `next.consent = state.consent` en la importación y `consent` en la exportación.
+
+## ADENDA (merge con S2-2 y S2-3)
+- Conflictos resueltos conservando ambos lados:
+  - `package.json`: `legal` junto a `test:e2e`/`test:all`.
+  - `sw.js`: coach.js y legal/, CACHE **v11** (indicación del SM).
+  - `pages.yml`: coach.js y `cp -r legal`.
+  - README: con las dos secciones.
+  - `index.html`: visor legal y visor de copia de cliente.
+- `#consent` lleva `data-testid="legal-gate"`.
+- Cambios en `tests/e2e/helpers.js`:
+  - espera a la barra de pestañas o a la pantalla legal;
+  - exporta `CONSENT`.
+- Spec nueva `tests/e2e/s2-1.spec.js` con 8 casos. Ajustes en otras specs:
+  - `legal-helper.spec.js` siembra un consentimiento para que la pantalla real no se interponga;
+  - `schemaVersion` 2 → `CURRENT_VERSION`;
+  - smoke: el perfil inválido no cambia el estado guardado (antes se esperaba `null`);
+  - import «versión más nueva»: aceptar no sobrescribe.
+- El HTML legal ya no muestra las notas internas (`*NOTA…*`, `*(Alternativas…)*`, `*[A confirmar…]*`) ni la
+  cabecera de trabajo. Siguen en los .md. Lo comprueba `tests/legal.test.js`.
+- Con datos de una versión más nueva, la pantalla legal muestra el aviso y «Borrar los datos de este dispositivo»
+  (antes «Borrar todo» quedaba inaccesible).
+- Al aceptar se repite el aviso de carga pendiente (p. ej. «Se corrigieron…»), que había quedado detrás de la pantalla legal.
+- Obs. QA S1-1, que ya fallaba en la rama del sprint (61/62): el motivo del perfil a revisar ya no se anuncia dos veces;
+  queda solo `#profile-issue` (role=alert). Es un cambio en el arranque, no en `load()`.
+- `equipo/qa/legal-helper.js`: el estado vacío con consentimiento solo se inyecta en la primera lectura; así «Borrar
+  todo» se ve como `null`.
+- DoD:
+  - `npm test`: 47/47.
+  - `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npm run test:e2e`: 48 passed. Incluye el `test.fail` documentado de
+    S2-3 D1.
+  - `node equipo/qa/run-all.js`: 8 suites en verde.

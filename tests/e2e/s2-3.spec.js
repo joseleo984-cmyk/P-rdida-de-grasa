@@ -136,20 +136,43 @@ test.describe('Copia de cliente (solo lectura)', () => {
     await expect(page.locator('#coach-body')).toContainText('fotos de la copia no tienen un formato válido');
   });
 
-  // Defecto D1 de S2-3 (veredicto QA): con el visor modal abierto, el toast queda debajo de la capa superior.
-  // `test.fail` documenta el defecto: cuando se corrija, este test "pasará" y Playwright avisará para quitar la marca.
-  test('con el visor abierto, el error de "Abrir otra" (JSON roto) es visible', async ({ app, page }) => {
-    test.fail(true, 'S2-3 D1: el toast queda tapado por el <dialog> modal');
+  // D1 de S2-3 (corregido): con el visor modal abierto, el toast quedaba debajo de la capa superior.
+  // Ahora el error se muestra DENTRO del visor (role="alert") y se sigue viendo la copia anterior.
+  test('con el visor abierto, el error de "Abrir otra" (JSON roto) es visible dentro del visor', async ({ app, page }) => {
+    void app;
     await openCopy(page, clientCopy());
     await expect(viewer(page)).toBeVisible();
-    await openCopy(page, '{roto', '#file-coach-other');
-    await expect(app.toast()).toContainText('No se pudo abrir');
+    await openCopy(page, '{roto', '#file-coach-other', 'roto.json');
+    const err = page.locator('#coach-viewer #coach-error');
+    await expect(err).toBeVisible();
+    await expect(err).toHaveAttribute('role', 'alert');
+    await expect(err).toContainText('No se pudo abrir «roto.json»');
+    await expect(err).toContainText('Sigues viendo la copia anterior');
+    await expect(page.locator('#coach-title')).toContainText('Carla');
     const onTop = await page.evaluate(() => {
-      const t = document.querySelector('#toast'); const r = t.getBoundingClientRect();
+      const t = document.querySelector('#coach-error'); const r = t.getBoundingClientRect();
       const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
       return !!el && (el === t || t.contains(el));
     });
-    expect(onTop, 'el toast de error queda tapado por el visor modal').toBe(true);
+    expect(onTop, 'el error del visor queda visible encima de todo').toBe(true);
+    // Una copia válida después borra el error; al cerrar y reabrir tampoco reaparece.
+    await openCopy(page, clientCopy(), '#file-coach-other');
+    await expect(err).toBeHidden();
+  });
+
+  test('O1: al abrir el visor el foco va al título (no al input de archivo invisible)', async ({ app, page }) => {
+    void app;
+    await openCopy(page, clientCopy());
+    await expect(viewer(page)).toBeVisible();
+    expect(await page.evaluate(() => document.activeElement && document.activeElement.id)).toBe('coach-title');
+  });
+
+  test('O2: exportedAt futura (reloj del cliente adelantado) → la referencia es hoy y lo indica', async ({ app, page }) => {
+    void app;
+    await openCopy(page, clientCopy({ exportedAt: '2026-10-25T15:00:00.000Z' }));
+    await expect(page.locator('#coach-file')).toContainText('21 oct');
+    await expect(page.locator('#coach-file')).toContainText('posterior');
+    await expect(page.locator('.coach-table tbody tr').nth(0)).toHaveText(/1 sem\s*5\/7/);
   });
 
   test('accesibilidad del visor: foco dentro, Tab no sale, Escape cierra y devuelve el foco, sin scroll horizontal', async ({ app, page }) => {
