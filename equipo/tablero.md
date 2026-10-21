@@ -31,10 +31,10 @@ Orden: S1-1 primero (S1-3 depende del esquema). QA revisa cada historia con la D
 
 | Listo | En curso | En revisión | Hecho |
 |---|---|---|---|
-| S2-1 LEGAL-01 Aceptar T&C y Política (Front) — tras borradores del Analista | | | |
+| | | S2-1 LEGAL-01 Aceptar T&C y Política — QA revisando | |
 | | | | S2-2 QA-01 E2E Playwright + CI ✅ |
 | | | | S2-3 Kit piloto ✅ QA (+ ajustes D1/O1/O2/O4) |
-| S2-4 DATOS-v3: UUID, updatedAt, borrado lógico (Back) — ESPERA a que S2-1 mergee su migración de consentimiento (evitar dos v3) | | | |
+| | S2-4 DATOS-v4: UUID, updatedAt, borrado lógico — Dev Backend | | |
 
 Fuera de alcance sin el Stakeholder: merge a main/publicación, crear el proyecto Supabase, textos legales definitivos.
 
