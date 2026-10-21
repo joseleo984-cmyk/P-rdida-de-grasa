@@ -170,6 +170,7 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
   opacity: 0; pointer-events: none; transition: .25s; z-index: 20; max-width: calc(100% - 32px);
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.error { background: #b3261e; color: #fff; }
 
 /* Fotos */
 .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0 14px; }

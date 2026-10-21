@@ -152,3 +152,43 @@ test('isISODate', () => {
   assert.ok(Schema.isISODate('2024-02-29'));
   for (const d of ['2023-02-29', '2026-1-1', '2026-10-20T00:00', '', null, 20261020, '1800-01-01']) assert.ok(!Schema.isISODate(d), String(d));
 });
+
+test('D1: un perfil heredado inválido se devuelve como borrador (no se pierde)', () => {
+  const raw = fixture();
+  raw.profile = { ...raw.profile, startWeight: 70, goalWeight: 80 };
+  const r = load(raw);
+  assert.strictEqual(r.state.profile, null);
+  assert.match(r.rejected.reason, /meta debe ser menor/);
+  const d = r.rejected.profile;
+  assert.strictEqual(d.startWeight, 70);
+  assert.strictEqual(d.goalWeight, 80);
+  assert.strictEqual(d.name, 'Ana');
+  assert.strictEqual(d.startDate, '2026-10-01');
+  // Campos inválidos → vacíos (tipos seguros para el formulario); el motivo es el primero que falla.
+  const r2 = load({ profile: { ...raw.profile, age: 'abc', sex: '<b>', startDate: 'x' } });
+  assert.strictEqual(r2.rejected.profile.age, '');
+  assert.strictEqual(r2.rejected.profile.sex, '');
+  assert.strictEqual(r2.rejected.profile.startDate, '');
+  assert.match(r2.rejected.reason, /sexo/);
+  // El borrador guardado (como hace app.js) vuelve a salir como borrador en la siguiente carga.
+  const again = load(JSON.parse(JSON.stringify({ ...r.state, profile: d })));
+  assert.deepStrictEqual(again.rejected.profile, d);
+  assert.deepStrictEqual(load(fixture()).rejected, {});
+});
+
+test('D4: fotos guardadas sin fecha o con pose desconocida al leer IndexedDB', () => {
+  assert.strictEqual(Schema.normalizeStoredPhoto({ id: 'x', pose: 'frente' }), null);
+  assert.strictEqual(Schema.normalizeStoredPhoto({ id: 'x', date: '"><img>', pose: 'frente' }), null);
+  assert.strictEqual(Schema.normalizeStoredPhoto(null), null);
+  const p = { id: '"><img>', date: '2026-10-01', pose: '<b>', createdAt: 1 };
+  const n = Schema.normalizeStoredPhoto(p);
+  assert.strictEqual(n.pose, 'frente');
+  assert.strictEqual(n.id, p.id);         // el id no cambia: se usa para borrarla (se escapa al pintar)
+  const ok = { id: 'a', date: '2026-10-01', pose: 'perfil' };
+  assert.strictEqual(Schema.normalizeStoredPhoto(ok), ok);
+});
+
+test('isSafeKey', () => {
+  for (const k of ['__proto__', 'constructor', 'Prototype']) assert.ok(!Schema.isSafeKey(k), k);
+  assert.ok(Schema.isSafeKey('arroz'));
+});

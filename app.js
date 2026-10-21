@@ -26,6 +26,10 @@
   const emptyState = Schema.emptyState;
   let loadNotice = '';   // aviso a mostrar tras el arranque (toast aún no está listo aquí)
   let saveBlocked = false;
+  let savedJSON = null;  // último JSON escrito o leído: permite deshacer en memoria si save() falla
+  // Perfil heredado que no pasa la validación (p. ej. meta ≥ peso inicial, BUG-04 de la versión anterior):
+  // no se usa para calcular, pero se conserva guardado y precarga el formulario hasta que se corrija.
+  let pending = null;    // { profile, reason }
   let state = load();
   let chartRange = 30;
 
@@ -36,36 +40,50 @@
     if (!raw) return emptyState();
     try {
       const parsed = JSON.parse(raw);
-      const { state: s, warnings } = Schema.normalize(Schema.migrate(parsed));
-      if (warnings.length || parsed.schemaVersion !== Schema.CURRENT_VERSION) {
-        try { localStorage.setItem(BACKUP_KEY, raw); } catch { /* sin espacio: seguimos */ }
-      }
-      if (warnings.length) {
-        loadNotice = `Se corrigieron ${warnings.length} datos dañados (copia en "${BACKUP_KEY}")`;
-        console.warn('Datos corregidos al cargar:', warnings);
-      }
+      const { state: s, warnings, rejected } = Schema.normalize(Schema.migrate(parsed));
+      savedJSON = raw;
+      // Copia del original antes de migrarlo o corregirlo. Solo la primera: nunca se pisa la única copia.
+      if (warnings.length || parsed.schemaVersion !== Schema.CURRENT_VERSION) keepCopy(BACKUP_KEY, raw);
+      if (rejected.profile) pending = { profile: rejected.profile, reason: rejected.reason };
+      const others = warnings.length - (rejected.profile ? 1 : 0);
+      if (rejected.profile) loadNotice = 'Revisa tu perfil: ' + rejected.reason;
+      else if (others) loadNotice = `Se corrigieron ${others} datos dañados; se guardó una copia del original`;
+      if (warnings.length) console.warn('Datos corregidos al cargar:', warnings);
       return s;
     } catch (err) {
-      try { localStorage.setItem(CORRUPT_KEY, raw); } catch { /* sin espacio: seguimos */ }
+      keepCopy(CORRUPT_KEY, raw);
       // Datos de una versión más nueva: no se sobrescriben desde esta versión antigua.
       saveBlocked = /más nueva/.test(err.message);
       loadNotice = saveBlocked
         ? 'Tus datos son de una versión más nueva de la app: recarga para actualizar'
-        : `No se pudieron leer los datos guardados (copia en "${CORRUPT_KEY}")`;
+        : 'No se pudieron leer los datos guardados; se guardó una copia del original';
       console.error('Datos guardados ilegibles:', err);
       return emptyState();
     }
   }
+  function keepCopy(key, raw) {
+    try { if (localStorage.getItem(key) == null) localStorage.setItem(key, raw); } catch { /* sin espacio: seguimos */ }
+  }
   // Lanza si no se puede escribir (lo usa la importación para ser atómica).
-  function persist(s) {
+  function persist(s, draft = pending && pending.profile) {
     if (saveBlocked) throw new Error('Guardado bloqueado');
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...s, schemaVersion: Schema.CURRENT_VERSION }));
+    const json = JSON.stringify({ ...s, profile: s.profile || draft || null, schemaVersion: Schema.CURRENT_VERSION });
+    localStorage.setItem(STORAGE_KEY, json);
+    savedJSON = json;
   }
   const QUOTA_MSG = 'Almacenamiento lleno: exporta una copia y borra fotos antiguas';
   const isQuotaError = (err) => err && (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22);
+  // Devuelve true si se guardó. Si falla, avisa (aviso de error, más largo), deshace el cambio en memoria
+  // para que la pantalla muestre lo que de verdad está guardado, y el llamador NO debe mostrar éxito.
   function save() {
-    try { persist(state); }
-    catch (err) { toast(saveBlocked ? loadNotice : isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador'); }
+    try { persist(state); return true; }
+    catch (err) {
+      toast(saveBlocked ? loadNotice : isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador', true);
+      try { state = savedJSON ? Schema.normalize(Schema.migrate(JSON.parse(savedJSON))).state : emptyState(); }
+      catch { /* se mantiene el estado en memoria */ }
+      render();
+      return false;
+    }
   }
 
   const sortedEntries = () => [...state.entries].sort((a, b) => a.date.localeCompare(b.date));
@@ -97,12 +115,14 @@
   });
 
   let toastTimer;
-  function toast(msg) {
+  // Duración según la longitud; los errores duran más (mín. 6 s).
+  function toast(msg, isError = false) {
     const t = $('#toast');
     t.textContent = msg;
     t.classList.add('show');
+    t.classList.toggle('error', isError);
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    toastTimer = setTimeout(() => t.classList.remove('show'), Math.max(isError ? 6000 : 2200, msg.length * 60));
   }
 
   // ---------- Perfil ----------
@@ -129,13 +149,14 @@
     if (!state.entries.some((e) => e.date === state.profile.startDate)) {
       state.entries.push({ id: uid(), date: state.profile.startDate, weight: state.profile.startWeight });
     }
-    save();
+    if (!save()) return;
+    pending = null;
     toast('Perfil guardado');
     render();
   });
 
   function fillProfileForm() {
-    const p = state.profile;
+    const p = state.profile || (pending && pending.profile);
     const el = profileForm.elements;
     if (!p) {
       el.startDate.value = today();
@@ -143,6 +164,13 @@
       return;
     }
     for (const k of Object.keys(p)) if (el[k]) el[k].value = p[k];
+    if (!el.startDate.value) el.startDate.value = today();
+  }
+  function renderProfileIssue() {
+    const box = $('#profile-issue');
+    const msg = !state.profile && pending ? `Revisa tu perfil: ${pending.reason}. Corrige los datos y pulsa Guardar.` : '';
+    if (box.textContent !== msg) box.textContent = msg;
+    box.classList.toggle('hidden', !msg);
   }
 
   function renderPlan() {
@@ -184,7 +212,7 @@
     } else {
       state.entries.push({ id: uid(), ...entry });
     }
-    save();
+    if (!save()) return;
     entryForm.reset();
     entryForm.elements.date.value = today();
     toast(existing ? 'Registro actualizado' : 'Registro guardado');
@@ -196,8 +224,7 @@
     if (!btn) return;
     if (!confirm('¿Eliminar este registro?')) return;
     state.entries = state.entries.filter((e) => e.id !== btn.dataset.delEntry);
-    save();
-    render();
+    if (save()) render();
   });
 
   function renderEntries() {
@@ -235,10 +262,13 @@
     const f = new FormData(foodForm);
     const n = (k) => Number(f.get(k) || 0);
     const item = { id: uid(), name: f.get('name').trim(), meal: f.get('meal'), kcal: n('kcal'), protein: n('protein'), carbs: n('carbs'), fat: n('fat') };
+    if (!item.name) { toast('Escribe el nombre del alimento'); return; }   // BUG-07: solo espacios
     const d = foodDate.value || today();
     (state.foods[d] ||= []).push(item);
-    state.library[item.name.toLowerCase()] = { name: item.name, kcal: item.kcal, protein: item.protein, carbs: item.carbs, fat: item.fat };
-    save();
+    // La biblioteca no guarda nombres reservados ("constructor", "__proto__"...): normalize() los descartaría.
+    const key = item.name.toLowerCase();
+    if (Schema.isSafeKey(key)) state.library[key] = { name: item.name, kcal: item.kcal, protein: item.protein, carbs: item.carbs, fat: item.fat };
+    if (!save()) return;
     const meal = foodForm.elements.meal.value;
     foodForm.reset();
     foodForm.elements.meal.value = meal;
@@ -259,7 +289,7 @@
     try { r = Schema.copyMeals(state.foods, from, to, { meal }); }
     catch (err) { toast('No se pudo copiar: ' + err.message); return; }
     state.foods = r.foods;
-    save();
+    if (!save()) return;
     toast(`${r.copied === 1 ? 'Se copió' : 'Se copiaron'} ${plural(r.copied)} a ${dest}` + (r.skipped ? ` (${r.skipped} no válidos omitidos)` : ''));
     render();
   }
@@ -276,8 +306,7 @@
     const d = foodDate.value;
     state.foods[d] = (state.foods[d] || []).filter((x) => x.id !== btn.dataset.delFood);
     if (!state.foods[d].length) delete state.foods[d];
-    save();
-    render();
+    if (save()) render();
   });
 
   const habitsForm = $('#form-habits');
@@ -286,7 +315,7 @@
     const f = new FormData(habitsForm);
     const n = (k) => (f.get(k) === '' ? undefined : Number(f.get(k)));
     state.habits[foodDate.value || today()] = { steps: n('steps'), water: n('water'), sleep: n('sleep'), trained: f.get('trained') === 'on' };
-    save();
+    if (!save()) return;
     toast('Hábitos guardados');
     render();
   });
@@ -361,7 +390,10 @@
     try {
       photoUrls.forEach((u) => URL.revokeObjectURL(u));
       photoUrls.clear();
-      photos = await Photos.all();
+      // Fotos guardadas por versiones anteriores sin validar (BUG-13): se ocultan si no tienen fecha válida.
+      const stored = await Photos.all();
+      photos = stored.map(Schema.normalizeStoredPhoto).filter((p) => p && p.blob instanceof Blob);
+      if (photos.length < stored.length) console.warn(`${stored.length - photos.length} fotos guardadas no válidas se ocultan`);
     } catch {
       photos = [];
       toast('No se pudieron cargar las fotos');
@@ -655,7 +687,7 @@
     let photoData = [];
     try { photoData = await Photos.exportAll(); }
     catch { toast('No se pudieron incluir las fotos en la copia'); }
-    download(`perdida-grasa-${today()}.json`, JSON.stringify({ ...state, schemaVersion: Schema.CURRENT_VERSION, exportedAt: new Date().toISOString(), photos: photoData }, null, 2), 'application/json');
+    download(`perdida-grasa-${today()}.json`, JSON.stringify({ ...state, profile: state.profile || (pending && pending.profile) || null, schemaVersion: Schema.CURRENT_VERSION, exportedAt: new Date().toISOString(), photos: photoData }, null, 2), 'application/json');
   });
   $('#btn-export-csv').addEventListener('click', () => {
     const rows = [['fecha', 'peso_kg', 'cintura_cm', 'cuello_cm', 'cadera_cm', 'grasa_pct', 'kcal', 'proteina_g', 'pasos', 'nota']];
@@ -676,53 +708,69 @@
       let data;
       try { data = JSON.parse(await file.text()); }
       catch { throw new Error('El archivo no es un JSON válido'); }
-      const { state: next, warnings } = Schema.normalize(Schema.migrate(data));
+      const { state: next, warnings, rejected } = Schema.normalize(Schema.migrate(data));
       // Las copias anteriores a las fotos no traen la clave `photos`: se conservan las actuales.
       // Si la trae con un formato que no es lista, normalizePhotos lanza y no se importa nada.
-      const hasPhotos = data.photos !== undefined && data.photos !== null;
+      let hasPhotos = data.photos !== undefined && data.photos !== null;
       const ph = hasPhotos ? Schema.normalizePhotos(data.photos) : { photos: [], warnings: [] };
+      // Si el respaldo traía fotos y TODAS son inválidas, no se vacía la galería actual.
+      const keepGallery = hasPhotos && data.photos.length > 0 && ph.photos.length === 0;
+      if (keepGallery) hasPhotos = false;
       const discarded = warnings.length + ph.warnings.length;
       if (discarded) console.warn('Importación: datos descartados o corregidos', [...warnings, ...ph.warnings]);
       const summary = `${next.entries.length} registros, ${Object.keys(next.foods).length} días de comidas` +
         (hasPhotos ? `, ${ph.photos.length} fotos` : '') +
-        (discarded ? `. Se descartarán o corregirán ${discarded} datos no válidos` : '');
+        (discarded ? `. Se descartarán o corregirán ${discarded} datos no válidos` : '') +
+        (rejected.profile ? `. El perfil no es válido (${rejected.reason}): se cargará en el formulario para que lo corrijas` : '') +
+        (keepGallery ? '. Ninguna foto del respaldo es válida: se conservan las fotos actuales' : '');
       if (!confirm(`Se importarán ${summary}.\nEsto reemplazará los datos actuales. ¿Continuar?`)) return;
 
       const prevRaw = localStorage.getItem(STORAGE_KEY);
       // Si falla (p. ej. sin espacio) se lanza antes de tocar las fotos.
-      try { persist(next); } catch (err) { throw new Error(isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador'); }
+      try { persist(next, rejected.profile || null); } catch (err) { throw new Error(isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador'); }
       if (hasPhotos) {
         try { await Photos.importAll(ph.photos); }
         catch {
           // Deshace localStorage para que la importación sea todo o nada.
           if (prevRaw == null) localStorage.removeItem(STORAGE_KEY); else localStorage.setItem(STORAGE_KEY, prevRaw);
+          savedJSON = prevRaw;
           throw new Error('No se pudieron guardar las fotos; no se cambió nada');
         }
       }
       state = next;
+      pending = rejected.profile ? { profile: rejected.profile, reason: rejected.reason } : null;
       await loadPhotos();
       profileForm.reset();
       fillProfileForm();
       toast(discarded ? `Datos importados (${discarded} corregidos o descartados)` : 'Datos importados');
       render();
     } catch (err) {
-      toast('No se importó. ' + (err.message || 'Archivo no válido'));
+      toast('No se importó. ' + (err.message || 'Archivo no válido'), true);
     } finally {
       ev.target.value = '';
     }
   });
   $('#btn-reset').addEventListener('click', async () => {
     if (!confirm('¿Borrar todos los datos de este dispositivo (incluidas las fotos)? No se puede deshacer.')) return;
+    // Se borran las claves (no se escribe un estado vacío): no depende de la cuota ni del bloqueo por versión.
+    // Incluye las copias :backup/:corrupto y las marcas de copia de HU-01: también son datos personales.
+    try {
+      for (const k of [STORAGE_KEY, BACKUP_KEY, CORRUPT_KEY, LAST_BACKUP_KEY, BACKUP_SNOOZE_KEY]) localStorage.removeItem(k);
+    } catch {
+      toast('No se pudieron borrar los datos de este navegador', true);
+      return;
+    }
     state = emptyState();
-    save();
-    // Las marcas de copia de seguridad (HU-01) también son datos del dispositivo.
-    setPref(LAST_BACKUP_KEY, null);
-    setPref(BACKUP_SNOOZE_KEY, null);
-    try { await Photos.clear(); } catch { toast('No se pudieron borrar las fotos'); }
+    pending = null;
+    saveBlocked = false;
+    savedJSON = null;
+    let photosOk = true;
+    try { await Photos.clear(); } catch { photosOk = false; }
     await loadPhotos();
     profileForm.reset();
     fillProfileForm();
-    toast('Datos borrados');
+    if (photosOk) toast('Datos borrados');
+    else toast('Se borraron los datos, pero no las fotos. Inténtalo de nuevo', true);
     render();
   });
 
@@ -828,6 +876,7 @@
   function render() {
     $('#today-label').textContent = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
     renderPanel();
+    renderProfileIssue();
     renderBackup();
     renderEntries();
     renderFoods();

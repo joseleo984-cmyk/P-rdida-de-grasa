@@ -74,14 +74,16 @@
     if (!(p.height >= 120 && p.height <= 230)) return 'La estatura debe estar entre 120 y 230 cm';
     if (!(p.startWeight >= 30 && p.startWeight <= 400)) return 'El peso inicial debe estar entre 30 y 400 kg';
     if (!(p.goalWeight >= 30 && p.goalWeight <= 400)) return 'El peso meta debe estar entre 30 y 400 kg';
-    if (p.goalWeight >= p.startWeight) return 'La meta debe ser menor que el peso inicial';
+    if (p.goalWeight >= p.startWeight) return `La meta debe ser menor que el peso inicial (meta ${p.goalWeight} kg, inicial ${p.startWeight} kg)`;
     if (!isISODate(p.startDate)) return 'La fecha de inicio no es válida';
     if (!ACTIVITY.includes(p.activity)) return 'Nivel de actividad no válido';
     if (!RATES.includes(p.rate)) return 'Ritmo no válido';
     return null;
   }
 
-  function normalizeProfile(raw, warn) {
+  // Un perfil inválido no se tira: se devuelve en `rejected` como borrador con tipos seguros
+  // (cadenas vacías donde el valor no sirve) para precargar el formulario y que el usuario lo corrija.
+  function normalizeProfile(raw, warn, rejected) {
     if (raw === null || raw === undefined) return null;
     if (!isObj(raw)) { warn('Perfil descartado: formato no válido'); return null; }
     const n = (v) => (typeof v === 'string' && v.trim() !== '' ? Number(v) : v);
@@ -99,7 +101,17 @@
     if (!ACTIVITY.includes(p.activity)) { warn('Perfil: actividad no válida, se usa "Sedentario"'); p.activity = 1.2; }
     if (!RATES.includes(p.rate)) { warn('Perfil: ritmo no válido, se usa "Moderado"'); p.rate = 0.005; }
     const err = profileError(p);
-    if (err) { warn('Perfil descartado: ' + err); return null; }
+    if (err) {
+      warn('Perfil no válido: ' + err);
+      const okNum = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : '');
+      rejected.profile = {
+        name: p.name, sex: p.sex === 'male' || p.sex === 'female' ? p.sex : '',
+        age: okNum(p.age), height: okNum(p.height), startWeight: okNum(p.startWeight), goalWeight: okNum(p.goalWeight),
+        startDate: isISODate(p.startDate) ? p.startDate : '', activity: p.activity, rate: p.rate,
+      };
+      rejected.reason = err;
+      return null;
+    }
     return p;
   }
 
@@ -191,9 +203,10 @@
       throw new Error('El archivo no parece un respaldo de esta app');
     }
     const foodIds = new Set();
+    const rejected = {};
     const state = {
       schemaVersion: CURRENT_VERSION,
-      profile: normalizeProfile(raw.profile, warn),
+      profile: normalizeProfile(raw.profile, warn, rejected),
       entries: normalizeEntries(raw.entries, warn, uid),
       foods: normalizeByDate(raw.foods, 'Comidas', warn, (list, d) => {
         if (!Array.isArray(list)) { warn(`Comidas ${d}: formato no válido, se descarta`); return undefined; }
@@ -212,7 +225,7 @@
       }),
       library: normalizeLibrary(raw.library, warn),
     };
-    return { state, warnings };
+    return { state, warnings, rejected };
   }
 
   // Fotos de un respaldo: valida metadatos y que `data` sea una imagen en base64. No decodifica.
@@ -239,6 +252,15 @@
     });
     return { photos, warnings };
   }
+
+  // Metadatos de una foto ya guardada en IndexedDB (versiones anteriores no validaban al importar).
+  // Devuelve la foto (pose corregida) o null si no se puede mostrar. No cambia el id: se usa para borrarla.
+  function normalizeStoredPhoto(p) {
+    if (!isObj(p) || typeof p.id !== 'string' || !p.id || !isISODate(p.date)) return null;
+    return POSES.includes(p.pose) ? p : { ...p, pose: 'frente' };
+  }
+
+  const isSafeKey = (k) => !DANGEROUS_KEYS.has(String(k).toLowerCase());
 
   // ---------- HU-02: repetir comidas ----------
   // Suma `n` días a una fecha ISO (calendario puro, sin zona horaria). Lanza si la fecha no es válida.
@@ -284,7 +306,7 @@
     return { foods: out, copied: copies.length, skipped };
   }
 
-  const api = { CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS };
+  const api = { CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, normalizeStoredPhoto, isSafeKey };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Schema = api;
 })(typeof window !== 'undefined' ? window : globalThis);
