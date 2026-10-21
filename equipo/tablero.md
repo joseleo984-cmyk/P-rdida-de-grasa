@@ -1,6 +1,6 @@
 # Tablero Kanban — WIP máximo "En curso": 2
 
-## Sprint 1 — EN CURSO (aprobado por el Stakeholder 2026-10-21)
+## Sprint 1 — ✅ CERRADO (ver sprint1-review-retro.md)
 **Objetivo:** "Que nadie pierda sus datos ni la app se rompa, y que registrar comida cueste menos."
 
 | Backlog | Listo | En curso | En revisión | Hecho |
@@ -32,7 +32,7 @@ Orden: S1-1 primero (S1-3 depende del esquema). QA revisa cada historia con la D
 | Listo | En curso | En revisión | Hecho |
 |---|---|---|---|
 | S2-1 LEGAL-01 Aceptar T&C y Política (Front) — tras borradores del Analista | | | |
-| S2-2 QA-01 E2E Playwright en CI en cada PR (QA + Dev) | | | |
+| | | | S2-2 QA-01 E2E Playwright + CI ✅ |
 | | | S2-3 Kit piloto en la app: CSV completo + "Ver copia de un cliente" — pendiente QA | |
 | S2-4 DATOS-v3: UUID, updatedAt, borrado lógico (Back) — ESPERA a que S2-1 mergee su migración de consentimiento (evitar dos v3) | | | |
 
