@@ -373,13 +373,92 @@ const eq = (a, b) => JSON.stringify(canon(plain(a))) === JSON.stringify(canon(pl
     log('normalize: perfil con números en texto se convierte', prof.state.profile && prof.state.profile.age === 30 && prof.state.profile.activity === 1.55);
   }
 
+  // ===== 11. Re-verificación de las correcciones (c1c95a9) =====
+  {
+    const QUOTA = () => { const o = Storage.prototype.setItem; Storage.prototype.setItem = function (k, v) { if (k === 'perdida-grasa:v1') throw new DOMException('lleno', 'QuotaExceededError'); return o.call(this, k, v); }; };
+    // D2: con cuota llena, el registro no aparece, el formulario conserva lo escrito y el toast es de error
+    const { page, errors, ctx } = await open(browser, NEW);
+    await importJSON(page, oldBackup);
+    await page.evaluate(QUOTA);
+    await page.click('#tab-registro');
+    const rows0 = await page.locator('#entries-table tbody tr').count();
+    await page.locator('#form-entry [name=date]').fill(iso(0));
+    await page.locator('#form-entry [name=weight]').fill('77.7');
+    await page.locator('#form-entry button[type=submit]').click();
+    await page.waitForTimeout(150);
+    const t = await toast(page);
+    const cls = await page.locator('#toast').getAttribute('class');
+    log('D2: cuota → toast de error, sin fila fantasma y el formulario conserva el valor',
+      t.startsWith('Almacenamiento lleno') && /error/.test(cls) && (await page.locator('#entries-table tbody tr').count()) === rows0 && (await page.locator('#form-entry [name=weight]').inputValue()) === '77.7',
+      `toast="${t}" class="${cls}"`);
+    await page.click('#tab-comidas');
+    await page.locator('#form-food [name=name]').fill('Pan'); await page.locator('#form-food [name=kcal]').fill('100');
+    await page.locator('#form-food button[type=submit]').click(); await page.waitForTimeout(150);
+    log('D2: cuota en alimento → no aparece en la lista', !(await page.locator('#food-list').innerText()).includes('Pan') && (await toast(page)).startsWith('Almacenamiento'), await toast(page));
+    // D3 con cuota llena: Borrar todo funciona igualmente
+    await page.click('#tab-perfil'); await page.click('#btn-reset'); await page.waitForTimeout(300);
+    const left = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('perdida-grasa')));
+    log('D3: Borrar todo con cuota llena borra todas las claves', left.length === 0 && (await toast(page)) === 'Datos borrados', JSON.stringify(left) + ' ' + (await toast(page)));
+    log('Sin errores de consola (re-verificación D2/D3)', errors.length === 0, errors.join(' | '));
+    await ctx.close();
+  }
+  {
+    // D3 con datos de versión futura (guardado bloqueado)
+    const { page, ctx } = await open(browser, NEW, seed(JSON.stringify({ schemaVersion: 99, entries: [] })));
+    // LEGAL-01: con datos más nuevos el consentimiento no se puede leer ni guardar → la pantalla legal ofrece "Borrar".
+    await page.click('#btn-consent-reset'); await page.waitForTimeout(300);
+    log('D3: Borrar todo con datos de versión más nueva los borra', (await page.evaluate(() => localStorage.getItem('perdida-grasa:v1'))) === null);
+    await ctx.close();
+  }
+  {
+    // D1: borrador → corregir → desaparece; export/import del borrador
+    const bad = JSON.stringify({ profile: { name: 'Ana', sex: 'female', age: 35, height: 165, startWeight: 70, goalWeight: 80, startDate: iso(5), activity: 1.375, rate: 0.005 }, entries: [{ id: 'e1', date: iso(5), weight: 70 }] });
+    const { page, ctx } = await open(browser, NEW, seed(bad));
+    const issue = await page.locator('#profile-issue').innerText();
+    const t = await toast(page);
+    log('D1: aviso persistente con el motivo y formulario precargado', issue.includes('meta 80 kg') && (await page.locator('#form-profile [name=goalWeight]').inputValue()) === '80', issue);
+    log('Obs: el motivo se anuncia dos veces al cargar (toast role=status + #profile-issue role=alert)', !(t.includes('Revisa tu perfil') && issue.includes('Revisa tu perfil')), `toast="${t}"`);
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#btn-export')]);
+    const exp = JSON.parse(fs.readFileSync(await dl.path(), 'utf8'));
+    log('D1: la exportación conserva el borrador', exp.profile && exp.profile.goalWeight === 80);
+    await page.click('#btn-backup-no').catch(() => {});
+    await page.locator('#form-profile [name=goalWeight]').fill('62');
+    await page.locator('#form-profile button[type=submit]').click(); await page.waitForTimeout(150);
+    await page.reload(); await page.waitForTimeout(300);
+    const s = await stored(page);
+    log('D1: al corregir se guarda el perfil válido y el aviso desaparece tras recargar', s.profile.goalWeight === 62 && await page.locator('#profile-issue').isHidden() && !(await toast(page)).includes('Revisa'));
+    const ti = await page.evaluate(async (txt) => {
+      let msg = ''; const o = window.confirm; window.confirm = (m) => { msg = m; return false; };
+      const dt = new DataTransfer(); dt.items.add(new File([txt], 'r.json', { type: 'application/json' }));
+      const inp = document.querySelector('#file-import'); inp.files = dt.files; inp.dispatchEvent(new Event('change'));
+      await new Promise((r) => setTimeout(r, 300)); window.confirm = o; return msg;
+    }, JSON.stringify(exp));
+    log('L7: el confirm de importación nombra el perfil inválido y su motivo', /perfil no es válido/i.test(ti) && ti.includes('meta 80'), ti.replace(/\n/g, ' '));
+    await ctx.close();
+  }
+  {
+    // L1 / L6
+    const { page, ctx } = await open(browser, NEW);
+    await page.click('#tab-comidas');
+    await page.locator('#form-food [name=name]').fill('   '); await page.locator('#form-food [name=kcal]').fill('50');
+    await page.locator('#form-food button[type=submit]').click(); await page.waitForTimeout(100);
+    log('L6: alimento de solo espacios rechazado', (await page.locator('#food-list').innerText()).includes('Nada registrado'), await toast(page));
+    await page.locator('#form-food [name=name]').fill('__proto__'); await page.locator('#form-food [name=kcal]').fill('50');
+    await page.locator('#form-food button[type=submit]').click(); await page.waitForTimeout(100);
+    await page.reload(); await page.waitForTimeout(300);
+    log('L1: "__proto__" como alimento se guarda en el diario sin aviso de datos dañados', !(await toast(page)).includes('dañados') && (await page.evaluate(() => ({}).kcal)) === undefined, await toast(page));
+    await ctx.close();
+  }
+
   // ===== 10. Despliegue =====
   {
     const yml = fs.readFileSync(path.join(ROOT, '.github/workflows/pages.yml'), 'utf8');
     const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     log('pages.yml copia schema.js', /cp [^\n]*schema\.js[^\n]*_site/.test(yml));
-    log('sw.js: schema.js en ASSETS y CACHE subido (≥ v3)', /'schema\.js'/.test(sw) && Number((sw.match(/perdida-grasa-v(\d+)/) || [])[1]) >= 3);
+    // CACHE solo debe ser >= v3 (la versión en que entró schema.js); otras historias la siguen subiendo.
+    const cacheV = Number((sw.match(/CACHE\s*=\s*'perdida-grasa-v(\d+)'/) || [])[1]);
+    log('sw.js: schema.js en ASSETS y CACHE >= v3', /'schema\.js'/.test(sw) && cacheV >= 3, 'CACHE=v' + cacheV);
     log('index.html carga schema.js antes de photos.js y app.js', html.indexOf('schema.js') > 0 && html.indexOf('schema.js') < html.indexOf('photos.js') && html.indexOf('photos.js') < html.indexOf('app.js'));
   }
 

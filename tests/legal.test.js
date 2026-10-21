@@ -29,6 +29,14 @@ test('LEGAL-01: los HTML legales están en la caché del service worker y en el 
   assert.ok(/cp -r legal _site\//.test(pages), 'pages.yml no copia legal/');
 });
 
+test('LEGAL-01: el HTML no muestra notas internas ni la cabecera de trabajo (siguen en los .md)', () => {
+  for (const d of Legal.build()) {
+    assert.ok(!/NOTA|Alternativas:|A confirmar|Autor: Agente/.test(d.html), d.out + ' muestra notas internas');
+    assert.ok(/NOTA/.test(fs.readFileSync(path.join(ROOT, d.src), 'utf8')), d.src + ' debería conservar sus notas');
+  }
+  assert.strictEqual(Legal.publicMarkdown('> cabecera\n\n# T\n- a\n- *NOTA: x*\n\nTexto *NOTA, y:* **z** *(Alternativas: w)*'), '# T\n- a\n\nTexto **z**');
+});
+
 test('mdToHtml: escapa HTML y convierte formato básico', () => {
   const html = Legal.mdToHtml('# T\n\nHola **b** *i* `c` <script>x</script>\n\n- a\n- b\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n> nota');
   assert.ok(html.includes('<h1>T</h1>'));

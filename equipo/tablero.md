@@ -1,11 +1,11 @@
 # Tablero Kanban — WIP máximo "En curso": 2
 
-## Sprint 1 — EN CURSO (aprobado por el Stakeholder 2026-10-21)
+## Sprint 1 — ✅ CERRADO (ver sprint1-review-retro.md)
 **Objetivo:** "Que nadie pierda sus datos ni la app se rompa, y que registrar comida cueste menos."
 
 | Backlog | Listo | En curso | En revisión | Hecho |
 |---|---|---|---|---|
-| HU-03 Editar registros/alimentos (Sprint 2) | | | S1-1 corregida — re-verificación QA | |
+| HU-03 Editar registros/alimentos (Sprint 2) | | | | S1-1 Esquema + importación segura ✅ QA |
 | HU-04 Porciones (Sprint 2) | | | S1-3 corregida — re-verificación QA | S1-2 HU-01 Proteger datos ✅ QA |
 | HU-05 Gasto real estimado (Sprint 2) | | | | |
 | Deuda: dividir app.js, SW, a11y | | | | |
@@ -32,9 +32,9 @@ Orden: S1-1 primero (S1-3 depende del esquema). QA revisa cada historia con la D
 | Listo | En curso | En revisión | Hecho |
 |---|---|---|---|
 | S2-1 LEGAL-01 Aceptar T&C y Política (Front) — tras borradores del Analista | | | |
-| S2-2 QA-01 E2E Playwright en CI en cada PR (QA + Dev) | | | |
-| | S2-3 Kit piloto en la app: CSV completo + "Ver copia de un cliente" — Dev Backend | | |
-| S2-4 DATOS-v3: UUID, updatedAt, borrado lógico (Back) — prepara sync | | | |
+| | | | S2-2 QA-01 E2E Playwright + CI ✅ |
+| | S2-3 ajustes D1, O1, O2 — Dev Backend | | S2-3 Kit piloto ✅ QA |
+| S2-4 DATOS-v3: UUID, updatedAt, borrado lógico (Back) — ESPERA a que S2-1 mergee su migración de consentimiento (evitar dos v3) | | | |
 
 Fuera de alcance sin el Stakeholder: merge a main/publicación, crear el proyecto Supabase, textos legales definitivos.
 

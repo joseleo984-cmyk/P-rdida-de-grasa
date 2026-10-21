@@ -13,11 +13,15 @@ async function conConsentimiento(target) {
   await target.addInitScript((consent) => {
     const KEY = 'perdida-grasa:v1';
     const get = Storage.prototype.getItem;
+    let first = true;
     Storage.prototype.getItem = function (k) {
       const raw = get.call(this, k);
       if (k !== KEY || this !== window.localStorage) return raw;
-      // Sin datos guardados: la app arranca vacía, pero con el consentimiento ya dado.
-      if (raw == null) return JSON.stringify({ schemaVersion: 3, entries: [], consent });
+      const isFirst = first;
+      first = false;
+      // Sin datos guardados: la app arranca vacía, pero con el consentimiento ya dado. Solo en la primera
+      // lectura (la de load()): después, "no hay nada guardado" (p. ej. tras Borrar todo) se ve como null.
+      if (raw == null) return isFirst ? JSON.stringify({ schemaVersion: 3, entries: [], consent }) : raw;
       try {
         const s = JSON.parse(raw);
         if (!s || typeof s !== 'object' || Array.isArray(s) || s.consent) return raw;

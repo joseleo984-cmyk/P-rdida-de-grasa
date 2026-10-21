@@ -3,6 +3,24 @@
 > Autor: Agente Analista de Producto · 2026-10-21 · Para: Stakeholder (quien dirige el piloto)
 > Contexto: `vision-plataforma.md` (hipótesis H1, H2, H3, H4, H5, H7) y `decisiones-negocio.md`.
 > **Sin servidor:** se usa la app **actual**. El cliente exporta sus datos y se los manda al coach por WhatsApp. El "panel del coach" lo arma a mano el Stakeholder en una hoja de cálculo.
+> Actualizado 2026-10-21: el piloto usa la app con la **pantalla de aceptación (LEGAL-01)**, los textos legales revisados por un abogado y el kit de S2-3 (**CSV completo** + **"Ver copia de un cliente"**).
+
+---
+
+## ✅ Antes de empezar el piloto (checklist)
+
+No arrancar S0 con clientes hasta tener todo marcado.
+
+- [ ] **Abogado:** revisó `legal/terminos-y-condiciones.md`, `legal/politica-tratamiento-datos.md` y la autorización del §8, y respondió las dudas críticas de `legal/preguntas-abogado.md` (sobre todo P1 del art. 6 y P2 del rol del coach).
+- [ ] **Campos completos:** no queda ningún `[CAMPO]` (nombre, cédula, correo, ciudad, teléfono, fechas, plazos) en los textos ni en el §8, y se quitaron las notas internas ("NOTA…").
+- [ ] **Versión de los textos** fijada (p. ej. T&C 1.0 y Política 1.0) y la misma en la app (`LEGAL_VERSIONS`).
+- [ ] **GitHub Pages activo** con la versión del **Sprint 2**, publicada desde `main` por el Stakeholder. Abrir el enlace en un iPhone y comprobar que carga la versión nueva (si no, cerrar y reabrir la app).
+- [ ] **LEGAL-01 publicada:** al primer uso aparece la pantalla de aceptación con casillas separadas y enlaces a los textos, y en Perfil → Privacidad se ven y se pueden retirar las autorizaciones.
+- [ ] **S2-3 publicada:** "Exportar CSV" trae todos los datos del día y "Ver copia de un cliente" abre el archivo de un cliente **sin reemplazar** los datos propios.
+- [ ] **Dispositivo del coach:** cada coach tiene un teléfono o computador con navegador actualizado (Safari o Chrome) donde probó "Ver copia de un cliente" con un archivo de ejemplo. Si un coach no puede, el Stakeholder hace esa parte (concierge).
+- [ ] **Hoja de resultados** creada (§9) con acceso solo para el Stakeholder y los coaches en su pestaña.
+- [ ] **Acuerdo con cada coach** (rol de encargado, a validar con el abogado): uso de los datos solo para el seguimiento, confidencialidad, no reenviar archivos ni fotos y borrarlos al final del piloto.
+- [ ] Prueba de punta a punta con 1 cliente de prueba: aceptar → registrar → exportar → enviar por WhatsApp → el coach lo ve → aparece en la hoja.
 
 ---
 
@@ -29,7 +47,7 @@
 
 | Semana | Stakeholder (concierge) | Coach | Cliente |
 |---|---|---|---|
-| **S0 · Preparación** | Revisión legal del consentimiento (si es posible). Entrevista inicial con cada coach (§4). Crea la hoja de resultados (§9). Envía las invitaciones (§6). | Elige 5 clientes (activos, con iPhone o Android, que ya hagan check-in). Les envía la invitación. | Firma el consentimiento (§8). Instala la app en la pantalla de inicio. Llena perfil y primer registro. |
+| **S0 · Preparación** | Checklist "Antes de empezar" completa. Entrevista inicial con cada coach (§4). Crea la hoja de resultados (§9). Envía las invitaciones (§6). | Elige 5 clientes (activos, con iPhone o Android, que ya hagan check-in). Les envía la invitación. | Instala la app en la pantalla de inicio. Al abrirla **acepta los T&C y la Política en la pantalla de LEGAL-01** (y, si quiere, autoriza fotos). Confirma por WhatsApp la autorización del piloto (§8). Llena perfil y primer registro. |
 | **S1 · Arranque** | Lunes: comprueba que los 10 clientes tienen la app instalada y perfil lleno; ayuda por WhatsApp a quien se trabe. Domingo: recibe los CSV y arma el 1.er resumen. | Recuerda en el chat: "pésate 3–4 mañanas esta semana y regístralo". | Registra peso (≥ 3 mañanas), comidas si su plan lo pide, pasos y sueño. Domingo: exporta y envía. |
 | **S2 · Rutina** | Domingo/lunes: resumen semanal por coach (§9). Anota el tiempo que le toma armarlo. | Lunes: lee el resumen y escribe a quien esté en amarillo/rojo. Anota en la hoja a quién escribió. | Igual que S1. Medidas (cintura, cuello, cadera) 1 vez por semana. |
 | **S3 · Rutina + fotos** | Igual que S2. Pide a los clientes que consintieron fotos el JSON quincenal. | Igual que S2. Revisa fotos de quien las compartió. | Igual + fotos frente/perfil/espalda (si consintió) y exporta JSON. |
@@ -44,6 +62,7 @@
 **Enlace de la app:** `https://joseleo984-cmyk.github.io/P-rdida-de-grasa/` (confirmar que GitHub Pages esté activo antes de S0).
 
 ### Cliente
+0. **Aceptar (primer uso):** la app muestra la pantalla de aceptación: Términos, Política de Datos, autorización de datos sensibles, fotos (opcional y aparte) y mayoría de edad. Puede leer los textos desde los enlaces. Lo aceptado queda guardado con fecha y versión en su teléfono y viaja en sus exportes. Puede retirar autorizaciones en Perfil → Privacidad.
 1. **Instalar (iPhone):** abrir el enlace en **Safari** → botón Compartir → "Agregar a pantalla de inicio". Usarla siempre desde ese ícono (así iOS no borra los datos tan fácil). En Android: Chrome → menú → "Instalar app".
 2. **Perfil** (una vez): sexo, edad, estatura, peso, meta y ritmo → la app da calorías y macros. *Si el coach ya le da un plan de calorías, el cliente sigue el plan del coach; la app sirve para registrar.*
 3. **Registro** (≥ 3 mañanas/semana, en ayunas, después de ir al baño): peso. 1 vez por semana: cintura, cuello y cadera.
@@ -52,20 +71,37 @@
 6. **Enviar (domingo):** Perfil → Datos → **"Exportar CSV"** → compartir el archivo por WhatsApp **al coach** (o al Stakeholder si el coach lo prefiere). Cada 2 semanas, si consintió fotos: **"Exportar JSON"** (incluye las fotos; pesa más).
 7. **Respaldo:** el JSON también es su copia de seguridad. No borrar la app ni los datos de Safari durante el piloto.
 
-> El CSV trae por día: fecha, peso, cintura, cuello, cadera, % de grasa, kcal, proteína, pasos y nota. **No trae sueño, agua ni fuerza, ni fotos**; esos datos van en el JSON.
+> El CSV trae por día: fecha, peso, cintura, cuello, cadera, % de grasa, kcal, proteína, carbohidratos, grasas, n.º de alimentos, pasos, agua, sueño, entrenó fuerza (Sí/No) y nota *(desde S2-3)*. Lo único que no trae son las **fotos**, que van en el JSON. Se abre directamente en Excel en español; en Google Sheets se usa Archivo → Importar.
+> Si un cliente aún tiene la app vieja en caché, el CSV llega con el formato anterior (separado por comas y sin hábitos): basta con que cierre y vuelva a abrir la app con conexión.
+> **Las fotos solo van en el JSON**, y solo si el cliente autorizó fotos.
 
 ### Coach
 1. Elegir 5 clientes y mandarles la invitación (§6).
 2. Recordatorio corto los domingos en el chat: "¡Hoy toca mandar el archivo!".
 3. Los lunes: leer el resumen que le llega (hoja con semáforo) y escribir a quien esté en amarillo o rojo.
+3b. Si quiere ver el detalle o las fotos de un cliente: en su app, **"Ver copia de un cliente"** → elegir el archivo que le llegó por WhatsApp. Lo ve en modo lectura y **no reemplaza** sus datos. Al terminar, cerrar la copia.
 4. Anotar cada semana, en 1 minuto: horas que dedicó al seguimiento y a quién escribió por el resumen.
 5. **No** tiene que instalar nada ni aprender la app (puede probarla si quiere).
 
 ### Stakeholder (concierge = "el servidor a mano")
 1. Recibe los archivos (directamente de los clientes o reenviados por el coach).
 2. Pega el CSV de cada cliente en su pestaña de la hoja y actualiza el **resumen por coach** (§9).
-3. Para quien comparte fotos: abre el JSON en la app de un dispositivo de prueba (Perfil → Importar) **solo para ese fin**, toma el comparador antes/después y lo manda al coach. Borra los datos importados después. *(No mezclar datos de clientes en un mismo dispositivo: importar reemplaza los datos.)*
+3. Para quien comparte fotos o manda el JSON: usa **"Ver copia de un cliente"** (abajo). Ya **no** hace falta "Importar JSON" ni un dispositivo de prueba: importar **reemplaza** los datos del dispositivo, y no se debe usar con copias de clientes.
+3b. Comprobar en cada archivo que el cliente aceptó la versión vigente de los textos (va dentro del JSON). Si no, pedirle que abra la app y acepte.
+3c. Si un coach no puede usar "Ver copia de un cliente", el Stakeholder abre el archivo con esa función y le pasa el resumen o el comparador antes/después de las fotos **solo de quien autorizó fotos**. **Nunca usar "Importar"** con archivos de clientes (reemplaza los datos del dispositivo).
 4. Mide cuánto tarda en armar cada resumen: es el coste del trabajo manual que el servidor reemplazará.
+
+### Ver la copia de un cliente en la app (coach o Stakeholder, desde S2-3)
+1. Guardar el JSON que mandó el cliente (WhatsApp → descargar o "Guardar en Archivos").
+2. En la app: **Perfil → Datos → "Abrir copia de cliente"** y elegir el archivo.
+3. Se abre una ventana de **solo lectura** con: nombre, rango de fechas, peso inicial, actual y tendencia de 7 días,
+   ritmo semanal (kg y % por semana), % de grasa, **adherencia de las últimas 1, 2 y 4 semanas** (días con algún
+   registro, con comidas, con hábitos, pesajes y proteína media frente al objetivo), las últimas 5 notas y las fotos.
+   Las semanas se cuentan hasta el **día en que el cliente exportó** (si el archivo lo indica) o hasta hoy.
+4. **"Abrir otra"** pasa al siguiente cliente, y **"Cerrar"** vuelve a los datos propios. No se guarda nada: los datos
+   del dispositivo (incluidas las fotos) quedan intactos, y al cerrar se liberan las fotos de la memoria.
+5. Privacidad: el archivo del cliente sigue en la carpeta de descargas o en WhatsApp. Hay que borrarlo según lo
+   indicado en el consentimiento (§8).
 
 ---
 
@@ -118,7 +154,7 @@ Duración: 30 min, por videollamada o en persona. Graba solo con permiso. Pregun
 > 1️⃣ Abre este enlace en **Safari**: [enlace] → botón Compartir → "Agregar a pantalla de inicio".
 > 2️⃣ Llena tu perfil y pésate 3–4 mañanas a la semana.
 > 3️⃣ Los domingos, en Perfil → Datos → "Exportar CSV", y me mandas el archivo por aquí.
-> Antes de empezar te paso un documento corto para que autorices el uso de tus datos (son tuyos y puedes salirte cuando quieras). ¿Te animas? 🙌
+> Al abrirla por primera vez te pide aceptar los Términos y la Política de Datos (las fotos son opcionales). Tus datos se quedan en tu celular y solo me llegan cuando tú me mandas el archivo. Te paso también un mensajito con los detalles del piloto. Son tuyos y puedes salirte cuando quieras. ¿Te animas? 🙌
 
 ---
 
@@ -128,29 +164,30 @@ Duración: 30 min, por videollamada o en persona. Graba solo con permiso. Pregun
 
 ---
 
-## 8. Consentimiento informado (plantilla)
+## 8. Consentimiento del piloto (complemento a LEGAL-01)
 
-> ⚠️ **BORRADOR. REVISAR CON ABOGADO ANTES DE USAR.** Es un texto en lenguaje claro para el piloto y **no es asesoría legal**. La Ley 1581 de 2012 (y el Decreto 1377 de 2013, hoy en el Decreto 1074 de 2015) considera **datos sensibles** los relativos a la **salud** y los **datos biométricos/imágenes** que pueden afectar la intimidad. Para tratarlos se necesita **autorización previa, expresa e informada**, y la persona **no está obligada** a darla. Completa los [corchetes].
+> ⚠️ **BORRADOR. REVISAR CON ABOGADO ANTES DE USAR.** No es asesoría legal.
+> **Cómo encaja:** la autorización formal se da **en la app**, en la pantalla de LEGAL-01, con los **Términos y Condiciones** (`legal/terminos-y-condiciones.md`) y la **Política de Tratamiento de Datos** (`legal/politica-tratamiento-datos.md`) ya revisados por el abogado. Este texto **no la reemplaza**: explica en lenguaje claro lo específico del piloto (datos en el teléfono, envío por WhatsApp, rol del coach). Se envía por WhatsApp antes de empezar y el cliente lo confirma por escrito. Completa los [CAMPOS] igual que en la Política.
 
-**AUTORIZACIÓN PARA EL TRATAMIENTO DE DATOS PERSONALES — Piloto "Pérdida de Grasa"**
+**Piloto "Pérdida de Grasa" — Lo que debes saber antes de empezar**
 
-Yo, **[nombre completo]**, con documento **[tipo y número]**, autorizo de forma **libre, previa, expresa e informada** a **[nombre del Stakeholder o empresa], identificado con [NIT/CC]**, con correo **[correo]** y teléfono **[teléfono]** (el "Responsable"), y a mi coach **[nombre del coach]** (el "Encargado"), a tratar mis datos personales según lo siguiente:
+Hola, [nombre]. Gracias por participar en el piloto de 4 semanas con tu coach [nombre del coach]. Al abrir la app te pediremos aceptar los **Términos y Condiciones** y la **Política de Tratamiento de Datos** de [NOMBRE DEL RESPONSABLE], persona natural, cédula [NÚMERO], [CIUDAD], correo [CORREO]. Aquí te resumimos cómo funciona en el piloto:
 
-1. **Qué datos:** nombre, teléfono, edad, sexo, estatura, peso, medidas corporales (cintura, cuello, cadera), % de grasa estimado, comidas y calorías, pasos, sueño, agua, entrenamiento y notas que yo registre. **Opcional:** fotos corporales de progreso.
-2. **Son datos sensibles:** la información de salud y las fotos corporales son **datos sensibles**. **No estoy obligado/a a autorizar su tratamiento**, y negarme no afecta mi relación con mi coach.
-3. **Para qué:** (a) que mi coach haga seguimiento de mi proceso; (b) evaluar y mejorar la app durante este piloto de 4 semanas; (c) producir resultados **agregados y anónimos** (sin mi nombre). **No** se venderán ni se compartirán con terceros ni se usarán para publicidad.
-4. **Cómo y dónde:** mis datos se guardan en mi propio teléfono. Yo decido cuándo exportarlos y enviarlos por WhatsApp a mi coach o al Responsable. Los archivos se guardan en **[lugar, p. ej. Google Drive con acceso restringido]**, solo los ven el Responsable y mi coach y se **eliminan a más tardar [fecha, p. ej. 30 días después del piloto]**.
-5. **Fotos (marca una opción):**
-   ☐ **SÍ** autorizo compartir mis fotos de progreso con mi coach y con el Responsable, solo para seguimiento. No se publicarán ni se usarán en redes sociales ni en publicidad sin una nueva autorización por escrito.
-   ☐ **NO** autorizo compartir mis fotos.
-6. **Mis derechos:** conocer, actualizar, rectificar y pedir que se borren mis datos; revocar esta autorización en cualquier momento; pedir prueba de ella; ser informado/a del uso de mis datos; y presentar quejas ante la **Superintendencia de Industria y Comercio (SIC)**. Para ejercerlos escribo a **[correo]** y me responderán en los plazos de ley.
-7. **Salirme:** puedo retirarme del piloto cuando quiera con un mensaje a mi coach o a **[correo]**, y mis archivos se borran.
-8. **No es consejo médico:** las cifras de la app son estimaciones orientativas. Si tengo una condición de salud, consulto a un profesional.
+1. **Tus datos viven en tu teléfono.** Lo que registras (peso, medidas, comidas, hábitos, fotos) se guarda **solo en tu dispositivo**. En el piloto no hay servidor ni nube.
+2. **Tú decides cuándo enviarlos.** Cada domingo exportas un archivo desde la app y **tú mismo/a** se lo mandas por WhatsApp a tu coach [y/o a [NOMBRE DEL RESPONSABLE]]. Si no lo envías, nadie más ve tus datos.
+3. **Son datos sensibles.** Tu peso, medidas, comidas, hábitos y fotos son datos de salud. **Autorizarlos es voluntario**, y negarte no afecta tu relación con tu coach. En la app hay una casilla aparte para los datos de salud y otra, **también aparte y opcional, para las fotos**.
+4. **Fotos:** solo se envían si las autorizaste en la app y exportas el archivo completo (JSON). Las verán tu coach y, si hace falta para armar tu resumen, [NOMBRE DEL RESPONSABLE]. No se publicarán ni se usarán en redes ni en publicidad.
+5. **El papel de tu coach:** tu coach usa tus archivos **solo para hacerte seguimiento**, por cuenta del responsable (como **encargado** del tratamiento; *rol a validar con el abogado*). Se comprometió a no reenviarlos, a no publicarlos y a borrarlos al final del piloto.
+6. **WhatsApp:** los archivos pasan por WhatsApp, un servicio de un tercero (Meta) con sus propias condiciones. Si prefieres otro medio (p. ej. correo), dínoslo.
+7. **Para qué:** tu seguimiento y saber si la app sirve. Los resultados del piloto se usarán solo **agregados y sin tu nombre**.
+8. **Cuánto tiempo:** tu coach y [NOMBRE DEL RESPONSABLE] borran los archivos recibidos a más tardar el **[FECHA, p. ej. 30 días después del piloto]**. Lo que está en tu teléfono es tuyo: puedes borrarlo cuando quieras (Perfil → Datos → Borrar todo).
+9. **Tus derechos:** conocer, corregir y pedir el borrado de tus datos, retirar tu autorización (también en la app, Perfil → Privacidad) y quejarte ante la **Superintendencia de Industria y Comercio**. Escríbenos a [CORREO]; los plazos de respuesta están en la Política.
+10. **No es consejo médico:** las cifras son estimaciones. Si tienes una condición de salud, consulta a un profesional.
 
-Política de tratamiento de datos: **[enlace o anexo]**.
+**Para confirmar, responde por WhatsApp:**
+> "Leí y acepto las condiciones del piloto. En la app acepté los Términos y la Política [y autoricé / no autoricé] mis fotos."
 
-Firma: ____________________ Fecha: ___/___/______
-*(Válido también como aceptación por escrito por WhatsApp: "Leí y acepto la autorización de datos del piloto [con fotos / sin fotos]". Guardar captura. Confirmar con el abogado que esta forma sirve como prueba.)*
+*(Guardar la captura en la pestaña Clientes de la hoja. Validar con el abogado que esta confirmación más la aceptación en la app son prueba suficiente.)*
 
 ---
 
@@ -160,7 +197,7 @@ Una **hoja de cálculo (Google Sheets)** con acceso solo para el Stakeholder (y 
 
 | Pestaña | Contenido |
 |---|---|
-| **Clientes** | ID anónimo (C01–C10), coach (A/B), fecha de inicio, consentimiento (sí/no, con o sin fotos), dispositivo (iPhone/Android), estado (activo/retirado + motivo). **Sin nombres en las demás pestañas.** |
+| **Clientes** | ID anónimo (C01–C10), coach (A/B), fecha de inicio, versión de T&C/Política aceptada en la app, autorización de datos sensibles (S/N), fotos (S/N), confirmación del piloto por WhatsApp (fecha + captura), dispositivo (iPhone/Android), estado (activo/retirado + motivo). **Sin nombres en las demás pestañas.** |
 | **Datos_C01 … C10** | El CSV pegado tal cual cada semana (se añaden filas nuevas). |
 | **Semanal** | Una fila por cliente y semana: `semana`, `cliente`, `envió a tiempo (S/N)`, `días con registro (0–7)`, `pesajes`, `media de peso 7 d`, `cambio vs. semana anterior (kg)`, `cintura (cm)`, `kcal media`, `proteína media`, `pasos medios`, `semáforo`. |
 | **Resumen_Coach_A / B** | Lo que ve el coach el lunes: una fila por cliente con el semáforo, ordenada con los rojos primero, y 1 línea de comentario. |

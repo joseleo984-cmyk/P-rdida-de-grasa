@@ -70,6 +70,24 @@ function mdToHtml(md) {
   return out.join('\n');
 }
 
+// Lo que el usuario NO debe ver: la cabecera de trabajo (cita inicial con autor e instrucciones; el aviso de
+// borrador la sustituye) y las notas internas en cursiva ("*NOTA…*", "*(Alternativas…)*", "*[A confirmar…]*").
+// Se quedan en los .md para el abogado y el equipo.
+const INTERNAL = /\s*\*[[(]?(NOTA|Alternativas|A confirmar)\b[^*]*\*/g;
+function publicMarkdown(md) {
+  const lines = md.replace(/\r\n/g, '\n').split('\n');
+  let i = 0;
+  while (i < lines.length && (/^\s*>/.test(lines[i]) || !lines[i].trim())) i++;
+  const out = [];
+  for (const l of lines.slice(i)) {
+    const clean = l.replace(INTERNAL, '');
+    // Si la línea solo era una nota (queda vacía o solo la viñeta), se quita entera.
+    if (clean !== l && /^\s*([-*]|\d+\.)?\s*$/.test(clean)) continue;
+    out.push(clean);
+  }
+  return out.join('\n');
+}
+
 const isDraft = (md) => /borrador/i.test(md.split('\n').slice(0, 5).join('\n'));
 const versionOf = (md) => (md.match(/\*\*Versión:\*\*\s*([0-9a-z.\-]+)/i) || [])[1] || null;
 
@@ -103,7 +121,7 @@ a { color: var(--accent); }
 </head>
 <body>
 <main>
-${draft}${mdToHtml(md)}
+${draft}${mdToHtml(publicMarkdown(md))}
 </main>
 </body>
 </html>
@@ -125,4 +143,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { mdToHtml, build, isDraft, versionOf, DOCS };
+module.exports = { mdToHtml, publicMarkdown, build, isDraft, versionOf, DOCS };

@@ -1,0 +1,46 @@
+name: CI
+
+# Pruebas unitarias (node --test) y E2E (Playwright, Chromium móvil 390x844, America/Bogota)
+# en cada push y pull request. El deploy a Pages (pages.yml) es un workflow aparte.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Pruebas unitarias
+        run: npm test
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Pruebas E2E
+        run: npm run test:e2e
+        env:
+          CI: 'true'
+      - name: Informe E2E
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore
