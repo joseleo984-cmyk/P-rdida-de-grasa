@@ -19,7 +19,7 @@ No arrancar S0 con clientes hasta tener todo marcado.
 - [ ] **S2-3 publicada:** "Exportar CSV" trae todos los datos del día y "Ver copia de un cliente" abre el archivo de un cliente **sin reemplazar** los datos propios.
 - [ ] **Dispositivo del coach:** cada coach tiene un teléfono o computador con navegador actualizado (Safari o Chrome) donde probó "Ver copia de un cliente" con un archivo de ejemplo. Si un coach no puede, el Stakeholder hace esa parte (concierge).
 - [ ] **Hoja de resultados** creada (§9) con acceso solo para el Stakeholder y los coaches en su pestaña.
-- [ ] **Acuerdo con cada coach** (rol de encargado, a validar con el abogado): uso de los datos solo para el seguimiento, confidencialidad, no reenviar archivos ni fotos y borrarlos al final del piloto.
+- [ ] **Acuerdo con cada coach** (rol de encargado, a validar con el abogado): uso de los datos solo para el seguimiento, confidencialidad, no reenviar archivos ni fotos y borrarlos cuando el cliente deje el servicio (máx. 30 días después).
 - [ ] Prueba de punta a punta con 1 cliente de prueba: aceptar → registrar → exportar → enviar por WhatsApp → el coach lo ve → aparece en la hoja.
 
 ---
@@ -180,7 +180,7 @@ Hola, [nombre]. Gracias por participar en el piloto de 4 semanas con tu coach [n
 5. **El papel de tu coach:** tu coach usa tus archivos **solo para hacerte seguimiento**, por cuenta del responsable (como **encargado** del tratamiento; *rol a validar con el abogado*). Se comprometió a no reenviarlos, a no publicarlos y a borrarlos al final del piloto.
 6. **WhatsApp:** los archivos pasan por WhatsApp, un servicio de un tercero (Meta) con sus propias condiciones. Si prefieres otro medio (p. ej. correo), dínoslo.
 7. **Para qué:** tu seguimiento y saber si la app sirve. Los resultados del piloto se usarán solo **agregados y sin tu nombre**.
-8. **Cuánto tiempo:** tu coach y [NOMBRE DEL RESPONSABLE] borran los archivos recibidos a más tardar el **[FECHA, p. ej. 30 días después del piloto]**. Lo que está en tu teléfono es tuyo: puedes borrarlo cuando quieras (Perfil → Datos → Borrar todo).
+8. **Cuánto tiempo:** tu coach y José Granados guardan los archivos recibidos mientras sigas en seguimiento y los borran **a más tardar 30 días después de que dejes el servicio**, o antes si lo pides. Lo que está en tu teléfono es tuyo: puedes borrarlo cuando quieras (Perfil → Datos → Borrar todo).
 9. **Tus derechos:** conocer, corregir y pedir el borrado de tus datos, retirar tu autorización (también en la app, Perfil → Privacidad) y quejarte ante la **Superintendencia de Industria y Comercio**. Escríbenos a [CORREO]; los plazos de respuesta están en la Política.
 10. **No es consejo médico:** las cifras son estimaciones. Si tienes una condición de salud, consulta a un profesional.
 

@@ -6,14 +6,14 @@
 >
 > | Marcador | Qué poner | Ejemplo |
 > |---|---|---|
-> | `[NOMBRE COMPLETO DEL RESPONSABLE]` ✅ José Granados (confirmar si en la cédula figura un segundo apellido) | Nombre y apellidos tal como aparecen en la cédula | Ana María Pérez Gómez |
-> | `[NÚMERO DE CÉDULA]` | Cédula de ciudadanía | 1.234.567.890 |
-> | `[DIRECCIÓN]` | Dirección de notificación | Calle 1 # 2-3, apto 4 |
+> | `[NOMBRE COMPLETO DEL RESPONSABLE]` ✅ José Granados (confirmar si lleva segundo apellido) | Nombre y apellidos tal como aparecen en la cédula | Ana María Pérez Gómez |
+> | `[NÚMERO DE CÉDULA]` ✅ no se publica (decisión del responsable) | Cédula de ciudadanía | 1.234.567.890 |
+> | `[DIRECCIÓN]` ✅ Calle 18 # 16-27 | Dirección de notificación | Calle 1 # 2-3, apto 4 |
 > | `[CIUDAD]` ✅ Barranquilla | Ciudad de domicilio | Medellín |
-> | `[CORREO DE DATOS PERSONALES]` | Correo donde se reciben consultas y reclamos (revisado al menos 2 veces por semana) | datos@… |
-> | `[TELÉFONO / WHATSAPP]` | Número de contacto | +57 3xx xxx xxxx |
+> | `[CORREO DE DATOS PERSONALES]` ✅ joseleo984@gmail.com | Correo donde se reciben consultas y reclamos (revisado al menos 2 veces por semana) | datos@… |
+> | `[TELÉFONO / WHATSAPP]` ✅ +57 312 887 6135 | Número de contacto | +57 3xx xxx xxxx |
 > | `[FECHA DE VIGENCIA]` | Día en que se publica esta versión | 1 de noviembre de 2026 |
-> | `[FECHA DE BORRADO DEL PILOTO]` ✅ 30 días después del fin del piloto | Fecha límite para borrar los archivos recibidos | 30 días después del fin del piloto |
+> | `[FECHA DE BORRADO DEL PILOTO]` ✅ mientras siga en el servicio; máx. 30 días después de dejarlo | Fecha límite para borrar los archivos recibidos | 30 días después del fin del piloto |
 > | `[UBICACIÓN DE LOS ARCHIVOS…]` | Dónde guarda el responsable los archivos recibidos (sustituir todo el marcador) | Carpeta privada de Google Drive |
 
 # Política de Tratamiento de Datos Personales — "Pérdida de Grasa"
@@ -27,10 +27,9 @@
 | | |
 |---|---|
 | **Responsable del tratamiento** | José Granados, persona natural |
-| **Cédula de ciudadanía** | [NÚMERO DE CÉDULA] |
-| **Domicilio y dirección** | [DIRECCIÓN], Barranquilla, Colombia |
-| **Correo para datos personales** | [CORREO DE DATOS PERSONALES] |
-| **Teléfono / WhatsApp** | [TELÉFONO / WHATSAPP] |
+| **Domicilio y dirección** | Calle 18 # 16-27, Barranquilla, Colombia |
+| **Correo para datos personales** | joseleo984@gmail.com |
+| **Teléfono / WhatsApp** | +57 312 887 6135 |
 | **Quién atiende consultas y reclamos** | El mismo responsable, en el correo anterior |
 
 En esta política, "nosotros" es el responsable; "la app" es la aplicación web "Pérdida de Grasa"; "tú" o "titular" es la persona a la que se refieren los datos; "coach" es el profesional (entrenador, nutricionista o asesor) que te acompaña en el piloto.
@@ -76,7 +75,7 @@ Según los artículos 5 y 6 de la Ley 1581 de 2012, los datos de salud y las im�
 ## 6. ¿Con quién compartimos tus datos?
 
 ### 6.1 Tu coach
-Tu coach recibe **solo** los archivos que **tú** le envías. Los trata **por cuenta del responsable** y únicamente para hacerte seguimiento durante el piloto (como **encargado del tratamiento**). Se compromete por escrito a: usarlos solo para ese fin, mantener la confidencialidad, no reenviarlos ni publicarlos y **borrarlos** a más tardar 30 días después de terminar el piloto.
+Tu coach recibe **solo** los archivos que **tú** le envías. Los trata **por cuenta del responsable** y únicamente para hacerte seguimiento durante el piloto (como **encargado del tratamiento**). Se compromete por escrito a: usarlos solo para ese fin, mantener la confidencialidad, no reenviarlos ni publicarlos y **borrarlos** cuando dejes el servicio con él (a más tardar 30 días después) o antes si lo pides.
 
 *NOTA, opción propuesta (la más simple, a validar con el abogado): responsable único y coach como encargado. Ver P2 en preguntas-abogado.md.*
 
@@ -110,7 +109,7 @@ En tu teléfono, además, puedes ver y retirar tus autorizaciones (Perfil → Pr
 
 ## 9. Cómo hacer consultas y reclamos
 
-**Canal:** correo a **[CORREO DE DATOS PERSONALES]** con el asunto "Datos personales". Incluye tu nombre, tu número de WhatsApp o correo, qué pides y cómo te respondemos. Si actúas en nombre de otra persona, acredita que la representas.
+**Canal:** correo a **joseleo984@gmail.com** con el asunto "Datos personales". Incluye tu nombre, tu número de WhatsApp o correo, qué pides y cómo te respondemos. Si actúas en nombre de otra persona, acredita que la representas.
 
 | Trámite | Qué es | Plazo legal de respuesta |
 |---|---|---|
@@ -133,12 +132,12 @@ En tu teléfono, además, puedes ver y retirar tus autorizaciones (Perfil → Pr
 ## 11. Conservación de los datos
 
 - **En tu teléfono:** hasta que tú los borres.
-- **Archivos enviados al coach y al responsable:** se borran a más tardar **30 días después de terminar el piloto**, o antes si lo pides.
+- **Archivos enviados al coach y al responsable:** se conservan mientras sigas en seguimiento con tu coach y, como máximo, hasta **30 días después de que dejes el servicio**, o se borran antes si lo pides.
 - **Resultados agregados y sin nombre** del piloto: se pueden conservar, porque no te identifican.
 
 ## 12. Vigencia, versiones y cambios
 
-- Esta política rige desde [FECHA DE VIGENCIA] y mientras dure el piloto. La base de datos del piloto estará vigente hasta la fecha de borrado indicada en §11.
+- Esta política rige desde [FECHA DE VIGENCIA] y hasta que publiquemos una nueva versión. La base de datos estará vigente mientras se preste el servicio y por los plazos indicados en §11.
 - Si cambiamos esta política de forma sustancial, te avisaremos y la app **te pedirá aceptarla de nuevo** antes de seguir.
 
 ## 13. Cambios previstos para la versión con cuentas (R1)
