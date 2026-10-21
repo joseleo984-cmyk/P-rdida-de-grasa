@@ -36,7 +36,10 @@ module.exports = defineConfig({
     command: `node server.js ${PORT}`,
     cwd: __dirname,
     url: `http://127.0.0.1:${PORT}/index.html`,
-    reuseExistingServer: !process.env.CI,
+    // Nunca reutilizar un servidor ya levantado: otro worktree en el mismo puerto serviría SU código y daría
+    // resultados falsos. Si el puerto está ocupado, Playwright falla con un error claro: usa otro con
+    // E2E_PORT=4700 npm run test:e2e (un puerto distinto por worktree).
+    reuseExistingServer: false,
     timeout: 15_000,
   },
 });
