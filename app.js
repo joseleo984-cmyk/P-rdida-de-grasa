@@ -885,10 +885,12 @@
         <div class="stat"><span class="stat-label">% Grasa</span><span class="stat-value">${r.bodyFat ? esc(fmt(r.bodyFat.current)) + ' %' : '—'}</span><span class="stat-sub">${r.bodyFat && r.bodyFat.first !== r.bodyFat.current ? esc(sign(r.bodyFat.current - r.bodyFat.first)) + ' pts' : ''}</span></div>
       </div>
       <h3>Adherencia</h3>
+      <div class="table-scroll" role="region" aria-label="Tabla de adherencia" tabindex="0">
       <table class="coach-table">
-        <thead><tr><th>Últimos</th><th>Días con algo</th><th>Comidas</th><th>Hábitos</th><th>Pesajes</th><th>Proteína media</th></tr></thead>
+        <thead><tr><th>Últimos</th><th>Días activos</th><th>Comidas</th><th>Hábitos</th><th>Pesajes</th><th>Proteína media</th></tr></thead>
         <tbody>${r.adherence.map((a) => `<tr><td>${esc(a.days / 7)} sem</td><td>${esc(a.anyDays)}/${esc(a.days)}</td><td>${esc(a.foodDays)}</td><td>${esc(a.habitDays)}</td><td>${esc(a.weighIns)}</td><td>${prot(a)}</td></tr>`).join('')}</tbody>
       </table>
+      </div>
       <p class="muted small">Proteína media de los días con comidas registradas, frente al objetivo calculado con su perfil.</p>
       <h3>Últimas notas</h3>
       ${r.notes.length ? `<ul class="coach-notes small">${r.notes.map((n) => `<li><strong>${esc(fmtDate(n.date))}</strong>: ${esc(n.note)}</li>`).join('')}</ul>` : '<p class="muted small">Sin notas.</p>'}
