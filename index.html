@@ -481,11 +481,13 @@
         <h2>Cuenta</h2>
         <p id="account-status" class="small"></p>
         <p id="account-extra" class="small muted"></p>
+        <p id="sync-status" class="small muted hidden" role="status" aria-live="polite"></p>
         <div class="row-actions">
           <button type="button" class="btn btn-ghost hidden" id="btn-account-login">Entrar o crear cuenta</button>
           <button type="button" class="btn btn-ghost hidden" id="btn-account-link">Vincularme con un coach</button>
           <button type="button" class="btn btn-ghost hidden" id="btn-account-coach">Ver mis clientes</button>
           <button type="button" class="btn btn-ghost hidden" id="btn-account-logout">Cerrar sesión</button>
+          <button type="button" class="btn btn-ghost hidden" id="btn-sync-now">Sincronizar ahora</button>
         </div>
         <!-- Cerrar sesión: "No" por defecto (decisión del SM; el Analista afinará el texto). -->
         <form id="form-logout" class="acc-share hidden" novalidate>
@@ -623,10 +625,12 @@
 
   <script src="calc.js"></script>
   <script src="schema.js"></script>
+  <script src="sync.js"></script>
   <script src="coach.js"></script>
   <script src="photos.js"></script>
   <script src="app.js"></script>
   <script src="config.js"></script>
+  <script src="vendor/supabase-2.117.2.js"></script>
   <script src="remote.js"></script>
   <script src="account.js"></script>
   <script src="coach-panel.js"></script>

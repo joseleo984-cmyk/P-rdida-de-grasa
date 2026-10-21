@@ -285,7 +285,7 @@ $$;
   - dueño: SELECT / INSERT / UPDATE / DELETE si `(storage.foldername(name))[1] = auth.uid()::text`;
   - coach: **SELECT** si `grasa.coach_can_see_photo((storage.foldername(name))[1]::uuid,
     split_part(storage.filename(name), '.', 1)::uuid)`.
-- Lectura **solo con URL firmada de 300 s** (`createSignedUrl`), nunca URL pública. La app descarga el blob y lo
+- Lectura **solo con URL firmada de 60 s** (`createSignedUrl(path, 60)`, v1.2 §11), nunca URL pública. La app descarga el blob y lo
   muestra con `URL.createObjectURL` (no se guarda la URL firmada).
 - Registro de accesos: `Remote.coach.photoUrl()` llama antes a `coach_photo_opened`. **Limitación conocida:** un coach
   que llame a Storage directamente podría saltarse el registro; para hacerlo inevitable hace falta una Edge Function
@@ -357,7 +357,7 @@ deleteAccount()                 // borra fotos de Storage y luego core.delete_my
 push({ records, photos })       // → { serverNow, rejected: { records, photos } }; parte en lotes de 500
 pull(since)                     // → { records, photos, comments, cursor, hasMore, serverNow }
 uploadPhoto(photoId, blob)      // Storage upsert '{uid}/{id}.jpg' → { path }
-downloadPhoto(path)             // URL firmada 300 s + fetch → Blob   (fotos propias en otro dispositivo)
+downloadPhoto(path)             // URL firmada 60 s + fetch → Blob   (fotos propias en otro dispositivo)
 deletePhotoFile(path)
 ```
 Formato de `records` en la frontera (camelCase en JS, snake_case en SQL lo traduce `remote.js`):
@@ -654,3 +654,24 @@ Con 0 filas el intento queda contado (límite 20/h). `remote.client.previewCode(
 
 Las comprobaciones 1–2 las hace el Stakeholder con la consulta de la guía (§6, paso 6). Las 3–5, Back con
 `tests/remote-contract.test.js` contra `pruebas`.
+
+---
+
+## 11. Cambios v1.2 (corrección de seguridad de S3-1 y S3-3)
+
+Fecha: 2026-10-21 · Autor: Dev Backend (a revisar por el Arquitecto) · Origen: `2026-10-21-S3-1-qa-veredicto.md`
+(D1–D3, O1, O3, O4, O7), decisión del SM sobre las URL firmadas y defectos que encontró S3-3.
+Migración: `supabase/migrations/20261021130000_r1_fix_seguridad.sql`. **Lo de esta sección manda.**
+
+| # | Cambio | Efecto en `Remote` / app |
+|---|---|---|
+| 11.1 | `grasa.join_coach` con un código inválido, caducado o agotado **devuelve `null`** (no lanza error), para que el intento quede contado (20/h). Los intentos se serializan por usuario (`pg_advisory_xact_lock`) y se purgan a 1 día. Valida `body`, `version` y `text_hash` **antes** de contar el intento y de mirar el código. | `remote.client.joinCoach()`: `null` → `RemoteError('invalid_code')`. Interfaz sin cambios. |
+| 11.2 | `core.delete_my_account()` se **niega** (`invalid`, DETAIL «borra primero tus fotos de Storage») si quedan archivos en `grasa-photos/{uid}/`. | `remote.account.deleteAccount()`: borrar fotos → llamar. Si da `invalid`, reintentar el borrado de Storage. |
+| 11.3 | Red de seguridad: `grasa.orphan_photo_folders()` (**solo `service_role`**) + `supabase/tools/sweep-orphan-photos.js`. Borra con la API de Storage las carpetas sin usuario; recomendado semanal. | Lo ejecuta el Stakeholder (guía) o una tarea programada. La clave `service_role` nunca va al repo. |
+| 11.4 | FK con `on delete cascade` en `photo_views` (`client_id`, `coach_id`, `photo_id`) e `invite_attempts.user_id`. | Ninguno. |
+| 11.5 | Permisos: se revoca **todo** lo concedido directamente a `authenticated`/`service_role` en `core`/`grasa` y se concede la lista blanca exacta (por si el proyecto tiene privilegios por defecto). | Ninguno. |
+| 11.6 | URL firmadas de **60 s** (antes 300 s); no se cachean ni se guardan. | `downloadPhoto` / `photoBlob`: `createSignedUrl(path, 60)`. |
+| 11.7 | `coach_pull` devuelve `data = {}` en las lápidas, y `coach_clients().last_activity` solo cuenta las categorías compartidas. | Ninguno. |
+| 11.8 | **Paginación de `sync_pull`** (defecto encontrado en S3-3): con más de `p_limit` filas dentro de la ventana de 30 s no avanzaba. Nueva firma `grasa.sync_pull(p_since, p_limit, p_overlap boolean default true)`: el solape solo se aplica con `p_overlap = true` y la comparación es `>=`. | `remote.sync.pull(since, { overlap = true })`. `sync.js` pide la 1.ª página con solape y el resto sin él. El fake debe hacer lo mismo. |
+| 11.9 | `rejected` (§10.6) **no se adopta** si el usuario volvió a editar ese registro mientras viajaba la petición: su edición es más nueva y gana en el siguiente ciclo. | Solo `sync.js`. |
+| 11.10 | Dueño de los datos locales (QA S3-2 O1): `sync.js` no hace **ninguna** llamada si `store.ownerId()` no coincide con la sesión (estado `owner`: `unconfirmed` / `conflict`). | La app guarda el dueño al confirmar «¿estos datos son tuyos?». |

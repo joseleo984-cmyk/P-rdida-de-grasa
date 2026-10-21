@@ -53,7 +53,7 @@ select tests.ok(not exists (
       'grasa.coach_can_see', 'grasa.coach_can_see_photo', 'grasa.become_coach', 'grasa.rotate_invite_code',
       'grasa.preview_invite_code', 'grasa.join_coach', 'grasa.update_shares', 'grasa.leave_coach', 'grasa.end_client',
       'grasa.coach_clients', 'grasa.coach_pull', 'grasa.add_comment', 'grasa.delete_comment', 'grasa.mark_comment_read',
-      'grasa.coach_photo_opened', 'grasa.billing_active_clients')),
+      'grasa.coach_photo_opened', 'grasa.billing_active_clients', 'grasa.my_link')),
   'authenticated solo ejecuta las SECURITY DEFINER de la lista blanca del contrato');
 select tests.ok(not exists (
   select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
@@ -213,26 +213,27 @@ select tests.login('x');
 select set_config('t.code_x', (select invite_code from grasa.become_coach('Coach X Fit')), true);
 reset role; select tests.login('bea');
 -- Por la API cada llamada es su propia transacción: un error la revierte entera. tests.throws lo reproduce con un
--- subbloque (savepoint) que también se revierte.
-do $$ declare fails int := 0; begin
+-- subbloque (savepoint) que también se revierte. D1 corregido: un código inválido devuelve NULL (no lanza), así que
+-- el intento queda registrado; a partir del 21.º en una hora, rate_limited.
+do $$ declare nulls int := 0; limited int := 0; r grasa.coach_links; begin
   for i in 1..25 loop
     begin
-      perform grasa.join_coach('ZZZZZ' || substr('ABCDEFGHJKMNPQRSTUVWXYZ23', i, 1),
+      r := grasa.join_coach('ZZZZZ' || substr('ABCDEFGHJKMNPQRSTUVWXYZ23', i, 1),
         jsonb_build_object('body', true, 'version', '0.1', 'text_hash', tests.h('c')));
+      if r.id is null then nulls := nulls + 1; end if;
     exception when others then
-      if sqlerrm = 'invalid_code' then fails := fails + 1; else raise; end if;
+      if sqlerrm = 'rate_limited' then limited := limited + 1; else raise; end if;
     end;
   end loop;
-  perform tests.ok(fails = 25, 'los 25 códigos inventados dan invalid_code (ninguno rate_limited)');
+  perform tests.ok(nulls = 20 and limited = 5, format('25 códigos inventados: 20 devuelven null y 5 rate_limited (%s/%s)', nulls, limited));
 end $$;
 reset role;
-select tests.hole((select count(*) from grasa.invite_attempts where user_id = tests.uid('bea')) < 20, 'QA-S3-1-D1',
-  'join_coach con un código inválido lanza invalid_code y la transacción revierte el registro del intento: '
-  || 'los intentos fallidos por join_coach NO cuentan para el límite de 20/h (fuerza bruta ilimitada)');
+select tests.ok((select count(*) from grasa.invite_attempts where user_id = tests.uid('bea')) = 20,
+  'QA-S3-1-D1 corregido: los intentos fallidos por join_coach SÍ cuentan para el límite de 20/h');
 select tests.login('bea');
-select tests.hole((select (grasa.join_coach(current_setting('t.code_x'),
-  jsonb_build_object('body', true, 'version', '0.1', 'text_hash', tests.h('c')))).status) = 'active', 'QA-S3-1-D1',
-  'tras 25 intentos fallidos, el 26.º (con el código bueno) todavía se acepta');
+select tests.throws(format($$select grasa.join_coach(%L, jsonb_build_object('body', true, 'version', '0.1', 'text_hash', tests.h('c')))$$,
+  current_setting('t.code_x')), 'rate_limited',
+  'QA-S3-1-D1 corregido: tras 20 intentos fallidos, ni el código bueno se acepta hasta pasada la hora');
 rollback;
 
 begin;
@@ -240,7 +241,7 @@ begin;
 select tests.login('bea');
 select count(*) from (select grasa.preview_invite_code('ZZZZZZ') from generate_series(1, 20)) s;
 select tests.throws($$select grasa.preview_invite_code('ZZZZZZ')$$, 'rate_limited', 'preview_invite_code: el 21.º intento en 1 h se bloquea');
-select tests.throws($$select grasa.join_coach('ZZZZZZ', '{"body":true}')$$, 'rate_limited', 'el límite de preview también bloquea join_coach');
+select tests.throws($$select grasa.join_coach('ZZZZZZ', jsonb_build_object('body', true, 'version', '0.1', 'text_hash', tests.h('c')))$$, 'rate_limited', 'el límite de preview también bloquea join_coach');
 rollback;
 
 -- ======================================================================================================
@@ -264,6 +265,9 @@ rollback;
 begin;
 select tests.qa_setup();
 select tests.login('ana');
+select tests.throws($$select core.delete_my_account()$$, 'borra primero tus fotos',
+  'QA-S3-1-D3 corregido: delete_my_account se niega mientras queden fotos del usuario en Storage');
+delete from storage.objects where name like tests.uid('ana') || '/%';   -- la app borra primero sus fotos (API de Storage)
 select core.delete_my_account();
 reset role;
 select tests.ok(not exists (select 1 from grasa.records where user_id = tests.uid('ana'))
@@ -273,13 +277,24 @@ select tests.ok(not exists (select 1 from grasa.records where user_id = tests.ui
                 and not exists (select 1 from core.consent_events where user_id = tests.uid('ana'))
                 and not exists (select 1 from core.profiles where id = tests.uid('ana')),
   'la baja borra registros, fotos (metadatos), vínculos, comentarios, consentimientos y perfil');
-select tests.hole(exists (select 1 from grasa.photo_views where client_id = tests.uid('ana')), 'QA-S3-1-D2',
-  'grasa.photo_views no tiene FK: tras la baja quedan filas con client_id/photo_id del titular (quién vio sus fotos y cuándo)');
-select tests.hole(exists (select 1 from grasa.invite_attempts where user_id = tests.uid('ana')), 'QA-S3-1-D2',
-  'grasa.invite_attempts no tiene FK: tras la baja quedan filas con el user_id del titular');
-select tests.hole(exists (select 1 from storage.objects where name like tests.uid('ana') || '/%'), 'QA-S3-1-D3',
-  'delete_my_account no comprueba ni borra los archivos de Storage: si el cliente no los borró antes, las FOTOS '
-  || 'quedan en el bucket sin dueño y sin que nadie pueda borrarlas desde la app');
+select tests.ok(not exists (select 1 from grasa.photo_views where client_id = tests.uid('ana')),
+  'QA-S3-1-D2 corregido: photo_views (FK en cascada) no deja quién vio las fotos del titular');
+select tests.ok(not exists (select 1 from grasa.invite_attempts where user_id = tests.uid('ana')),
+  'QA-S3-1-D2 corregido: invite_attempts (FK en cascada) no deja filas del titular');
+select tests.ok(not exists (select 1 from storage.objects where name like tests.uid('ana') || '/%'),
+  'QA-S3-1-D3 corregido: tras la baja no quedan fotos del titular en Storage');
+rollback;
+
+-- D3 (red de seguridad): una baja hecha fuera de la app (p. ej. desde el panel) deja la carpeta; orphan_photo_folders
+-- la detecta y solo service_role puede consultarla (el script supabase/tools/sweep-orphan-photos.js borra los archivos).
+begin;
+select tests.qa_setup();
+delete from auth.users where id = tests.uid('ana');   -- baja "por fuera", sin pasar por delete_my_account
+select tests.ok((select files from grasa.orphan_photo_folders() where folder = tests.uid('ana')::text) = 2,
+  'orphan_photo_folders lista la carpeta de fotos sin usuario y su número de archivos');
+select tests.ok(not has_function_privilege('authenticated', 'grasa.orphan_photo_folders()', 'execute')
+                and has_function_privilege('service_role', 'grasa.orphan_photo_folders()', 'execute'),
+  'orphan_photo_folders solo la ejecuta service_role');
 rollback;
 
 begin;
@@ -293,8 +308,8 @@ select tests.ok(not exists (select 1 from grasa.coaches where user_id = tests.ui
   'la baja del coach borra su ficha, sus vínculos y sus comentarios');
 select tests.ok(exists (select 1 from grasa.records where user_id = tests.uid('ana')),
   'la baja del coach NO borra datos de sus clientes');
-select tests.hole(exists (select 1 from grasa.photo_views where coach_id = tests.uid('x')), 'QA-S3-1-D2',
-  'tras la baja del coach quedan sus filas en grasa.photo_views');
+select tests.ok(not exists (select 1 from grasa.photo_views where coach_id = tests.uid('x')),
+  'QA-S3-1-D2 corregido: tras la baja del coach no quedan sus filas en grasa.photo_views');
 rollback;
 
 drop function tests.qa_setup();

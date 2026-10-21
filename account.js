@@ -211,6 +211,7 @@
     return owner ? 'other' : 'unowned';
   }
   async function afterLogin(userId) {
+    document.dispatchEvent(new Event('pg:signed-in')); // la sincronización arranca al momento (Backend S3-3b)
     const own = ownership(userId);
     if (own === 'unowned') { step('owner'); return; }
     if (own === 'other') { step('other'); return; }
@@ -240,6 +241,7 @@
     const meta = readMeta();
     if (!meta) return;
     ls.set(OWNER_KEY, meta.userId);
+    if (window.PGSync && PGSync.confirmOwner) await PGSync.confirmOwner().catch(() => {}); // copia previa + dueño + sincroniza
     await continueOnboarding();
   });
   $('#btn-owner-fresh').addEventListener('click', () => { const meta = readMeta(); if (meta) wipeFor(meta.userId); });

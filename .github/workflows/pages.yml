@@ -29,8 +29,9 @@ jobs:
       - name: Preparar sitio
         run: |
           mkdir _site
-          cp index.html styles.css calc.js schema.js coach.js photos.js app.js config.js remote.js account.js coach-panel.js sw.js manifest.webmanifest icon.svg _site/
+          cp index.html styles.css calc.js schema.js sync.js coach.js photos.js app.js config.js remote.js account.js coach-panel.js sw.js manifest.webmanifest icon.svg _site/
           cp -r legal _site/
+          mkdir _site/vendor && cp vendor/supabase-2.117.2.js _site/vendor/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
       - id: deployment

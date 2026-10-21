@@ -10,9 +10,12 @@
     "test:all": "npm test && npm run test:e2e",
     "legal": "node scripts/build-legal.js",
     "build:db": "node scripts/build-r1.js",
-    "test:db": "node scripts/test-db.js"
+    "test:db": "node scripts/test-db.js",
+    "vendor": "node scripts/vendor.js",
+    "smoke:remote": "node scripts/smoke-remote.js"
   },
   "devDependencies": {
-    "@playwright/test": "1.56.1"
+    "@playwright/test": "1.56.1",
+    "@supabase/supabase-js": "2.117.2"
   }
 }

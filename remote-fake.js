@@ -319,9 +319,12 @@
         }
         return done({ serverNow: iso(be.clock.now()), rejected });
       },
-      async pull(since, limit = 1000) {
+      async pull(since, opts) {
+        // §11.8: pull(since, { overlap, limit }); también acepta el número `limit` de la firma anterior.
+        const o = typeof opts === 'number' ? { limit: opts } : (opts || {});
+        const limit = o.limit || 1000;
         const u = await authed();
-        const from = (Date.parse(since) || 0) - PULL_OVERLAP_MS;
+        const from = (Date.parse(since) || 0) - (o.overlap === false ? 0 : PULL_OVERLAP_MS);
         const after = (x) => Date.parse(x.serverUpdatedAt) > from;
         const rows = [
           ...Object.values(be.records).filter((r) => r.userId === u.id && after(r)).map((r) => ({ t: 'r', x: r })),
