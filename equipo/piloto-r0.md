@@ -71,7 +71,9 @@ No arrancar S0 con clientes hasta tener todo marcado.
 6. **Enviar (domingo):** Perfil → Datos → **"Exportar CSV"** → compartir el archivo por WhatsApp **al coach** (o al Stakeholder si el coach lo prefiere). Cada 2 semanas, si consintió fotos: **"Exportar JSON"** (incluye las fotos; pesa más).
 7. **Respaldo:** el JSON también es su copia de seguridad. No borrar la app ni los datos de Safari durante el piloto.
 
-> Con S2-3, el **CSV completo** trae todos los datos del día (cuerpo, comidas, hábitos y nota). **Las fotos solo van en el JSON**, y solo si el cliente autorizó fotos.
+> El CSV trae por día: fecha, peso, cintura, cuello, cadera, % de grasa, kcal, proteína, carbohidratos, grasas, n.º de alimentos, pasos, agua, sueño, entrenó fuerza (Sí/No) y nota *(desde S2-3)*. Lo único que no trae son las **fotos**, que van en el JSON. Se abre directamente en Excel en español; en Google Sheets se usa Archivo → Importar.
+> Si un cliente aún tiene la app vieja en caché, el CSV llega con el formato anterior (separado por comas y sin hábitos): basta con que cierre y vuelva a abrir la app con conexión.
+> **Las fotos solo van en el JSON**, y solo si el cliente autorizó fotos.
 
 ### Coach
 1. Elegir 5 clientes y mandarles la invitación (§6).
@@ -84,9 +86,22 @@ No arrancar S0 con clientes hasta tener todo marcado.
 ### Stakeholder (concierge = "el servidor a mano")
 1. Recibe los archivos (directamente de los clientes o reenviados por el coach).
 2. Pega el CSV de cada cliente en su pestaña de la hoja y actualiza el **resumen por coach** (§9).
-3. Si un coach no puede usar "Ver copia de un cliente", el Stakeholder abre el archivo con esa función y le pasa el resumen o el comparador antes/después de las fotos **solo de quien autorizó fotos**. **Nunca usar "Importar"** con archivos de clientes (reemplaza los datos del dispositivo).
+3. Para quien comparte fotos o manda el JSON: usa **"Ver copia de un cliente"** (abajo). Ya **no** hace falta "Importar JSON" ni un dispositivo de prueba: importar **reemplaza** los datos del dispositivo, y no se debe usar con copias de clientes.
 3b. Comprobar en cada archivo que el cliente aceptó la versión vigente de los textos (va dentro del JSON). Si no, pedirle que abra la app y acepte.
+3c. Si un coach no puede usar "Ver copia de un cliente", el Stakeholder abre el archivo con esa función y le pasa el resumen o el comparador antes/después de las fotos **solo de quien autorizó fotos**. **Nunca usar "Importar"** con archivos de clientes (reemplaza los datos del dispositivo).
 4. Mide cuánto tarda en armar cada resumen: es el coste del trabajo manual que el servidor reemplazará.
+
+### Ver la copia de un cliente en la app (coach o Stakeholder, desde S2-3)
+1. Guardar el JSON que mandó el cliente (WhatsApp → descargar o "Guardar en Archivos").
+2. En la app: **Perfil → Datos → "Abrir copia de cliente"** y elegir el archivo.
+3. Se abre una ventana de **solo lectura** con: nombre, rango de fechas, peso inicial, actual y tendencia de 7 días,
+   ritmo semanal (kg y % por semana), % de grasa, **adherencia de las últimas 1, 2 y 4 semanas** (días con algún
+   registro, con comidas, con hábitos, pesajes y proteína media frente al objetivo), las últimas 5 notas y las fotos.
+   Las semanas se cuentan hasta el **día en que el cliente exportó** (si el archivo lo indica) o hasta hoy.
+4. **"Abrir otra"** pasa al siguiente cliente, y **"Cerrar"** vuelve a los datos propios. No se guarda nada: los datos
+   del dispositivo (incluidas las fotos) quedan intactos, y al cerrar se liberan las fotos de la memoria.
+5. Privacidad: el archivo del cliente sigue en la carpeta de descargas o en WhatsApp. Hay que borrarlo según lo
+   indicado en el consentimiento (§8).
 
 ---
 

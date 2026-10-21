@@ -97,5 +97,5 @@
     });
   }
 
-  root.Photos = { all, put, remove, clear, compress, exportAll, importAll };
+  root.Photos = { all, put, remove, clear, compress, exportAll, importAll, decode: dataURLToBlob };
 })(window);
