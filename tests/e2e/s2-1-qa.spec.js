@@ -54,9 +54,12 @@ test('migración v1 → v3 desde localStorage: pide aceptar y conserva todo', as
   await expect(gate(page)).toBeHidden();
   const s = await app.stored();
   expect(s.schemaVersion).toBe(Schema.CURRENT_VERSION);
-  expect(s.profile).toEqual(v1.profile);
-  expect(s.entries).toEqual(v1.entries);
-  expect(s.foods).toEqual(v1.foods);
+  // S2-4 (schema v4): la migración añade id UUID y updatedAt a cada registro; el contenido se conserva igual.
+  const bare = (o) => JSON.parse(JSON.stringify(o, (k, v) => (k === 'id' || k === 'updatedAt' ? undefined : v)));
+  expect(bare(s.profile)).toEqual(v1.profile);
+  expect(bare(s.entries)).toEqual(bare(v1.entries));
+  expect(bare(s.foods)).toEqual(bare(v1.foods));
+  expect(s.entries.every((e) => Schema.isUUID(e.id))).toBe(true);
   expect(s.consent.sensitiveHealth).toBe(true);
   expect(s.consent.photos).toBe(false);
 });

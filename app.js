@@ -9,7 +9,7 @@
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
   const fmt = (n, d = 1) => (n == null || Number.isNaN(n) ? '—' : Number(n).toLocaleString('es', { minimumFractionDigits: d, maximumFractionDigits: d }));
   const today = () => toISO(new Date());
-  const uid = () => Math.random().toString(36).slice(2, 10);
+  const uid = () => Schema.uuid();   // S2-4: UUID (crypto.randomUUID con respaldo) para poder sincronizar
 
   function toISO(d) {
     const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
@@ -43,8 +43,19 @@
       const { state: s, warnings, rejected } = Schema.normalize(Schema.migrate(parsed));
       savedJSON = raw;
       // Copia del original antes de migrarlo o corregirlo. Solo la primera: nunca se pisa la única copia.
-      if (warnings.length || parsed.schemaVersion !== Schema.CURRENT_VERSION) keepCopy(BACKUP_KEY, raw);
+      const migrated = parsed.schemaVersion !== Schema.CURRENT_VERSION;
+      if (warnings.length || migrated) keepCopy(BACKUP_KEY, raw);
       if (rejected.profile) pending = { profile: rejected.profile, reason: rejected.reason };
+      if (migrated) {
+        // Copia por versión de origen (p. ej. :backup-v3) y se guarda ya migrado: así los UUID nuevos son estables
+        // entre cargas y lo migrado conserva updatedAt = EPOCH (no cuenta como edición en el primer save()).
+        keepCopy(`${BACKUP_KEY}-v${parsed.schemaVersion || 1}`, raw);
+        try {
+          const json = JSON.stringify({ ...s, profile: s.profile || (pending && pending.profile) || null, schemaVersion: Schema.CURRENT_VERSION });
+          localStorage.setItem(STORAGE_KEY, json);
+          savedJSON = json;
+        } catch { /* sin espacio: se migrará de nuevo en la próxima carga */ }
+      }
       const others = warnings.length - (rejected.profile ? 1 : 0);
       if (rejected.profile) loadNotice = 'Revisa tu perfil: ' + rejected.reason;
       else if (others) loadNotice = `Se corrigieron ${others} datos dañados; se guardó una copia del original`;
@@ -79,7 +90,14 @@
   // Devuelve true si se guardó. Si falla, avisa (aviso de error, más largo), deshace el cambio en memoria
   // para que la pantalla muestre lo que de verdad está guardado, y el llamador NO debe mostrar éxito.
   function save() {
-    try { persist(state); return true; }
+    try {
+      // S2-4: marca updatedAt en lo nuevo o cambiado y crea lápidas de lo borrado, comparando con lo guardado.
+      let prev = null;
+      try { prev = savedJSON ? JSON.parse(savedJSON) : null; } catch { prev = null; }
+      state = Schema.stampChanges(prev, state, new Date().toISOString());
+      persist(state);
+      return true;
+    }
     catch (err) {
       toast(err.code === 'health-lock' ? err.message : saveBlocked ? loadNotice : isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador', true);
       try { state = savedJSON ? Schema.normalize(Schema.migrate(JSON.parse(savedJSON))).state : emptyState(); }
@@ -443,6 +461,8 @@
       // LEGAL-01: sin autorización de fotos no se leen ni se muestran (tampoco en la galería oculta).
       if (!photosAllowed()) { photos = []; renderPhotos(true); return; }
       // Fotos guardadas por versiones anteriores sin validar (BUG-13): se ocultan si no tienen fecha válida.
+      // S2-4: fotos de versiones anteriores → id UUID y updatedAt (una sola transacción; si falla se reintenta luego).
+      try { await Photos.migrateIds({ isValid: Schema.isUUID, uid, epoch: Schema.EPOCH }); } catch { /* se reintenta en la próxima carga */ }
       const stored = await Photos.all();
       photos = stored.map(Schema.normalizeStoredPhoto).filter((p) => p && p.blob instanceof Blob);
       if (photos.length < stored.length) console.warn(`${stored.length - photos.length} fotos guardadas no válidas se ocultan`);
@@ -474,7 +494,7 @@
     btn.disabled = true;
     try {
       const { blob, width, height } = await Photos.compress(file);
-      const photo = { id: uid(), date: photoForm.elements.date.value, pose: photoForm.elements.pose.value, blob, width, height, createdAt: Date.now() };
+      const photo = { id: uid(), date: photoForm.elements.date.value, pose: photoForm.elements.pose.value, blob, width, height, createdAt: Date.now(), updatedAt: new Date().toISOString() };
       await Photos.put(photo);
       photos.push(photo);
       comparePose = photo.pose;
@@ -515,6 +535,12 @@
     if (!viewing || !confirm('¿Eliminar esta foto?')) return;
     try {
       await Photos.remove(viewing.id);
+      // S2-4: lápida para que, al sincronizar, el borrado no "resucite" desde otro dispositivo.
+      if (Schema.isUUID(viewing.id) && Schema.isISODate(viewing.date)) {
+        const t = new Date().toISOString();
+        state.deleted.photos.push({ id: viewing.id, date: viewing.date, deletedAt: t, updatedAt: t });
+        save();
+      }
       URL.revokeObjectURL(photoUrls.get(viewing.id));
       photoUrls.delete(viewing.id);
       photos = photos.filter((p) => p.id !== viewing.id);
@@ -802,6 +828,8 @@
     // Incluye las copias :backup/:corrupto y las marcas de copia de HU-01: también son datos personales.
     try {
       for (const k of [STORAGE_KEY, BACKUP_KEY, CORRUPT_KEY, LAST_BACKUP_KEY, BACKUP_SNOOZE_KEY]) localStorage.removeItem(k);
+      // Copias por versión de origen (:backup-v1, :backup-v3…) creadas al migrar (S2-4).
+      for (const k of Object.keys(localStorage)) if (k.startsWith(BACKUP_KEY + '-v')) localStorage.removeItem(k);
     } catch {
       toast('No se pudieron borrar los datos de este navegador', true);
       return;
@@ -1038,7 +1066,13 @@
   // comidas, borrar registros o alimentos, importar). Sin autorización vigente de salud se rechaza cualquier cambio en
   // perfil, registros, comidas, hábitos o biblioteca; solo se permiten cambios del consentimiento y dejarlo todo vacío.
   const HEALTH_LOCK_MSG = 'Sin tu autorización de datos de salud no se guardan cambios en tu seguimiento';
-  function healthPart(s) { return JSON.stringify([s.profile || null, s.entries || [], s.foods || {}, s.habits || {}, s.library || {}]); }
+  // S2-4: incluye ids/updatedAt (van dentro de cada registro) y las lápidas de salud (borrar también es un cambio).
+  // La migración v3→v4 al cargar escribe directamente en load() (no es una escritura del usuario) y la base se
+  // toma después, así que nunca queda bloqueada por este control.
+  function healthPart(s) {
+    const d = s.deleted || {};
+    return JSON.stringify([s.profile || null, s.entries || [], s.foods || {}, s.habits || {}, s.library || {}, d.entries || [], d.foods || [], d.habits || []]);
+  }
   function healthWriteBlocked(s) {
     const c = s.consent;
     if (Schema.consentStatus(c) === 'ok' && c.sensitiveHealth === true) return false;

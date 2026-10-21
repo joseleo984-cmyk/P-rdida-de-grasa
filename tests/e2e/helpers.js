@@ -91,6 +91,8 @@ const test = base.extend({
       /** Importa un respaldo (objeto o texto) por el input de archivo; los confirm() se aceptan solos. */
       async importJSON(obj) {
         const buffer = Buffer.from(typeof obj === 'string' ? obj : JSON.stringify(obj));
+        // Se vacía el toast antes: si no, un "Datos importados" anterior satisface la espera y se lee un resultado viejo.
+        await page.evaluate(() => { document.querySelector('#toast').textContent = ''; });
         await page.setInputFiles('#file-import', { name: 'respaldo.json', mimeType: 'application/json', buffer });
         await expect(page.locator('#toast')).toHaveText(/importa|No se importó/i);
         return page.locator('#toast').textContent();

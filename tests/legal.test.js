@@ -57,7 +57,7 @@ test('mdToHtml: escapa HTML y convierte formato básico', () => {
 });
 
 test('consent: migración v2 → v3 añade consent null; respaldos viejos siguen cargando', () => {
-  assert.strictEqual(Schema.CURRENT_VERSION, 3);
+  assert.ok(Schema.CURRENT_VERSION >= 3);   // v4 (S2-4) mantiene la regla
   const v1 = Schema.migrate({ entries: [] });
   assert.strictEqual(v1.consent, null);
   const v2 = Schema.normalize(Schema.migrate({ schemaVersion: 2, entries: [{ id: 'a', date: '2026-10-20', weight: 70 }] }));

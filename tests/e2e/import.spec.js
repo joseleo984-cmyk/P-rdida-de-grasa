@@ -6,9 +6,13 @@ test('importa un respaldo v1 (sin schemaVersion) con fotos, sin pérdidas', asyn
   expect(await app.importJSON(FIXTURE_V1)).toBe('Datos importados');
   const s = await app.stored();
   expect(s.schemaVersion).toBe(require('../../schema.js').CURRENT_VERSION);
-  expect(s.profile).toEqual(FIXTURE_V1.profile);
-  expect(s.entries).toEqual(FIXTURE_V1.entries);
-  expect(s.foods).toEqual(FIXTURE_V1.foods);
+  // v4 (S2-4): mismo contenido, con ids UUID y updatedAt = EPOCH añadidos por la migración.
+  const bare = (o) => JSON.parse(JSON.stringify(o, (k, v) => (k === 'id' || k === 'updatedAt' ? undefined : v)));
+  expect(bare(s.profile)).toEqual(FIXTURE_V1.profile);
+  expect(bare(s.entries)).toEqual(bare(FIXTURE_V1.entries));
+  expect(bare(s.foods)).toEqual(bare(FIXTURE_V1.foods));
+  const Schema = require('../../schema.js');
+  expect(s.entries.every((e) => Schema.isUUID(e.id) && e.updatedAt === Schema.EPOCH)).toBe(true);
   expect(await app.photoCount()).toBe(2);
   await app.tab('registro');
   await expect(page.locator('#entries-table')).toContainText('<b>nota</b>');
