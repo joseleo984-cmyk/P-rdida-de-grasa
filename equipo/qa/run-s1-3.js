@@ -54,13 +54,15 @@ const seed = {
     && (await page.locator('[data-repeat-meal="Desayuno"]').innerText()).trim() === 'Repetir desayuno de ayer');
 
   // 2. Copiar de ayer con el día vacío: sin confirmación
+  // S2-4 (schema v4): los ids sembrados ('f1'…) pasan a UUID al migrar; se comparan los guardados antes de copiar.
+  const originIds = (await stored())[D20].map((x) => x.id).join();
   await page.click('#btn-copy-prev');
   let f = await stored();
   log('Copia 3 alimentos de ayer sin pedir confirmación (día vacío)', f[D21]?.length === 3 && dialogs.length === 0, names(f[D21]));
   log('Toast con el número copiado', (await toast()).includes('Se copiaron 3 alimentos a hoy'), await toast());
   const srcIds = new Set(f[D20].map((x) => x.id));
   log('Ids nuevos, únicos y distintos del origen', f[D21].every((x) => !srcIds.has(x.id)) && new Set(f[D21].map((x) => x.id)).size === 3);
-  log('Origen intacto', names(f[D20]) === names(seed.foods[D20]) && f[D20].map((x) => x.id).join() === 'f1,f2,f3');
+  log('Origen intacto', names(f[D20]) === names(seed.foods[D20]) && f[D20].map((x) => x.id).join() === originIds);
   log('Totales del día recalculados (950 kcal)', (await page.locator('#day-macros').innerText()).includes('950'));
   log('Nombre malicioso copiado y mostrado como texto, sin ejecutarse', (await page.locator('#food-list').innerText()).includes(XSS) && !(await page.evaluate(() => window.__xss)));
   await page.screenshot({ path: SHOTS + '/s1-3-copiado-de-ayer.png', fullPage: false });

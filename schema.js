@@ -5,12 +5,20 @@
 
   // v1: formato original, sin `schemaVersion`. v2: igual, con `schemaVersion` y datos normalizados.
   // v3: añade `consent` (LEGAL-01). Los datos anteriores no tienen consentimiento: se pedirá al abrir la app.
-  const CURRENT_VERSION = 3;
+  // v4 (S2-4, preparada para sincronizar, ver spike-servidor.md §4):
+  //   - ids UUID en registros, alimentos, hábitos y biblioteca (y fotos, en IndexedDB y en respaldos);
+  //   - `updatedAt` (ISO) en cada registro mutable; los datos anteriores reciben EPOCH, así cualquier edición real gana;
+  //   - borrado lógico: `deleted = { entries, foods, habits, photos }` con lápidas { id, date, deletedAt, updatedAt }.
+  //     Las lápidas viven APARTE de los datos vivos: la UI, los cálculos, el CSV y el visor del coach no las ven.
+  //   - claves naturales: registro corporal y hábitos por fecha; biblioteca por nombre en minúsculas.
+  const CURRENT_VERSION = 4;
+  const EPOCH = '1970-01-01T00:00:00.000Z';
 
-  // Cada migración recibe el estado de la versión N-1 y devuelve uno nuevo de la versión N (sin mutar).
+  // Cada migración recibe el estado de la versión N-1 (y `ctx.uid`) y devuelve uno nuevo de la versión N (sin mutar).
   const MIGRATIONS = {
     2: (s) => ({ ...s }),
     3: (s) => ({ ...s, consent: s.consent === undefined ? null : s.consent }),
+    4: (s, ctx) => migrateTo4(s, ctx.uid),
   };
 
   // LEGAL-01: versiones vigentes de los textos legales (deben coincidir con "**Versión:**" de los .md;
@@ -22,6 +30,8 @@
   const ACTIVITY = [1.2, 1.375, 1.55, 1.725, 1.9];
   const RATES = [0.0025, 0.005, 0.0075, 0.01];
   const ID_RE = /^[a-z0-9-]{1,40}$/i;
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const isUUID = (v) => typeof v === 'string' && UUID_RE.test(v);
   const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
   const PHOTO_DATA_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/;
 
@@ -34,12 +44,22 @@
 
   const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
   const dict = () => Object.create(null);
-  const emptyState = () => ({ schemaVersion: CURRENT_VERSION, profile: null, entries: [], foods: dict(), habits: dict(), library: dict(), consent: null });
+  const emptyDeleted = () => ({ entries: [], foods: [], habits: [], photos: [] });
+  const emptyState = () => ({ schemaVersion: CURRENT_VERSION, profile: null, entries: [], foods: dict(), habits: dict(), library: dict(), consent: null, deleted: emptyDeleted() });
 
-  function defaultUid() {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-    return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  // UUID v4: crypto.randomUUID si existe (contextos seguros); si no, getRandomValues; último recurso, Math.random.
+  function uuid() {
+    const c = typeof crypto !== 'undefined' ? crypto : null;
+    if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+    const b = new Uint8Array(16);
+    if (c && typeof c.getRandomValues === 'function') c.getRandomValues(b);
+    else for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
   }
+  const defaultUid = uuid;
 
   function isISODate(s) {
     if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
@@ -58,7 +78,8 @@
   const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
   // Lanza si `raw` no es un estado reconocible; devuelve una copia en CURRENT_VERSION.
-  function migrate(raw) {
+  function migrate(raw, opts = {}) {
+    const ctx = { uid: opts.uid || defaultUid };
     if (!isObj(raw)) throw new Error('El archivo no contiene datos de la app');
     let version = raw.schemaVersion === undefined ? 1 : raw.schemaVersion;
     if (!Number.isInteger(version) || version < 1) throw new Error('Versión de datos no válida');
@@ -66,11 +87,37 @@
     let s = { ...raw };
     while (version < CURRENT_VERSION) {
       version += 1;
-      s = MIGRATIONS[version](s);
+      s = MIGRATIONS[version](s, ctx);
     }
     s.schemaVersion = CURRENT_VERSION;
     return s;
   }
+
+  // v3 → v4: reasigna ids no-UUID y añade `updatedAt` = EPOCH. No hay referencias cruzadas entre registros
+  // (las fotos se asocian al pesaje por FECHA, no por id), así que no hace falta tabla de equivalencias.
+  // Las fotos de IndexedDB las migra photos.js (Photos.migrateIds) y las de un respaldo normalizePhotos().
+  function migrateTo4(s, uid) {
+    const fix = (x) => (isObj(x) ? { ...x, id: isUUID(x.id) ? x.id : uid(), updatedAt: x.updatedAt === undefined ? EPOCH : x.updatedAt } : x);
+    const mapDict = (o, fn) => {
+      if (!isObj(o)) return o;
+      const out = dict();
+      for (const k of Object.keys(o)) out[k] = fn(o[k]);
+      return out;
+    };
+    // Solo se tocan las claves que existen: un JSON ajeno ({foo:1}) debe seguir siendo irreconocible para normalize().
+    const out = { ...s };
+    if (isObj(s.profile)) out.profile = { ...s.profile, updatedAt: s.profile.updatedAt === undefined ? EPOCH : s.profile.updatedAt };
+    if (Array.isArray(s.entries)) out.entries = s.entries.map(fix);
+    if ('foods' in s) out.foods = mapDict(s.foods, (list) => (Array.isArray(list) ? list.map(fix) : list));
+    if ('habits' in s) out.habits = mapDict(s.habits, fix);
+    if ('library' in s) out.library = mapDict(s.library, fix);
+    out.deleted = emptyDeleted();
+    return out;
+  }
+
+  const isISOStampV = (v) => typeof v === 'string' && v.length <= 40 && /^\d{4}-\d{2}-\d{2}T/.test(v) && !Number.isNaN(Date.parse(v));
+  const stamp = (v) => (isISOStampV(v) ? new Date(Date.parse(v)).toISOString() : EPOCH);
+  const okId = (v, ids, uid) => (isUUID(v) && !ids.has(v) ? v : uid());
 
   // Devuelve el motivo por el que un perfil no es válido, o null si lo es. Lo usan el formulario y normalize().
   function profileError(p) {
@@ -118,6 +165,7 @@
       rejected.reason = err;
       return null;
     }
+    p.updatedAt = stamp(raw.updatedAt);
     return p;
   }
 
@@ -140,7 +188,8 @@
         warn(`Registro ${e.date} descartado: sin medidas`);
         return;
       }
-      if (typeof entry.id !== 'string' || !ID_RE.test(entry.id) || ids.has(entry.id)) entry.id = uid();
+      entry.id = okId(entry.id, ids, uid);
+      entry.updatedAt = stamp(e.updatedAt);
       ids.add(entry.id);
       out.push(entry);
     });
@@ -176,7 +225,8 @@
     return item;
   }
 
-  function normalizeLibrary(raw, warn) {
+  function normalizeLibrary(raw, warn, uid) {
+    const ids = new Set();
     const out = dict();
     if (raw === undefined || raw === null) return out;
     if (!isObj(raw)) { warn('Biblioteca de alimentos descartada: formato no válido'); return out; }
@@ -194,6 +244,9 @@
         const v = num(x[m], RANGES[m]);
         item[m] = Number.isFinite(v) ? v : 0;
       }
+      item.id = okId(x.id, ids, uid);
+      ids.add(item.id);
+      item.updatedAt = stamp(x.updatedAt);
       out[key] = item;
     }
     return out;
@@ -209,6 +262,7 @@
       throw new Error('El archivo no parece un respaldo de esta app');
     }
     const foodIds = new Set();
+    const habitIds = new Set();
     const rejected = {};
     const state = {
       schemaVersion: CURRENT_VERSION,
@@ -216,7 +270,13 @@
       entries: normalizeEntries(raw.entries, warn, uid),
       foods: normalizeByDate(raw.foods, 'Comidas', warn, (list, d) => {
         if (!Array.isArray(list)) { warn(`Comidas ${d}: formato no válido, se descarta`); return undefined; }
-        const items = list.map((x) => normalizeFood(x, d, warn, uid, foodIds)).filter(Boolean);
+        const items = list.map((x) => {
+          const item = normalizeFood(x, d, warn, uid, foodIds);
+          if (!item) return null;
+          if (!isUUID(item.id)) { foodIds.delete(item.id); item.id = okId(null, foodIds, uid); foodIds.add(item.id); }
+          item.updatedAt = stamp(x.updatedAt);
+          return item;
+        }).filter(Boolean);
         return items.length ? items : undefined;
       }),
       habits: normalizeByDate(raw.habits, 'Hábitos', warn, (h, d) => {
@@ -227,12 +287,195 @@
           if (Number.isNaN(v)) warn(`Hábitos ${d}: "${k}" no válido, se descarta`);
           else if (v !== undefined) out[k] = v;
         }
+        out.id = okId(h.id, habitIds, uid);
+        habitIds.add(out.id);
+        out.updatedAt = stamp(h.updatedAt);
         return out;
       }),
-      library: normalizeLibrary(raw.library, warn),
+      library: normalizeLibrary(raw.library, warn, uid),
       consent: normalizeConsent(raw.consent, warn),
+      deleted: normalizeDeleted(raw.deleted, warn),
     };
     return { state, warnings, rejected };
+  }
+
+  // Lápidas de borrado lógico. Una lápida no válida se descarta (lo peor que pasa es que el dato "resucite").
+  function normalizeDeleted(raw, warn) {
+    const out = emptyDeleted();
+    if (raw === undefined || raw === null) return out;
+    if (!isObj(raw)) { warn('Borrados descartados: formato no válido'); return out; }
+    for (const k of Object.keys(out)) {
+      if (!Array.isArray(raw[k])) continue;
+      const seen = new Set();
+      for (const t of raw[k]) {
+        if (!isObj(t) || !isUUID(t.id) || !isISODate(t.date) || !isISOStampV(t.deletedAt) || seen.has(t.id)) { warn(`Borrado de ${k} no válido, se descarta`); continue; }
+        seen.add(t.id);
+        out[k].push({ id: t.id, date: t.date, deletedAt: stamp(t.deletedAt), updatedAt: stamp(t.updatedAt || t.deletedAt) });
+      }
+    }
+    return out;
+  }
+
+  // ---------- S2-4: marcas de cambio, borrado lógico y fusión (para la sincronización de R1) ----------
+  const strip = (r) => { if (!isObj(r)) return r; const { updatedAt, ...rest } = r; void updatedAt; return rest; };
+  // JSON con claves ordenadas: los formularios reconstruyen los objetos y el orden de las claves puede cambiar.
+  const canon = (v) => JSON.stringify(v, (k, x) => (isObj(x) ? Object.keys(x).sort().reduce((o, kk) => { o[kk] = x[kk]; return o; }, {}) : x));
+  const sameRecord = (a, b) => canon(strip(a)) === canon(strip(b));
+  const tomb = (id, date, nowISO) => ({ id, date, deletedAt: nowISO, updatedAt: nowISO });
+
+  // Compara el estado guardado (`prev`) con el nuevo (`next`) y devuelve una copia de `next` donde:
+  // - todo registro nuevo o cambiado lleva `updatedAt = nowISO` (y un UUID si no lo tenía);
+  // - lo que estaba en `prev` y ya no está pasa a `deleted` como lápida;
+  // - una lápida cuyo id (o fecha, en registros y hábitos) vuelve a estar vivo se elimina.
+  // Así la app no tiene que acordarse de marcar nada en cada formulario: save() lo aplica siempre. Pura.
+  function stampChanges(prev, next, nowISO, opts = {}) {
+    const uid = opts.uid || defaultUid;
+    const p = isObj(prev) ? prev : {};
+    const del = isObj(next.deleted) ? next.deleted : emptyDeleted();
+    const deleted = {};
+    for (const k of Object.keys(emptyDeleted())) deleted[k] = Array.isArray(del[k]) ? del[k].slice() : [];
+    const touch = (rec, old) => (old && sameRecord(old, rec) ? { ...rec, updatedAt: old.updatedAt || EPOCH } : { ...rec, updatedAt: nowISO });
+
+    // Registro corporal (lista, por id)
+    const prevEntries = new Map((Array.isArray(p.entries) ? p.entries : []).filter(isObj).map((e) => [e.id, e]));
+    const entries = next.entries.map((e) => {
+      const rec = isUUID(e.id) ? e : { ...e, id: uid() };
+      return touch(rec, prevEntries.get(rec.id));
+    });
+    const liveEntryIds = new Set(entries.map((e) => e.id));
+    for (const [id, e] of prevEntries) if (!liveEntryIds.has(id) && isUUID(id)) deleted.entries.push(tomb(id, e.date, nowISO));
+
+    // Comidas ({fecha: [items]}, por id)
+    const prevFoods = new Map();
+    if (isObj(p.foods)) for (const d of Object.keys(p.foods)) for (const x of Array.isArray(p.foods[d]) ? p.foods[d] : []) if (isObj(x)) prevFoods.set(x.id, { x, d });
+    const foods = dict();
+    const liveFoodIds = new Set();
+    for (const d of Object.keys(next.foods)) {
+      foods[d] = next.foods[d].map((x) => {
+        const rec = isUUID(x.id) ? x : { ...x, id: uid() };
+        liveFoodIds.add(rec.id);
+        const old = prevFoods.get(rec.id);
+        return touch(rec, old && old.d === d ? old.x : null);
+      });
+    }
+    for (const [id, { d }] of prevFoods) if (!liveFoodIds.has(id) && isUUID(id)) deleted.foods.push(tomb(id, d, nowISO));
+
+    // Hábitos ({fecha: {...}}, clave natural = fecha: se conserva el id de esa fecha)
+    const prevHabits = isObj(p.habits) ? p.habits : {};
+    const habits = dict();
+    for (const d of Object.keys(next.habits)) {
+      const old = isObj(prevHabits[d]) ? prevHabits[d] : null;
+      const h = next.habits[d];
+      const id = isUUID(h.id) ? h.id : old && isUUID(old.id) ? old.id : uid();
+      habits[d] = touch({ ...h, id }, old);
+    }
+    for (const d of Object.keys(prevHabits)) {
+      if (!(d in habits) && isObj(prevHabits[d]) && isUUID(prevHabits[d].id)) deleted.habits.push(tomb(prevHabits[d].id, d, nowISO));
+    }
+
+    // Biblioteca ({nombre: {...}}, clave natural = nombre en minúsculas)
+    const prevLib = isObj(p.library) ? p.library : {};
+    const library = dict();
+    for (const k of Object.keys(next.library)) {
+      const old = isObj(prevLib[k]) ? prevLib[k] : null;
+      const x = next.library[k];
+      const id = isUUID(x.id) ? x.id : old && isUUID(old.id) ? old.id : uid();
+      library[k] = touch({ ...x, id }, old);
+    }
+
+    const profile = next.profile ? touch(next.profile, isObj(p.profile) ? p.profile : null) : next.profile;
+
+    // Lápidas que ya no aplican: id vivo de nuevo, o fecha con registro/hábito vivo (clave natural).
+    const entryDates = new Set(entries.map((e) => e.date));
+    deleted.entries = deleted.entries.filter((t) => !liveEntryIds.has(t.id) && !entryDates.has(t.date));
+    deleted.foods = deleted.foods.filter((t) => !liveFoodIds.has(t.id));
+    deleted.habits = deleted.habits.filter((t) => !(t.date in habits));
+    return { ...next, profile, entries, foods, habits, library, deleted };
+  }
+
+  // Borra las lápidas con `deletedAt` anterior a `days` días. OPCIONAL: en R1 solo debe llamarse cuando el servidor
+  // haya confirmado el borrado (si se purga antes, otro dispositivo podría "resucitar" el dato). Pura.
+  function purgeDeleted(state, nowISO, days = 90) {
+    const limit = Date.parse(nowISO) - days * 86400000;
+    const deleted = emptyDeleted();
+    const src = isObj(state.deleted) ? state.deleted : {};
+    for (const k of Object.keys(deleted)) deleted[k] = (src[k] || []).filter((t) => Date.parse(t.deletedAt) >= limit);
+    return { ...state, deleted };
+  }
+
+  // Gana el `updatedAt` mayor; si empatan, el JSON mayor (determinista y conmutativo).
+  function newer(a, b) {
+    const ta = Date.parse(a.updatedAt) || 0, tb = Date.parse(b.updatedAt) || 0;
+    if (ta !== tb) return ta > tb ? a : b;
+    return JSON.stringify(a) >= JSON.stringify(b) ? a : b;
+  }
+
+  // Last-write-wins POR REGISTRO entre dos listas de registros (vivos o con `deletedAt`). `key`: 'id' o una clave
+  // natural ('date', 'key' o una función). Con clave natural se conserva el id del lado remoto (el servidor manda, §4.2).
+  function mergeRecords(local, remote, { key = 'id' } = {}) {
+    const k = typeof key === 'function' ? key : (r) => r[key];
+    const out = new Map();
+    for (const r of local || []) out.set(k(r), r);
+    for (const r of remote || []) {
+      const kk = k(r);
+      const l = out.get(kk);
+      if (!l) { out.set(kk, r); continue; }
+      const w = newer(l, r);
+      out.set(kk, key === 'id' ? w : { ...w, id: r.id });
+    }
+    return [...out.values()];
+  }
+
+  // Estado ↔ listas planas de registros para sincronizar: cada registro lleva su fecha (o `key` en la biblioteca)
+  // y, si es una lápida, `deletedAt`. fromRecords separa de nuevo vivos y lápidas.
+  function toRecords(state) {
+    const del = isObj(state.deleted) ? state.deleted : emptyDeleted();
+    const foods = [];
+    for (const d of Object.keys(state.foods)) for (const x of state.foods[d]) foods.push({ ...x, date: d });
+    return {
+      entries: [...state.entries, ...(del.entries || [])],
+      foods: [...foods, ...(del.foods || [])],
+      habits: [...Object.keys(state.habits).map((d) => ({ ...state.habits[d], date: d })), ...(del.habits || [])],
+      library: Object.keys(state.library).map((key) => ({ ...state.library[key], key })),
+    };
+  }
+  function fromRecords(base, recs) {
+    const deleted = { ...emptyDeleted(), photos: isObj(base.deleted) && Array.isArray(base.deleted.photos) ? base.deleted.photos.slice() : [] };
+    const isDel = (r) => r.deletedAt !== undefined && r.deletedAt !== null;
+    const t = (r) => ({ id: r.id, date: r.date, deletedAt: r.deletedAt, updatedAt: r.updatedAt });
+    const entries = [];
+    for (const r of recs.entries) (isDel(r) ? deleted.entries.push(t(r)) : entries.push(r));
+    const foods = dict();
+    for (const r of recs.foods) {
+      if (isDel(r)) { deleted.foods.push(t(r)); continue; }
+      const { date, ...x } = r;
+      (foods[date] ||= []).push(x);
+    }
+    const habits = dict();
+    for (const r of recs.habits) {
+      if (isDel(r)) { deleted.habits.push(t(r)); continue; }
+      const { date, ...h } = r;
+      habits[date] = h;
+    }
+    const library = dict();
+    for (const r of recs.library) { const { key, ...x } = r; if (isSafeKey(key)) library[key] = x; }
+    return { ...base, entries, foods, habits, library, deleted };
+  }
+
+  // Fusión completa local + remoto (LWW por registro). Registro corporal y hábitos por FECHA; comidas por id;
+  // biblioteca por nombre; perfil entero por updatedAt; lápidas de fotos por id.
+  // El consentimiento NO se fusiona: es de quien usa este dispositivo (regla de S2-1).
+  function mergeState(local, remote) {
+    const a = toRecords(local), b = toRecords(remote);
+    const out = fromRecords(local, {
+      entries: mergeRecords(a.entries, b.entries, { key: 'date' }),
+      foods: mergeRecords(a.foods, b.foods),
+      habits: mergeRecords(a.habits, b.habits, { key: 'date' }),
+      library: mergeRecords(a.library, b.library, { key: 'key' }),
+    });
+    out.profile = local.profile && remote.profile ? newer(local.profile, remote.profile) : local.profile || remote.profile || null;
+    out.deleted.photos = mergeRecords(local.deleted && local.deleted.photos, remote.deleted && remote.deleted.photos);
+    return out;
   }
 
   // ---------- LEGAL-01: consentimiento ----------
@@ -301,13 +544,12 @@
       if (!isISODate(p.date)) { warnings.push(`Foto ${i + 1} descartada: fecha no válida`); return; }
       let pose = p.pose;
       if (!POSES.includes(pose)) { warnings.push(`Foto ${i + 1}: pose no válida, se usa "frente"`); pose = 'frente'; }
-      let id = p.id;
-      if (typeof id !== 'string' || !ID_RE.test(id) || ids.has(id)) id = uid();
+      const id = okId(p.id, ids, uid);
       ids.add(id);
       const dim = (v) => (Number.isInteger(v) && v > 0 && v <= 20000 ? v : undefined);
       photos.push({
         id, date: p.date, pose, width: dim(p.width), height: dim(p.height),
-        createdAt: Number.isFinite(p.createdAt) ? p.createdAt : 0, data: p.data,
+        createdAt: Number.isFinite(p.createdAt) ? p.createdAt : 0, updatedAt: stamp(p.updatedAt), data: p.data,
       });
     });
     return { photos, warnings };
@@ -367,7 +609,8 @@
   }
 
   const api = { CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, normalizeStoredPhoto, isSafeKey,
-    LEGAL_VERSIONS, normalizeConsent, consentStatus, buildConsent, setConsentFlag };
+    LEGAL_VERSIONS, normalizeConsent, consentStatus, buildConsent, setConsentFlag,
+    EPOCH, uuid, isUUID, stampChanges, purgeDeleted, mergeRecords, toRecords, fromRecords, mergeState };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Schema = api;
 })(typeof window !== 'undefined' ? window : globalThis);

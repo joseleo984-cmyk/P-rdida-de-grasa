@@ -8,12 +8,20 @@ const fixture = () => JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/
 let n = 0;
 const uid = () => 'gen' + ++n;
 const load = (raw) => Schema.normalize(Schema.migrate(raw), { uid });
+// v4 añade `id` (UUID) y `updatedAt` a cada registro: para comparar el contenido se quitan.
+const bare = (o) => {
+  if (Array.isArray(o)) return o.map(bare);
+  if (!o || typeof o !== 'object') return o;
+  const out = {};
+  for (const k of Object.keys(o)) if (k !== 'id' && k !== 'updatedAt') out[k] = bare(o[k]);
+  return out;
+};
 
 test('migrate: v1 sin schemaVersion pasa a la versión actual sin mutar la entrada', () => {
   const raw = { entries: [] };
   const s = Schema.migrate(raw);
   assert.strictEqual(s.schemaVersion, Schema.CURRENT_VERSION);
-  assert.strictEqual(Schema.CURRENT_VERSION, 3);
+  assert.strictEqual(Schema.CURRENT_VERSION, 4);
   assert.strictEqual(raw.schemaVersion, undefined);
 });
 
@@ -35,14 +43,17 @@ test('respaldo v1 real: se migra sin pérdidas ni avisos', () => {
   const ph = Schema.normalizePhotos(raw.photos, { uid });
   assert.deepStrictEqual(warnings, []);
   assert.deepStrictEqual(ph.warnings, []);
-  assert.strictEqual(state.schemaVersion, 3);
-  assert.deepStrictEqual(state.profile, raw.profile);
-  assert.deepStrictEqual(state.entries, raw.entries);
-  assert.deepStrictEqual({ ...state.foods }, raw.foods);
-  assert.deepStrictEqual({ ...state.habits }, raw.habits);
-  assert.deepStrictEqual({ ...state.library }, raw.library);
+  assert.strictEqual(state.schemaVersion, 4);
+  assert.deepStrictEqual(bare(state.profile), raw.profile);
+  assert.deepStrictEqual(bare(state.entries), bare(raw.entries));
+  assert.deepStrictEqual(bare({ ...state.foods }), bare(raw.foods));
+  assert.deepStrictEqual(bare({ ...state.habits }), raw.habits);
+  assert.deepStrictEqual(bare({ ...state.library }), raw.library);
+  // v4: ids UUID y updatedAt = EPOCH en todo lo migrado; sin lápidas.
+  for (const e of state.entries) { assert.ok(Schema.isUUID(e.id), e.id); assert.strictEqual(e.updatedAt, Schema.EPOCH); }
+  assert.deepStrictEqual(state.deleted, { entries: [], foods: [], habits: [], photos: [] });
   assert.strictEqual(ph.photos.length, 2);
-  assert.deepStrictEqual(ph.photos[0], raw.photos[0]);
+  assert.deepStrictEqual(bare(ph.photos[0]), bare(raw.photos[0]));
   // Ida y vuelta: lo normalizado se vuelve a normalizar igual (idempotente).
   const again = load(JSON.parse(JSON.stringify(state)));
   assert.deepStrictEqual(again.warnings, []);
@@ -107,7 +118,7 @@ test('BUG-03: números como texto se convierten a Number (no "100200")', () => {
   assert.strictEqual(state.entries[0].weight, 80.5);
   assert.strictEqual(state.entries[0].waist, undefined);
   assert.strictEqual(state.entries[0].neck, undefined);
-  assert.deepStrictEqual({ ...state.habits['2026-10-20'] }, { trained: false, steps: 9000 });
+  assert.deepStrictEqual(bare({ ...state.habits['2026-10-20'] }), { trained: false, steps: 9000 });
   // Valores absurdos o no finitos
   const s2 = load({ entries: [{ date: '2026-10-20', weight: 1e9 }, { date: '2026-10-21', weight: NaN }] }).state;
   assert.strictEqual(s2.entries.length, 0);

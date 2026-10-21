@@ -97,5 +97,20 @@
     });
   }
 
-  root.Photos = { all, put, remove, clear, compress, exportAll, importAll, decode: dataURLToBlob };
+  // S2-4: las fotos de versiones anteriores pasan a id UUID y reciben updatedAt, en UNA transacción
+  // (borrar la clave vieja y poner la nueva van juntas: si algo falla, no se pierde ninguna foto).
+  async function migrateIds({ isValid, uid, epoch }) {
+    const todo = (await all()).filter((p) => p && (!isValid(p.id) || p.updatedAt === undefined));
+    if (!todo.length) return 0;
+    await tx('readwrite', (s) => {
+      for (const p of todo) {
+        if (isValid(p.id)) { s.put({ ...p, updatedAt: epoch }); continue; }
+        s.delete(p.id);
+        s.put({ ...p, id: uid(), updatedAt: p.updatedAt || epoch });
+      }
+    });
+    return todo.length;
+  }
+
+  root.Photos = { all, put, remove, clear, compress, exportAll, importAll, migrateIds, decode: dataURLToBlob };
 })(window);

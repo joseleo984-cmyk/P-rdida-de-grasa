@@ -109,6 +109,9 @@ const plain = (o) => JSON.parse(JSON.stringify(o));
 // Comparación profunda que no depende del orden de las claves.
 const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
 const eq = (a, b) => JSON.stringify(canon(plain(a))) === JSON.stringify(canon(plain(b)));
+// S2-4 (schema v4): la migración añade `id` UUID y `updatedAt` a cada registro. El contenido debe seguir idéntico.
+const bare = (o) => JSON.parse(JSON.stringify(o, (k, v) => (k === 'id' || k === 'updatedAt' ? undefined : v)));
+const eqData = (a, b) => eq(bare(a), bare(b));
 
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -140,12 +143,12 @@ const eq = (a, b) => JSON.stringify(canon(plain(a))) === JSON.stringify(canon(pl
     const s = await stored(page);
     const { photos: _p, ...oldNoPhotos } = oldBackup;
     log('Respaldo v1 real: toast sin datos descartados', t === 'Datos importados', t);
-    log('Respaldo v1 real: perfil idéntico', eq(s.profile, oldNoPhotos.profile), JSON.stringify(s.profile));
-    log('Respaldo v1 real: registros idénticos (ids, medidas, nota)', eq(s.entries, oldNoPhotos.entries));
-    log('Respaldo v1 real: comidas, hábitos y biblioteca idénticos', eq(s.foods, oldNoPhotos.foods) && eq(s.habits, oldNoPhotos.habits) && eq(s.library, oldNoPhotos.library),
+    log('Respaldo v1 real: perfil idéntico', eqData(s.profile, oldNoPhotos.profile), JSON.stringify(s.profile));
+    log('Respaldo v1 real: registros idénticos (medidas, nota) con ids UUID (v4)', eqData(s.entries, oldNoPhotos.entries) && s.entries.every((e) => Schema.isUUID(e.id)));
+    log('Respaldo v1 real: comidas, hábitos y biblioteca idénticos', eqData(s.foods, oldNoPhotos.foods) && eqData(s.habits, oldNoPhotos.habits) && eqData(s.library, oldNoPhotos.library),
       JSON.stringify(s.habits) + ' vs ' + JSON.stringify(oldNoPhotos.habits));
     const ph = await exportPhotos(page);
-    const key = (x) => x.id;
+    const key = (x) => x.createdAt;   // v4: los ids de foto pasan a UUID; createdAt identifica cada foto
     const same = ph.length === 2 && oldBackup.photos.every((o) => { const n = ph.find((p) => key(p) === key(o)); return n && n.data === o.data && n.pose === o.pose && n.date === o.date && n.width === o.width && n.createdAt === o.createdAt; });
     log('Respaldo v1 real: 2 fotos con bytes, pose, fecha y metadatos idénticos', same);
     await page.click('#tab-fotos');
@@ -342,7 +345,7 @@ const eq = (a, b) => JSON.stringify(canon(plain(a))) === JSON.stringify(canon(pl
     const frozen = JSON.stringify(input);
     Schema.normalize(Schema.migrate(input));
     log('migrate/normalize no mutan la entrada', JSON.stringify(input) === frozen);
-    log('migrate: idempotente (v3 añade consent: null)', eq(Schema.migrate(Schema.migrate({ entries: [] })), { entries: [], schemaVersion: Schema.CURRENT_VERSION, consent: null }));
+    log('migrate: idempotente (v3 añade consent: null)', eq(Schema.migrate(Schema.migrate({ entries: [] })), { entries: [], schemaVersion: Schema.CURRENT_VERSION, consent: null, deleted: { entries: [], foods: [], habits: [], photos: [] } }));
     const n = Schema.normalize({ entries: [
       { date: '2024-02-29', weight: 80 }, { date: '2026-02-29', weight: 80 }, { date: ' 2026-10-01', weight: 80 }, { date: '2026-10-01T00:00', weight: 80 },
       { date: '2026-10-02', weight: '80,5' }, { date: '2026-10-03', weight: Infinity }, { date: '2026-10-04', weight: 19.9 }, { date: '2026-10-05', weight: 400 },
@@ -355,7 +358,7 @@ const eq = (a, b) => JSON.stringify(canon(plain(a))) === JSON.stringify(canon(pl
     log('Obs: nota de 500 caracteres se trunca a 140 sin aviso', n.state.entries.find((e) => e.date === '2026-10-08').note.length === 140 && !n.warnings.some((w) => w.includes('nota')));
     log('normalize: ids duplicados se regeneran', new Set(n.state.entries.map((e) => e.id)).size === n.state.entries.length);
     const h = Schema.normalize({ habits: { '2026-10-01': { trained: 'true', steps: -1 }, '2026-10-02': [] } });
-    log('normalize: hábitos (trained "true"→false, pasos negativos fuera, array descartado)', eq(h.state.habits, { '2026-10-01': { trained: false } }), JSON.stringify(h.state.habits));
+    log('normalize: hábitos (trained "true"→false, pasos negativos fuera, array descartado)', eqData(h.state.habits, { '2026-10-01': { trained: false } }), JSON.stringify(h.state.habits));
     log('normalize: lanza si no hay claves conocidas o no es objeto', throws(() => Schema.normalize({ foo: 1 })) && throws(() => Schema.normalize('x')) && throws(() => Schema.normalize([])));
     const ph = Schema.normalizePhotos([
       { date: '2026-10-01', pose: 'frente', data: 'data:image/png;base64,AAAA' },
