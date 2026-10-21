@@ -31,10 +31,10 @@ Orden: S1-1 primero (S1-3 depende del esquema). QA revisa cada historia con la D
 
 | Listo | En curso | En revisión | Hecho |
 |---|---|---|---|
-| | | S2-1 ajustes D1 + obs — re-verificación QA | S2-1 LEGAL-01 ✅ QA con condiciones (D2: rellenar datos del responsable + abogado) |
+| | | | S2-1 LEGAL-01 ✅ (D1, D3, obs. cerrados) · ✅ QA con condiciones (D2: rellenar datos del responsable + abogado) |
 | | | | S2-2 QA-01 E2E Playwright + CI ✅ |
 | | | | S2-3 Kit piloto ✅ QA (+ ajustes D1/O1/O2/O4) |
-| | S2-4 DATOS-v4: UUID, updatedAt, borrado lógico — Dev Backend | | |
+| | | S2-4 DATOS-v4: UUID, updatedAt, borrado lógico — QA revisando | |
 
 Fuera de alcance sin el Stakeholder: merge a main/publicación, crear el proyecto Supabase, textos legales definitivos.
 
