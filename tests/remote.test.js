@@ -168,6 +168,13 @@ test('mapError: tabla del contrato §10.4 (mensaje primero, luego SQLSTATE, red,
   for (const [e, code] of cases) assert.strictEqual(Remote.mapError(e).code, code, JSON.stringify(e));
   assert.strictEqual(Remote.mapError({ name: 'AuthApiError', code: 'otp_expired', status: 403 }, { ctx: 'verify' }).code, 'invalid_code');
   assert.strictEqual(Remote.mapError({ message: 'x', status: 500 }, { nav: { onLine: false } }).code, 'server');
+  // H2 (QA vivo): refresh_token inválido → 400 validation_failed "Refresh token is not valid" → `auth`, no `invalid`.
+  assert.strictEqual(Remote.mapError({ name: 'AuthApiError', code: 'validation_failed', status: 400, message: 'Refresh token is not valid' }, { ctx: 'auth' }).code, 'auth');
+  assert.strictEqual(Remote.mapError({ name: 'AuthApiError', code: 'validation_failed', status: 400, message: 'Unable to validate email address: invalid format' }, { ctx: 'auth' }).code, 'invalid');
+  // H3 (QA vivo): 42501 sin sesión (HTTP 401) → `auth`; con sesión y RLS (HTTP 403 o sin status) → `forbidden`.
+  assert.strictEqual(Remote.mapError({ message: 'permission denied for schema grasa', code: '42501' }, { status: 401 }).code, 'auth');
+  assert.strictEqual(Remote.mapError({ message: 'permission denied for table records', code: '42501' }, { status: 403 }).code, 'forbidden');
+  assert.strictEqual(Remote.mapError({ message: 'forbidden', code: '42501' }, { status: 403 }).code, 'forbidden');
   assert.strictEqual(Remote.mapError({ message: 'x' }, { nav: { onLine: false } }).code, 'offline');
   assert.strictEqual(Remote.mapError({ message: 'Object not found', status: 400 }, { ctx: 'storage' }).code, 'not_found');
   assert.strictEqual(Remote.mapError({ message: 'new row violates row-level security policy', status: 400 }, { ctx: 'storage' }).code, 'forbidden');

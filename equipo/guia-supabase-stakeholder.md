@@ -133,6 +133,11 @@ contraseñas. **Hágalo en los dos proyectos.**
      <p>Caduca en 10 minutos. Si no lo pediste, ignora este correo.</p>
      ```
    Lo importante es que aparezca `{{ .Token }}` y que **no** aparezca `{{ .ConfirmationURL }}`.
+   - **Duración de la sesión (JWT expiry / Access token expiry time):** `3600` segundos (1 hora) o menos. Está en
+     **Project Settings → JWT Keys** (en proyectos antiguos: **Project Settings → API → JWT Settings → JWT expiry
+     limit**; a verificar el nombre). El valor por defecto suele ser ya `3600`: compruébelo y **no lo suba**. Motivo:
+     si alguien borra su cuenta, su sesión antigua sigue "válida" hasta que caduca (no ve datos, porque ya no hay
+     ninguno, pero conviene que ese margen sea corto). Haga lo mismo en `plataforma` y en `pruebas`.
 
 ### 7.2 Por qué hace falta un servicio de correo propio
 El correo que trae Supabase "de fábrica" sirve solo para probar: según su documentación, envía unos **3 correos por
@@ -190,6 +195,7 @@ nunca cobre más que la cuota.
 - [ ] Contraseñas de base de datos guardadas **solo por usted**.
 - [ ] Enviados al Scrum Master: Project URL + publishable key de cada proyecto.
 - [ ] Código de 6 dígitos activado y plantillas cambiadas (en los dos proyectos).
+- [ ] Duración de la sesión (JWT expiry) en 3600 s o menos en los dos proyectos (diga el valor que vio).
 - [ ] Brevo conectado como SMTP y prueba de correo hecha (diga si llegó a Gmail, Outlook e iCloud o cayó en spam).
 - [ ] (Cuando se lo pidamos) SQL aplicado en `pruebas` con resultado `OK r1 v1`, consulta de comprobación (paso 6.6) con capturas, y los esquemas `core` y `grasa` expuestos (captura).
 

@@ -675,3 +675,14 @@ Migración: `supabase/migrations/20261021130000_r1_fix_seguridad.sql`. **Lo de e
 | 11.8 | **Paginación de `sync_pull`** (defecto encontrado en S3-3): con más de `p_limit` filas dentro de la ventana de 30 s no avanzaba. Nueva firma `grasa.sync_pull(p_since, p_limit, p_overlap boolean default true)`: el solape solo se aplica con `p_overlap = true` y la comparación es `>=`. | `remote.sync.pull(since, { overlap = true })`. `sync.js` pide la 1.ª página con solape y el resto sin él. El fake debe hacer lo mismo. |
 | 11.9 | `rejected` (§10.6) **no se adopta** si el usuario volvió a editar ese registro mientras viajaba la petición: su edición es más nueva y gana en el siguiente ciclo. | Solo `sync.js`. |
 | 11.10 | Dueño de los datos locales (QA S3-2 O1): `sync.js` no hace **ninguna** llamada si `store.ownerId()` no coincide con la sesión (estado `owner`: `unconfirmed` / `conflict`). | La app guarda el dueño al confirmar «¿estos datos son tuyos?». |
+
+## 12. Cambios v1.3 (QA en vivo contra `pruebas`, S3)
+
+| # | Cambio | Efecto en el cliente |
+|---|---|---|
+| 12.1 | **H6**: `coach_pull` quita `note` de `data` en **todos** los kinds compartidos (`profile`, `entry`, `food`, `habit`) mientras `share_notes = false` (antes solo en `entry`). Migración `20261021150000_r1_notas_todos_kinds.sql`; prueba `supabase/tests/70_notas_todos_kinds.test.sql`. `note` es el único campo marcado como no compartible (§1); `library` sigue sin llegar nunca. | Ninguno. |
+| 12.2 | **H7**: `join_coach` con código inválido/caducado/agotado devuelve por PostgREST un objeto `grasa.coach_links` **con todas las columnas a `null`** (HTTP 200), no `null` JSON. Se **mantiene** (cambiar el tipo de retorno exigiría `drop function` y reescribir grants/pruebas con más riesgo). Matiza §11.1: «devuelve `null`» = «sin vínculo (`id` nulo)». | `remote.client.joinCoach()` ya trata `!r \|\| !r.id` como `RemoteError('invalid_code')`. Sin cambios. |
+| 12.3 | **H2**: error de Auth `400 validation_failed` cuyo mensaje contiene «refresh token» → `auth` (no `invalid`). | `mapError`, regla añadida antes de la de `ctx 'auth'`. |
+| 12.4 | **H3**: SQLSTATE `42501` con **HTTP 401** (sin sesión, rol `anon`) → `auth`; `42501` con sesión (HTTP 403, RLS o permiso) sigue siendo `forbidden`. Precede a la fila `42501` de la tabla de §10.4. | `mapError`. |
+| 12.5 | **H8 (riesgo aceptado)**: tras `core.delete_my_account()` el JWT antiguo sigue aceptado hasta que caduca. No hay fuga: el usuario ya no tiene datos ni vínculos y las RPC devuelven vacío. Mitigación: el cliente cierra la sesión local al borrar, y la **duración del JWT se fija en ≤ 1 h** (guía del Stakeholder §7.1). | Ninguno. |
+

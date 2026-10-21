@@ -96,13 +96,16 @@
       return r;
     };
     if (DB_CODES.includes(msg)) return mk(msg);
+    // H3 (QA vivo): 42501 con HTTP 401 = petición sin sesión (rol anon) → `auth`; con sesión (403) sigue `forbidden`.
+    if (code === '42501' && st === 401) return mk('auth');
     if (code && Object.prototype.hasOwnProperty.call(SQLSTATE, code)) return mk(SQLSTATE[code]);
     if (/^PGRST/.test(code)) return mk(st === 401 ? 'auth' : 'server');
     const offlineNav = nav && nav.onLine === false;
     if (st < 500 && (offlineNav || (!st || st === 0) && (NET_NAMES.includes(e.name) || NET_TEXT.test(msg)))) return mk('offline');
     if (st === 429 || /rate_limit/.test(code)) return mk('rate_limited');
     if (ctx === 'verify' && (code === 'otp_expired' || code === 'invalid_credentials' || (st >= 400 && st < 500))) return mk('invalid_code');
-    if (st === 401 || e.name === 'AuthSessionMissingError' || /^(bad_jwt|session_not_found|session_expired|refresh_token_not_found|refresh_token_already_used|no_authorization)$/.test(code) || /jwt expired/i.test(msg)) return mk('auth');
+    if (st === 401 || e.name === 'AuthSessionMissingError' || /^(bad_jwt|session_not_found|session_expired|refresh_token_not_found|refresh_token_already_used|no_authorization)$/.test(code) || /jwt expired/i.test(msg)
+        || (code === 'validation_failed' && /refresh.?token/i.test(msg))) return mk('auth'); // H2: refresh_token inválido
     if (ctx === 'storage') {
       if (st === 404 || /not.?found/i.test(msg)) return mk('not_found');
       if (st === 403 || /row-level security|unauthorized|permission/i.test(msg)) return mk('forbidden');
