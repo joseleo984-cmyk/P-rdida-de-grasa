@@ -126,6 +126,30 @@ const photoCount = (page) => page.evaluate(() => Photos.all().then((x) => x.leng
     log('Datos de versión más nueva no se sobrescriben', kept === 99);
     await page.context().close();
   }
+  { // D1: perfil heredado con meta >= inicio se conserva como borrador tras dos recargas
+    const legacy = JSON.stringify({ ...fixture, photos: undefined, profile: { ...fixture.profile, startWeight: 70, goalWeight: 80 } });
+    const { page, errors } = await newPage(browser, { fn: (v) => { if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', 1); localStorage.setItem('perdida-grasa:v1', v); } }, arg: legacy });
+    await page.click('#tab-registro');
+    await page.locator('#form-entry [name=date]').fill(iso(0));
+    await page.locator('#form-entry [name=weight]').fill('70.2');
+    await page.locator('#form-entry button[type=submit]').click();
+    await page.reload(); await page.waitForTimeout(200);
+    await page.reload(); await page.waitForTimeout(200);
+    const start = await page.locator('#form-profile [name=startWeight]').inputValue();
+    const issue = await page.locator('#profile-issue').innerText();
+    log('D1: borrador de perfil precargado y motivo visible tras 2 recargas', start === '70' && /meta/.test(issue) && (await stored(page)).profile.goalWeight === 80, `start=${start} issue="${issue}"`);
+    await page.locator('#form-profile [name=goalWeight]').fill('65');
+    await page.locator('#form-profile button[type=submit]').click();
+    log('D1: al corregirlo se guarda y desaparece el aviso', (await toastText(page)) === 'Perfil guardado' && await page.locator('#profile-issue').isHidden() && errors.length === 0, errors.join(' | '));
+
+    // D2: sin espacio el aviso de error no lo tapa el de éxito y el cambio no queda solo en memoria
+    await page.evaluate(() => { const o = Storage.prototype.setItem; Storage.prototype.setItem = function (k, v) { if (k === 'perdida-grasa:v1') throw new DOMException('lleno', 'QuotaExceededError'); return o.call(this, k, v); }; });
+    await page.locator('#form-profile [name=goalWeight]').fill('64');
+    await page.locator('#form-profile button[type=submit]').click();
+    const t = await toastText(page);
+    log('D2: perfil sin espacio → toast de cuota y estado sin cambiar', t.startsWith('Almacenamiento lleno') && (await page.locator('#toast.error').count()) === 1 && (await stored(page)).profile.goalWeight === 65, t);
+    await page.context().close();
+  }
   await browser.close();
   const fails = results.filter((x) => !x).length;
   console.log(`\n${results.length - fails}/${results.length} OK`);
