@@ -144,3 +144,42 @@ Siguiente candidata: **HU-04 + HU-05** (Sprint 2: "plan que aprende").
 - **@Arquitecto**: para HU-08, ¿mantenemos "red primero" en el service worker y añadimos detección de `updatefound`, o cambiamos a una estrategia *stale-while-revalidate* con versión explícita?
 - **@QA**: hoy solo `calc.js` tiene tests (Node). ¿Qué estrategia mínima propones para cubrir la lógica de `app.js` (fusión de registros, copiar comidas, importación JSON con datos antiguos) sin añadir dependencias? ¿Extraemos esa lógica a módulos puros?
 - **@QA**: ¿puedes definir un caso de regresión para "importar un respaldo antiguo (sin `photos`, sin porciones) tras HU-04" que no rompa el panel?
+
+---
+
+## 7. Legal y consentimiento (añadido 2026-10-21)
+
+> Origen: decisiones del Stakeholder #8–#10 (`decisiones-negocio.md`): todos aceptan los T&C y la Política; el responsable es persona natural; servidor en Supabase (EE. UU.). Textos en borrador: `equipo/legal/terminos-y-condiciones.md` y `equipo/legal/politica-tratamiento-datos.md` (**deben revisarse con un abogado antes de usar datos reales**). Épica E6 de `vision-plataforma.md`.
+
+| Prio | ID | Historia | Tamaño | Valor |
+|---|---|---|---|---|
+| Antes del piloto | LEGAL-01 | Aceptar T&C y Política (app actual, sin servidor) | S | Alto (bloquea el piloto) |
+| R1 | HU-P10 | Registro de consentimiento en el servidor | M | Alto (bloquea R1) |
+
+### LEGAL-01 · Aceptar T&C y Política en la app actual (piloto) — S · Alto
+**Como** usuario/a del piloto, **quiero** leer y aceptar los Términos y la Política de Datos, y autorizar aparte mis datos sensibles y mis fotos, **para** saber qué se hace con mi información y decidir qué permito.
+- **Primer uso:** antes de mostrar cualquier vista (ni perfil ni registro), aparece una pantalla de consentimiento a pantalla completa. Usuarios que ya tienen datos también la ven al actualizar y no pueden seguir registrando hasta aceptar; sus datos no se borran.
+- **Casillas separadas, ninguna marcada por defecto:**
+  1. "Acepto los **Términos y Condiciones**" (obligatoria).
+  2. "Acepto la **Política de Tratamiento de Datos**" (obligatoria).
+  3. "Autorizo de forma expresa el tratamiento de mis **datos sensibles de salud** (peso, medidas, % de grasa, comidas, hábitos). Sé que es facultativo." (Si no se marca, la app explica qué funciones quedan limitadas; el texto lo valida el abogado.)
+  4. "Autorizo el tratamiento de mis **fotos de progreso**" (opcional y aparte; si no se marca, la pestaña Fotos queda bloqueada con una explicación y un botón para autorizar).
+  5. "Declaro que soy **mayor de 18 años**" (obligatoria).
+- **Enlaces** a los textos completos desde cada casilla. Se abren dentro de la app (sin perder lo marcado) y funcionan **sin conexión** (en caché del service worker).
+- El botón "Continuar" solo se activa con las casillas obligatorias marcadas.
+- **Se guarda** en el estado local: `consent = { termsVersion, privacyVersion, sensitiveHealth: bool, photos: bool, adult: true, acceptedAt (ISO), updatedAt }`. Se incluye en el **Exportar JSON** (prueba para el piloto) y en `schemaVersion` con su migración.
+- **Re-aceptación:** las versiones vigentes están en una constante (p. ej. `LEGAL_VERSIONS`). Si `termsVersion` o `privacyVersion` guardadas son distintas de las vigentes, se vuelve a mostrar la pantalla con un aviso "Actualizamos…" y un resumen de los cambios.
+- **Retirar la autorización:** en Perfil → Privacidad se ven el estado y la fecha de cada autorización, y se pueden desmarcar las de datos sensibles y fotos. Al retirar la de fotos se ofrece **borrar las fotos** del dispositivo. Retirar la Política o los T&C lleva a "Borrar todo" con confirmación (la app no puede usarse sin ellos).
+- Accesible (etiquetas, foco, lectura por VoiceOver en iPhone) y probado en Safari iOS (Playwright con WebKit).
+- **Fuera de alcance:** guardar el consentimiento en un servidor (llega con HU-P10).
+
+### HU-P10 · Registro de consentimiento en el servidor (no modificable) — M · Alto
+**Como** responsable del tratamiento, **quiero** que cada aceptación o retiro de autorización quede registrado en el servidor de forma que nadie pueda modificarlo, **para** poder probar ante el titular o la SIC qué autorizó cada persona, cuándo y sobre qué versión.
+- Tabla `consent_events` de **solo inserción**: `user_id`, `tipo` (terms / privacy / sensitive_health / photos / adult / coach_share), `accion` (granted / revoked), `version_documento`, `hash_texto` (SHA-256 del texto aceptado), `fecha_servidor`, `app_version`, `dispositivo` (user-agent resumido). Las políticas de seguridad de Supabase (RLS) **no permiten UPDATE ni DELETE** a ningún rol de la app; el titular solo puede leer sus propios eventos.
+- El estado vigente de cada autorización se calcula a partir del último evento por tipo; el panel del coach y el acceso a fotos (HU-P05/P06/P09) **lo consultan en el servidor** antes de mostrar datos.
+- Al crear la cuenta (HU-P01/HU-P03) se exige el mismo flujo de casillas que en LEGAL-01. Los consentimientos locales del piloto se suben como eventos con su fecha original y la marca `origen = local`.
+- Cambio de versión de T&C o Política → en el siguiente inicio de sesión se pide re-aceptar y se inserta un nuevo evento. Sin re-aceptación no se sincronizan datos nuevos.
+- Retirar una autorización tiene efecto inmediato (el coach deja de ver los datos o fotos en la siguiente petición) y queda como evento `revoked`.
+- El titular puede **descargar su historial de consentimientos** (prueba de autorización, art. 8.b Ley 1581).
+- Si la cuenta se elimina, los datos se borran, pero se conserva un registro mínimo del consentimiento y del borrado (seudonimizado) por el plazo que indique el abogado.
+- Pruebas: un usuario no puede modificar ni borrar eventos (ni los suyos ni los de otros); un coach no puede leer eventos de clientes no vinculados.

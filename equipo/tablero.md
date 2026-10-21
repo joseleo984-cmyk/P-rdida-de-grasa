@@ -6,7 +6,7 @@
 | Backlog | Listo | En curso | En revisión | Hecho |
 |---|---|---|---|---|
 | HU-03 Editar registros/alimentos (Sprint 2) | | | S1-1 corregida — re-verificación QA | |
-| HU-04 Porciones (Sprint 2) | | S1-2 N1 + S1-3 D1-D4 — Dev Frontend | | S1-2 HU-01 Proteger datos ✅ QA |
+| HU-04 Porciones (Sprint 2) | | | S1-3 corregida — re-verificación QA | S1-2 HU-01 Proteger datos ✅ QA |
 | HU-05 Gasto real estimado (Sprint 2) | | | | |
 | Deuda: dividir app.js, SW, a11y | | | | |
 
