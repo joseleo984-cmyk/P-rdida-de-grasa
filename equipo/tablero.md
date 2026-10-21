@@ -7,7 +7,7 @@
 |---|---|---|---|---|
 | HU-03 Editar registros/alimentos (Sprint 2) | | | S1-1 Esquema + importación segura — QA revisando | |
 | HU-04 Porciones (Sprint 2) | | | S1-2 fixes D1-D5 — pendiente re-verificación QA | |
-| HU-05 Gasto real estimado (Sprint 2) | | S1-3 HU-02 Repetir comidas — Dev Backend | | |
+| HU-05 Gasto real estimado (Sprint 2) | | | S1-3 HU-02 Repetir comidas — pendiente QA | |
 | Deuda: dividir app.js, SW, a11y | | | | |
 
 ### S1-1 Esquema versionado + importación segura (Backend/Datos + Front, M)
