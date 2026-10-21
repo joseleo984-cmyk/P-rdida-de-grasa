@@ -166,8 +166,8 @@ test('enlaces de fotos y mayor de 18 abren su sección del texto; datos más nue
   await app.open({ state: { schemaVersion: 99, entries: [] }, legal: false });
   app.allowConsoleErrors();
   await page.getByRole('link', { name: 'Qué hacemos con tus fotos' }).click();
-  await expect(page.locator('#legal-frame')).toHaveAttribute('src', 'legal/privacidad.html#s4');
-  await expect(page.frameLocator('#legal-frame').locator('#s4')).toBeInViewport();
+  await expect(page.locator('#legal-frame')).toHaveAttribute('src', 'legal/privacidad.html#s5');
+  await expect(page.frameLocator('#legal-frame').locator('#s5')).toBeInViewport();
   await page.locator('#legal-close').click();
   await expect(page.getByRole('link', { name: 'Por qué solo mayores de 18' })).toHaveAttribute('href', 'legal/privacidad.html#s7');
   await expect(page.locator('#btn-consent-reload')).toBeVisible();
