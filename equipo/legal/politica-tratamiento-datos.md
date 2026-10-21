@@ -9,11 +9,11 @@
 > | `[NOMBRE COMPLETO DEL RESPONSABLE]` ✅ José Granados (confirmar si en la cédula figura un segundo apellido) | Nombre y apellidos tal como aparecen en la cédula | Ana María Pérez Gómez |
 > | `[NÚMERO DE CÉDULA]` | Cédula de ciudadanía | 1.234.567.890 |
 > | `[DIRECCIÓN]` | Dirección de notificación | Calle 1 # 2-3, apto 4 |
-> | `[CIUDAD]` | Ciudad de domicilio | Medellín |
+> | `[CIUDAD]` ✅ Barranquilla | Ciudad de domicilio | Medellín |
 > | `[CORREO DE DATOS PERSONALES]` | Correo donde se reciben consultas y reclamos (revisado al menos 2 veces por semana) | datos@… |
 > | `[TELÉFONO / WHATSAPP]` | Número de contacto | +57 3xx xxx xxxx |
 > | `[FECHA DE VIGENCIA]` | Día en que se publica esta versión | 1 de noviembre de 2026 |
-> | `[FECHA DE BORRADO DEL PILOTO]` | Fecha límite para borrar los archivos recibidos | 30 días después del fin del piloto |
+> | `[FECHA DE BORRADO DEL PILOTO]` ✅ 30 días después del fin del piloto | Fecha límite para borrar los archivos recibidos | 30 días después del fin del piloto |
 > | `[UBICACIÓN DE LOS ARCHIVOS…]` | Dónde guarda el responsable los archivos recibidos (sustituir todo el marcador) | Carpeta privada de Google Drive |
 
 # Política de Tratamiento de Datos Personales — "Pérdida de Grasa"
@@ -28,7 +28,7 @@
 |---|---|
 | **Responsable del tratamiento** | José Granados, persona natural |
 | **Cédula de ciudadanía** | [NÚMERO DE CÉDULA] |
-| **Domicilio y dirección** | [DIRECCIÓN], [CIUDAD], Colombia |
+| **Domicilio y dirección** | [DIRECCIÓN], Barranquilla, Colombia |
 | **Correo para datos personales** | [CORREO DE DATOS PERSONALES] |
 | **Teléfono / WhatsApp** | [TELÉFONO / WHATSAPP] |
 | **Quién atiende consultas y reclamos** | El mismo responsable, en el correo anterior |
@@ -76,7 +76,7 @@ Según los artículos 5 y 6 de la Ley 1581 de 2012, los datos de salud y las im�
 ## 6. ¿Con quién compartimos tus datos?
 
 ### 6.1 Tu coach
-Tu coach recibe **solo** los archivos que **tú** le envías. Los trata **por cuenta del responsable** y únicamente para hacerte seguimiento durante el piloto (como **encargado del tratamiento**). Se compromete por escrito a: usarlos solo para ese fin, mantener la confidencialidad, no reenviarlos ni publicarlos y **borrarlos** a más tardar el [FECHA DE BORRADO DEL PILOTO].
+Tu coach recibe **solo** los archivos que **tú** le envías. Los trata **por cuenta del responsable** y únicamente para hacerte seguimiento durante el piloto (como **encargado del tratamiento**). Se compromete por escrito a: usarlos solo para ese fin, mantener la confidencialidad, no reenviarlos ni publicarlos y **borrarlos** a más tardar 30 días después de terminar el piloto.
 
 *NOTA, opción propuesta (la más simple, a validar con el abogado): responsable único y coach como encargado. Ver P2 en preguntas-abogado.md.*
 
@@ -133,7 +133,7 @@ En tu teléfono, además, puedes ver y retirar tus autorizaciones (Perfil → Pr
 ## 11. Conservación de los datos
 
 - **En tu teléfono:** hasta que tú los borres.
-- **Archivos enviados al coach y al responsable:** se borran a más tardar el **[FECHA DE BORRADO DEL PILOTO]**, o antes si lo pides.
+- **Archivos enviados al coach y al responsable:** se borran a más tardar **30 días después de terminar el piloto**, o antes si lo pides.
 - **Resultados agregados y sin nombre** del piloto: se pueden conservar, porque no te identifican.
 
 ## 12. Vigencia, versiones y cambios

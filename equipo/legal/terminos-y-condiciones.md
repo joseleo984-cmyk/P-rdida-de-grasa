@@ -8,11 +8,11 @@
 > |---|---|
 > | `[NOMBRE COMPLETO DEL RESPONSABLE]` ✅ José Granados (confirmar si en la cédula figura un segundo apellido) | Nombre y apellidos como en la cédula |
 > | `[NÚMERO DE CÉDULA]` | Cédula de ciudadanía |
-> | `[CIUDAD]` | Ciudad de domicilio |
+> | `[CIUDAD]` ✅ Barranquilla | Ciudad de domicilio |
 > | `[CORREO DE CONTACTO]` | Correo de soporte y reclamos (puede ser el mismo de datos personales) |
 > | `[TELÉFONO / WHATSAPP]` | Número de contacto |
 > | `[FECHA DE VIGENCIA]` | Día en que se publica esta versión |
-> | `[FECHA DE FIN DEL PILOTO]` | Último día del piloto |
+> | `[FECHA DE FIN DEL PILOTO]` ✅ 4 semanas desde el inicio del piloto | Último día del piloto |
 
 # Términos y Condiciones de Uso — "Pérdida de Grasa"
 
@@ -20,7 +20,7 @@
 
 ## 1. Quiénes somos y qué aceptas
 
-La app "Pérdida de Grasa" (la "app") la ofrece **José Granados**, persona natural, con cédula **[NÚMERO DE CÉDULA]**, domiciliada en **[CIUDAD]**, Colombia, correo **[CORREO DE CONTACTO]**, teléfono **[TELÉFONO / WHATSAPP]** ("nosotros").
+La app "Pérdida de Grasa" (la "app") la ofrece **José Granados**, persona natural, con cédula **[NÚMERO DE CÉDULA]**, domiciliada en **Barranquilla**, Colombia, correo **[CORREO DE CONTACTO]**, teléfono **[TELÉFONO / WHATSAPP]** ("nosotros").
 
 Al usar la app aceptas estos Términos y la **Política de Tratamiento de Datos Personales** (documento aparte). La app guarda en tu teléfono la versión y la fecha de lo que aceptaste. Si no estás de acuerdo, no uses la app.
 
@@ -33,7 +33,7 @@ Al usar la app aceptas estos Términos y la **Política de Tratamiento de Datos 
 
 ## 3. Cómo funciona el piloto
 
-- El piloto dura aproximadamente **4 semanas**, hasta el [FECHA DE FIN DEL PILOTO], y participan clientes invitados por sus coaches.
+- El piloto dura aproximadamente **4 semanas** contadas desde su inicio, y participan clientes invitados por sus coaches.
 - **Tus datos se guardan solo en tu teléfono.** No hay cuentas, servidor ni nube.
 - Cada semana puedes **exportar un archivo** y **enviárselo tú mismo/a** a tu coach por WhatsApp (u otro medio que acuerdes). Si eliges WhatsApp, aplican también las condiciones de ese servicio (Meta).
 - **Cuida tus datos:** si borras la app, los datos del navegador o cambias de teléfono sin exportar, **se pierden**. La app te recuerda hacer copias.
@@ -114,7 +114,7 @@ Estos Términos se rigen por las **leyes de la República de Colombia**. Antes d
 
 ## 15. Contacto
 
-José Granados · [CORREO DE CONTACTO] · [TELÉFONO / WHATSAPP] · [CIUDAD], Colombia.
+José Granados · [CORREO DE CONTACTO] · [TELÉFONO / WHATSAPP] · Barranquilla, Colombia.
 
 ## Historial de versiones
 
