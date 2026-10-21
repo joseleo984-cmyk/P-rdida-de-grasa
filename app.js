@@ -246,7 +246,31 @@
     render();
   });
 
+  // HU-02: repetir comidas. La lógica (ids nuevos + saneado) vive en Schema.copyMeals.
+  const plural = (n) => `${n} alimento${n === 1 ? '' : 's'}`;
+  function repeatMeals(from, to, meal) {
+    const src = (state.foods[from] || []).filter((x) => !meal || x.meal === meal);
+    const yesterday = from === Schema.addDays(today(), -1);
+    if (!src.length) { toast(`No hay comidas${meal ? ' de ' + meal : ''} registradas ${yesterday ? 'ayer' : 'el ' + fmtDate(from)}; no se copió nada`); return; }
+    const dest = to === today() ? 'hoy' : 'el ' + fmtDate(to);
+    if (state.foods[to]?.length &&
+      !confirm(`${to === today() ? 'Hoy' : 'El ' + fmtDate(to)} ya tiene comidas. ¿Añadir ${plural(src.length)}${meal ? ' de ' + meal : ''} ${yesterday ? 'de ayer' : 'del ' + fmtDate(from)}? No se reemplaza nada.`)) return;
+    let r;
+    try { r = Schema.copyMeals(state.foods, from, to, { meal }); }
+    catch (err) { toast('No se pudo copiar: ' + err.message); return; }
+    state.foods = r.foods;
+    save();
+    toast(`${r.copied === 1 ? 'Se copió' : 'Se copiaron'} ${plural(r.copied)} a ${dest}` + (r.skipped ? ` (${r.skipped} no válidos omitidos)` : ''));
+    render();
+  }
+  $('#btn-copy-prev').addEventListener('click', () => {
+    const d = foodDate.value || today();
+    repeatMeals(Schema.addDays(d, -1), d);
+  });
+
   $('#food-list').addEventListener('click', (ev) => {
+    const rep = ev.target.closest('[data-repeat-meal]');
+    if (rep) { repeatMeals(foodDate.value, today(), rep.dataset.repeatMeal); return; }
     const btn = ev.target.closest('[data-del-food]');
     if (!btn) return;
     const d = foodDate.value;
@@ -297,12 +321,17 @@
     const d = foodDate.value || today();
     $('#day-macros').innerHTML = macroBars(d);
     const list = state.foods[d] || [];
-    const meals = ['Desayuno', 'Almuerzo', 'Cena', 'Snack'];
+    const meals = Schema.MEALS;
+    const isToday = d === today();
+    $('#btn-copy-prev').textContent = isToday ? 'Copiar de ayer' : 'Copiar del día anterior';
+    $('#btn-copy-prev').setAttribute('aria-label', `Copiar las comidas del ${fmtDate(Schema.addDays(d, -1))} a este día`);
     $('#food-list').innerHTML = list.length ? meals.map((m) => {
       const xs = list.filter((x) => x.meal === m);
       if (!xs.length) return '';
       const sum = xs.reduce((s, x) => s + x.kcal, 0);
-      return `<div class="meal"><div class="meal-head"><strong>${m}</strong><span class="muted">${Math.round(sum)} kcal</span></div>
+      // "Repetir hoy" solo tiene sentido al mirar otro día (copia este bloque al día de hoy).
+      const rep = isToday ? '' : `<button type="button" class="btn-link small" data-repeat-meal="${esc(m)}" aria-label="Repetir ${esc(m)} hoy">Repetir hoy</button>`;
+      return `<div class="meal"><div class="meal-head"><strong>${esc(m)}</strong><span class="meal-side">${rep}<span class="muted">${Math.round(sum)} kcal</span></span></div>
         ${xs.map((x) => `<div class="food-row"><span>${esc(x.name)}</span><span class="muted small">${esc(x.kcal)} kcal · P${fmt(x.protein, 0)} C${fmt(x.carbs, 0)} G${fmt(x.fat, 0)}</span><button class="icon-btn" data-del-food="${esc(x.id)}" aria-label="Eliminar">✕</button></div>`).join('')}
       </div>`;
     }).join('') : '<p class="muted small">Nada registrado este día.</p>';

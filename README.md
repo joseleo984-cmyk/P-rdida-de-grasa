@@ -13,7 +13,9 @@ Sin dependencias ni servidor: todos los datos se guardan en el propio dispositiv
 - **Panel**: peso actual, kilos perdidos, % de grasa, ritmo semanal real (regresión de las
   últimas 3 semanas), progreso y fecha estimada de meta, gráfico con tendencia de 7 días.
 - **Diario de comidas**: calorías y macros por comida, con autocompletado de alimentos ya usados
-  y barras de progreso frente al objetivo.
+  y barras de progreso frente al objetivo. **Repetir comidas**: "Copiar de ayer" añade al día elegido
+  todo lo del día anterior (si ya hay comidas, pide confirmación y suma, nunca reemplaza), y al mirar
+  un día pasado cada bloque (Desayuno, Almuerzo…) tiene "Repetir hoy". Las copias reciben ids nuevos.
 - **Hábitos**: pasos, agua, sueño y entrenamiento de fuerza.
 - **Fotos de progreso**: frente, perfil y espalda, comprimidas y guardadas en el dispositivo (IndexedDB).
   Galería por fecha con el peso de ese día y comparador antes/después por pose.
