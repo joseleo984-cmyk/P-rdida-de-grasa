@@ -26,6 +26,19 @@ Origen: Arquitecto A2, A3, M1, M4 · QA BUG-01, BUG-02 y bug "100200".
 
 Orden: S1-1 primero (S1-3 depende del esquema). QA revisa cada historia con la DoD.
 
+## Sprint 3 — EN CURSO: R1 "Cuentas y panel del coach" (decisión del Stakeholder 2026-10-21: opción B)
+**Objetivo:** "El cliente registra en la app y el coach ve su progreso en su panel, sin enviar archivos."
+Motivo: el Stakeholder considera que enviar datos por WhatsApp no da confianza → se adelanta R1 al piloto.
+
+| Listo | En curso | En revisión | Hecho |
+|---|---|---|---|
+| S3-2 Login con código de 6 dígitos + sesión offline (Front) — espera contrato del Arquitecto | S3-0 Contrato R1 + guía Supabase para el Stakeholder — Arquitecto | | |
+| S3-3 Sincronización local-first con mergeRecords (Back) — tras S3-1 | S3-1 Base de datos: esquema core + app, RLS y pruebas en Postgres local — Dev Backend | | |
+| S3-4 Panel del coach: invitar por código, lista con semáforo, ficha, comentarios (Front) | | | |
+| S3-5 Textos legales versión con cuentas + registro de consentimientos HU-P10 (Analista + Back) | | | |
+
+Bloqueos externos: proyecto Supabase (lo crea el Stakeholder con la guía de S3-0).
+
 ## Sprint 2 — ✅ CERRADO (ver sprint2-review-retro.md)
 **Objetivo:** "Dejar la app lista para arrancar el piloto con 2 coaches."
 

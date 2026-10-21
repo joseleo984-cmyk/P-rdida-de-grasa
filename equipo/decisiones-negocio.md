@@ -17,3 +17,11 @@
 ## Pendiente
 - Que un abogado revise los borradores de T&C y Política antes de datos reales (recomendación del equipo).
 - Región de datos (Virginia vs. São Paulo): medir latencia desde Colombia antes de crear el proyecto.
+
+## 2026-10-21 (tarde)
+| # | Tema | Decisión |
+|---|---|---|
+| 11 | Publicación | Sprints 1–2 publicados en `main` y GitHub Pages (PR #3) |
+| 12 | Datos de contacto | José Granados · Calle 18 # 16-27, Barranquilla · joseleo984@gmail.com · +57 312 887 6135. **No se publica la cédula.** |
+| 13 | Conservación | Archivos recibidos: mientras el cliente siga en el servicio; máx. 30 días después de dejarlo |
+| 14 | Canal de datos | **No usar WhatsApp para enviar datos** (no da confianza) → **opción B: cuentas reales (R1) antes del piloto**, Supabase plan gratis durante el piloto |
