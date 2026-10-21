@@ -1,6 +1,8 @@
 // E2E de S1-1 (esquema + importación segura). Uso: node equipo/qa/run-s1-1.js [URL base] [carpeta capturas]
 // Por defecto abre la app con file:// y guarda capturas en equipo/qa-capturas/.
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { conConsentimiento } = require('./legal-helper.js');
+const CURRENT = require('../../schema.js').CURRENT_VERSION;
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '../..');
@@ -12,6 +14,7 @@ const iso = (n = 0) => new Date(Date.now() - n * 86400000).toLocaleDateString('e
 
 async function newPage(browser, init) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'es-CO', timezoneId: 'America/Bogota' });
+  await conConsentimiento(ctx); // LEGAL-01: usuario que ya aceptó (ver legal-helper.js)
   if (init) await ctx.addInitScript(init.fn, init.arg);
   const page = await ctx.newPage();
   const errors = [];
@@ -49,7 +52,7 @@ const photoCount = (page) => page.evaluate(() => Photos.all().then((x) => x.leng
     // Respaldo v1 real con fotos
     log('Importa respaldo v1', (await importJSON(page, fixture)) === 'Datos importados');
     const s = await stored(page);
-    log('Guardado con schemaVersion 2 y datos completos', s.schemaVersion === 2 && s.entries.length === 3 && s.profile.name === 'Ana', JSON.stringify(s).slice(0, 80));
+    log(`Guardado con schemaVersion ${CURRENT} y datos completos`, s.schemaVersion === CURRENT && s.entries.length === 3 && s.profile.name === 'Ana', JSON.stringify(s).slice(0, 80));
     log('Fotos importadas (2)', (await photoCount(page)) === 2);
     await page.click('#tab-registro');
     log('Historial muestra 3 registros y nota escapada', (await page.locator('#entries-table tbody tr').count()) === 3 && (await page.locator('#entries-table').innerText()).includes('<b>nota</b>'));
@@ -104,7 +107,10 @@ const photoCount = (page) => page.evaluate(() => Photos.all().then((x) => x.leng
     const { page, errors } = await newPage(browser, { fn: (v) => { if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', 1); localStorage.setItem('perdida-grasa:v1', v); } }, arg: bad });
     await page.waitForTimeout(300);
     log('Estado guardado dañado: la app arranca y avisa', errors.length === 0 && (await toastText(page)).includes('corrigieron'), (await toastText(page)) + ' ' + errors.join(' | '));
-    log('Se conserva copia cruda en perdida-grasa:backup', (await page.evaluate(() => localStorage.getItem('perdida-grasa:backup'))) === bad);
+    // LEGAL-01: legal-helper añade `consent` al leer; se compara todo lo demás.
+    const bk = JSON.parse(await page.evaluate(() => localStorage.getItem('perdida-grasa:backup')) || 'null');
+    if (bk) delete bk.consent;
+    log('Se conserva copia cruda en perdida-grasa:backup', JSON.stringify(bk) === bad);
     await page.click('#tab-registro');
     log('El registro válido sobrevive', (await page.locator('#entries-table tbody tr').count()) === 1);
     await page.context().close();
@@ -119,9 +125,10 @@ const photoCount = (page) => page.evaluate(() => Photos.all().then((x) => x.leng
   {
     const { page } = await newPage(browser, { fn: () => { if (!sessionStorage.getItem('x')) { sessionStorage.setItem('x', 1); localStorage.setItem('perdida-grasa:v1', JSON.stringify({ schemaVersion: 99, entries: [] })); } } });
     await page.waitForTimeout(300);
-    await page.click('#tab-comidas');
-    await page.locator('#form-food [name=name]').fill('x'); await page.locator('#form-food [name=kcal]').fill('10');
-    await page.locator('#form-food button[type=submit]').click();
+    // LEGAL-01: con datos de una versión más nueva no se puede leer el consentimiento → se pide; aceptar intenta guardar.
+    log('Datos de versión más nueva: se pide el consentimiento', await page.locator('#consent').isVisible());
+    for (const k of ['terms', 'privacy', 'sensitiveHealth', 'adult']) await page.locator(`#form-consent [name=${k}]`).check();
+    await page.locator('#btn-consent').click();
     const kept = await page.evaluate(() => JSON.parse(localStorage.getItem('perdida-grasa:v1')).schemaVersion);
     log('Datos de versión más nueva no se sobrescriben', kept === 99);
     await page.context().close();

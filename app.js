@@ -756,6 +756,7 @@
       try { data = JSON.parse(await file.text()); }
       catch { throw new Error('El archivo no es un JSON válido'); }
       const { state: next, warnings, rejected } = Schema.normalize(Schema.migrate(data));
+      next.consent = state.consent; // LEGAL-01: el consentimiento es de quien usa este dispositivo, no del respaldo
       // Las copias anteriores a las fotos no traen la clave `photos`: se conservan las actuales.
       // Si la trae con un formato que no es lista, normalizePhotos lanza y no se importa nada.
       let hasPhotos = data.photos !== undefined && data.photos !== null;
@@ -933,8 +934,169 @@
   }
   checkStorage();
 
+  // ---------- LEGAL-01: consentimiento y privacidad ----------
+  // El consentimiento vive en `state.consent` (schema v3) y se exporta con el respaldo, pero es de quien usa ESTE
+  // dispositivo: al importar un respaldo se conserva el consentimiento actual (no se adopta el de otra persona).
+  // Resumen de cambios que se muestra al pedir re-aceptación, por versión nueva (vacío = sin resumen).
+  const LEGAL_CHANGES = { terms: {}, privacy: {} };
+  const consentForm = $('#form-consent');
+  const REQUIRED = ['terms', 'privacy', 'adult'];
+  const nowISO = () => new Date().toISOString();
+  const fmtStamp = (iso) => (iso ? new Date(iso).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
+  const consentOK = () => Schema.consentStatus(state.consent) === 'ok';
+  const can = (k) => consentOK() && state.consent[k] === true;
+  let consentShown = false;
+
+  // Bloqueo de datos de salud: la misma tarjeta en cada vista de seguimiento.
+  for (const v of ['panel', 'registro', 'comidas', 'fotos']) {
+    $('#view-' + v).prepend($('#tpl-health-gate').content.cloneNode(true));
+  }
+
+  function renderConsent() {
+    const status = Schema.consentStatus(state.consent);
+    const open = status !== 'ok';
+    document.body.classList.toggle('consent-open', open);
+    $('#consent').classList.toggle('hidden', !open);
+    document.body.classList.toggle('no-health', !open && !can('sensitiveHealth'));
+    document.body.classList.toggle('no-photos', !open && !can('photos'));
+    if (open && !consentShown) {
+      const upd = $('#consent-update');
+      if (status === 'outdated') {
+        const V = Schema.LEGAL_VERSIONS, c = state.consent;
+        const parts = [];
+        if (c.termsVersion !== V.terms) parts.push(`Términos y Condiciones (versión ${c.termsVersion} → ${V.terms})`);
+        if (c.privacyVersion !== V.privacy) parts.push(`Política de Tratamiento de Datos (versión ${c.privacyVersion} → ${V.privacy})`);
+        const notes = [LEGAL_CHANGES.terms[V.terms], LEGAL_CHANGES.privacy[V.privacy]].filter(Boolean);
+        upd.textContent = `Actualizamos ${parts.join(' y ')}. ` + (notes.length ? 'Cambios: ' + notes.join(' ') + ' ' : 'Revisa los textos completos. ') +
+          'Tus datos siguen guardados; para seguir usando la app, vuelve a aceptar.';
+      }
+      upd.classList.toggle('hidden', status !== 'outdated');
+      consentForm.reset();
+      updateConsentButton();
+      $('#consent-title').focus();
+    }
+    consentShown = open;
+    renderPrivacy();
+  }
+
+  function updateConsentButton() {
+    const el = consentForm.elements;
+    const ok = REQUIRED.every((k) => el[k].checked);
+    $('#btn-consent').disabled = !ok;
+    $('#consent-hint').textContent = ok ? 'Listo: pulsa Continuar.' : 'Marca las casillas obligatorias para continuar.';
+  }
+  consentForm.addEventListener('change', updateConsentButton);
+  consentForm.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const el = consentForm.elements;
+    let c;
+    try {
+      c = Schema.buildConsent({ terms: el.terms.checked, privacy: el.privacy.checked, adult: el.adult.checked, sensitiveHealth: el.sensitiveHealth.checked, photos: el.photos.checked }, nowISO());
+    } catch { updateConsentButton(); return; }
+    const prev = state.consent;
+    state.consent = c;
+    if (!save()) { state.consent = prev; return; }
+    render();
+    if (!state.profile) show('perfil');
+    ($('.tabbar button.on') || $('#tab-panel')).focus();
+    toast('Aceptación guardada');
+  });
+
+  function renderPrivacy() {
+    const c = consentOK() ? state.consent : null;
+    const dl = $('#privacy-list');
+    const rows = c ? [
+      ['Términos', `Versión ${c.termsVersion}, aceptados el ${fmtStamp(c.acceptedAt)}`],
+      ['Política', `Versión ${c.privacyVersion}, aceptada el ${fmtStamp(c.acceptedAt)}`],
+      ['Mayor de 18', 'Declarado'],
+      ['Datos de salud', `${c.sensitiveHealth ? 'Autorizado' : 'No autorizado'} (desde el ${fmtStamp(c.sensitiveHealthAt || c.acceptedAt)})`],
+      ['Fotos', `${c.photos ? 'Autorizado' : 'No autorizado'} (desde el ${fmtStamp(c.photosAt || c.acceptedAt)})`],
+    ] : [['Estado', 'Sin aceptar']];
+    const html = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+    if (dl.innerHTML !== html) dl.innerHTML = html;
+    $('#btn-toggle-health').textContent = c && c.sensitiveHealth ? 'Retirar autorización de datos de salud' : 'Autorizar datos de salud';
+    $('#btn-toggle-photos').textContent = c && c.photos ? 'Retirar autorización de fotos' : 'Autorizar fotos';
+  }
+
+  const GRANT_TEXT = {
+    sensitiveHealth: 'Autorizo de forma expresa el tratamiento de mis datos sensibles de salud (peso, medidas, % de grasa, comidas, hábitos). Sé que es facultativo.\n\n¿Confirmas la autorización?',
+    photos: 'Autorizo el tratamiento de mis fotos de progreso (dato sensible, opcional).\n\n¿Confirmas la autorización?',
+  };
+  function setFlag(key, value) {
+    if (!consentOK()) return false;
+    const prev = state.consent;
+    state.consent = Schema.setConsentFlag(prev, key, value, nowISO());
+    if (!save()) { state.consent = prev; return false; }
+    render();
+    return true;
+  }
+  function grant(key) {
+    if (!confirm(GRANT_TEXT[key])) return;
+    if (setFlag(key, true)) toast(key === 'photos' ? 'Fotos autorizadas' : 'Datos de salud autorizados');
+  }
+  async function revoke(key) {
+    if (key === 'sensitiveHealth') {
+      if (!confirm('Si retiras la autorización de tus datos de salud, no podrás usar el seguimiento (peso, medidas, comidas y hábitos).\n\nTus datos seguirán en este dispositivo hasta que los borres: te recomendamos exportar una copia y, si quieres, usar «Borrar todo».\n\n¿Retirar la autorización?')) return;
+      if (setFlag(key, false)) toast('Autorización retirada. Puedes exportar tus datos o borrarlos');
+      return;
+    }
+    if (!confirm('¿Retirar la autorización de fotos? La pestaña Fotos quedará bloqueada y no se podrán subir fotos.')) return;
+    if (!setFlag(key, false)) return;
+    if (photos.length && confirm(`¿Borrar también las ${photos.length} fotos guardadas en este dispositivo? No se puede deshacer.`)) {
+      try { await Photos.clear(); toast('Autorización retirada y fotos borradas'); }
+      catch { toast('No se pudieron borrar las fotos', true); }
+      await loadPhotos();
+      render();
+    } else toast('Autorización de fotos retirada');
+  }
+  $('#btn-toggle-health').addEventListener('click', () => (can('sensitiveHealth') ? revoke('sensitiveHealth') : grant('sensitiveHealth')));
+  $('#btn-toggle-photos').addEventListener('click', () => (can('photos') ? revoke('photos') : grant('photos')));
+  $('#btn-withdraw-legal').addEventListener('click', () => {
+    if (!confirm('La app no puede usarse sin aceptar los Términos y la Política. Para retirarlos hay que borrar todos los datos de este dispositivo (exporta antes una copia si la quieres).\n\n¿Continuar?')) return;
+    $('#btn-reset').click();
+  });
+  document.addEventListener('click', (ev) => {
+    const g = ev.target.closest('[data-consent-grant]');
+    if (g) { grant(g.dataset.consentGrant); return; }
+    const a = ev.target.closest('[data-gate-action]');
+    if (a) $(a.dataset.gateAction === 'export' ? '#btn-export' : '#btn-reset').click();
+  });
+
+  // Ningún formulario de datos se guarda sin las autorizaciones que necesita (defensa además del bloqueo visual).
+  const HEALTH_FORMS = ['form-profile', 'form-entry', 'form-food', 'form-habits'];
+  document.addEventListener('submit', (ev) => {
+    const id = ev.target.id;
+    if (id === 'form-consent') return;
+    const blocked = !consentOK() ? 'Acepta los Términos y la Política para continuar'
+      : HEALTH_FORMS.includes(id) && !can('sensitiveHealth') ? 'Autoriza tus datos de salud para registrar tu seguimiento'
+        : id === 'form-photo' && !can('photos') ? 'Autoriza tus fotos para poder subirlas' : '';
+    if (!blocked) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    toast(blocked, true);
+  }, true);
+
+  // Textos legales dentro de la app (sin perder lo marcado); funcionan sin conexión (están en la caché del SW).
+  const legalDialog = $('#legal-dialog');
+  let legalReturn = null;
+  document.addEventListener('click', (ev) => {
+    const a = ev.target.closest('a[data-legal]');
+    if (!a || typeof legalDialog.showModal !== 'function') return;
+    ev.preventDefault();
+    legalReturn = a;
+    const title = /privacidad/.test(a.getAttribute('href')) ? 'Política de Tratamiento de Datos' : 'Términos y Condiciones';
+    $('#legal-dialog-title').textContent = title;
+    $('#legal-frame').title = title;
+    $('#legal-frame').src = a.getAttribute('href');
+    legalDialog.showModal();
+    $('#legal-close').focus();
+  });
+  $('#legal-close').addEventListener('click', () => legalDialog.close());
+  legalDialog.addEventListener('close', () => { if (legalReturn) legalReturn.focus(); legalReturn = null; });
+
   // ---------- Render ----------
   function render() {
+    renderConsent();
     $('#today-label').textContent = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
     renderPanel();
     renderProfileIssue();

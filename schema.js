@@ -4,12 +4,18 @@
   'use strict';
 
   // v1: formato original, sin `schemaVersion`. v2: igual, con `schemaVersion` y datos normalizados.
-  const CURRENT_VERSION = 2;
+  // v3: añade `consent` (LEGAL-01). Los datos anteriores no tienen consentimiento: se pedirá al abrir la app.
+  const CURRENT_VERSION = 3;
 
   // Cada migración recibe el estado de la versión N-1 y devuelve uno nuevo de la versión N (sin mutar).
   const MIGRATIONS = {
     2: (s) => ({ ...s }),
+    3: (s) => ({ ...s, consent: s.consent === undefined ? null : s.consent }),
   };
+
+  // LEGAL-01: versiones vigentes de los textos legales (deben coincidir con "**Versión:**" de los .md;
+  // lo comprueba tests/legal.test.js). Si cambian, la app pide aceptar de nuevo.
+  const LEGAL_VERSIONS = { terms: '0.1', privacy: '0.1' };
 
   const MEALS = ['Desayuno', 'Almuerzo', 'Cena', 'Snack'];
   const POSES = ['frente', 'perfil', 'espalda'];
@@ -28,7 +34,7 @@
 
   const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
   const dict = () => Object.create(null);
-  const emptyState = () => ({ schemaVersion: CURRENT_VERSION, profile: null, entries: [], foods: dict(), habits: dict(), library: dict() });
+  const emptyState = () => ({ schemaVersion: CURRENT_VERSION, profile: null, entries: [], foods: dict(), habits: dict(), library: dict(), consent: null });
 
   function defaultUid() {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -224,8 +230,62 @@
         return out;
       }),
       library: normalizeLibrary(raw.library, warn),
+      consent: normalizeConsent(raw.consent, warn),
     };
     return { state, warnings, rejected };
+  }
+
+  // ---------- LEGAL-01: consentimiento ----------
+  const isISOStamp = (v) => typeof v === 'string' && v.length <= 40 && /^\d{4}-\d{2}-\d{2}T/.test(v) && !Number.isNaN(Date.parse(v));
+  const isVersion = (v) => typeof v === 'string' && /^[0-9a-z.\-]{1,20}$/i.test(v);
+
+  // Un consentimiento con forma no válida se descarta (null): la app vuelve a pedirlo, nunca lo inventa.
+  function normalizeConsent(raw, warn = () => {}) {
+    if (raw === undefined || raw === null) return null;
+    if (!isObj(raw) || !isVersion(raw.termsVersion) || !isVersion(raw.privacyVersion) || raw.adult !== true || !isISOStamp(raw.acceptedAt)) {
+      warn('Consentimiento no válido: se pedirá de nuevo');
+      return null;
+    }
+    const c = {
+      termsVersion: raw.termsVersion,
+      privacyVersion: raw.privacyVersion,
+      sensitiveHealth: raw.sensitiveHealth === true,
+      photos: raw.photos === true,
+      adult: true,
+      acceptedAt: raw.acceptedAt,
+      updatedAt: isISOStamp(raw.updatedAt) ? raw.updatedAt : raw.acceptedAt,
+    };
+    // Fecha del último cambio de cada autorización facultativa (para mostrarla en Perfil → Privacidad).
+    for (const k of ['sensitiveHealthAt', 'photosAt']) if (isISOStamp(raw[k])) c[k] = raw[k];
+    return c;
+  }
+
+  // 'missing' (nunca aceptó o dato inválido), 'outdated' (cambió la versión de T&C o Política) u 'ok'.
+  function consentStatus(consent, versions = LEGAL_VERSIONS) {
+    const c = normalizeConsent(consent);
+    if (!c) return 'missing';
+    if (c.termsVersion !== versions.terms || c.privacyVersion !== versions.privacy) return 'outdated';
+    return 'ok';
+  }
+
+  // Crea el registro a partir de las casillas. Lanza si faltan las obligatorias (T&C, Política, mayor de 18).
+  function buildConsent(boxes, nowISO, versions = LEGAL_VERSIONS) {
+    if (!isObj(boxes) || boxes.terms !== true || boxes.privacy !== true || boxes.adult !== true) throw new Error('Faltan casillas obligatorias');
+    if (!isISOStamp(nowISO)) throw new Error('Fecha no válida');
+    return {
+      termsVersion: versions.terms, privacyVersion: versions.privacy,
+      sensitiveHealth: boxes.sensitiveHealth === true, photos: boxes.photos === true, adult: true,
+      acceptedAt: nowISO, updatedAt: nowISO, sensitiveHealthAt: nowISO, photosAt: nowISO,
+    };
+  }
+
+  // Cambia una autorización facultativa ('sensitiveHealth' | 'photos'). Pura: devuelve un objeto nuevo.
+  function setConsentFlag(consent, key, value, nowISO) {
+    const c = normalizeConsent(consent);
+    if (!c) throw new Error('No hay consentimiento');
+    if (key !== 'sensitiveHealth' && key !== 'photos') throw new Error('Autorización no válida');
+    if (!isISOStamp(nowISO)) throw new Error('Fecha no válida');
+    return { ...c, [key]: value === true, [key + 'At']: nowISO, updatedAt: nowISO };
   }
 
   // Fotos de un respaldo: valida metadatos y que `data` sea una imagen en base64. No decodifica.
@@ -306,7 +366,8 @@
     return { foods: out, copied: copies.length, skipped };
   }
 
-  const api = { CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, normalizeStoredPhoto, isSafeKey };
+  const api = { CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, normalizeStoredPhoto, isSafeKey,
+    LEGAL_VERSIONS, normalizeConsent, consentStatus, buildConsent, setConsentFlag };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Schema = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,4 +1,5 @@
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { conConsentimiento } = require('./legal-helper.js');
 // E2E de S1-2 / HU-01 (recordatorio de copia). Uso: node equipo/qa/run-s1-2.js
 const path = require('path');
 const ROOT = path.resolve(__dirname, '../..') + '/';
@@ -10,6 +11,7 @@ const log = (n, ok, d = '') => { if (!ok) fails++; console.log((ok ? 'OK   ' : '
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'es-CO', timezoneId: 'America/Bogota', acceptDownloads: true });
+  await conConsentimiento(ctx); // LEGAL-01: usuario que ya aceptó (ver legal-helper.js)
   const page = await ctx.newPage();
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });

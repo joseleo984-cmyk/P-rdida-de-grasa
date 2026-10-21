@@ -1,6 +1,7 @@
 // E2E de S1-3 / HU-02 (repetir comidas). Uso: node equipo/qa/run-s1-3.js [URL base] [carpeta capturas]
 // Reloj fijado en Bogotá a las 23:50 del 21-oct-2026 (en UTC ya es 22-oct) y luego cruza la medianoche.
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { conConsentimiento } = require('./legal-helper.js');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '../..');
 const BASE = process.argv[2] || 'file://' + ROOT + '/';
@@ -27,6 +28,7 @@ const seed = {
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'es-CO', timezoneId: 'America/Bogota' });
+  await conConsentimiento(ctx); // LEGAL-01: usuario que ya aceptó (ver legal-helper.js)
   const page = await ctx.newPage();
   await page.clock.install({ time: new Date('2026-10-21T23:50:00-05:00') });
   const errors = [];

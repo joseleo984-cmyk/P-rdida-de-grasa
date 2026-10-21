@@ -22,6 +22,9 @@ Sin dependencias ni servidor: todos los datos se guardan en el propio dispositiv
 - **Recomendaciones automáticas**: avisa de estancamientos, pérdida demasiado rápida,
   proteína baja, poco sueño o falta de entrenamiento.
 - **Datos**: exportar/importar JSON (respaldo, incluye las fotos) y exportar CSV.
+- **Términos y privacidad**: al primer uso (y si cambian los textos) se aceptan los Términos y la Política
+  y se autorizan aparte los datos de salud y las fotos. Se pueden revisar o retirar en Perfil → Privacidad.
+  Los textos (`legal/*.html`) se generan desde `equipo/legal/*.md` con `npm run legal` y funcionan sin conexión.
 - **Protección de datos**: al abrir, la app pide al navegador almacenamiento protegido y en
   Perfil → Datos muestra si lo está, el espacio usado y la fecha de la última copia.
   Si hay registros y han pasado 7 días o más sin copia, el panel muestra un aviso con

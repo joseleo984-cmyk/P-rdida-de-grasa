@@ -209,6 +209,38 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
 .backup-confirm p { margin: 0 0 10px; font-weight: 600; }
 .btn:focus-visible, .file-btn:focus-within { outline: 3px solid var(--goal); outline-offset: 2px; }
 
+/* LEGAL-01: consentimiento, privacidad y bloqueos */
+.consent { max-width: 760px; margin: 0 auto; padding: 16px; }
+body.consent-open main, body.consent-open .tabbar, body.consent-open .backup-confirm { display: none !important; }
+body.consent-open { padding-bottom: 16px; }
+.consent-update { padding: 10px 12px; border: 1px solid var(--goal); border-left-width: 4px; border-radius: 10px; }
+.consent-item { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.consent-item .check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.consent-item .check input { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--accent); }
+.consent-item p { margin: 6px 0 0 34px; }
+.legal-link { display: inline-block; margin: 6px 0 0 34px; padding: 6px 0; color: var(--accent); font-weight: 600; }
+.req, .opt { font-style: normal; color: var(--muted); font-size: .85em; }
+#form-consent .btn { margin-top: 8px; width: 100%; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+input[type=checkbox]:focus-visible, a:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.privacy-list { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0 0 12px; font-size: .9rem; }
+.privacy-list dt { color: var(--muted); }
+.privacy-list dd { margin: 0; }
+#privacy-card > .btn { margin-top: 4px; }
+.gate { display: none; }
+body.no-health .health-gate { display: block; }
+body.no-health #view-panel > :not(.health-gate), body.no-health #view-registro > :not(.health-gate),
+body.no-health #view-comidas > :not(.health-gate), body.no-health #view-fotos > :not(.health-gate),
+body.no-health .needs-health { display: none !important; }
+body.no-photos:not(.no-health) .photos-gate { display: block; }
+body.no-photos:not(.no-health) #view-fotos > :not(.photos-gate) { display: none !important; }
+.legal-dialog { border: 0; padding: 0; width: 100%; max-width: 760px; height: 100%; max-height: 100%; background: var(--card); color: var(--text); }
+.legal-dialog::backdrop { background: rgba(0,0,0,.6); }
+.legal-dialog[open] { display: flex; flex-direction: column; }
+.legal-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(10px + env(safe-area-inset-top)) 16px 10px; border-bottom: 1px solid var(--line); }
+.legal-bar h2 { margin: 0; font-size: 1rem; }
+.legal-dialog iframe { flex: 1; width: 100%; border: 0; background: var(--card); }
+
 @media (max-width: 420px) {
   .grid-form { grid-template-columns: 1fr; }
   .grid-form .span-2 { grid-column: span 1; }
