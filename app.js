@@ -1168,6 +1168,8 @@
     // Si al arrancar hubo un aviso de carga (datos corregidos, perfil a revisar…), se repite: quedó tras la pantalla legal.
     toast(loadNotice || 'Aceptación guardada');
     loadNotice = '';
+    // S3-2: punto de integración con la cuenta (account.js): tras la pantalla legal se ofrece crear cuenta o entrar.
+    document.dispatchEvent(new CustomEvent('pg:legal-accepted'));
   });
 
   function renderPrivacy() {

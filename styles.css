@@ -259,3 +259,25 @@ body.no-photos:not(.no-health) #view-fotos > :not(.photos-gate) { display: none 
 .coach-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
 .coach-table th, .coach-table td { text-align: left; padding: 6px 3px; border-bottom: 1px solid var(--line); }
 .coach-notes { padding-left: 18px; margin: 0; }
+
+/* S3-2: cuenta (crear / entrar con código) */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+body.account-open main, body.account-open .tabbar, body.account-open .backup-confirm { display: none !important; }
+body.account-open { padding-bottom: 16px; }
+.acc-label { display: block; font-weight: 600; margin: 12px 0 6px; }
+#account input[type=email], #account input[type=text] { width: 100%; font: inherit; font-size: 1.05rem; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+#acc-code { letter-spacing: .3em; font-variant-numeric: tabular-nums; }
+#account input:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.acc-main { width: 100%; margin-top: 12px; }
+.acc-error { margin: 8px 0 0; padding: 8px 10px; border-left: 4px solid var(--danger); background: var(--bg); color: var(--text); border-radius: 6px; }
+.acc-links { margin-top: 12px; align-items: center; }
+#btn-acc-skip { margin-top: 12px; }
+.acc-roles { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; }
+.acc-role { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.acc-role:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.acc-role input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+.acc-share { margin-top: 12px; padding: 12px; border: 1px solid var(--accent); border-radius: 10px; }
+.acc-share fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+.acc-share .check { display: flex; align-items: flex-start; gap: 10px; }
+.acc-share input { width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
+.acc-invite { font-size: 1.6rem; font-weight: 700; letter-spacing: .2em; text-align: center; padding: 12px; border: 2px dashed var(--accent); border-radius: 10px; }

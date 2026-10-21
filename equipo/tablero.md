@@ -32,9 +32,9 @@ Motivo: el Stakeholder considera que enviar datos por WhatsApp no da confianza �
 
 | Listo | En curso | En revisión | Hecho |
 |---|---|---|---|
-| | S3-2 Login con código de 6 dígitos + remote-fake — Dev Frontend | | S3-0 Contrato R1 + guía Supabase ✅ |
+| | | S3-2 Cuenta con código de 6 dígitos + remote-fake — pendiente QA | S3-0 Contrato R1 + guía Supabase ✅ |
 | | S3-3 Sincronización local-first (sync.js + saveMerged) — Dev Backend | S3-1 Base de datos + RLS (137 comprobaciones) — QA revisando seguridad | |
-| S3-4 Panel del coach: invitar por código, lista con semáforo, ficha, comentarios (Front) | | | |
+| | S3-4 Panel del coach: lista con semáforo, ficha, comentarios — Dev Frontend | | |
 | S3-5 Textos legales versión con cuentas + registro de consentimientos HU-P10 (Analista + Back) | | | |
 
 Bloqueos externos: proyecto Supabase (lo crea el Stakeholder con la guía de S3-0).

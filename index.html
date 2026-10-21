@@ -59,6 +59,82 @@
     </div>
   </section>
 
+  <!-- S3-2 (R1): crear cuenta / entrar con código. Solo aparece si hay servidor configurado (config.js) y
+       siempre DESPUÉS de la pantalla legal. Sin configuración la app funciona como antes, solo en el dispositivo. -->
+  <section id="account" class="consent hidden" aria-labelledby="account-title" data-testid="account-gate">
+    <div class="card">
+      <div id="acc-step-email" class="acc-step">
+        <h2 id="account-title" tabindex="-1">Crear cuenta o entrar</h2>
+        <p class="small">Con una cuenta tus datos se guardan también en el servidor y, si quieres, tu coach puede ver tu progreso sin que le envíes archivos.</p>
+        <form id="form-acc-email" novalidate>
+          <label class="acc-label" for="acc-email">Tu correo</label>
+          <input type="email" id="acc-email" name="email" autocomplete="email" inputmode="email" required maxlength="254" aria-describedby="acc-email-help acc-email-error">
+          <p id="acc-email-help" class="small muted">Te enviaremos un código de 6 dígitos. No usamos contraseña.</p>
+          <p id="acc-email-error" class="acc-error hidden" role="alert"></p>
+          <button type="submit" class="btn btn-tall acc-main">Enviarme el código</button>
+        </form>
+        <button type="button" class="btn-link small" id="btn-acc-skip">Ahora no: usar solo en este dispositivo</button>
+      </div>
+
+      <div id="acc-step-code" class="acc-step hidden">
+        <h2 id="acc-code-title" tabindex="-1">Escribe el código</h2>
+        <p class="small">Lo enviamos a <strong id="acc-code-email"></strong>. Puede tardar un minuto; revisa también el correo no deseado.</p>
+        <form id="form-acc-code" novalidate>
+          <label class="acc-label" for="acc-code">Código</label>
+          <input type="text" id="acc-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" pattern="\d{6,10}" required aria-describedby="acc-code-error">
+          <p id="acc-code-error" class="acc-error hidden" role="alert"></p>
+          <button type="submit" class="btn btn-tall acc-main">Entrar</button>
+        </form>
+        <div class="row-actions acc-links">
+          <button type="button" class="btn btn-ghost" id="btn-acc-resend" disabled>Reenviar código</button>
+          <button type="button" class="btn-link small" id="btn-acc-change">Usar otro correo</button>
+        </div>
+        <p id="acc-resend-hint" class="small muted" aria-live="polite"></p>
+      </div>
+
+      <div id="acc-step-role" class="acc-step hidden">
+        <h2 id="acc-role-title" tabindex="-1">¿Cómo vas a usar la app?</h2>
+        <form id="form-acc-role" novalidate>
+          <fieldset class="acc-roles">
+            <legend class="sr-only">Elige tu rol</legend>
+            <label class="check acc-role"><input type="radio" name="role" value="client"> <span><strong>Soy cliente</strong><br><span class="small muted">Registro mi progreso; puedo tener un coach.</span></span></label>
+            <label class="check acc-role"><input type="radio" name="role" value="coach"> <span><strong>Soy coach</strong><br><span class="small muted">Acompaño a mis clientes y veo su progreso.</span></span></label>
+          </fieldset>
+          <div id="acc-client-fields" class="hidden">
+            <label class="acc-label" for="acc-coach-code">Código de mi coach <span class="muted">(opcional)</span></label>
+            <input type="text" id="acc-coach-code" name="coachCode" autocomplete="off" autocapitalize="characters" maxlength="8" aria-describedby="acc-coach-help">
+            <p id="acc-coach-help" class="small muted">Te lo da tu coach. Puedes añadirlo después.</p>
+            <div id="acc-share" class="acc-share hidden">
+              <p id="acc-share-title"></p>
+              <fieldset>
+                <legend class="small">Qué podrá ver tu coach (lo puedes cambiar cuando quieras):</legend>
+                <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario para vincularte)</em></span></label>
+                <label class="check"><input type="checkbox" name="share_nutrition"> <span>Comidas del diario</span></label>
+                <label class="check"><input type="checkbox" name="share_habits"> <span>Hábitos (pasos, agua, sueño, entrenamiento)</span></label>
+                <label class="check"><input type="checkbox" name="share_notes"> <span>Notas de tus registros</span></label>
+              </fieldset>
+              <p class="small muted">Las fotos nunca se comparten salvo que lo autorices foto a foto (próximamente).</p>
+            </div>
+          </div>
+          <div id="acc-coach-fields" class="hidden">
+            <label class="acc-label" for="acc-business">Nombre comercial</label>
+            <input type="text" id="acc-business" name="business" autocomplete="organization" maxlength="60" aria-describedby="acc-business-help">
+            <p id="acc-business-help" class="small muted">Es lo que verán tus clientes al usar tu código (2 a 60 caracteres).</p>
+          </div>
+          <p id="acc-role-error" class="acc-error hidden" role="alert"></p>
+          <button type="submit" class="btn btn-tall acc-main" id="btn-acc-role">Continuar</button>
+        </form>
+      </div>
+
+      <div id="acc-step-done" class="acc-step hidden">
+        <h2 id="acc-done-title" tabindex="-1">Listo</h2>
+        <p id="acc-done-text"></p>
+        <p id="acc-done-code" class="acc-invite hidden"></p>
+        <button type="button" class="btn btn-tall acc-main" id="btn-acc-done">Ir a la app</button>
+      </div>
+    </div>
+  </section>
+
   <main>
     <!-- PANEL -->
     <section id="view-panel" class="view active" aria-labelledby="tab-panel">
@@ -300,6 +376,16 @@
         <p class="muted small">Gasto basal por Mifflin-St Jeor × factor de actividad. Proteína 2 g/kg, grasas ≥ 25 % de las calorías, el resto carbohidratos. Son estimaciones: ajústalas según tu tendencia real de peso cada 2–3 semanas.</p>
       </div>
 
+      <div class="card hidden" id="account-card">
+        <h2>Cuenta</h2>
+        <p id="account-status" class="small"></p>
+        <p id="account-extra" class="small muted"></p>
+        <div class="row-actions">
+          <button type="button" class="btn btn-ghost hidden" id="btn-account-login">Entrar o crear cuenta</button>
+          <button type="button" class="btn btn-ghost hidden" id="btn-account-logout">Cerrar sesión</button>
+        </div>
+      </div>
+
       <div class="card" id="privacy-card">
         <h2>Privacidad</h2>
         <dl id="privacy-list" class="privacy-list"></dl>
@@ -407,5 +493,8 @@
   <script src="coach.js"></script>
   <script src="photos.js"></script>
   <script src="app.js"></script>
+  <script src="config.js"></script>
+  <script src="remote.js"></script>
+  <script src="account.js"></script>
 </body>
 </html>
