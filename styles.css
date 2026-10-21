@@ -128,6 +128,12 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
 .file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .icon-btn { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 4px 8px; border-radius: 8px; }
 .icon-btn:hover { color: var(--danger); background: var(--line); }
+/* Repetir comidas (HU-02) */
+.btn-link { font: inherit; font-weight: 600; border: 0; background: transparent; color: var(--accent); cursor: pointer; padding: 6px 8px; border-radius: 8px; min-height: 32px; }
+.btn-link:hover { background: var(--line); }
+.btn-link:focus-visible, .icon-btn:focus-visible { outline: 3px solid var(--goal); outline-offset: 1px; }
+.meal-head { align-items: center; gap: 8px; }
+.meal-side { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
 .table-wrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: .88rem; font-variant-numeric: tabular-nums; }

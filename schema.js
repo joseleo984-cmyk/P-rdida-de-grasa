@@ -240,7 +240,51 @@
     return { photos, warnings };
   }
 
-  const api = { CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate };
+  // ---------- HU-02: repetir comidas ----------
+  // Suma `n` días a una fecha ISO (calendario puro, sin zona horaria). Lanza si la fecha no es válida.
+  function addDays(iso, n) {
+    if (!isISODate(iso) || !Number.isInteger(n)) throw new Error('Fecha no válida');
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+  }
+
+  // Copia los alimentos de `fromISO` a `toISO` (opcionalmente solo un bloque `opts.meal`).
+  // Pura: no muta `foods`; devuelve { foods, copied, skipped }. Las copias pasan por el mismo saneado que
+  // `normalize` y reciben ids nuevos que no chocan con ninguno existente. Se suman a lo que ya hay en destino.
+  function copyMeals(foods, fromISO, toISO, opts = {}) {
+    if (!isISODate(fromISO) || !isISODate(toISO)) throw new Error('Fecha no válida');
+    if (fromISO === toISO) throw new Error('El día de origen y el de destino son el mismo');
+    if (opts.meal !== undefined && !MEALS.includes(opts.meal)) throw new Error('Comida no válida');
+    const uid = opts.uid || defaultUid;
+    const src = isObj(foods) ? foods : dict();
+    const out = dict();
+    const ids = new Set();
+    for (const k of Object.keys(src)) {
+      if (!Array.isArray(src[k])) continue;
+      out[k] = src[k].slice();
+      for (const x of src[k]) if (isObj(x) && typeof x.id === 'string') ids.add(x.id);
+    }
+    const from = Array.isArray(src[fromISO]) ? src[fromISO] : [];
+    const picked = opts.meal ? from.filter((x) => isObj(x) && x.meal === opts.meal) : from;
+    const fresh = () => {
+      for (let i = 0; i < 100; i++) {
+        const id = uid();
+        if (typeof id === 'string' && ID_RE.test(id) && !ids.has(id)) return id;
+      }
+      throw new Error('No se pudo generar un id único');
+    };
+    let skipped = 0;
+    const copies = [];
+    for (const x of picked) {
+      // Id vacío fuerza a normalizeFood a generar uno nuevo y único.
+      const item = normalizeFood(isObj(x) ? { ...x, id: '' } : x, toISO, () => {}, fresh, ids);
+      if (item) copies.push(item); else skipped++;
+    }
+    if (copies.length) out[toISO] = (out[toISO] || []).concat(copies);
+    return { foods: out, copied: copies.length, skipped };
+  }
+
+  const api = { CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Schema = api;
 })(typeof window !== 'undefined' ? window : globalThis);
