@@ -128,3 +128,55 @@ test('textos legales sin marcadores por rellenar ([NOMBRE COMPLETO], [CORREO]…
     expect(txt.match(/\[[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ ]{2,}[^\]]*\]/g) || [], f).toEqual([]);
   }
 });
+
+// ---- Re-verificación de las correcciones (b3aeeba) ----
+
+// S2-1 D3 (re-verificación): la importación escribe las fotos del respaldo en IndexedDB aunque no estén autorizadas.
+test('importar con fotos NO las escribe si las fotos no están autorizadas', async ({ app, page }) => {
+  test.fail(true, 'S2-1 D3: importar guarda fotos sin autorización de fotos');
+  await app.open({ state: state({ consent: { ...CONSENT, photos: false } }) });
+  await app.importJSON(FIXTURE_V1);
+  // Sin autorización la app no lee IndexedDB (O4): se consulta directamente.
+  const n = await page.evaluate(() => new Promise((res) => {
+    const r = indexedDB.open('perdida-grasa');
+    r.onsuccess = () => {
+      const db = r.result;
+      if (!db.objectStoreNames.length) { res(0); return; }
+      const st = db.transaction(db.objectStoreNames[0]).objectStore(db.objectStoreNames[0]).count();
+      st.onsuccess = () => res(st.result);
+    };
+    r.onerror = () => res(-1);
+  }));
+  expect(n, 'fotos de un respaldo guardadas sin autorización de fotos').toBe(0);
+});
+
+test('"Deshacer" de una copia tras retirar la autorización de salud no escribe', async ({ app, page }) => {
+  await app.open({ state: state({ consent: CONSENT, foods: { [D(1)]: [f('y1', 'Avena', 'Desayuno', 300)] } }) });
+  await app.tab('comidas');
+  await page.locator('#btn-copy-prev').click();
+  await expect(app.toast().getByRole('button', { name: 'Deshacer' })).toBeVisible();
+  const deshacer = await app.toast().getByRole('button', { name: 'Deshacer' }).elementHandle();
+  // Retirar salud sin pasar por la UI de Privacidad (equivale a hacerlo en otra pestaña antes de los 6 s).
+  await page.evaluate(() => document.querySelector('#btn-toggle-health').click());
+  expect((await app.stored()).consent.sensitiveHealth).toBe(false);
+  const after = JSON.stringify((await app.stored()).foods);
+  expect(JSON.parse(after)[D(0)]).toHaveLength(1);
+  await deshacer.evaluate((b) => b.click());
+  expect(JSON.stringify((await app.stored()).foods)).toBe(after);
+});
+
+test('textos legales de la fase piloto: legibles a 390 px, sin desbordes y con anclas que llevan a su sección', async ({ app, page }) => {
+  await app.open({ legal: false });
+  for (const [link, anchor, heading] of [['Qué datos y para qué', 's5', /Datos sensibles/], ['Por qué solo mayores de 18', 's7', /Menores de edad/]]) {
+    await page.getByRole('link', { name: link }).click();
+    const fr = page.frameLocator('#legal-frame');
+    await expect(fr.locator('h1')).toBeVisible();
+    await expect(fr.locator(`#${anchor}`)).toHaveText(heading);
+    await expect(fr.locator(`#${anchor}`)).toBeInViewport();
+    const ov = await fr.locator('body').evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(ov, 'scroll horizontal en el texto legal').toBeLessThanOrEqual(0);
+    await expect(fr.locator('body')).toContainText('sin servidor');
+    await expect(fr.locator('body')).not.toContainText(/Dudas para el abogado/i);
+    await page.locator('#legal-close').click();
+  }
+});
