@@ -131,6 +131,12 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
 /* Repetir comidas (HU-02) */
 .btn-link { font: inherit; font-weight: 600; border: 0; background: transparent; color: var(--accent); cursor: pointer; padding: 6px 8px; border-radius: 8px; min-height: 32px; }
 .btn-link:hover { background: var(--line); }
+.btn-tall { min-height: 44px; }
+.toast.has-action { pointer-events: auto; display: flex; align-items: center; gap: 12px; width: max-content; border-radius: 14px; }
+.toast-action { font: inherit; font-weight: 700; border: 0; background: transparent; color: inherit; text-decoration: underline; cursor: pointer; padding: 6px 4px; min-height: 32px; }
+.toast-action:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.toast:not(.show) .toast-action { visibility: hidden; }
+[tabindex="-1"]:focus:not(:focus-visible) { outline: none; }
 .btn-link:focus-visible, .icon-btn:focus-visible { outline: 3px solid var(--goal); outline-offset: 1px; }
 .meal-head { align-items: center; gap: 8px; }
 .meal-side { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }

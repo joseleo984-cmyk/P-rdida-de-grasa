@@ -54,8 +54,13 @@ const box = (page, sel) => page.locator(sel).first().boundingBox();
     await setDay(page, D17);
     const before = dialogs.length;
     let taps = 1; // cambiar fecha
-    for (const m of ['Desayuno', 'Almuerzo', 'Cena', 'Snack']) { await page.click(`[data-repeat-meal="${m}"]`); taps++; await page.waitForTimeout(50); }
+    // Decisión SM sobre D1: al mirar un día pasado hay "Copiar este día a hoy" (antes: 4 × "Repetir hoy").
+    await page.click('#btn-copy-to-today'); taps++;
     const f = await foods(page);
+    log('C2b: "Deshacer" en el toast quita la copia', /deshacer/i.test(await toast(page)));
+    await page.click('#toast .toast-action');
+    log('C2c: tras "Deshacer" hoy vuelve a estar vacío', !((await foods(page))[D21] || []).length);
+    await page.click('#btn-copy-to-today');
     log('C2: copiar el día 17 completo a hoy copia los 4 bloques', (f[D21] || []).length === 4, `toques=${taps}, confirm()=${dialogs.length - before}`);
     log('C2: …pero exige ≥ 5 toques + 3 confirm() (métrica "1–2 toques")', taps + (dialogs.length - before) <= 2, `toques=${taps} + confirm=${dialogs.length - before}`);
 
@@ -139,6 +144,8 @@ const box = (page, sel) => page.locator(sel).first().boundingBox();
     log('R1: la barra aparece y el foco va a "Sí"', (await vis()) && (await page.evaluate(() => document.activeElement.id)) === 'btn-backup-yes');
     await page.keyboard.press('Escape');
     log('R1b: Escape cierra la barra (= "No")', !(await vis()), 'sigue visible=' + (await vis()));
+    // Escape ya cierra la barra: se vuelve a abrir para comprobar R1c-R1e.
+    await Promise.all([page.waitForEvent('download'), page.click('#btn-export')]);
     const bar = await box(page, '#backup-confirm');
     const nav = await box(page, 'nav');
     log('R1c: la barra no tapa la barra de pestañas', bar && nav && bar.y + bar.height <= nav.y + 1, `bar.bottom=${bar && Math.round(bar.y + bar.height)} nav.top=${nav && Math.round(nav.y)}`);
