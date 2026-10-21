@@ -853,6 +853,7 @@
     await loadPhotos();
     profileForm.reset();
     fillProfileForm();
+    document.dispatchEvent(new CustomEvent('pg:data-reset')); // S3-2 O1: los datos del teléfono ya no tienen dueño
     if (photosOk) toast('Datos borrados');
     else toast('Se borraron los datos, pero no las fotos. Inténtalo de nuevo', true);
     render();

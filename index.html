@@ -126,6 +126,21 @@
         </form>
       </div>
 
+      <!-- S3-2 O1: los datos de este teléfono tienen dueño. Nunca se mezclan los de dos cuentas. -->
+      <div id="acc-step-owner" class="acc-step hidden">
+        <h2 id="acc-owner-title" tabindex="-1">¿Estos datos son tuyos?</h2>
+        <p>Este teléfono ya tiene registros que se hicieron sin cuenta. Si son tuyos, se guardarán en tu cuenta. Si no, empieza de cero: se borrarán de este teléfono (exporta antes una copia si alguien los necesita).</p>
+        <button type="button" class="btn btn-tall acc-main" id="btn-owner-mine">Sí, son míos: guardarlos en mi cuenta</button>
+        <button type="button" class="btn btn-ghost btn-tall acc-main" id="btn-owner-fresh">No: empezar de cero en esta cuenta</button>
+      </div>
+
+      <div id="acc-step-other" class="acc-step hidden">
+        <h2 id="acc-other-title" tabindex="-1">Este teléfono tiene datos de otra cuenta</h2>
+        <p>Para proteger esos datos no se mezclan con los tuyos. Cierra sesión para que la otra persona siga usando este teléfono, o borra sus datos de aquí para usar tu cuenta.</p>
+        <button type="button" class="btn btn-tall acc-main" id="btn-other-logout">Cerrar sesión</button>
+        <button type="button" class="btn btn-danger btn-tall acc-main" id="btn-other-wipe">Borrar los datos de este teléfono y continuar</button>
+      </div>
+
       <div id="acc-step-done" class="acc-step hidden">
         <h2 id="acc-done-title" tabindex="-1">Listo</h2>
         <p id="acc-done-text"></p>

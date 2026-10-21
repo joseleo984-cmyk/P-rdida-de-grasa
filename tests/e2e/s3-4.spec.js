@@ -24,6 +24,7 @@ async function loginAs(page, email, { coach, displayName } = {}) {
     let c = null;
     if (coach) { await r.coach.becomeCoach(coach); c = await r.coach.myCoach(); }
     localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: await r.account.roles(), onboarded: true, coach: c }));
+    localStorage.setItem('perdida-grasa:owner', user.id); // los datos locales son de esta cuenta (S3-2 O1)
   }, { email, coach, displayName });
   await page.reload();
   await acceptLegalIfPresent(page);

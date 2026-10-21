@@ -19,13 +19,12 @@
     }
   }
 
-  // ¿Se permite el modo falso en esta página? Solo en localhost, o con ?remote=fake fuera de producción.
+  // ¿Se permite el modo falso en esta página? LISTA BLANCA (QA S3-2 D2): solo localhost / 127.0.0.1 / [::1].
+  // Nunca en producción, en un dominio propio, en un fork ni en vistas previas, aunque lleven ?remote=fake.
   function fakeAllowed(loc) {
     if (!loc) return false;
     const host = String(loc.hostname || '');
-    if (PRODUCTION_HOSTS.includes(host)) return false;
-    const param = /[?&]remote=fake(&|$)/.test(String(loc.search || ''));
-    return LOCAL_HOSTS.includes(host) || param;
+    return !PRODUCTION_HOSTS.includes(host) && LOCAL_HOSTS.includes(host);
   }
 
   // Devuelve la configuración efectiva o null (sin servidor). `env` permite probarlo en Node.

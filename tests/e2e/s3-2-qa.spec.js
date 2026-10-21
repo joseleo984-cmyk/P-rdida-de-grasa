@@ -1,6 +1,7 @@
 // S3-2 · casos adversariales de QA: producción sin config (también con ?remote=fake), modo falso fuera de localhost,
 // XSS en nombres que vienen del servidor, consentimientos que se envían al entrar, cerrar sesión y SW.
 const { test, expect, state, CONSENT } = require('./helpers');
+const { answerOwnerIfAsked, wipeOtherAndContinue } = require('./helpers');
 
 const FAKE = 'index.html?remote=fake';
 const acc = (page) => page.getByTestId('account-gate');
@@ -13,6 +14,7 @@ async function enterEmail(page, email) {
 async function enterCode(page, email) {
   await page.getByLabel('Código', { exact: true }).fill(await lastCode(page, email.toLowerCase()));
   await page.getByRole('button', { name: 'Entrar' }).click();
+  await answerOwnerIfAsked(page);
 }
 // Sirve la app local bajo otro origen (p. ej. el de GitHub Pages) para probar la lógica que depende del host.
 async function serveAs(page, origin, prefix = '/') {
@@ -49,10 +51,9 @@ test('producción con config.js en mode "fake" (error al publicar): sigue sin cu
   await expect(acc(page)).toBeHidden();
 });
 
-// S3-2 D2: fakeAllowed es una LISTA NEGRA (solo excluye joseleo984-cmyk.github.io). En cualquier otro host
+// S3-2 D2 (corregido: ahora es lista blanca de localhost). Antes: fakeAllowed era una LISTA NEGRA (solo excluía joseleo984-cmyk.github.io). En cualquier otro host
 // (dominio propio, fork, vista previa) ?remote=fake activa el servidor falso. Debería ser lista blanca (localhost).
 test('host distinto de localhost (dominio propio, fork) con ?remote=fake: el modo falso NO se activa', async ({ app, page }) => {
-  test.fail(true, 'S3-2 D2: fakeAllowed usa lista negra de hosts');
   const OTHER = 'https://perdida-grasa.example.org';
   await serveAs(page, OTHER);
   await app.open({ path: `${OTHER}/index.html?remote=fake`, state: state({ consent: CONSENT }) });
@@ -74,9 +75,11 @@ test('XSS: nombre comercial y correo con HTML se muestran como texto en todas la
   await app.tab('perfil');
   await expect(page.locator('#account-status')).toContainText('<svg/onload=window.__x=2>@x.co');
   await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+  await page.locator('#form-logout').getByRole('button', { name: 'Cerrar sesión' }).click(); // S3-4: "No borrar" por defecto
   await page.getByRole('button', { name: 'Entrar o crear cuenta' }).click();
   await enterEmail(page, 'cli@x.co');
   await enterCode(page, 'cli@x.co');
+  await wipeOtherAndContinue(page); // S3-2 O1: otra cuenta en el mismo teléfono
   await page.getByLabel(/Soy cliente/).check();
   await page.getByLabel(/Código de mi coach/).fill(invite);
   await page.getByRole('button', { name: 'Comprobar código' }).click();
@@ -125,10 +128,9 @@ test('al entrar se registra la aceptación local UNA sola vez (sin duplicar al r
   test.info().annotations.push({ type: 'eventos', description: JSON.stringify(calls[0] || []) });
 });
 
-// S3-2 D1: el servidor real (S3-1) exige text_hash (SHA-256 del texto aceptado) en cada consent_event; account.js
+// S3-2 D1 (corregido: textHash en cada evento, y el fake lo exige). El servidor real (S3-1) exige text_hash (SHA-256 del texto aceptado) en cada consent_event; account.js
 // no lo envía y remote-fake.js no lo exige, así que con el servidor real el registro fallará siempre (en silencio).
 test('los consentimientos enviados al entrar llevan textHash (contrato S3-1: text_hash obligatorio)', async ({ app, page }) => {
-  test.fail(true, 'S3-2 D1: recordConsents sin textHash');
   await page.addInitScript(spyConsents);
   await app.open({ path: FAKE, state: state({ consent: CONSENT }) });
   await enterEmail(page, 'h@x.co');
@@ -149,6 +151,7 @@ test('cerrar sesión sin conexión: se cierra igual y los datos siguen', async (
   await page.evaluate(() => window.__pgFakeBackend.setOnline(false));
   await app.tab('perfil');
   await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+  await page.locator('#form-logout').getByRole('button', { name: 'Cerrar sesión' }).click(); // S3-4: "No borrar" por defecto
   await expect(page.locator('#account-status')).toContainText('Sin cuenta');
   await app.reload();
   // Sin sesión vuelve a ofrecerse la pantalla de cuenta (comportamiento previsto); "Ahora no" lleva a la app.

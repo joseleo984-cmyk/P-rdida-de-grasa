@@ -1,6 +1,7 @@
 // S3-2 (R1): crear cuenta / entrar con código, sesión persistente y rol, contra el servidor FALSO (sin red).
 // ?remote=fake activa remote-fake.js (solo en localhost); el código OTP se lee de window.__pgFakeBackend.
 const { test, expect, state, CONSENT } = require('./helpers');
+const { answerOwnerIfAsked, wipeOtherAndContinue } = require('./helpers');
 
 const FAKE = 'index.html?remote=fake';
 const acc = (page) => page.getByTestId('account-gate');
@@ -14,6 +15,7 @@ async function enterEmail(page, email) {
 async function enterCode(page, email) {
   await page.getByLabel('Código', { exact: true }).fill(await lastCode(page, email.toLowerCase()));
   await page.getByRole('button', { name: 'Entrar' }).click();
+  await answerOwnerIfAsked(page);
 }
 
 test('sin servidor configurado la app es la de siempre: sin pantalla ni tarjeta de cuenta', async ({ app, page }) => {
@@ -137,6 +139,7 @@ test('coach: nombre comercial → código de invitación; un cliente se vincula 
   await page.getByRole('button', { name: 'Entrar o crear cuenta' }).click();
   await enterEmail(page, 'cli@x.co');
   await enterCode(page, 'cli@x.co');
+  await wipeOtherAndContinue(page); // S3-2 O1: los datos del coach no se mezclan con la cuenta del cliente
   await page.getByLabel(/Soy cliente/).check();
   await page.getByLabel(/Código de mi coach/).fill('ZZZZZZ');
   await page.getByRole('button', { name: 'Comprobar código' }).click();
@@ -179,4 +182,67 @@ test('sin conexión al pedir el código: mensaje claro y la app sigue usable', a
   await expect(page.locator('#acc-email-error')).toHaveText(/Sin conexión/);
   await page.getByRole('button', { name: /Ahora no/ }).click();
   await expect(page.locator('.tabbar')).toBeVisible();
+});
+
+// ---------- QA S3-2 O1: los datos del teléfono tienen dueño ----------
+const consentsOf = async (page, email) => {
+  const be = await backend(page);
+  const u = be.users[email];
+  return u ? be.consentEvents.filter((e) => e.userId === u.id) : [];
+};
+async function codeOnly(page, email) {
+  await enterEmail(page, email);
+  await page.getByLabel('Código', { exact: true }).fill(await lastCode(page, email));
+  await page.getByRole('button', { name: 'Entrar' }).click();
+}
+
+test('O1-a: datos sin dueño → "¿Estos datos son tuyos?" → Sí: quedan a nombre de la cuenta y se registra su aceptación', async ({ app, page }) => {
+  await app.open({ path: FAKE, state: state({ consent: CONSENT }) });
+  await codeOnly(page, 'a@x.co');
+  await expect(page.locator('#acc-step-owner')).toBeVisible();
+  await expect(page.locator('#acc-owner-title')).toBeFocused();
+  expect(await consentsOf(page, 'a@x.co')).toHaveLength(0); // aún no: no se sabe si es su aceptación
+  await page.getByRole('button', { name: /Sí, son míos/ }).click();
+  await expect(page.locator('#acc-step-role')).toBeVisible();
+  const be = await backend(page);
+  expect(await page.evaluate(() => localStorage.getItem('perdida-grasa:owner'))).toBe(be.users['a@x.co'].id);
+  await expect.poll(async () => (await consentsOf(page, 'a@x.co')).length).toBe(4);
+  expect((await app.stored()).entries).toHaveLength(1);
+});
+
+test('O1-a: "No: empezar de cero" borra los datos del teléfono y pide la aceptación legal de ESTA persona', async ({ app, page }) => {
+  await app.open({ path: FAKE, state: state({ consent: CONSENT }) });
+  await codeOnly(page, 'b@x.co');
+  await page.getByRole('button', { name: /empezar de cero/ }).click();
+  await expect(page.getByTestId('legal-gate')).toBeVisible();
+  expect(await consentsOf(page, 'b@x.co')).toHaveLength(0);
+  for (const n of ['terms', 'privacy', 'adult']) await page.locator(`#form-consent [name=${n}]`).check();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(page.locator('#acc-step-role')).toBeVisible(); // sigue con su cuenta
+  const s = await app.stored();
+  expect(s.entries).toHaveLength(0);
+  expect(s.consent.acceptedAt).not.toBe(CONSENT.acceptedAt);
+  await expect.poll(async () => (await consentsOf(page, 'b@x.co')).length).toBe(4);
+  const ev = await consentsOf(page, 'b@x.co');
+  expect(ev.find((e) => e.kind === 'sensitive_health').granted).toBe(false); // lo que marcó ella, no lo de antes
+  expect(await page.evaluate(() => localStorage.getItem('perdida-grasa:owner'))).toBe((await backend(page)).users['b@x.co'].id);
+});
+
+test('O1-b: datos de OTRA cuenta → no se mezclan ni se registra nada; "Cerrar sesión" los deja intactos', async ({ app, page }) => {
+  const OTHER = '00000000-0000-4000-8000-0000000000aa';
+  await app.open({ path: FAKE, state: state({ consent: CONSENT }), prefs: { 'perdida-grasa:owner': OTHER } });
+  await codeOnly(page, 'c@x.co');
+  await expect(page.locator('#acc-step-other')).toBeVisible();
+  await expect(page.locator('#acc-other-title')).toBeFocused();
+  expect(await consentsOf(page, 'c@x.co')).toHaveLength(0);
+  // Si se cierra la app en esta pantalla, al reabrir con la sesión tampoco se mezclan.
+  await app.reload();
+  await expect(page.locator('#acc-step-other')).toBeVisible();
+  expect(await consentsOf(page, 'c@x.co')).toHaveLength(0);
+  await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+  await expect(acc(page)).toBeHidden();
+  await app.tab('perfil');
+  await expect(page.locator('#account-status')).toContainText('Sin cuenta');
+  expect((await app.stored()).entries).toHaveLength(1);
+  expect(await page.evaluate(() => localStorage.getItem('perdida-grasa:owner'))).toBe(OTHER);
 });

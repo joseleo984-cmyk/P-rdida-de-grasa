@@ -32,7 +32,8 @@ test('config: el modo falso NUNCA se activa en el dominio de producción', () =>
   assert.strictEqual(Remote.config({ location: prod, PG_CONFIG: { mode: 'fake' } }), null);
   assert.strictEqual(Remote.config({ location: { hostname: 'localhost', search: '?remote=fake' } }).mode, 'fake');
   assert.strictEqual(Remote.config({ location: { hostname: '127.0.0.1', search: '' }, PG_CONFIG: { mode: 'fake' } }).mode, 'fake');
-  assert.strictEqual(Remote.config({ location: { hostname: 'staging.example.org', search: '?remote=fake' } }).mode, 'fake');
+  assert.strictEqual(Remote.config({ location: { hostname: 'staging.example.org', search: '?remote=fake' } }), null, 'lista blanca: solo localhost');
+  assert.strictEqual(Remote.config({ location: { hostname: 'otro-usuario.github.io', search: '?remote=fake' } }), null);
   assert.strictEqual(Remote.config({ location: { hostname: 'staging.example.org', search: '' }, PG_CONFIG: { mode: 'fake' } }), null);
 });
 

@@ -85,7 +85,7 @@
     }
     form.setAttribute('aria-busy', on ? 'true' : 'false');
   }
-  const STEPS = ['email', 'code', 'role', 'done'];
+  const STEPS = ['email', 'code', 'owner', 'other', 'role', 'done'];
   function step(name, focusSel) {
     for (const s of STEPS) $('#acc-step-' + s).classList.toggle('hidden', s !== name);
     const f = $(focusSel || `#acc-step-${name} h2`);
@@ -180,15 +180,75 @@
       if (roles.includes('coach')) { meta.onboarded = true; meta.coach = await remote.coach.myCoach().catch(() => meta.coach || null); }
       writeMeta(meta);
       ls.del(SKIP_KEY);
-      await sendConsents();
-      if (meta.onboarded) { finish(roles.includes('coach') ? 'coach' : 'client'); return; }
-      $('#form-acc-role').reset();
-      updateRoleFields();
-      step('role');
+      await afterLogin(user.id);
     } catch (err) {
       showError('#acc-code-error', errorText(err, 'code'));
       $('#acc-code').focus();
     } finally { busy(form, false); }
+  });
+
+  // ---------- Dueño de los datos del teléfono (QA S3-2 O1, decisión del SM) ----------
+  // perdida-grasa:owner = userId de la cuenta a la que pertenecen los datos locales (contrato §5.2/§5.6).
+  // - Sin datos locales → la cuenta que entra es la dueña.
+  // - Datos sin dueño (uso previo sin cuenta) → "¿Estos datos son tuyos?": guardarlos en la cuenta / empezar de cero.
+  // - Datos de OTRA cuenta → nunca se mezclan: cerrar sesión o borrar los datos del teléfono.
+  // sync.js (S3-3) solo debe subir datos si owner === cuenta actual.
+  const OWNER_KEY = 'perdida-grasa:owner';
+  let pendingOwner = null;
+  function hasLocalData() {
+    try {
+      const s = JSON.parse(ls.get(STATE_KEY) || 'null');
+      if (!s || typeof s !== 'object') return false;
+      const n = (o) => (o && typeof o === 'object' ? Object.keys(o).length : 0);
+      return !!s.profile || (Array.isArray(s.entries) && s.entries.length > 0) || n(s.foods) > 0 || n(s.habits) > 0;
+    } catch { return false; }
+  }
+  // 'ok' | 'unowned' | 'other'
+  function ownership(userId) {
+    const owner = ls.get(OWNER_KEY);
+    if (owner === userId) return 'ok';
+    if (!hasLocalData()) { ls.set(OWNER_KEY, userId); return 'ok'; }
+    return owner ? 'other' : 'unowned';
+  }
+  async function afterLogin(userId) {
+    const own = ownership(userId);
+    if (own === 'unowned') { step('owner'); return; }
+    if (own === 'other') { step('other'); return; }
+    await continueOnboarding();
+  }
+  async function continueOnboarding() {
+    const meta = readMeta() || {};
+    await sendConsents();
+    if (meta.onboarded) { finish((meta.roles || []).includes('coach') ? 'coach' : 'client'); return; }
+    $('#form-acc-role').reset();
+    updateRoleFields();
+    step('role');
+  }
+  // Borra los datos del teléfono con el "Borrar todo" de la app (pide su confirmación). Al terminar (evento
+  // pg:data-reset) los datos quedan a nombre de esta cuenta y la pantalla legal pide la aceptación de ESTA persona.
+  function wipeFor(userId) {
+    pendingOwner = userId;
+    closeScreen();
+    $('#btn-reset').click();
+  }
+  document.addEventListener('pg:data-reset', () => {
+    ls.del(OWNER_KEY);
+    if (pendingOwner) { ls.set(OWNER_KEY, pendingOwner); pendingOwner = null; }
+    writeMeta(readMeta() ? { ...readMeta(), consentsSent: null } : null);
+  });
+  $('#btn-owner-mine').addEventListener('click', async () => {
+    const meta = readMeta();
+    if (!meta) return;
+    ls.set(OWNER_KEY, meta.userId);
+    await continueOnboarding();
+  });
+  $('#btn-owner-fresh').addEventListener('click', () => { const meta = readMeta(); if (meta) wipeFor(meta.userId); });
+  $('#btn-other-wipe').addEventListener('click', () => { const meta = readMeta(); if (meta) wipeFor(meta.userId); });
+  $('#btn-other-logout').addEventListener('click', async () => {
+    await remote.auth.signOut({ local: true });
+    writeMeta(null);
+    closeScreen();
+    toast('Sesión cerrada: los datos de este teléfono siguen intactos');
   });
 
   // ---------- Paso 3: rol ----------
@@ -272,6 +332,8 @@
     let c = null;
     try { c = (JSON.parse(ls.get(STATE_KEY) || 'null') || {}).consent; } catch { c = null; }
     if (!meta || Schema.consentStatus(c) !== 'ok') return;
+    // Solo la aceptación de la persona dueña de los datos de este teléfono (QA S3-2 O1-c).
+    if (ls.get(OWNER_KEY) !== meta.userId) return;
     const tag = `${c.termsVersion}|${c.privacyVersion}|${c.sensitiveHealth}|${c.updatedAt}`;
     if (meta.consentsSent === tag) return;
     const at = c.acceptedAt;
@@ -412,6 +474,8 @@
     const s = await remote.auth.session();
     const meta = readMeta();
     if (s && meta && meta.userId === s.user.id) {
+      const own = ownership(s.user.id);
+      if (own !== 'ok') { openScreen(own === 'other' ? 'other' : 'owner'); return; }
       if (!meta.onboarded) { openScreen('role'); updateRoleFields(); }
       return;
     }
