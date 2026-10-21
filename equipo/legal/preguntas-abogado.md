@@ -33,9 +33,10 @@
 - ¿Basta la **declaración de mayoría de edad** o hay que verificarla?
 
 ### P4. WhatsApp como canal de envío en el piloto
-Los archivos con datos de salud y fotos pasan por WhatsApp (Meta). ¿Hay que informarlo como transmisión a un tercero o en el exterior? ¿Es aceptable si es el **titular** quien envía el archivo? ¿Recomiendas otro canal?
+Los archivos con datos de salud y fotos pasan por WhatsApp (Meta). ¿Hay que informarlo como transmisión a un tercero o en el exterior? ¿Es aceptable si es el **titular** quien envía el archivo? ¿Recomiendas otro canal? La Política (§6.2) lo presenta como **canal elegido por el titular**, con aviso de que Meta tiene sus propias condiciones y puede tratar información fuera de Colombia. ¿Es suficiente? ¿Y es correcto tratar la carpeta privada en la nube donde el responsable guarda los archivos recibidos (p. ej. Google Drive) como transmisión a un encargado?
 
 ### P5. Revisión general de los textos
+**Actualizado (rev. 2):** los textos vigentes describen **solo la fase piloto** (sin servidor, datos en el teléfono, envío por WhatsApp). Lo de Supabase, el panel del coach y los pagos pasó a una sección "Cambios previstos para la versión con cuentas (R1)", que exigirá aceptar de nuevo. ¿Es correcto tener una **versión piloto** y otra para R1, o conviene un solo texto que cubra ambas? ¿Debe quedar en los textos vigentes la sección de cambios previstos, o solo se informa cuando llegue R1?
 Revisar y ajustar `terminos-y-condiciones.md`, `politica-tratamiento-datos.md` y el §8 del piloto: estructura exigida (art. 2.2.2.25.3.1 del Decreto 1074: identificación, tratamiento y finalidad, derechos, área de atención, procedimiento, vigencia), plazos de consultas y reclamos, y lenguaje claro.
 
 ---
@@ -43,6 +44,7 @@ Revisar y ajustar `terminos-y-condiciones.md`, `politica-tratamiento-datos.md` y
 ## 🟠 Bloquean R1 (servidor)
 
 ### P6. Transmisión internacional a Supabase (EE. UU.)
+*(Ya no figura en los textos vigentes del piloto: está en la sección de cambios previstos para R1 y exigirá aceptar de nuevo.)*
 - Supabase actúa como encargado → ¿**transmisión** (arts. 2.2.2.25.5.1–2)? ¿Sirve su **DPA estándar** como contrato de transmisión, o hay que añadir cláusulas?
 - ¿Sigue vigente que EE. UU. tenga nivel adecuado según la SIC (Circular Externa 005 de 2017)? ¿Hace falta una **declaración de conformidad** ante la SIC o basta con la autorización expresa del titular?
 - ¿Cambia algo si elegimos la región de **São Paulo** en vez de Virginia?

@@ -1,98 +1,99 @@
 > ⚠️ **Borrador — debe revisarlo un abogado antes de usarse con datos reales; no es asesoría legal.**
-> Autor: Agente Analista de Producto · 2026-10-21 · Los `[CAMPOS]` en corchetes y mayúsculas deben completarse. Las notas en *cursiva* marcadas "NOTA" son internas y se quitan antes de publicar.
+> Autor: Agente Analista de Producto · 2026-10-21 · Edición **piloto** (rev. 2): describe la app **sin servidor**. Lo previsto para la versión con cuentas está en §13 y exigirá aceptar de nuevo. Las notas en *cursiva* marcadas "NOTA" son internas: no se publican (`npm run legal` las quita).
+> Número de versión: sigue en 0.1 hasta que Dev actualice `LEGAL_VERSIONS` en `schema.js` (ver la nota de versión al final). Al publicarla, cambiar a **0.2-piloto**.
+>
+> **Datos que debe completar el Stakeholder** (buscar y reemplazar cada marcador; no debe quedar ninguno):
+>
+> | Marcador | Qué poner | Ejemplo |
+> |---|---|---|
+> | `[NOMBRE COMPLETO DEL RESPONSABLE]` | Nombre y apellidos tal como aparecen en la cédula | Ana María Pérez Gómez |
+> | `[NÚMERO DE CÉDULA]` | Cédula de ciudadanía | 1.234.567.890 |
+> | `[DIRECCIÓN]` | Dirección de notificación | Calle 1 # 2-3, apto 4 |
+> | `[CIUDAD]` | Ciudad de domicilio | Medellín |
+> | `[CORREO DE DATOS PERSONALES]` | Correo donde se reciben consultas y reclamos (revisado al menos 2 veces por semana) | datos@… |
+> | `[TELÉFONO / WHATSAPP]` | Número de contacto | +57 3xx xxx xxxx |
+> | `[FECHA DE VIGENCIA]` | Día en que se publica esta versión | 1 de noviembre de 2026 |
+> | `[FECHA DE BORRADO DEL PILOTO]` | Fecha límite para borrar los archivos recibidos | 30 días después del fin del piloto |
+> | `[UBICACIÓN DE LOS ARCHIVOS…]` | Dónde guarda el responsable los archivos recibidos (sustituir todo el marcador) | Carpeta privada de Google Drive |
 
 # Política de Tratamiento de Datos Personales — "Pérdida de Grasa"
 
-**Versión:** 0.1 (borrador) · **Fecha de entrada en vigencia:** [FECHA] · **Normas:** Ley Estatutaria 1581 de 2012 y Decreto 1377 de 2013, compilado en el Decreto Único 1074 de 2015 (Libro 2, Parte 2, Título 2, Capítulo 25), y demás normas que los modifiquen o complementen.
+**Versión:** 0.1 · **Edición:** piloto, sin servidor · **Vigente desde:** [FECHA DE VIGENCIA]
+
+**Normas:** Ley Estatutaria 1581 de 2012 y Decreto 1377 de 2013, compilado en el Decreto Único 1074 de 2015 (Libro 2, Parte 2, Título 2, Capítulo 25), y demás normas que los modifiquen o complementen.
 
 ## 1. ¿Quién es el responsable de tus datos?
 
 | | |
 |---|---|
-| **Responsable del tratamiento** | [NOMBRE COMPLETO], persona natural |
-| **Cédula de ciudadanía** | [NÚMERO] |
+| **Responsable del tratamiento** | [NOMBRE COMPLETO DEL RESPONSABLE], persona natural |
+| **Cédula de ciudadanía** | [NÚMERO DE CÉDULA] |
 | **Domicilio y dirección** | [DIRECCIÓN], [CIUDAD], Colombia |
-| **Correo para datos personales** | [CORREO] |
-| **Teléfono / WhatsApp** | [TELÉFONO] |
-| **Encargado de atender consultas y reclamos** | El mismo responsable, en el correo anterior |
+| **Correo para datos personales** | [CORREO DE DATOS PERSONALES] |
+| **Teléfono / WhatsApp** | [TELÉFONO / WHATSAPP] |
+| **Quién atiende consultas y reclamos** | El mismo responsable, en el correo anterior |
 
-En esta política, "nosotros" es el responsable; "la app" es la aplicación "Pérdida de Grasa" (web instalable, PWA) y sus servicios; "tú" o "titular" es la persona a la que se refieren los datos; "coach" es el profesional (entrenador, nutricionista o asesor) que te invita a la app y te acompaña.
+En esta política, "nosotros" es el responsable; "la app" es la aplicación web "Pérdida de Grasa"; "tú" o "titular" es la persona a la que se refieren los datos; "coach" es el profesional (entrenador, nutricionista o asesor) que te acompaña en el piloto.
 
-## 2. ¿Qué datos tratamos?
+## 2. Cómo funciona la app en esta fase piloto
 
-| Tipo | Ejemplos | ¿Obligatorio? |
-|---|---|---|
-| **Identificación y contacto** | Nombre, correo, teléfono, ciudad | Sí, para crear tu cuenta |
-| **Datos de perfil** | Sexo, fecha de nacimiento o edad, estatura, nivel de actividad, meta | Sí, para calcular tu plan |
-| **Datos sensibles de salud** | Peso, medidas corporales (cintura, cuello, cadera), % de grasa estimado, comidas, calorías y macros, pasos, sueño, agua, entrenamiento, notas sobre tu proceso | **Facultativo** (ver §4) |
-| **Fotos de progreso** (dato sensible) | Fotos corporales de frente, perfil y espalda | **Facultativo** y con autorización **aparte** |
-| **Datos del coach** | Nombre, nombre comercial, correo, teléfono, datos de facturación | Sí, para coaches |
-| **Datos de uso y técnicos** | Fecha de registro, versión aceptada de esta política, fechas de acceso, tipo de dispositivo, errores técnicos | Sí, para operar y proteger el servicio |
-| **Datos de pago** (fase 2) | Estado y fecha del pago, valor, referencia. **No guardamos números de tarjeta**: los procesa la pasarela de pagos | Sí, si pagas en la app |
-| **Contenido en comunidad y retos** (futuro) | Publicaciones, comentarios, reacciones, posición en un reto | Facultativo |
+- **Tus datos se guardan solo en tu teléfono** (en el almacenamiento del navegador). En esta fase **no hay servidor, ni cuentas, ni nube**: nosotros no recibimos automáticamente nada de lo que registras.
+- **Tú decides si compartes algo.** Desde la app puedes **exportar un archivo** con tus datos. Si lo envías a tu coach o a nosotros, **ese envío lo haces tú**, por el medio que elijas. En el piloto proponemos **WhatsApp**.
+- Desde el momento en que recibimos tu archivo (nosotros o tu coach), tratamos esos datos según esta política.
 
-## 3. ¿Para qué usamos tus datos? (finalidades)
+## 3. ¿Qué datos tratamos?
 
-1. Crear y administrar tu cuenta y permitirte iniciar sesión en varios dispositivos.
-2. Calcular tu plan (calorías, macros), mostrar tu progreso, tendencias y recomendaciones automáticas.
-3. **Compartir con tu coach** los datos que tú elijas, para que te haga seguimiento y te deje comentarios.
-4. Guardar una copia de seguridad de tus datos en la nube y sincronizarlos.
-5. Gestionar los pagos: en la fase 1, el cobro al coach por cliente activo; en la fase 2, el pago de tu mensualidad al coach dentro de la app.
-6. Enviarte mensajes del servicio: confirmaciones, recordatorios de registro, cambios en esta política o en los Términos. **Solo con tu autorización aparte**, enviarte información comercial.
-7. Dar soporte, atender tus consultas y reclamos y cumplir obligaciones legales.
-8. Proteger la seguridad del servicio y prevenir fraudes o usos indebidos.
-9. Elaborar **estadísticas agregadas y anónimas** (sin nombre ni datos que te identifiquen) para mejorar la app.
-10. A futuro: permitirte participar en **retos y comunidad** si decides unirte.
+| Tipo | Ejemplos | ¿Dónde están? | ¿Obligatorio? |
+|---|---|---|---|
+| **Datos de perfil** | Sexo, edad, estatura, peso inicial, meta, nivel de actividad | En tu teléfono; en el archivo si lo envías | Necesarios para calcular tu plan |
+| **Datos sensibles de salud** | Peso, medidas corporales (cintura, cuello, cadera), % de grasa estimado, comidas, calorías y macros, pasos, sueño, agua, entrenamiento, notas | En tu teléfono; en el archivo si lo envías | **Facultativo** (ver §5) |
+| **Fotos de progreso** (dato sensible) | Fotos corporales de frente, perfil y espalda | En tu teléfono; solo en el archivo completo (JSON) si lo envías | **Facultativo** y con autorización **aparte** |
+| **Tus autorizaciones** | Qué aceptaste, en qué versión y en qué fecha | En tu teléfono y dentro del archivo exportado | Sí (prueba de tu autorización) |
+| **Contacto** | Nombre y número de WhatsApp con el que envías el archivo | En el chat con tu coach o con nosotros | Solo si envías archivos |
 
-**No vendemos tus datos** ni los usamos para publicidad de terceros. Tampoco publicamos tus fotos.
+La app **no** recoge tu ubicación, **no** usa cookies de publicidad y **no** envía datos a herramientas de analítica.
 
-## 4. Datos sensibles: salud, medidas corporales y fotos
+## 4. ¿Para qué usamos tus datos? (finalidades)
+
+1. **En tu teléfono:** calcular tu plan (calorías, macros), mostrar tu progreso, tendencias y recomendaciones automáticas.
+2. **Si envías tu archivo:** que tu coach te haga **seguimiento** y te dé indicaciones, y que nosotros armemos un **resumen semanal** de tu progreso para tu coach.
+3. Evaluar si la app sirve y cómo mejorarla, con **resultados agregados y sin tu nombre**.
+4. Atender tus consultas y reclamos y cumplir obligaciones legales.
+
+**No vendemos tus datos**, no los usamos para publicidad y **no publicamos tus fotos**.
+
+## 5. Datos sensibles: salud, medidas corporales y fotos
 
 Según los artículos 5 y 6 de la Ley 1581 de 2012, los datos de salud y las imágenes corporales son **datos sensibles**. Por eso:
 
 - **No estás obligado/a** a autorizar su tratamiento ni a responder preguntas sobre ellos. Autorizar es **facultativo**.
-- Te pediremos una **autorización expresa**, distinta de la aceptación de los Términos, con casillas separadas: (a) datos de salud y medidas, y (b) **fotos**, siempre aparte y nunca marcada por defecto.
-- Puedes decidir **qué compartes con tu coach** (por ejemplo, peso sí y fotos no) y cambiarlo cuando quieras.
-- Tus fotos solo las ven tú y, si lo autorizas, tu coach. Se guardan con acceso restringido y nunca con un enlace público.
+- En la app hay **casillas separadas**, ninguna marcada por defecto: (a) **datos de salud y medidas**, y (b) **fotos**, siempre aparte y opcional.
+- Puedes **retirar** cada autorización cuando quieras en Perfil → Privacidad. Si retiras la de fotos, la app te ofrece borrarlas.
+- Tus fotos solo las ven tú y, si las envías, tu coach y, para armar tu resumen, el responsable.
 
-*NOTA para el abogado: la función principal de la app es el seguimiento de datos de salud. El art. 6 prohíbe condicionar una actividad a que se entreguen datos sensibles. ¿Basta con dejar las fotos y el compartir con el coach como opcionales y ofrecer un modo mínimo (solo cálculo del plan), o hace falta algo más?*
+*NOTA para el abogado: la función principal de la app es el seguimiento de datos de salud. El art. 6 prohíbe condicionar una actividad a que se entreguen datos sensibles. Ver P1 en preguntas-abogado.md.*
 
-## 5. ¿Con quién compartimos tus datos?
+## 6. ¿Con quién compartimos tus datos?
 
-### 5.1 Tu coach
-*NOTA, opción propuesta (la más simple, a validar con el abogado):* **nosotros somos el único Responsable** de los datos tratados en la app, y **cada coach actúa como Encargado** que trata tus datos por cuenta nuestra y solo para hacerte seguimiento. Así hay una sola política, una sola autorización y un solo canal para ejercer tus derechos. *(Alternativas: que el coach sea responsable independiente, o corresponsable con nosotros. Son más complejas: cada coach necesitaría su propia política y su propio canal.)*
+### 6.1 Tu coach
+Tu coach recibe **solo** los archivos que **tú** le envías. Los trata **por cuenta del responsable** y únicamente para hacerte seguimiento durante el piloto (como **encargado del tratamiento**). Se compromete por escrito a: usarlos solo para ese fin, mantener la confidencialidad, no reenviarlos ni publicarlos y **borrarlos** a más tardar el [FECHA DE BORRADO DEL PILOTO].
 
-- El coach solo ve los datos que tú decidiste compartir, y deja de verlos cuando retiras el permiso o te desvinculas.
-- El coach se compromete por escrito (acuerdo de encargado) a usarlos solo para tu seguimiento, mantener la confidencialidad, no descargarlos en lote, no publicarlos y no usarlos para otros fines.
-- Los datos que le entregues al coach **fuera de la app** (por ejemplo, por WhatsApp) quedan bajo su propia responsabilidad.
+*NOTA, opción propuesta (la más simple, a validar con el abogado): responsable único y coach como encargado. Ver P2 en preguntas-abogado.md.*
 
-### 5.2 Proveedores tecnológicos (encargados)
-Usamos proveedores que tratan datos por cuenta nuestra y bajo nuestras instrucciones:
+Los datos que le hayas dado a tu coach **antes o fuera** del piloto (por ejemplo, en sus propios formularios) se rigen por la política de tu coach.
 
-| Proveedor | Para qué | Dónde |
-|---|---|---|
-| **Supabase Inc.** | Base de datos, cuentas, almacenamiento de fotos | Servidores en **Estados Unidos** [REGIÓN: p. ej. us-east-1, Virginia] *(o Brasil, si se elige São Paulo)* |
-| [Proveedor de correo transaccional] | Correos de inicio de sesión y avisos | [PAÍS] |
-| [Pasarela de pagos, fase 2: p. ej. Wompi / Mercado Pago / PayU] | Cobros | [PAÍS] |
-| GitHub Pages (u otro alojamiento web) | Publicar la aplicación (no guarda tus datos de salud) | Estados Unidos |
+### 6.2 WhatsApp (Meta), el canal que tú eliges
+Si envías tu archivo por **WhatsApp**, este pasa por un servicio de **Meta Platforms**, que tiene sus propias condiciones y política de privacidad y puede tratar información fuera de Colombia. WhatsApp cifra los mensajes de extremo a extremo, pero **elegir ese canal es decisión tuya**. Si prefieres otro medio (por ejemplo, correo electrónico o entregarlo en persona), dínoslo.
 
-### 5.3 Autoridades
+### 6.3 Autoridades
 Solo cuando la ley lo exija o una autoridad competente lo ordene.
 
-## 6. Transferencia y transmisión internacional de datos
-
-Tus datos se alojan en servidores de **Supabase en Estados Unidos** [o REGIÓN elegida]. Como Supabase trata los datos por cuenta nuestra, se trata de una **transmisión internacional** a un encargado (Decreto 1074 de 2015, arts. 2.2.2.25.5.1 y 2.2.2.25.5.2). Esta transmisión está respaldada por:
-
-1. un **contrato de transmisión de datos** (acuerdo de procesamiento de datos, "DPA") con Supabase, que le obliga a tratar los datos solo según nuestras instrucciones y con medidas de seguridad, y
-2. **tu autorización expresa**, que pedimos en la app al aceptar esta política.
-
-*NOTA para el abogado: la Superintendencia de Industria y Comercio (Circular Externa 005 de 2017) incluyó a Estados Unidos entre los países con nivel adecuado de protección. Confirmar que sigue vigente, si el DPA estándar de Supabase cumple los requisitos del contrato de transmisión del art. 2.2.2.25.5.2, y si basta con esto o hace falta una declaración de conformidad ante la SIC.*
+### 6.4 Alojamiento de la app
+La app se descarga desde GitHub Pages (GitHub Inc., Estados Unidos), pero **no le envía tus datos de salud**: solo sirve los archivos de la aplicación.
 
 ## 7. Menores de edad
 
-La app es **solo para mayores de 18 años**. Al registrarte declaras ser mayor de edad. Si descubrimos que una cuenta pertenece a un menor, la suspenderemos y borraremos sus datos.
-
-*NOTA: es la opción propuesta porque los datos de salud de menores requieren protecciones adicionales (art. 7 Ley 1581) y autorización de su representante legal.*
+La app es **solo para mayores de 18 años**. En la pantalla de aceptación declaras ser mayor de edad. Si sabemos que un archivo pertenece a un menor, lo borraremos.
 
 ## 8. Tus derechos como titular
 
@@ -105,11 +106,11 @@ Según el art. 8 de la Ley 1581 de 2012, puedes:
 5. **Revocar la autorización y pedir que borremos tus datos**, salvo que debamos conservarlos por una obligación legal o contractual.
 6. **Acceder gratis** a tus datos.
 
-En la app puedes, además: ver y cambiar lo que compartes con tu coach, desvincularte, **exportar todos tus datos** y **eliminar tu cuenta**.
+En tu teléfono, además, puedes ver y retirar tus autorizaciones (Perfil → Privacidad), exportar tus datos y **borrarlos todos** (Perfil → Datos → Borrar todo). Eso no borra las copias que ya enviaste: para eso, escríbenos (§9) y nos encargamos también de que tu coach las borre.
 
 ## 9. Cómo hacer consultas y reclamos
 
-**Canal:** correo a **[CORREO]** con el asunto "Datos personales" o desde la app (Perfil → Privacidad). Incluye tu nombre, cédula o el correo de tu cuenta, qué pides y cómo te respondemos. Si actúas en nombre de otra persona, acredita que la representas.
+**Canal:** correo a **[CORREO DE DATOS PERSONALES]** con el asunto "Datos personales". Incluye tu nombre, tu número de WhatsApp o correo, qué pides y cómo te respondemos. Si actúas en nombre de otra persona, acredita que la representas.
 
 | Trámite | Qué es | Plazo legal de respuesta |
 |---|---|---|
@@ -120,46 +121,42 @@ En la app puedes, además: ver y cambiar lo que compartes con tu coach, desvincu
 - Si el reclamo está incompleto, te pedimos dentro de los **5 días** siguientes que lo completes. Si pasan **2 meses** sin que lo completes, entenderemos que desististe.
 - Si no somos competentes para resolverlo, lo trasladamos a quien corresponda en máximo **2 días hábiles** y te avisamos.
 - En máximo **2 días hábiles** desde que recibimos el reclamo completo, marcamos tus datos con la leyenda **"reclamo en trámite"** hasta que se resuelva.
-- **Revocación y borrado:** no procede si tienes un deber legal o contractual de permanecer en la base de datos (por ejemplo, registros de pagos que la ley obliga a conservar).
+- **Revocación y borrado:** no procede si tienes un deber legal o contractual de permanecer en la base de datos.
 
 ## 10. Seguridad
 
-Aplicamos medidas razonables, que revisamos periódicamente:
-- Conexiones cifradas (HTTPS) y datos cifrados en reposo en el proveedor.
-- Acceso por usuario con reglas que impiden ver datos de otras personas (cada coach solo ve lo que sus clientes compartieron).
-- Fotos en almacenamiento privado, con enlaces temporales.
-- Inicio de sesión sin contraseñas reutilizables (enlace o código de un solo uso) y registro de los accesos del coach a tus fotos.
-- Copias de seguridad, y acceso administrativo limitado al responsable.
+- Los archivos que recibimos se guardan en [UBICACIÓN DE LOS ARCHIVOS: p. ej. carpeta de Google Drive privada], con acceso solo para el responsable. La hoja de seguimiento usa **códigos** en lugar de nombres.
+- Tu coach guarda tus archivos solo en su teléfono o computador, protegidos con clave, y no los reenvía.
+- En tu teléfono, tus datos están protegidos por el bloqueo de tu dispositivo: **ponle clave o biometría**.
 - Si ocurre un incidente de seguridad que afecte tus datos, te informaremos y lo reportaremos a la SIC según la ley.
-
-Ningún sistema es 100 % seguro. Protege también tu dispositivo y tu correo.
 
 ## 11. Conservación de los datos
 
-- Mientras tengas cuenta activa y uses el servicio.
-- Si eliminas tu cuenta, borramos tus datos y fotos en máximo [30] días, salvo lo que la ley nos obligue a conservar (por ejemplo, información de pagos y facturación por el tiempo que exijan las normas tributarias y comerciales).
-- Las cuentas inactivas por más de [24] meses se eliminan, previo aviso por correo.
-- Durante el **piloto** (sin servidor), los archivos que envíes se borran en la fecha indicada en la autorización del piloto.
+- **En tu teléfono:** hasta que tú los borres.
+- **Archivos enviados al coach y al responsable:** se borran a más tardar el **[FECHA DE BORRADO DEL PILOTO]**, o antes si lo pides.
+- **Resultados agregados y sin nombre** del piloto: se pueden conservar, porque no te identifican.
 
 ## 12. Vigencia, versiones y cambios
 
-- Esta política rige desde [FECHA]. La base de datos estará vigente mientras se preste el servicio y por el tiempo de conservación indicado en §11.
-- Si cambiamos esta política de manera sustancial (por ejemplo, nuevas finalidades, nuevos destinatarios o un nuevo país), te avisaremos en la app y por correo y **te pediremos aceptarla de nuevo** antes de seguir tratando tus datos para lo nuevo.
-- Historial de versiones:
+- Esta política rige desde [FECHA DE VIGENCIA] y mientras dure el piloto. La base de datos del piloto estará vigente hasta la fecha de borrado indicada en §11.
+- Si cambiamos esta política de forma sustancial, te avisaremos y la app **te pedirá aceptarla de nuevo** antes de seguir.
+
+## 13. Cambios previstos para la versión con cuentas (R1)
+
+Cuando la app tenga **cuentas e inicio de sesión**, esta política se reemplazará por una nueva versión que **deberás aceptar de nuevo** antes de crear tu cuenta. **Nada de esto aplica en el piloto.** Lo que cambiará:
+
+- **Servidor y copia en la nube:** tus datos (y tus fotos, si lo autorizas) se guardarán en tu cuenta para sincronizarlos entre dispositivos y como copia de seguridad.
+- **Proveedor y país:** el servidor será de **Supabase Inc.**, que actuará como encargado, con datos alojados probablemente en **Estados Unidos**. Eso es una **transmisión internacional de datos**, respaldada por un contrato de transmisión con el proveedor y por tu autorización expresa.
+- **Panel del coach:** tu coach verá en la app, sin que tengas que enviar archivos, **solo** lo que tú decidas compartir (fotos incluidas, si las autorizas), y dejará de verlo en cuanto retires el permiso.
+- **Nuevos datos:** correo para iniciar sesión, registro de accesos y, más adelante, datos de **pagos** (sin números de tarjeta) y participación en **retos y comunidad**.
+- **Registro de autorizaciones** en el servidor que no se puede modificar, como prueba ante ti y ante la SIC.
+- **Eliminación de cuenta** desde la app, con borrado en el servidor en un plazo definido.
+
+## Historial de versiones
 
 | Versión | Fecha | Cambio |
 |---|---|---|
-| 0.1 | 2026-10-21 | Borrador inicial (piloto y R1) |
+| 0.1 | 2026-10-21 | Primer borrador (describía la versión con servidor) |
+| 0.1 (edición piloto, rev. 2) | 2026-10-21 | Describe solo la fase piloto sin servidor (datos en el teléfono, envío por WhatsApp, coach como encargado). Supabase y la transmisión internacional pasan a §13 (R1). **Se publicará como 0.2-piloto** con la siguiente actualización de la app. |
 
----
-
-## Dudas para el abogado (Política)
-
-1. **Rol del coach:** ¿es válido el esquema "plataforma = responsable única, coach = encargado"? El coach tiene su propia relación con el cliente y también recibe datos por WhatsApp. ¿Conviene más "responsables independientes" o "corresponsables"? ¿Qué debe contener el acuerdo de encargado?
-2. **Datos sensibles y art. 6:** ¿cómo cumplir la prohibición de condicionar el servicio a datos sensibles cuando la función central es el seguimiento de salud? ¿Es suficiente un modo mínimo sin datos de salud compartidos?
-3. **Transmisión a EE. UU. (Supabase):** ¿sirve el DPA estándar de Supabase como contrato de transmisión? ¿Sigue vigente la lista de países adecuados de la SIC (Circular 005 de 2017)? ¿Hace falta una declaración de conformidad?
-4. **Registro Nacional de Bases de Datos (RNBD):** entendemos que una persona natural no está obligada (Decreto 090 de 2018). ¿Es correcto? ¿Lo será si los ingresos crecen?
-5. **Autorización electrónica:** ¿son prueba suficiente las casillas en la app con fecha, versión y registro inalterable en servidor (Ley 527 de 1999)? Para el piloto, ¿vale una aceptación por WhatsApp?
-6. **Incidentes de seguridad:** plazo y forma de reportar a la SIC y a los titulares.
-7. **Conservación:** plazos concretos para registros de pagos y facturación de una persona natural.
-8. **Edad:** ¿basta una declaración de mayoría de edad o hay que verificarla?
+*NOTA de versión para Dev: el test tests/legal.test.js exige que la Versión de este archivo coincida con LEGAL_VERSIONS en schema.js (hoy 0.1). Para publicar como 0.2-piloto hay que cambiar a la vez este archivo, LEGAL_VERSIONS, LEGAL_CHANGES (resumen de cambios para la re-aceptación) y la expectativa de buildConsent en el test.*
