@@ -30,6 +30,11 @@ Sin dependencias ni servidor: todos los datos se guardan en el propio dispositiv
   actual y tendencia, ritmo semanal, % de grasa, adherencia de 1, 2 y 4 semanas (días con registro,
   comidas, hábitos, pesajes y proteína media frente al objetivo), últimas notas y miniaturas de fotos.
   No modifica los datos del dispositivo. Se pueden abrir varias copias seguidas, y "Cerrar" vuelve a los datos propios.
+- **Cuenta (R1, en construcción)**: si `config.js` tiene la URL y la clave publicable de Supabase, tras la
+  pantalla legal se ofrece crear cuenta o entrar con un código de 6 dígitos enviado al correo (sin contraseña),
+  elegir rol (cliente, con código opcional de su coach, o coach) y cerrar sesión en Perfil → Cuenta. Con
+  `config.js` vacío (por defecto) la app funciona como siempre, solo en el dispositivo. Para pruebas locales:
+  `index.html?remote=fake` usa un servidor simulado (`remote-fake.js`, solo en localhost).
 - **Términos y privacidad**: al primer uso (y si cambian los textos) se aceptan los Términos y la Política
   y se autorizan aparte los datos de salud y las fotos. Se pueden revisar o retirar en Perfil → Privacidad.
   Los textos (`legal/*.html`) se generan desde `equipo/legal/*.md` con `npm run legal` y funcionan sin conexión.

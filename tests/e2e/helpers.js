@@ -46,7 +46,8 @@ async function acceptLegalIfPresent(page, { photos = true, sensitive = true } = 
 }
 
 // La app arrancó: o se ve la barra de pestañas o la pantalla legal (que la oculta hasta aceptar).
-const appReady = (page) => expect(page.locator('#tab-panel, [data-testid="legal-gate"]').filter({ visible: true }).first()).toBeVisible();
+// (S3-2) Con servidor de pruebas (?remote=fake) puede verse también la pantalla de cuenta.
+const appReady = (page) => expect(page.locator('#tab-panel, [data-testid="legal-gate"], [data-testid="account-gate"]').filter({ visible: true }).first()).toBeVisible();
 
 // Consentimiento vigente (todas las casillas) para sembrar estados que no deben pasar por la pantalla legal.
 const CONSENT = require('../../schema.js').buildConsent({ terms: true, privacy: true, adult: true, sensitiveHealth: true, photos: true }, '2026-10-01T12:00:00.000Z');
@@ -64,7 +65,7 @@ const test = base.extend({
       errors,
       allowConsoleErrors() { allowErrors = true; },
       /** Abre la app. `state` (objeto o string crudo) y `prefs` ({clave: valor}) se escriben una sola vez, antes de app.js. */
-      async open({ state: s, prefs = {}, time = NOW, legal = true } = {}) {
+      async open({ state: s, prefs = {}, time = NOW, legal = true, path = 'index.html' } = {}) {
         if (time) await page.clock.install({ time: new Date(time) });
         const seed = { raw: s === undefined ? null : typeof s === 'string' ? s : JSON.stringify(s), prefs };
         await page.addInitScript(({ raw, prefs, key }) => {
@@ -73,7 +74,7 @@ const test = base.extend({
           if (raw !== null) localStorage.setItem(key, raw);
           for (const [k, v] of Object.entries(prefs)) localStorage.setItem(k, v);
         }, { ...seed, key: KEY });
-        await page.goto('index.html');
+        await page.goto(path);
         await appReady(page);
         if (legal) await acceptLegalIfPresent(page);
       },
