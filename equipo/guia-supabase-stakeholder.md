@@ -91,6 +91,24 @@ Usted lo aplica así, **primero en `pruebas`** y, solo cuando le digamos, en `pl
 5. Solo la primera vez: vaya a **Project Settings → Data API** (o **Integrations → Data API**; a verificar) y en
    **Exposed schemas** añada `core` y `grasa` (junto a `public`). Guarde.
 
+6. **Comprobación (2 minutos).** En el mismo SQL Editor abra otra **New query**, pegue esto y pulse **Run**:
+   ```sql
+   select
+     (select count(*) from pg_policies
+        where schemaname = 'storage' and tablename = 'objects' and policyname like 'grasa_photos_%') as politicas_fotos,
+     (select public from storage.buckets where id = 'grasa-photos')                                  as fotos_publicas,
+     has_table_privilege(current_user, 'auth.users', 'DELETE')                                       as puede_borrar_cuentas,
+     (select count(*) from pg_namespace where nspname in ('core', 'grasa'))                           as esquemas_creados;
+   ```
+   Debe salir **una fila** con: `politicas_fotos = 5` · `fotos_publicas = false` · `puede_borrar_cuentas = true` ·
+   `esquemas_creados = 2`. Mándenos una **captura de esa fila** tal como salga, aunque todo coincida.
+   - Si `politicas_fotos` es menor que 5 o sale un error de permisos ("permission denied", "must be owner"): no siga y
+     mándenos la captura. Significa que Supabase no deja crear las reglas de las fotos desde el editor, y lo
+     resolvemos de otra forma.
+   - Si `puede_borrar_cuentas` sale `false`, avísenos: sin eso no funcionaría "Eliminar mi cuenta".
+7. **Comprobar que los esquemas quedaron expuestos** (paso 5): vuelva a **Project Settings → Data API** y confirme que
+   en **Exposed schemas** aparecen `public`, `core` y `grasa`. Mándenos también una captura de esa pantalla.
+
 Ejecutarlo dos veces no hace daño: el archivo está preparado para eso.
 
 ## 7. Activar el acceso con código de 6 dígitos por correo
@@ -173,7 +191,7 @@ nunca cobre más que la cuota.
 - [ ] Enviados al Scrum Master: Project URL + publishable key de cada proyecto.
 - [ ] Código de 6 dígitos activado y plantillas cambiadas (en los dos proyectos).
 - [ ] Brevo conectado como SMTP y prueba de correo hecha (diga si llegó a Gmail, Outlook e iCloud o cayó en spam).
-- [ ] (Cuando se lo pidamos) SQL aplicado en `pruebas` con resultado `OK`, y los esquemas `core` y `grasa` expuestos.
+- [ ] (Cuando se lo pidamos) SQL aplicado en `pruebas` con resultado `OK r1 v1`, consulta de comprobación (paso 6.6) con capturas, y los esquemas `core` y `grasa` expuestos (captura).
 
 ¿Dudas? Mande una captura de la pantalla donde se quedó y le decimos el siguiente clic.
 

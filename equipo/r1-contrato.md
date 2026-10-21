@@ -559,3 +559,98 @@ Edge Functions, cifrado extremo a extremo, datos de clientes en caché en el dis
 | 7 | iOS: sesión en Safari ≠ PWA instalada; refresh token; almacenamiento. | Código OTP (no enlace), pruebas en iPhone real como criterio de Hecho. |
 | 8 | Revisión legal pendiente (datos sensibles, transferencia a EE.UU., conservación de `consent_events` tras la baja). | No cargar datos reales de clientes hasta tener el visto bueno; preguntas en `equipo/legal/preguntas-abogado.md`. |
 | 9 | El registro de accesos a fotos se puede saltar llamando a Storage directamente. | Aceptado en R1 (la autorización sí es obligatoria); Edge Function firmante en R2. |
+
+---
+
+## 10. Cambios v1.1 (tras S3-1)
+
+Fecha: 2026-10-21 · Revisado por el Arquitecto contra `supabase/migrations/*.sql` y
+`equipo/handoffs/2026-10-21-S3-1-backend-a-qa.md` (137 comprobaciones de BD en verde). **Lo de esta sección manda
+sobre lo anterior** donde haya diferencia. Se aceptan los desvíos 1–7 del Backend con las precisiones de abajo.
+
+### 10.1 `core.consent_events.text_hash` obligatorio (acepta desvío 1)
+- Nueva columna `text_hash text not null` = SHA-256 hex (64 caracteres) del **texto exacto mostrado** al usuario.
+  Prueba qué texto aceptó, además de la versión.
+- `remote.account.recordConsents(events)`: cada evento lleva `{ kind, granted, version, textHash, clientAt, coachId? }`.
+  El cliente calcula el hash con `crypto.subtle.digest('SHA-256', utf8(texto))` (hay que normalizar saltos de línea a
+  `\n` antes de calcularlo). Así se evita enviar el texto legal entero en cada evento. `core.record_consent(p_app,
+  p_kind, p_granted, p_version, p_text, p_client_at, p_coach)` (calcula el hash en el servidor) queda para
+  herramientas y pruebas. **Front y Back deben dar el mismo hash para el mismo texto**: test con un texto fijo en los
+  dos lados.
+- `joinCoach(code, shares)` y `updateShares(shares)`: `shares` lleva también `version` y `textHash` del texto de la
+  pantalla de compartir. La BD rechaza con `invalid` si faltan.
+- `core.my_consents()` devuelve también `text_hash`.
+- `client_at` se acota a +5 min. La tabla rechaza `UPDATE`/`DELETE`/`TRUNCATE` para todos los roles (trigger). La
+  única excepción es la cascada de la baja de cuenta (sigue pendiente de lo que diga el abogado, §2.1).
+
+### 10.2 Caducidad y límite de usos del código del coach (acepta desvío 2)
+- `grasa.coaches` añade `invite_expires_at`, `invite_max_uses` (1–500) e `invite_uses`. Por defecto no tienen límite
+  (comportamiento v1).
+- `grasa.rotate_invite_code(p_valid_days int default null, p_max_uses int default null) returns text`. Un código
+  caducado o agotado responde como uno inexistente (`invalid_code`).
+- Interfaz: `remote.coach.rotateCode({ validDays, maxUses } = {})`. `myCoach()` devuelve también `expiresAt`, `maxUses`
+  y `uses`, para que el panel muestre "válido hasta … / quedan N usos".
+- El fake (§4) reproduce caducidad (con su reloj) y usos.
+
+### 10.3 `grasa.coach_can_see(p_client, p_scope)` (acepta desvío 3)
+- Es la única fuente de la regla "vínculo activo + coach activo + categoría consentida" (`body`, `notes`, `nutrition`,
+  `habits`, `photos`). La usan `coach_pull`, `coach_can_see_photo` y la política de Storage del coach.
+- `coach_pull` exige `coach_can_see(cliente, 'body')`: sin vínculo activo devuelve `forbidden`. Además, un coach
+  desactivado (`coaches.active = false`) pierde el acceso a todos sus clientes.
+- También se aceptan `core.has_role(p_app, p_role)` y `core.record_consent` (desvío 4).
+
+### 10.4 Errores: mensajes de la BD = códigos de `RemoteError` (acepta desvío 5)
+Las RPC lanzan `raise exception '<código>'` con el motivo en `DETAIL`. **Regla de mapeo en `remote.js`, en este orden:**
+1. Si `error.message` es exactamente uno de `auth | forbidden | not_found | invalid | invalid_code | rate_limited`
+   → ese código. **Se mapea por el mensaje, no por SQLSTATE**: la BD usa `P0002` tanto para `not_found` como para
+   `invalid_code`.
+2. Si no, por SQLSTATE (errores que genera Postgres, no nuestras funciones):
+
+| SQLSTATE / origen | `RemoteError.code` |
+|---|---|
+| `42501` (RLS / permiso denegado) | `forbidden` |
+| `23514` (CHECK), `22023` (parámetro inválido), `22P02` (formato), `23502` (NOT NULL), `22001` (texto largo) | `invalid` |
+| `23505` (único duplicado) | `invalid` |
+| `28000`, PostgREST `PGRST301` / JWT caducado, HTTP 401 | `auth` |
+| `54000` | `rate_limited` |
+| HTTP 429 / error de Auth `over_email_send_rate_limit` u `over_request_rate_limit` | `rate_limited` |
+| Auth `otp_expired` / token inválido en `verifyOtp` | `invalid_code` |
+| `TypeError` de `fetch`, timeout, `navigator.onLine === false` | `offline` (`retryable: true`) |
+| HTTP 5xx, `PGRST*` restantes, cualquier otro | `server` (`retryable: true`) |
+
+- `RemoteError.detail` lleva el `DETAIL` de la BD **solo para registro/depuración**. La UI muestra textos propios por
+  código: nunca muestra el mensaje crudo del servidor (podría contener datos o confundir al usuario).
+- Los nombres de los códigos de error de Auth están a verificar con la versión de supabase-js vendorizada (S3-3).
+  Test de `remote.js` con respuestas simuladas para cada fila de la tabla.
+- El fake lanza exactamente los mismos códigos.
+
+### 10.5 `preview_invite_code` sin coincidencia devuelve 0 filas (acepta desvío 6)
+Con 0 filas el intento queda contado (límite 20/h). `remote.client.previewCode()` convierte "0 filas" en
+`RemoteError('invalid_code')`, así que la interfaz de §3.4 no cambia.
+
+### 10.6 Fotos: LWW estricto en `sync_push` (acepta desvío 7) y regla común para `rejected`
+- En `photos`, la fila entrante solo gana si su `updated_at` es **estrictamente mayor**. En empate se queda la del
+  servidor.
+- **Regla nueva para todo `rejected`** (records y fotos): el cliente **adopta la versión del servidor tal cual**
+  (reemplaza la local con `saveMerged`), sin volver a decidir con `newer()`. Motivo: el desempate de `records` en la BD
+  compara `data::text`, y en el cliente `newer()` compara `JSON.stringify` del registro completo. En un empate exacto,
+  los dos lados podrían elegir distinto y no converger nunca. Con la regla "en `rejected` manda el servidor" convergen
+  siempre. El pull normal sigue usando `mergeState`.
+
+### 10.7 Otros ajustes aceptados de la implementación
+- `records`: `CHECK` de coherencia entre `kind`, `nkey` y `date`; ni el dueño ni el `id` se pueden cambiar. La ruta
+  de la foto se comprueba por `CHECK` (`{uid}/{id}.jpg`). Hay `grasa.try_uuid` para rutas manipuladas en Storage.
+- `anon` no puede ejecutar ninguna función (`revoke execute … from public`) ni leer ninguna tabla.
+- Archivo para pegar: `supabase/r1.sql`, **generado** con `npm run build:db` a partir de `supabase/migrations/`. No se
+  edita a mano. Debe terminar en `OK r1 v1`. Pruebas: `npm run test:db`.
+
+### 10.8 A verificar en el proyecto real (bloquea el cierre de S3-3, no el desarrollo)
+1. Que el rol `postgres` del SQL Editor puede crear las políticas en `storage.objects` y borrar en `auth.users`
+   (`core.delete_my_account`).
+2. Que `core` y `grasa` están en **Exposed schemas** y que la clave *publishable* llama a las RPC.
+3. Si hacen falta `GRANT` adicionales (cambio de 2026 en la API de datos; rol `authenticator`).
+4. Que `storage.foldername` / `storage.filename` se comportan igual que en el stub de pruebas.
+5. Los códigos de error de Auth (OTP caducado, límite de correos) de la versión de supabase-js elegida.
+
+Las comprobaciones 1–2 las hace el Stakeholder con la consulta de la guía (§6, paso 6). Las 3–5, Back con
+`tests/remote-contract.test.js` contra `pruebas`.
