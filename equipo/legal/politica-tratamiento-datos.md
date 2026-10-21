@@ -1,6 +1,6 @@
 > ⚠️ **Borrador — debe revisarlo un abogado antes de usarse con datos reales; no es asesoría legal.**
 > Autor: Agente Analista de Producto · 2026-10-21 · Edición **piloto** (rev. 2): describe la app **sin servidor**. Lo previsto para la versión con cuentas está en §13 y exigirá aceptar de nuevo. Las notas en *cursiva* marcadas "NOTA" son internas: no se publican (`npm run legal` las quita).
-> Número de versión: sigue en 0.1 hasta que Dev actualice `LEGAL_VERSIONS` en `schema.js` (ver la nota de versión al final). Al publicarla, cambiar a **0.2-piloto**.
+> Número de versión: se mantiene en 0.1 mientras sea borrador (nadie real lo ha aceptado). Se subirá cuando el abogado apruebe el texto definitivo, que será la versión con la que arranca el piloto.
 >
 > **Datos que debe completar el Stakeholder** (buscar y reemplazar cada marcador; no debe quedar ninguno):
 >
@@ -157,6 +157,6 @@ Cuando la app tenga **cuentas e inicio de sesión**, esta política se reemplaza
 | Versión | Fecha | Cambio |
 |---|---|---|
 | 0.1 | 2026-10-21 | Primer borrador (describía la versión con servidor) |
-| 0.1 (edición piloto, rev. 2) | 2026-10-21 | Describe solo la fase piloto sin servidor (datos en el teléfono, envío por WhatsApp, coach como encargado). Supabase y la transmisión internacional pasan a §13 (R1). **Se publicará como 0.2-piloto** con la siguiente actualización de la app. |
+| 0.1 (edición piloto, rev. 2) | 2026-10-21 | Describe solo la fase piloto sin servidor (datos en el teléfono, envío por WhatsApp, coach como encargado). Supabase y la transmisión internacional pasan a §13 (R1). La versión se subirá cuando el abogado apruebe el texto definitivo. |
 
-*NOTA de versión para Dev: el test tests/legal.test.js exige que la Versión de este archivo coincida con LEGAL_VERSIONS en schema.js (hoy 0.1). Para publicar como 0.2-piloto hay que cambiar a la vez este archivo, LEGAL_VERSIONS, LEGAL_CHANGES (resumen de cambios para la re-aceptación) y la expectativa de buildConsent en el test.*
+*NOTA de versión para Dev: el test tests/legal.test.js exige que la Versión de este archivo coincida con LEGAL_VERSIONS en schema.js (hoy 0.1). Cuando el abogado apruebe el texto definitivo, para subir la versión hay que cambiar a la vez este archivo, LEGAL_VERSIONS, LEGAL_CHANGES (resumen de cambios para la re-aceptación) y la expectativa de buildConsent en el test.*

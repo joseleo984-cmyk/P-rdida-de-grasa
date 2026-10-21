@@ -1,6 +1,6 @@
 > ⚠️ **Borrador — debe revisarlo un abogado antes de usarse con datos reales; no es asesoría legal.**
 > Autor: Agente Analista de Producto · 2026-10-21 · Edición **piloto** (rev. 2): describe la app **sin servidor**. Lo previsto para la versión con cuentas está en §13 y exigirá aceptar de nuevo. Las notas en *cursiva* marcadas "NOTA" son internas: no se publican (`npm run legal` las quita).
-> Número de versión: sigue en 0.1 hasta que Dev actualice `LEGAL_VERSIONS` en `schema.js`. Al publicarla, cambiar a **0.2-piloto**.
+> Número de versión: se mantiene en 0.1 mientras sea borrador (nadie real lo ha aceptado). Se subirá cuando el abogado apruebe el texto definitivo, que será la versión con la que arranca el piloto.
 >
 > **Datos que debe completar el Stakeholder** (los mismos que en la Política; no debe quedar ningún marcador):
 >
@@ -121,6 +121,6 @@ Estos Términos se rigen por las **leyes de la República de Colombia**. Antes d
 | Versión | Fecha | Cambio |
 |---|---|---|
 | 0.1 | 2026-10-21 | Primer borrador (describía la versión con servidor y pagos) |
-| 0.1 (edición piloto, rev. 2) | 2026-10-21 | Describe solo la fase piloto sin servidor y gratuita. Cuentas, servidor, pagos, retos y comunidad pasan a §13. **Se publicará como 0.2-piloto** con la siguiente actualización de la app. |
+| 0.1 (edición piloto, rev. 2) | 2026-10-21 | Describe solo la fase piloto sin servidor y gratuita. Cuentas, servidor, pagos, retos y comunidad pasan a §13. La versión se subirá cuando el abogado apruebe el texto definitivo. |
 
 *NOTA de versión para Dev: igual que en la Política. Cambiar a la vez Versión, LEGAL_VERSIONS, LEGAL_CHANGES y el test de buildConsent.*
