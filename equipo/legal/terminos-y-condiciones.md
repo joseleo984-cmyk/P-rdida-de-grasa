@@ -6,11 +6,11 @@
 >
 > | Marcador | Qué poner |
 > |---|---|
-> | `[NOMBRE COMPLETO DEL RESPONSABLE]` ✅ José Granados (confirmar si en la cédula figura un segundo apellido) | Nombre y apellidos como en la cédula |
-> | `[NÚMERO DE CÉDULA]` | Cédula de ciudadanía |
+> | `[NOMBRE COMPLETO DEL RESPONSABLE]` ✅ José Granados (confirmar si lleva segundo apellido) | Nombre y apellidos como en la cédula |
+> | `[NÚMERO DE CÉDULA]` ✅ no se publica (decisión del responsable; no la exige el art. 13 del Decreto 1377) | Cédula de ciudadanía |
 > | `[CIUDAD]` ✅ Barranquilla | Ciudad de domicilio |
-> | `[CORREO DE CONTACTO]` | Correo de soporte y reclamos (puede ser el mismo de datos personales) |
-> | `[TELÉFONO / WHATSAPP]` | Número de contacto |
+> | `[CORREO DE CONTACTO]` ✅ joseleo984@gmail.com | Correo de soporte y reclamos (puede ser el mismo de datos personales) |
+> | `[TELÉFONO / WHATSAPP]` ✅ +57 312 887 6135 | Número de contacto |
 > | `[FECHA DE VIGENCIA]` | Día en que se publica esta versión |
 > | `[FECHA DE FIN DEL PILOTO]` ✅ 4 semanas desde el inicio del piloto | Último día del piloto |
 
@@ -20,7 +20,7 @@
 
 ## 1. Quiénes somos y qué aceptas
 
-La app "Pérdida de Grasa" (la "app") la ofrece **José Granados**, persona natural, con cédula **[NÚMERO DE CÉDULA]**, domiciliada en **Barranquilla**, Colombia, correo **[CORREO DE CONTACTO]**, teléfono **[TELÉFONO / WHATSAPP]** ("nosotros").
+La app "Pérdida de Grasa" (la "app") la ofrece **José Granados**, persona natural, domiciliada en **Barranquilla**, Colombia, correo **joseleo984@gmail.com**, teléfono **+57 312 887 6135** ("nosotros").
 
 Al usar la app aceptas estos Términos y la **Política de Tratamiento de Datos Personales** (documento aparte). La app guarda en tu teléfono la versión y la fecha de lo que aceptaste. Si no estás de acuerdo, no uses la app.
 
@@ -88,7 +88,7 @@ En la medida en que la ley colombiana lo permita:
 
 ## 11. Terminación y borrado
 
-- **Tú** puedes dejar de usar la app cuando quieras. Para borrar lo que hay en tu teléfono: Perfil → Datos → Borrar todo. Para que borremos los archivos que enviaste (nosotros y tu coach), escríbenos a [CORREO DE CONTACTO].
+- **Tú** puedes dejar de usar la app cuando quieras. Para borrar lo que hay en tu teléfono: Perfil → Datos → Borrar todo. Para que borremos los archivos que enviaste (nosotros y tu coach), escríbenos a joseleo984@gmail.com.
 - Al terminar el piloto, los archivos enviados se borran en el plazo que indica la Política de Datos. Puedes seguir usando la app en tu teléfono.
 - Podemos pedirle a un participante que deje el piloto si incumple estos Términos.
 
@@ -110,11 +110,11 @@ Cuando la app tenga **cuentas e inicio de sesión**, estos Términos se reemplaz
 
 ## 14. Ley aplicable y controversias
 
-Estos Términos se rigen por las **leyes de la República de Colombia**. Antes de acudir a otras vías, escríbenos a **[CORREO DE CONTACTO]** e intentaremos resolverlo de forma directa en 15 días hábiles. Como consumidor, puedes acudir a la **Superintendencia de Industria y Comercio** o a los jueces competentes de Colombia.
+Estos Términos se rigen por las **leyes de la República de Colombia**. Antes de acudir a otras vías, escríbenos a **joseleo984@gmail.com** e intentaremos resolverlo de forma directa en 15 días hábiles. Como consumidor, puedes acudir a la **Superintendencia de Industria y Comercio** o a los jueces competentes de Colombia.
 
 ## 15. Contacto
 
-José Granados · [CORREO DE CONTACTO] · [TELÉFONO / WHATSAPP] · Barranquilla, Colombia.
+José Granados · joseleo984@gmail.com · +57 312 887 6135 · Barranquilla, Colombia.
 
 ## Historial de versiones
 
