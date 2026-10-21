@@ -40,6 +40,13 @@ Se pausa el equipo hasta que exista el proyecto Supabase (guía: `guia-supabase-
 - Pendiente del Arquitecto: revisar contrato §11 (v1.2).
 - Del Stakeholder: crear cuenta y proyectos `plataforma` y `pruebas` en Supabase, pasar URL y clave `sb_publishable_`; textos legales (fecha de vigencia, dónde guarda archivos, abogado).
 
+## ▶ Reanudado con reglas de ahorro (2026-10-21 noche)
+Un agente a la vez; Frontend y QA de rutina con Sonnet; modelo potente solo para BD/RLS y sync.
+**Estado:** rama del sprint con S3-0…S3-4 integrados (S3-1 BD + seguridad, S3-2 cuenta, S3-3 sync, S3-3b remote.js real, S3-4 panel del coach). 120 unitarias, 209 comprobaciones BD (estricto), 102 E2E.
+**Proyectos Supabase creados por el Stakeholder:** `pruebas` (con `supabase/r1.sql` aplicado: OK r1 v1; esquemas core y grasa expuestos; 3 de 4 comprobaciones verificadas) y `Plataforma` (sin SQL todavía). Claves publishable NO commiteadas (config.js vacío).
+**Pendiente QA (un solo lote):** S3-1 my_link + re-verificación; S3-3/3b sync y remote.js; S3-2 correcciones; S3-4 panel del coach.
+**Pendiente Stakeholder:** habilitar `*.supabase.co` en la red del entorno (para `npm run smoke:remote`), activar OTP por correo + Brevo (guía §7), textos legales (fecha de vigencia, dónde guarda archivos, abogado).
+
 ## Sprint 3 — EN CURSO: R1 "Cuentas y panel del coach" (decisión del Stakeholder 2026-10-21: opción B)
 **Objetivo:** "El cliente registra en la app y el coach ve su progreso en su panel, sin enviar archivos."
 Motivo: el Stakeholder considera que enviar datos por WhatsApp no da confianza → se adelanta R1 al piloto.
