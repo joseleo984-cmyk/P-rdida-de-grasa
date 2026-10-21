@@ -86,3 +86,26 @@ El script se niega a ejecutarse si falta una variable o la clave no es `sb_publi
 código de invitación. **Al final borra la cuenta B** (`delete_my_account`): para una segunda pasada hay que recrear B.
 Máx. 3 intentos de código inválido/válido en total (límite 20/h). Cuando se ejecute completo, este veredicto debe actualizarse con
 los resultados reales de b–f y h.
+
+## Re-verificación (tras migración `20261021150000_r1_notas_todos_kinds` y commit 6e55e15)
+
+Script: `scripts/qa-live-recheck.js` (sin cliente B; solo variables de entorno, sin credenciales). Resultado real de la
+pasada final: **24/24 OK**. (La primera pasada dio 2 FALLA que eran un error de mi adaptador, que tomaba el `code` numérico
+400 del cuerpo de Auth en lugar de `error_code`, como hace supabase-js; corregido y repetido.)
+
+| Comprobación | Resultado |
+|---|---|
+| H6: A sube `note` en profile, entry, food, habit (y library) | OK |
+| notes=false, sin comidas/hábitos consentidos → coach_pull = solo `entry`+`profile`, 0 notes | OK |
+| notes=false, comidas consentidas → `entry,food,profile`, 0 notes | OK |
+| notes=false, comidas+hábitos → los 4 kinds, **0 notes en ninguno** (H6 corregido) | OK |
+| Control positivo notes=true → aparecen las notas de profile, entry, food y habit; la de library nunca | OK |
+| Revocar notes / comidas / hábitos → el coach pierde lo revocado en la siguiente consulta | OK |
+| Regresión coach↔A: coach_clients, lectura directa 0 filas, INSERT 403, DELETE 403, `leave_coach` → coach_pull 403 forbidden | OK |
+| H2: refresh_token inválido (400 `validation_failed`) con el `mapError` real → `auth` | OK |
+| H3: sin sesión, 401 `42501` (rpc y tabla) → `auth`; con sesión 403 `42501` (coach_pull, INSERT bloqueado por RLS) → `forbidden` | OK |
+| Otros: JWT mal formado REST (401 `PGRST301`) → `auth`; `bad_jwt` 403 → `auth`; `invalid_credentials` en ctx verify → `invalid_code`; 22P02 → `invalid` | OK |
+
+Estado de hallazgos: **H6, H2 y H3 cerrados en vivo.** Siguen abiertos solo los informativos/bajos (H5 OTP real, H9 huérfanos
+con SQL; H7/H8 documentados). Veredicto actualizado: **APROBADO** para la parte verificable con la clave publicable; quedan
+H5 y H9 como comprobaciones manuales del Stakeholder. B ya no existe; A queda sin vínculo.
