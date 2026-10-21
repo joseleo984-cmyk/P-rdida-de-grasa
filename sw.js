@@ -1,6 +1,6 @@
 // Cache simple para que la app funcione sin conexión.
-const CACHE = 'perdida-grasa-v16';
-const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'coach.js', 'photos.js', 'app.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
+const CACHE = 'perdida-grasa-v17';
+const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'coach.js', 'photos.js', 'app.js', 'config.js', 'remote.js', 'account.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -17,6 +17,8 @@ self.addEventListener('activate', (e) => {
 // Red primero (para recibir actualizaciones), cache como respaldo.
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // R1: nunca cachear llamadas a otros orígenes (p. ej. *.supabase.co); solo los archivos de la propia app.
+  if (new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request)
       .then((res) => {
