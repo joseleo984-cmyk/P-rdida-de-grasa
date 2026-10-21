@@ -42,8 +42,8 @@ reset role; select tests.login('ana');
 select tests.ok((grasa.join_coach(current_setting('t.code'), jsonb_build_object('body', true, 'version', '0.1',
   'text_hash', tests.h('c')))).status = 'active', 'código de 1 uso: el primer cliente se vincula');
 reset role; select tests.login('bea');
-select tests.throws(format($$select grasa.join_coach(%L, '{"body":true,"version":"0.1","text_hash":"%s"}')$$,
-  current_setting('t.code'), tests.h('c')), 'invalid_code', 'código de 1 uso: el segundo cliente no puede usarlo');
+select tests.ok((grasa.join_coach(current_setting('t.code'), jsonb_build_object('body', true, 'version', '0.1', 'text_hash', tests.h('c')))).id is null,
+  'código de 1 uso: el segundo cliente no puede usarlo (devuelve null: el intento cuenta)');
 
 -- Código caducado
 reset role; select tests.login('x');
@@ -51,8 +51,8 @@ select set_config('t.code', grasa.rotate_invite_code(7, null), true);
 reset role;
 update grasa.coaches set invite_expires_at = now() - interval '1 minute' where user_id = tests.uid('x');
 select tests.login('bea');
-select tests.throws(format($$select grasa.join_coach(%L, '{"body":true,"version":"0.1","text_hash":"%s"}')$$,
-  current_setting('t.code'), tests.h('c')), 'invalid_code', 'invitación caducada: join_coach falla');
+select tests.ok((grasa.join_coach(current_setting('t.code'), jsonb_build_object('body', true, 'version', '0.1', 'text_hash', tests.h('c')))).id is null,
+  'invitación caducada: join_coach falla (devuelve null: el intento cuenta)');
 select tests.ok(not exists (select 1 from grasa.preview_invite_code(current_setting('t.code'))), 'invitación caducada: vista previa vacía');
 
 -- Rotar invalida el código anterior; el nuevo funciona
@@ -60,8 +60,8 @@ reset role; select tests.login('x');
 select set_config('t.old', current_setting('t.code'), true);
 select set_config('t.code', grasa.rotate_invite_code(), true);
 reset role; select tests.login('bea');
-select tests.throws(format($$select grasa.join_coach(%L, '{"body":true,"version":"0.1","text_hash":"%s"}')$$,
-  current_setting('t.old'), tests.h('c')), 'invalid_code', 'el código anterior deja de servir tras rotar');
+select tests.ok((grasa.join_coach(current_setting('t.old'), jsonb_build_object('body', true, 'version', '0.1', 'text_hash', tests.h('c')))).id is null,
+  'el código anterior deja de servir tras rotar (devuelve null: el intento cuenta)');
 select tests.ok((grasa.join_coach(current_setting('t.code'), jsonb_build_object('body', true, 'version', '0.1',
   'text_hash', tests.h('c')))).status = 'active', 'el código nuevo sí sirve');
 
@@ -103,7 +103,7 @@ begin;
 select tests.login('bea');
 do $$ begin for i in 1..20 loop perform grasa.preview_invite_code('ZZZZZZ'); end loop; end $$;
 select tests.throws($$select grasa.preview_invite_code('ZZZZZZ')$$, 'rate_limited', 'el intento 21 en una hora: rate_limited');
-select tests.throws($$select grasa.join_coach('ZZZZZZ', '{}')$$, 'rate_limited', 'también join_coach queda limitado');
+select tests.throws($$select grasa.join_coach('ZZZZZZ', jsonb_build_object('body', true, 'version', '0.1', 'text_hash', tests.h('c')))$$, 'rate_limited', 'también join_coach queda limitado');
 reset role; select tests.login('ana');
 select tests.ok(not exists (select 1 from grasa.preview_invite_code('ZZZZZZ')), 'el límite es por usuario (Ana sigue pudiendo)');
 rollback;
