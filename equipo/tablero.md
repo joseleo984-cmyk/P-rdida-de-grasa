@@ -47,7 +47,7 @@ Motivo: el Stakeholder considera que enviar datos por WhatsApp no da confianza �
 | Listo | En curso | En revisión | Hecho |
 |---|---|---|---|
 | | | S3-2 Cuenta con código de 6 dígitos + remote-fake — pendiente QA | S3-0 Contrato R1 + guía Supabase ✅ |
-| | S3-3b remote.js real (supabase-js) + integrar sync en la app — Dev Backend | S3-3 sync.js (19 pruebas) + S3-1 correcciones de seguridad (205 comprobaciones) — QA | |
+| | | S3-3 sync.js (19 pruebas) + S3-1 correcciones de seguridad (205 comprobaciones) — QA · S3-3b remote.js real + sync en la app (handoff S3-3b; falta smoke contra el proyecto real) — QA | |
 | | S3-4 Panel del coach: lista con semáforo, ficha, comentarios — Dev Frontend | | |
 | S3-5 Textos legales versión con cuentas + registro de consentimientos HU-P10 (Analista + Back) | | | |
 

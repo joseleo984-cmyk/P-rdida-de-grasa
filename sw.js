@@ -1,6 +1,6 @@
 // Cache simple para que la app funcione sin conexión.
-const CACHE = 'perdida-grasa-v17';
-const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'coach.js', 'photos.js', 'app.js', 'config.js', 'remote.js', 'account.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
+const CACHE = 'perdida-grasa-v18';
+const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'sync.js', 'coach.js', 'photos.js', 'app.js', 'config.js', 'vendor/supabase-2.117.2.js', 'remote.js', 'account.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
