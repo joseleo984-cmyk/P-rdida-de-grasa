@@ -296,6 +296,10 @@
       consent: normalizeConsent(raw.consent, warn),
       deleted: normalizeDeleted(raw.deleted, warn),
     };
+    // Clave natural (fecha): una lápida de registro/hábito con un dato vivo ese mismo día sobra (D2 de QA en S2-4).
+    const liveDates = new Set(state.entries.map((e) => e.date));
+    state.deleted.entries = state.deleted.entries.filter((t) => !liveDates.has(t.date));
+    state.deleted.habits = state.deleted.habits.filter((t) => !(t.date in state.habits));
     return { state, warnings, rejected };
   }
 
@@ -323,6 +327,21 @@
   const sameRecord = (a, b) => canon(strip(a)) === canon(strip(b));
   const tomb = (id, date, nowISO) => ({ id, date, deletedAt: nowISO, updatedAt: nowISO });
 
+  // Reloj acotado (spike §4.2, decisión del SM): una marca más de 5 min en el futuro (móvil con la hora adelantada)
+  // se trata como "ahora" al guardar y al fusionar; si no, ganaría siempre y una lápida futura impediría recrear el dato.
+  const MAX_SKEW_MS = 5 * 60 * 1000;
+  function clampStamp(iso, nowMs) {
+    const t = Date.parse(iso);
+    return Number.isFinite(t) && t > nowMs + MAX_SKEW_MS ? new Date(nowMs).toISOString() : iso;
+  }
+  const clampRec = (r, nowMs) => {
+    if (!isObj(r)) return r;
+    const u = clampStamp(r.updatedAt, nowMs);
+    const d = r.deletedAt !== undefined ? clampStamp(r.deletedAt, nowMs) : undefined;
+    if (u === r.updatedAt && d === r.deletedAt) return r;
+    return d === undefined ? { ...r, updatedAt: u } : { ...r, updatedAt: u, deletedAt: d };
+  };
+
   // Compara el estado guardado (`prev`) con el nuevo (`next`) y devuelve una copia de `next` donde:
   // - todo registro nuevo o cambiado lleva `updatedAt = nowISO` (y un UUID si no lo tenía);
   // - lo que estaba en `prev` y ya no está pasa a `deleted` como lápida;
@@ -330,11 +349,12 @@
   // Así la app no tiene que acordarse de marcar nada en cada formulario: save() lo aplica siempre. Pura.
   function stampChanges(prev, next, nowISO, opts = {}) {
     const uid = opts.uid || defaultUid;
+    const nowMs = Date.parse(nowISO);
     const p = isObj(prev) ? prev : {};
     const del = isObj(next.deleted) ? next.deleted : emptyDeleted();
     const deleted = {};
-    for (const k of Object.keys(emptyDeleted())) deleted[k] = Array.isArray(del[k]) ? del[k].slice() : [];
-    const touch = (rec, old) => (old && sameRecord(old, rec) ? { ...rec, updatedAt: old.updatedAt || EPOCH } : { ...rec, updatedAt: nowISO });
+    for (const k of Object.keys(emptyDeleted())) deleted[k] = Array.isArray(del[k]) ? del[k].map((t) => clampRec(t, nowMs)) : [];
+    const touch = (rec, old) => (old && sameRecord(old, rec) ? { ...rec, updatedAt: clampStamp(old.updatedAt || EPOCH, nowMs) } : { ...rec, updatedAt: nowISO });
 
     // Registro corporal (lista, por id)
     const prevEntries = new Map((Array.isArray(p.entries) ? p.entries : []).filter(isObj).map((e) => [e.id, e]));
@@ -403,7 +423,7 @@
     return { ...state, deleted };
   }
 
-  // Gana el `updatedAt` mayor; si empatan, el JSON mayor (determinista y conmutativo).
+  // Gana el `updatedAt` mayor; si empatan, el JSON mayor (determinista y conmutativo). Recibe registros ya acotados.
   function newer(a, b) {
     const ta = Date.parse(a.updatedAt) || 0, tb = Date.parse(b.updatedAt) || 0;
     if (ta !== tb) return ta > tb ? a : b;
@@ -412,17 +432,21 @@
 
   // Last-write-wins POR REGISTRO entre dos listas de registros (vivos o con `deletedAt`). `key`: 'id' o una clave
   // natural ('date', 'key' o una función). Con clave natural se conserva el id del lado remoto (el servidor manda, §4.2).
-  function mergeRecords(local, remote, { key = 'id' } = {}) {
+  // LWW se aplica también DENTRO de cada lado (p. ej. un registro vivo y una lápida vieja del mismo día en local).
+  // Marcas más de 5 min en el futuro respecto a `now` (ms) se tratan como `now`.
+  function mergeRecords(local, remote, { key = 'id', now = Date.now() } = {}) {
     const k = typeof key === 'function' ? key : (r) => r[key];
     const out = new Map();
-    for (const r of local || []) out.set(k(r), r);
-    for (const r of remote || []) {
+    const add = (raw, isRemote) => {
+      const r = clampRec(raw, now);
       const kk = k(r);
       const l = out.get(kk);
-      if (!l) { out.set(kk, r); continue; }
+      if (!l) { out.set(kk, r); return; }
       const w = newer(l, r);
-      out.set(kk, key === 'id' ? w : { ...w, id: r.id });
-    }
+      out.set(kk, key !== 'id' && isRemote ? { ...w, id: r.id } : w);
+    };
+    for (const r of local || []) add(r, false);
+    for (const r of remote || []) add(r, true);
     return [...out.values()];
   }
 
@@ -465,16 +489,17 @@
   // Fusión completa local + remoto (LWW por registro). Registro corporal y hábitos por FECHA; comidas por id;
   // biblioteca por nombre; perfil entero por updatedAt; lápidas de fotos por id.
   // El consentimiento NO se fusiona: es de quien usa este dispositivo (regla de S2-1).
-  function mergeState(local, remote) {
+  function mergeState(local, remote, { now = Date.now() } = {}) {
     const a = toRecords(local), b = toRecords(remote);
     const out = fromRecords(local, {
-      entries: mergeRecords(a.entries, b.entries, { key: 'date' }),
-      foods: mergeRecords(a.foods, b.foods),
-      habits: mergeRecords(a.habits, b.habits, { key: 'date' }),
-      library: mergeRecords(a.library, b.library, { key: 'key' }),
+      entries: mergeRecords(a.entries, b.entries, { key: 'date', now }),
+      foods: mergeRecords(a.foods, b.foods, { now }),
+      habits: mergeRecords(a.habits, b.habits, { key: 'date', now }),
+      library: mergeRecords(a.library, b.library, { key: 'key', now }),
     });
-    out.profile = local.profile && remote.profile ? newer(local.profile, remote.profile) : local.profile || remote.profile || null;
-    out.deleted.photos = mergeRecords(local.deleted && local.deleted.photos, remote.deleted && remote.deleted.photos);
+    const lp = clampRec(local.profile, now), rp = clampRec(remote.profile, now);
+    out.profile = lp && rp ? newer(lp, rp) : lp || rp || null;
+    out.deleted.photos = mergeRecords(local.deleted && local.deleted.photos, remote.deleted && remote.deleted.photos, { now });
     return out;
   }
 
@@ -610,7 +635,7 @@
 
   const api = { CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, normalizeStoredPhoto, isSafeKey,
     LEGAL_VERSIONS, normalizeConsent, consentStatus, buildConsent, setConsentFlag,
-    EPOCH, uuid, isUUID, stampChanges, purgeDeleted, mergeRecords, toRecords, fromRecords, mergeState };
+    EPOCH, uuid, isUUID, stampChanges, purgeDeleted, mergeRecords, toRecords, fromRecords, mergeState, clampStamp, MAX_SKEW_MS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Schema = api;
 })(typeof window !== 'undefined' ? window : globalThis);

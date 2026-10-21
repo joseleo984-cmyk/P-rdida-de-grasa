@@ -99,17 +99,29 @@
 
   // S2-4: las fotos de versiones anteriores pasan a id UUID y reciben updatedAt, en UNA transacción
   // (borrar la clave vieja y poner la nueva van juntas: si algo falla, no se pierde ninguna foto).
+  // La lectura (getAll) y la reescritura van en LA MISMA transacción readwrite: IndexedDB serializa las transacciones
+  // de escritura sobre el mismo almacén, así que si dos pestañas (o dos loadPhotos) migran a la vez, la segunda ya ve
+  // las fotos migradas y no las duplica (D1 de QA en S2-4). Idempotente.
   async function migrateIds({ isValid, uid, epoch }) {
-    const todo = (await all()).filter((p) => p && (!isValid(p.id) || p.updatedAt === undefined));
-    if (!todo.length) return 0;
+    let migrated = 0;
     await tx('readwrite', (s) => {
-      for (const p of todo) {
-        if (isValid(p.id)) { s.put({ ...p, updatedAt: epoch }); continue; }
-        s.delete(p.id);
-        s.put({ ...p, id: uid(), updatedAt: p.updatedAt || epoch });
-      }
+      const req = s.getAll();
+      req.onsuccess = () => {
+        try {
+          for (const p of req.result) {
+            if (!p || (isValid(p.id) && p.updatedAt !== undefined)) continue;
+            migrated++;
+            if (isValid(p.id)) { s.put({ ...p, updatedAt: epoch }); continue; }
+            s.delete(p.id);
+            s.put({ ...p, id: uid(), updatedAt: p.updatedAt || epoch });
+          }
+        } catch {
+          // Se revierte TODO (también los delete ya pedidos); tx() rechaza y la migración se reintenta en otra carga.
+          s.transaction.abort();
+        }
+      };
     });
-    return todo.length;
+    return migrated;
   }
 
   root.Photos = { all, put, remove, clear, compress, exportAll, importAll, migrateIds, decode: dataURLToBlob };

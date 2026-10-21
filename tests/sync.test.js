@@ -7,9 +7,10 @@ const Schema = require('../schema.js');
 
 const fx = (n) => JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', n), 'utf8'));
 const load = (raw) => Schema.normalize(Schema.migrate(raw));
-const T1 = '2026-10-21T10:00:00.000Z';
-const T2 = '2026-10-21T11:00:00.000Z';
-const T3 = '2026-10-21T12:00:00.000Z';
+// Marcas en el pasado: con el reloj acotado (+5 min) una marca futura respecto al reloj real se trataría como "ahora".
+const T1 = '2026-10-01T10:00:00.000Z';
+const T2 = '2026-10-01T11:00:00.000Z';
+const T3 = '2026-10-01T12:00:00.000Z';
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const plain = (o) => JSON.parse(JSON.stringify(o));
 // Estado v4 válido mínimo para las pruebas de marcas y fusión.
@@ -189,4 +190,44 @@ test('toRecords / fromRecords: ida y vuelta sin pérdidas', () => {
   s.deleted.entries.push({ id: U(1), date: '2026-09-30', deletedAt: T1, updatedAt: T1 });
   const back = Schema.fromRecords(s, Schema.toRecords(s));
   assert.deepStrictEqual(plain(back), plain(s));
+});
+
+test('D2: con clave natural, LWW también dentro del mismo lado (lápida vieja no borra un registro vivo más nuevo)', () => {
+  const live = { id: U(1), date: '2026-10-16', weight: 79, updatedAt: T2 };
+  const oldTomb = { id: U(2), date: '2026-10-16', deletedAt: T1, updatedAt: T1 };
+  assert.deepStrictEqual(Schema.mergeRecords([live, oldTomb], [], { key: 'date' }), [live]);
+  assert.deepStrictEqual(Schema.mergeRecords([oldTomb, live], [], { key: 'date' }), [live]);
+  assert.deepStrictEqual(Schema.mergeRecords([], [oldTomb, live], { key: 'date' }), [live]);
+  // normalize también retira lápidas de un día con registro o hábito vivo.
+  const { state } = Schema.normalize({ schemaVersion: 4, entries: [{ id: U(1), date: '2026-10-16', weight: 79 }],
+    habits: { '2026-10-16': { id: U(3), trained: true } },
+    deleted: { entries: [oldTomb, { id: U(4), date: '2026-10-15', deletedAt: T1 }], habits: [{ id: U(5), date: '2026-10-16', deletedAt: T1 }] } });
+  assert.deepStrictEqual(state.deleted.entries.map((t) => t.id), [U(4)]);
+  assert.deepStrictEqual(state.deleted.habits, []);
+});
+
+test('reloj acotado: un updatedAt más de 5 min en el futuro cuenta como "ahora" al fusionar y al guardar', () => {
+  const now = Date.parse(T2);
+  const future = { id: U(1), date: '2026-10-16', weight: 70, updatedAt: '2030-01-01T00:00:00.000Z' };
+  const edit = { id: U(1), date: '2026-10-16', weight: 71, updatedAt: new Date(now + 60000).toISOString() };   // +1 min: válido
+  const [m] = Schema.mergeRecords([future], [edit], { now });
+  assert.strictEqual(m.weight, 71, 'la marca de 2030 ya no gana siempre');
+  assert.strictEqual(Schema.clampStamp('2030-01-01T00:00:00.000Z', now), T2);
+  const in4 = new Date(now + 4 * 60000).toISOString();
+  assert.strictEqual(Schema.clampStamp(in4, now), in4, '≤ 5 min se respeta');
+  // Una lápida futura no impide recrear el dato.
+  const [r] = Schema.mergeRecords([{ id: U(1), date: '2026-10-16', deletedAt: '2031-01-01T00:00:00.000Z', updatedAt: '2031-01-01T00:00:00.000Z' }], [edit], { now });
+  assert.strictEqual(r.weight, 71);
+  // Al guardar: un registro sin cambios con marca futura queda en "ahora"; las lápidas futuras también.
+  const prev = { ...base(), entries: [future] };
+  const next = { ...plain(prev), foods: Object.create(null), habits: Object.create(null), library: Object.create(null),
+    deleted: { entries: [], foods: [{ id: U(9), date: '2026-10-10', deletedAt: '2031-01-01T00:00:00.000Z', updatedAt: '2031-01-01T00:00:00.000Z' }], habits: [], photos: [] } };
+  const s = Schema.stampChanges(plain(prev), next, T2);
+  assert.strictEqual(s.entries[0].updatedAt, T2);
+  assert.strictEqual(s.deleted.foods[0].updatedAt, T2);
+  assert.strictEqual(s.deleted.foods[0].deletedAt, T2);
+  // mergeState también acota el perfil.
+  const ms = Schema.mergeState({ ...base(), profile: { name: 'Futuro', updatedAt: '2030-01-01T00:00:00.000Z' } },
+    { ...base(), profile: { name: 'Hoy', updatedAt: new Date(now + 60000).toISOString() } }, { now });
+  assert.strictEqual(ms.profile.name, 'Hoy');
 });

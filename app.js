@@ -49,7 +49,13 @@
       if (migrated) {
         // Copia por versión de origen (p. ej. :backup-v3) y se guarda ya migrado: así los UUID nuevos son estables
         // entre cargas y lo migrado conserva updatedAt = EPOCH (no cuenta como edición en el primer save()).
-        keepCopy(`${BACKUP_KEY}-v${parsed.schemaVersion || 1}`, raw);
+        // Solo se conserva la copia de la migración MÁS RECIENTE (además de :backup y :corrupto): no se acumulan
+        // :backup-v1, -v2, -v3… del tamaño de todo el estado (O3 de QA en S2-4).
+        try {
+          const keep = `${BACKUP_KEY}-v${parsed.schemaVersion || 1}`;
+          for (const k of Object.keys(localStorage)) if (k.startsWith(BACKUP_KEY + '-v') && k !== keep) localStorage.removeItem(k);
+          localStorage.setItem(keep, raw);
+        } catch { /* sin espacio: seguimos */ }
         try {
           const json = JSON.stringify({ ...s, profile: s.profile || (pending && pending.profile) || null, schemaVersion: Schema.CURRENT_VERSION });
           localStorage.setItem(STORAGE_KEY, json);

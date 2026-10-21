@@ -1,5 +1,5 @@
 // Cache simple para que la app funcione sin conexión.
-const CACHE = 'perdida-grasa-v15';
+const CACHE = 'perdida-grasa-v16';
 const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'coach.js', 'photos.js', 'app.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
 
 self.addEventListener('install', (e) => {

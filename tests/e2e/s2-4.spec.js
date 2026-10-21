@@ -29,6 +29,19 @@ test('carga de datos v3 guardados: migra a v4 una vez, con UUID estables, EPOCH 
   await expect(page.locator('#entries-table tbody tr')).toHaveCount(3);
 });
 
+test('copias por versión: se conserva solo la :backup-v<N> más reciente y "Borrar todo" las elimina todas', async ({ app, page }) => {
+  const raw = JSON.stringify(seedV3());
+  await app.open({ state: raw, prefs: { 'perdida-grasa:backup-v1': '{"viejo":1}', 'perdida-grasa:backup-v2': '{"viejo":2}', 'perdida-grasa:backup': '{"primera":1}' } });
+  const keys = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('perdida-grasa:backup')).sort());
+  expect(keys).toEqual(['perdida-grasa:backup', 'perdida-grasa:backup-v3']);
+  expect(await app.pref('perdida-grasa:backup-v3')).toBe(raw);
+  expect(await app.pref('perdida-grasa:backup')).toBe('{"primera":1}');   // la primera copia nunca se pisa
+  await app.tab('perfil');
+  await page.click('#btn-reset');
+  await expect(app.toast()).toContainText('Datos borrados');
+  expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => /backup$|backup-v|corrupto/.test(k)))).toEqual([]);
+});
+
 test('sin autorización de datos de salud, la migración v3 → v4 al cargar no se bloquea (no es una escritura del usuario)', async ({ app }) => {
   const noHealth = Schema.buildConsent({ terms: true, privacy: true, adult: true, sensitiveHealth: false, photos: false }, '2026-10-01T12:00:00.000Z');
   await app.open({ state: { ...V3_STATE, consent: noHealth } });
