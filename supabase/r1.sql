@@ -648,24 +648,30 @@ begin
   return jsonb_build_object('server_now', now(), 'rejected', jsonb_build_object('records', rejected_r, 'photos', rejected_p));
 end $$;
 
-create or replace function grasa.sync_pull(p_since timestamptz default '1970-01-01T00:00:00Z', p_limit int default 1000)
+-- p_overlap (S3-3): la ventana de solape de 30 s solo en la PRIMERA página de cada ciclo. Las siguientes piden
+-- `>= cursor` sin solape: si no, con más de p_limit filas en 30 s la paginación no avanzaría nunca. Con `>=` como mucho
+-- se repite la última fila de la página anterior (la fusión del cliente es idempotente).
+drop function if exists grasa.sync_pull(timestamptz, int);
+create or replace function grasa.sync_pull(p_since timestamptz default '1970-01-01T00:00:00Z', p_limit int default 1000,
+  p_overlap boolean default true)
 returns jsonb language plpgsql stable security invoker set search_path = '' as $$
-declare uid uuid := grasa.require_uid(); since timestamptz := coalesce(p_since, '1970-01-01T00:00:00Z') - interval '30 seconds';
+declare uid uuid := grasa.require_uid();
+  since timestamptz := coalesce(p_since, '1970-01-01T00:00:00Z') - case when coalesce(p_overlap, true) then interval '30 seconds' else interval '0' end;
   lim int := least(greatest(coalesce(p_limit, 1000), 1), 5000);
   recs jsonb; phs jsonb; cms jsonb; nr int; np int; nc int; mr timestamptz; mp timestamptz; mc timestamptz;
   more boolean; cur timestamptz;
 begin
   select coalesce(jsonb_agg(to_jsonb(x) - 'user_id' order by x.server_updated_at), '[]'), count(*), max(x.server_updated_at)
     into recs, nr, mr
-    from (select * from grasa.records r where r.user_id = uid and r.server_updated_at > since
+    from (select * from grasa.records r where r.user_id = uid and r.server_updated_at >= since
           order by r.server_updated_at limit lim) x;
   select coalesce(jsonb_agg(to_jsonb(x) - 'user_id' order by x.server_updated_at), '[]'), count(*), max(x.server_updated_at)
     into phs, np, mp
-    from (select * from grasa.photos p where p.user_id = uid and p.server_updated_at > since
+    from (select * from grasa.photos p where p.user_id = uid and p.server_updated_at >= since
           order by p.server_updated_at limit lim) x;
   select coalesce(jsonb_agg(to_jsonb(x) order by x.server_updated_at), '[]'), count(*), max(x.server_updated_at)
     into cms, nc, mc
-    from (select * from grasa.comments c where c.client_id = uid and c.server_updated_at > since
+    from (select * from grasa.comments c where c.client_id = uid and c.server_updated_at >= since
           order by c.server_updated_at limit lim) x;
   more := nr = lim or np = lim or nc = lim;
   -- Con más páginas, el cursor es el MENOR de los máximos de las tablas llenas (nada queda sin leer).
@@ -738,7 +744,7 @@ grant execute on function
   grasa.become_coach(text), grasa.rotate_invite_code(int, int), grasa.preview_invite_code(text),
   grasa.join_coach(text, jsonb), grasa.update_shares(jsonb), grasa.leave_coach(), grasa.end_client(uuid),
   grasa.coach_clients(), grasa.coach_pull(uuid, timestamptz), grasa.sync_push(jsonb, jsonb),
-  grasa.sync_pull(timestamptz, int), grasa.add_comment(uuid, uuid, date, text), grasa.delete_comment(uuid),
+  grasa.sync_pull(timestamptz, int, boolean), grasa.add_comment(uuid, uuid, date, text), grasa.delete_comment(uuid),
   grasa.mark_comment_read(uuid), grasa.coach_photo_opened(uuid), grasa.billing_active_clients(date),
   grasa.require_uid()
 to authenticated;
