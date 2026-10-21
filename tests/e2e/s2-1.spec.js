@@ -115,16 +115,15 @@ test('usuario existente (v2): se le pide aceptar sin perder datos; exportar incl
   expect(after.consent).toEqual(mine);
 });
 
-test('re-aceptación si cambia la versión: aviso "Actualizamos…", obligatorias sin marcar, facultativas previas precargadas', async ({ app, page }) => {
+test('re-aceptación si cambia la versión: aviso "Actualizamos…", TODAS sin marcar y nota de lo autorizado antes', async ({ app, page }) => {
   await app.open({ state: state({ consent: { ...CONSENT, termsVersion: '0.0', photos: false } }), legal: false });
   await expect(gate(page)).toBeVisible();
   await expect(page.locator('#consent-update')).toContainText(`Actualizamos Términos y Condiciones (versión 0.0 → ${Schema.LEGAL_VERSIONS.terms})`);
-  for (const n of ['terms', 'privacy', 'adult']) await expect(box(page, n)).not.toBeChecked();
-  await expect(box(page, 'sensitiveHealth')).toBeChecked();
+  for (const n of BOXES) await expect(box(page, n)).not.toBeChecked();
+  await expect(page.locator('#consent-update')).toContainText('Antes autorizaste: datos de salud; márcalo de nuevo si sigues de acuerdo.');
   await expect(page.locator('#prev-sensitiveHealth')).toBeVisible();
-  await expect(box(page, 'photos')).not.toBeChecked();
   await expect(page.locator('#prev-photos')).toBeHidden();
-  await accept(page, ['terms', 'privacy', 'adult']);
+  await accept(page, ['terms', 'privacy', 'sensitiveHealth', 'adult']);
   expect((await app.stored()).consent).toMatchObject({ sensitiveHealth: true, photos: false });
   const s = await app.stored();
   expect(s.consent.termsVersion).toBe(Schema.LEGAL_VERSIONS.terms);

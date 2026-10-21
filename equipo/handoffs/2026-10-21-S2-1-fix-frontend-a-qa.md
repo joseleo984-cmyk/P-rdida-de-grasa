@@ -50,3 +50,23 @@ RIESGOS:
 - S2-4 (Backend, v4) puede tocar `persist()`/`save()`. Basta con mantener la llamada a `healthWriteBlocked(s)` antes
   de escribir y `healthBaseline = healthPart(s)` después.
 - Si v4 añade campos de salud nuevos al estado, hay que incluirlos en `healthPart()`.
+
+## ADENDA (re-verificación de QA)
+- **D3:** si las fotos no están autorizadas (`photosAllowed()`), importar no escribe las fotos del respaldo en
+  IndexedDB y las fotos actuales no se tocan. El confirm de importación lo dice: «Las N fotos no se importarán porque
+  no autorizaste fotos».
+  - Es un cambio mínimo en la importación (zona del Backend): 3 líneas tras `keepGallery` y una línea en `summary`.
+  - El `test.fail` de D3 en `tests/e2e/s2-1-qa.spec.js` pasa a ser una prueba normal; además comprueba el texto del
+    confirm.
+- **Re-aceptación (decisión SM, criterio conservador ante la Ley 1581):** las 5 casillas vuelven **sin marcar**, también
+  las facultativas.
+  - `#consent-update` añade «Antes autorizaste: datos de salud y fotos de progreso; márcalo de nuevo si sigues de
+    acuerdo».
+  - Junto a cada casilla facultativa que estaba autorizada aparece la nota «Antes la tenías autorizada: márcala de
+    nuevo si sigues de acuerdo».
+  - Se ajustaron la prueba de re-aceptación en `tests/e2e/s2-1.spec.js` y la de `equipo/qa/run-s2-1.js`.
+- No toqué `sw.js`: sigue en v13 y el Backend usará v14.
+- DoD:
+  - `npm test`: 48/48.
+  - `npm run test:e2e`: 62 passed; el único ✘ es el `test.fail` esperado de D2.
+  - `node equipo/qa/run-all.js`: 8 suites en verde.
