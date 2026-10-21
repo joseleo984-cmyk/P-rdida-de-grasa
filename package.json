@@ -8,7 +8,9 @@
     "test": "node --test tests/*.test.js",
     "test:e2e": "playwright test -c tests/e2e/playwright.config.js",
     "test:all": "npm test && npm run test:e2e",
-    "legal": "node scripts/build-legal.js"
+    "legal": "node scripts/build-legal.js",
+    "build:db": "node scripts/build-r1.js",
+    "test:db": "node scripts/test-db.js"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1"
