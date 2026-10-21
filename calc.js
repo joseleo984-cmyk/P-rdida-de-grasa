@@ -92,10 +92,27 @@
     return Math.ceil(remaining / weeklyLossKg);
   }
 
+  // ¿Toca recordar la copia de seguridad? Fechas en ISO local (AAAA-MM-DD).
+  // Sí, si hay datos, no está pospuesto y nunca se exportó o hace ≥ `everyDays` días.
+  function backupDue(lastBackupISO, snoozeUntilISO, todayISO, hasData, everyDays = 7) {
+    if (!hasData) return false;
+    const now = toDay(todayISO);
+    if (!Number.isFinite(now)) return false;
+    const snooze = snoozeUntilISO ? toDay(String(snoozeUntilISO).slice(0, 10)) : NaN;
+    if (Number.isFinite(snooze) && now < snooze) return false;
+    const last = lastBackupISO ? toDay(String(lastBackupISO).slice(0, 10)) : NaN;
+    if (!Number.isFinite(last)) return true;
+    return now - last >= everyDays;
+  }
+
+  function addDays(iso, n) {
+    return new Date((toDay(iso) + n) * 86400000).toISOString().slice(0, 10);
+  }
+
   function toDay(iso) { return Math.floor(Date.parse(iso + 'T00:00:00Z') / 86400000); }
   function round(n, d = 0) { const f = 10 ** d; return Math.round(n * f) / f; }
 
-  const api = { bmr, tdee, navyBodyFat, plan, bmi, trend, weeklyRate, weeksToGoal, toDay, round };
+  const api = { bmr, tdee, navyBodyFat, plan, bmi, trend, weeklyRate, weeksToGoal, backupDue, addDays, toDay, round };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Calc = api;
 })(typeof window !== 'undefined' ? window : globalThis);

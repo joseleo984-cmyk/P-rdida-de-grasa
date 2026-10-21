@@ -1,12 +1,15 @@
 (function () {
   'use strict';
 
+  // La clave conserva el nombre histórico ":v1"; la versión real va dentro del dato (`schemaVersion`).
   const STORAGE_KEY = 'perdida-grasa:v1';
+  const BACKUP_KEY = 'perdida-grasa:backup';      // copia del dato crudo antes de migrarlo o corregirlo
+  const CORRUPT_KEY = 'perdida-grasa:corrupto';   // dato ilegible que no se pudo cargar
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
   const fmt = (n, d = 1) => (n == null || Number.isNaN(n) ? '—' : Number(n).toLocaleString('es', { minimumFractionDigits: d, maximumFractionDigits: d }));
   const today = () => toISO(new Date());
-  const uid = () => Math.random().toString(36).slice(2, 10);
+  const uid = () => Schema.uuid();   // S2-4: UUID (crypto.randomUUID con respaldo) para poder sincronizar
 
   function toISO(d) {
     const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
@@ -20,21 +23,94 @@
   }
 
   // ---------- Estado ----------
-  const emptyState = () => ({ profile: null, entries: [], foods: {}, habits: {}, library: {} });
+  const emptyState = Schema.emptyState;
+  let loadNotice = '';   // aviso a mostrar tras el arranque (toast aún no está listo aquí)
+  let saveBlocked = false;
+  let savedJSON = null;  // último JSON escrito o leído: permite deshacer en memoria si save() falla
+  // Perfil heredado que no pasa la validación (p. ej. meta ≥ peso inicial, BUG-04 de la versión anterior):
+  // no se usa para calcular, pero se conserva guardado y precarga el formulario hasta que se corrija.
+  let pending = null;    // { profile, reason }
   let state = load();
   let chartRange = 30;
 
+  // Migra y normaliza lo guardado. Si está dañado, la app arranca igualmente y el dato crudo se conserva.
   function load() {
+    let raw;
+    try { raw = localStorage.getItem(STORAGE_KEY); } catch { return emptyState(); }
+    if (!raw) return emptyState();
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? { ...emptyState(), ...JSON.parse(raw) } : emptyState();
-    } catch {
+      const parsed = JSON.parse(raw);
+      const { state: s, warnings, rejected } = Schema.normalize(Schema.migrate(parsed));
+      savedJSON = raw;
+      // Copia del original antes de migrarlo o corregirlo. Solo la primera: nunca se pisa la única copia.
+      const migrated = parsed.schemaVersion !== Schema.CURRENT_VERSION;
+      if (warnings.length || migrated) keepCopy(BACKUP_KEY, raw);
+      if (rejected.profile) pending = { profile: rejected.profile, reason: rejected.reason };
+      if (migrated) {
+        // Copia por versión de origen (p. ej. :backup-v3) y se guarda ya migrado: así los UUID nuevos son estables
+        // entre cargas y lo migrado conserva updatedAt = EPOCH (no cuenta como edición en el primer save()).
+        // Solo se conserva la copia de la migración MÁS RECIENTE (además de :backup y :corrupto): no se acumulan
+        // :backup-v1, -v2, -v3… del tamaño de todo el estado (O3 de QA en S2-4).
+        try {
+          const keep = `${BACKUP_KEY}-v${parsed.schemaVersion || 1}`;
+          for (const k of Object.keys(localStorage)) if (k.startsWith(BACKUP_KEY + '-v') && k !== keep) localStorage.removeItem(k);
+          localStorage.setItem(keep, raw);
+        } catch { /* sin espacio: seguimos */ }
+        try {
+          const json = JSON.stringify({ ...s, profile: s.profile || (pending && pending.profile) || null, schemaVersion: Schema.CURRENT_VERSION });
+          localStorage.setItem(STORAGE_KEY, json);
+          savedJSON = json;
+        } catch { /* sin espacio: se migrará de nuevo en la próxima carga */ }
+      }
+      const others = warnings.length - (rejected.profile ? 1 : 0);
+      if (rejected.profile) loadNotice = 'Revisa tu perfil: ' + rejected.reason;
+      else if (others) loadNotice = `Se corrigieron ${others} datos dañados; se guardó una copia del original`;
+      if (warnings.length) console.warn('Datos corregidos al cargar:', warnings);
+      return s;
+    } catch (err) {
+      keepCopy(CORRUPT_KEY, raw);
+      // Datos de una versión más nueva: no se sobrescriben desde esta versión antigua.
+      saveBlocked = /más nueva/.test(err.message);
+      loadNotice = saveBlocked
+        ? 'Tus datos son de una versión más nueva de la app: recarga para actualizar'
+        : 'No se pudieron leer los datos guardados; se guardó una copia del original';
+      console.error('Datos guardados ilegibles:', err);
       return emptyState();
     }
   }
+  function keepCopy(key, raw) {
+    try { if (localStorage.getItem(key) == null) localStorage.setItem(key, raw); } catch { /* sin espacio: seguimos */ }
+  }
+  let healthBaseline = null; // LEGAL-01: datos de salud tal como están guardados (ver healthWriteBlocked)
+  // Lanza si no se puede escribir (lo usa la importación para ser atómica).
+  function persist(s, draft = pending && pending.profile) {
+    if (saveBlocked) throw new Error('Guardado bloqueado');
+    if (healthWriteBlocked(s)) throw Object.assign(new Error(HEALTH_LOCK_MSG), { code: 'health-lock' });
+    const json = JSON.stringify({ ...s, profile: s.profile || draft || null, schemaVersion: Schema.CURRENT_VERSION });
+    localStorage.setItem(STORAGE_KEY, json);
+    savedJSON = json;
+    healthBaseline = healthPart(s);
+  }
+  const QUOTA_MSG = 'Almacenamiento lleno: exporta una copia y borra fotos antiguas';
+  const isQuotaError = (err) => err && (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22);
+  // Devuelve true si se guardó. Si falla, avisa (aviso de error, más largo), deshace el cambio en memoria
+  // para que la pantalla muestre lo que de verdad está guardado, y el llamador NO debe mostrar éxito.
   function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-    catch { toast('No se pudo guardar en este navegador'); }
+    try {
+      // S2-4: marca updatedAt en lo nuevo o cambiado y crea lápidas de lo borrado, comparando con lo guardado.
+      let prev = null;
+      try { prev = savedJSON ? JSON.parse(savedJSON) : null; } catch { prev = null; }
+      state = Schema.stampChanges(prev, state, new Date().toISOString());
+      persist(state);
+      return true;
+    }
+    catch (err) {
+      toast(err.code === 'health-lock' ? err.message : saveBlocked ? loadNotice : isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador', true);
+      try { state = savedJSON ? Schema.normalize(Schema.migrate(JSON.parse(savedJSON))).state : emptyState(); }
+      catch { /* se mantiene el estado en memoria */ }
+      render();
+      return false;
+    }
   }
 
   const sortedEntries = () => [...state.entries].sort((a, b) => a.date.localeCompare(b.date));
@@ -66,12 +142,26 @@
   });
 
   let toastTimer;
-  function toast(msg) {
+  // Duración según la longitud; los errores duran más (mín. 6 s).
+  // `opt`: true marca error; { label, run } añade un botón (p. ej. "Deshacer") y alarga el toast a 6 s.
+  function toast(msg, opt) {
+    const isError = opt === true;
+    const action = opt && typeof opt === 'object' ? opt : null;
     const t = $('#toast');
     t.textContent = msg;
+    if (action) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'toast-action';
+      b.textContent = action.label;
+      b.addEventListener('click', () => { t.classList.remove('show', 'has-action'); action.run(); }, { once: true });
+      t.append(' ', b);
+    }
+    t.classList.toggle('has-action', !!action);
     t.classList.add('show');
+    t.classList.toggle('error', isError);
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    toastTimer = setTimeout(() => t.classList.remove('show', 'has-action'), Math.max(isError || action ? 6000 : 2200, msg.length * 60));
   }
 
   // ---------- Perfil ----------
@@ -79,7 +169,7 @@
   profileForm.addEventListener('submit', (ev) => {
     ev.preventDefault();
     const f = new FormData(profileForm);
-    state.profile = {
+    const profile = {
       name: f.get('name').trim(),
       sex: f.get('sex'),
       age: Number(f.get('age')),
@@ -90,21 +180,22 @@
       activity: Number(f.get('activity')),
       rate: Number(f.get('rate')),
     };
-    if (state.profile.goalWeight >= state.profile.startWeight) {
-      toast('La meta debe ser menor que el peso inicial');
-      return;
-    }
+    // Se valida antes de tocar el estado: un perfil inválido nunca llega a guardarse.
+    const err = Schema.profileError(profile);
+    if (err) { toast(err); return; }
+    state.profile = profile;
     // El peso inicial cuenta como primer registro si aún no hay ninguno ese día.
     if (!state.entries.some((e) => e.date === state.profile.startDate)) {
       state.entries.push({ id: uid(), date: state.profile.startDate, weight: state.profile.startWeight });
     }
-    save();
+    if (!save()) return;
+    pending = null;
     toast('Perfil guardado');
     render();
   });
 
   function fillProfileForm() {
-    const p = state.profile;
+    const p = state.profile || (pending && pending.profile);
     const el = profileForm.elements;
     if (!p) {
       el.startDate.value = today();
@@ -112,6 +203,13 @@
       return;
     }
     for (const k of Object.keys(p)) if (el[k]) el[k].value = p[k];
+    if (!el.startDate.value) el.startDate.value = today();
+  }
+  function renderProfileIssue() {
+    const box = $('#profile-issue');
+    const msg = !state.profile && pending ? `Revisa tu perfil: ${pending.reason}. Corrige los datos y pulsa Guardar.` : '';
+    if (box.textContent !== msg) box.textContent = msg;
+    box.classList.toggle('hidden', !msg);
   }
 
   function renderPlan() {
@@ -153,7 +251,7 @@
     } else {
       state.entries.push({ id: uid(), ...entry });
     }
-    save();
+    if (!save()) return;
     entryForm.reset();
     entryForm.elements.date.value = today();
     toast(existing ? 'Registro actualizado' : 'Registro guardado');
@@ -165,8 +263,7 @@
     if (!btn) return;
     if (!confirm('¿Eliminar este registro?')) return;
     state.entries = state.entries.filter((e) => e.id !== btn.dataset.delEntry);
-    save();
-    render();
+    if (save()) render();
   });
 
   function renderEntries() {
@@ -182,7 +279,7 @@
         <td>${e.waist ? fmt(e.waist) + ' cm' : '—'}</td>
         <td>${bf != null ? fmt(bf) + ' %' : '—'}</td>
         <td>${lean != null ? fmt(lean) + ' kg' : '—'}</td>
-        <td><button class="icon-btn" data-del-entry="${e.id}" aria-label="Eliminar">✕</button></td>
+        <td><button class="icon-btn" data-del-entry="${esc(e.id)}" aria-label="Eliminar">✕</button></td>
       </tr>`;
     }).join('');
     $$('.female-only').forEach((el) => el.classList.toggle('hidden', state.profile?.sex !== 'female'));
@@ -204,10 +301,13 @@
     const f = new FormData(foodForm);
     const n = (k) => Number(f.get(k) || 0);
     const item = { id: uid(), name: f.get('name').trim(), meal: f.get('meal'), kcal: n('kcal'), protein: n('protein'), carbs: n('carbs'), fat: n('fat') };
+    if (!item.name) { toast('Escribe el nombre del alimento'); return; }   // BUG-07: solo espacios
     const d = foodDate.value || today();
     (state.foods[d] ||= []).push(item);
-    state.library[item.name.toLowerCase()] = { name: item.name, kcal: item.kcal, protein: item.protein, carbs: item.carbs, fat: item.fat };
-    save();
+    // La biblioteca no guarda nombres reservados ("constructor", "__proto__"...): normalize() los descartaría.
+    const key = item.name.toLowerCase();
+    if (Schema.isSafeKey(key)) state.library[key] = { name: item.name, kcal: item.kcal, protein: item.protein, carbs: item.carbs, fat: item.fat };
+    if (!save()) return;
     const meal = foodForm.elements.meal.value;
     foodForm.reset();
     foodForm.elements.meal.value = meal;
@@ -215,14 +315,60 @@
     render();
   });
 
+  // HU-02: repetir comidas. La lógica (ids nuevos + saneado) vive en Schema.copyMeals.
+  const plural = (n) => `${n} alimento${n === 1 ? '' : 's'}`;
+  // Copiar un bloque no pide confirmación (es explícito y aditivo): basta "Deshacer" en el toast.
+  // Copiar un día entero sobre un día que ya tiene comidas sí la pide (evita duplicar con un doble toque).
+  function repeatMeals(from, to, meal) {
+    const src = (state.foods[from] || []).filter((x) => !meal || x.meal === meal);
+    const yesterday = from === Schema.addDays(today(), -1);
+    if (!src.length) { toast(`No hay comidas${meal ? ' de ' + meal : ''} registradas ${yesterday ? 'ayer' : 'el ' + fmtDate(from)}; no se copió nada`); return false; }
+    const dest = to === today() ? 'a hoy' : 'al ' + fmtDate(to);
+    if (!meal && state.foods[to]?.length &&
+      !confirm(`${to === today() ? 'Hoy' : 'El ' + fmtDate(to)} ya tiene comidas. ¿Añadir ${plural(src.length)} ${yesterday ? 'de ayer' : 'del ' + fmtDate(from)}? No se reemplaza nada.`)) return false;
+    let r;
+    try { r = Schema.copyMeals(state.foods, from, to, { meal }); }
+    catch (err) { toast('No se pudo copiar: ' + err.message); return false; }
+    const prevIds = new Set((state.foods[to] || []).map((x) => x.id));
+    const added = new Set((r.foods[to] || []).filter((x) => !prevIds.has(x.id)).map((x) => x.id));
+    state.foods = r.foods;
+    if (!save()) return false;
+    render();
+    toast(`${r.copied === 1 ? 'Se copió' : 'Se copiaron'} ${plural(r.copied)} ${dest}` + (r.skipped ? ` (${r.skipped} no válidos omitidos)` : ''),
+      { label: 'Deshacer', run: () => undoCopy(to, added) });
+    return true;
+  }
+  // Deshacer quita solo lo que se añadió en esa copia (respeta lo que se haya registrado después).
+  function undoCopy(day, ids) {
+    const left = (state.foods[day] || []).filter((x) => !ids.has(x.id));
+    if (left.length) state.foods[day] = left; else delete state.foods[day];
+    if (!save()) return;
+    render();
+    if (!document.activeElement || document.activeElement === document.body) $('#food-list-title').focus();
+    toast('Copia deshecha');
+  }
+  $('#btn-copy-prev').addEventListener('click', () => {
+    const d = foodDate.value || today();
+    repeatMeals(Schema.addDays(d, -1), d);
+  });
+  $('#btn-copy-to-today').addEventListener('click', () => repeatMeals(foodDate.value, today()));
+
   $('#food-list').addEventListener('click', (ev) => {
+    const rep = ev.target.closest('[data-repeat-meal]');
+    if (rep) {
+      const { repeatMeal: meal, from } = rep.dataset;
+      repeatMeals(from, today(), meal);
+      // El botón se regenera (o desaparece): devolver el foco al equivalente o al título del bloque.
+      const same = $(`#food-list [data-repeat-meal="${meal}"][data-from="${from}"]`);
+      (same || $(`#food-list [data-meal-title="${meal}"]`) || $('#food-list-title')).focus();
+      return;
+    }
     const btn = ev.target.closest('[data-del-food]');
     if (!btn) return;
     const d = foodDate.value;
     state.foods[d] = (state.foods[d] || []).filter((x) => x.id !== btn.dataset.delFood);
     if (!state.foods[d].length) delete state.foods[d];
-    save();
-    render();
+    if (save()) render();
   });
 
   const habitsForm = $('#form-habits');
@@ -231,7 +377,7 @@
     const f = new FormData(habitsForm);
     const n = (k) => (f.get(k) === '' ? undefined : Number(f.get(k)));
     state.habits[foodDate.value || today()] = { steps: n('steps'), water: n('water'), sleep: n('sleep'), trained: f.get('trained') === 'on' };
-    save();
+    if (!save()) return;
     toast('Hábitos guardados');
     render();
   });
@@ -266,15 +412,32 @@
     const d = foodDate.value || today();
     $('#day-macros').innerHTML = macroBars(d);
     const list = state.foods[d] || [];
-    const meals = ['Desayuno', 'Almuerzo', 'Cena', 'Snack'];
-    $('#food-list').innerHTML = list.length ? meals.map((m) => {
+    const meals = Schema.MEALS;
+    const isToday = d === today();
+    $('#btn-copy-prev').textContent = isToday ? 'Copiar de ayer' : 'Copiar del día anterior';
+    $('#btn-copy-prev').setAttribute('aria-label', `Copiar las comidas del ${fmtDate(Schema.addDays(d, -1))} a este día`);
+    $('#btn-copy-to-today').classList.toggle('hidden', isToday || !list.length);
+    $('#btn-copy-to-today').setAttribute('aria-label', `Copiar las comidas del ${fmtDate(d)} a hoy`);
+    // Hoy: por cada bloque vacío que ayer sí tenía, "Repetir <bloque> de ayer".
+    // Otro día: por cada bloque, "Repetir hoy" (lo copia al día de hoy).
+    const prev = Schema.addDays(d, -1);
+    const prevList = isToday ? state.foods[prev] || [] : [];
+    const html = meals.map((m) => {
       const xs = list.filter((x) => x.meal === m);
-      if (!xs.length) return '';
+      const ys = prevList.filter((x) => x.meal === m);
+      if (!xs.length && !ys.length) return '';
       const sum = xs.reduce((s, x) => s + x.kcal, 0);
-      return `<div class="meal"><div class="meal-head"><strong>${m}</strong><span class="muted">${Math.round(sum)} kcal</span></div>
-        ${xs.map((x) => `<div class="food-row"><span>${esc(x.name)}</span><span class="muted small">${x.kcal} kcal · P${fmt(x.protein, 0)} C${fmt(x.carbs, 0)} G${fmt(x.fat, 0)}</span><button class="icon-btn" data-del-food="${x.id}" aria-label="Eliminar">✕</button></div>`).join('')}
+      const rep = !isToday
+        ? `<button type="button" class="btn-link small" data-repeat-meal="${esc(m)}" data-from="${esc(d)}" aria-label="Repetir ${esc(m)} hoy">Repetir hoy</button>`
+        : !xs.length
+          ? `<button type="button" class="btn-link small" data-repeat-meal="${esc(m)}" data-from="${esc(prev)}">Repetir ${esc(m.toLowerCase())} de ayer</button>`
+          : '';
+      const side = xs.length ? `${Math.round(sum)} kcal` : `Ayer: ${Math.round(ys.reduce((s, x) => s + x.kcal, 0))} kcal`;
+      return `<div class="meal"><div class="meal-head"><strong data-meal-title="${esc(m)}" tabindex="-1">${esc(m)}</strong><span class="meal-side">${rep}<span class="muted">${side}</span></span></div>
+        ${xs.map((x) => `<div class="food-row"><span>${esc(x.name)}</span><span class="muted small">${esc(x.kcal)} kcal · P${fmt(x.protein, 0)} C${fmt(x.carbs, 0)} G${fmt(x.fat, 0)}</span><button class="icon-btn" data-del-food="${esc(x.id)}" aria-label="Eliminar">✕</button></div>`).join('')}
       </div>`;
-    }).join('') : '<p class="muted small">Nada registrado este día.</p>';
+    }).join('');
+    $('#food-list').innerHTML = (list.length ? '' : '<p class="muted small">Nada registrado este día.</p>') + html;
 
     $('#food-suggestions').innerHTML = Object.values(state.library).map((x) => `<option value="${esc(x.name)}">`).join('');
 
@@ -301,7 +464,14 @@
     try {
       photoUrls.forEach((u) => URL.revokeObjectURL(u));
       photoUrls.clear();
-      photos = await Photos.all();
+      // LEGAL-01: sin autorización de fotos no se leen ni se muestran (tampoco en la galería oculta).
+      if (!photosAllowed()) { photos = []; renderPhotos(true); return; }
+      // Fotos guardadas por versiones anteriores sin validar (BUG-13): se ocultan si no tienen fecha válida.
+      // S2-4: fotos de versiones anteriores → id UUID y updatedAt (una sola transacción; si falla se reintenta luego).
+      try { await Photos.migrateIds({ isValid: Schema.isUUID, uid, epoch: Schema.EPOCH }); } catch { /* se reintenta en la próxima carga */ }
+      const stored = await Photos.all();
+      photos = stored.map(Schema.normalizeStoredPhoto).filter((p) => p && p.blob instanceof Blob);
+      if (photos.length < stored.length) console.warn(`${stored.length - photos.length} fotos guardadas no válidas se ocultan`);
     } catch {
       photos = [];
       toast('No se pudieron cargar las fotos');
@@ -330,7 +500,7 @@
     btn.disabled = true;
     try {
       const { blob, width, height } = await Photos.compress(file);
-      const photo = { id: uid(), date: photoForm.elements.date.value, pose: photoForm.elements.pose.value, blob, width, height, createdAt: Date.now() };
+      const photo = { id: uid(), date: photoForm.elements.date.value, pose: photoForm.elements.pose.value, blob, width, height, createdAt: Date.now(), updatedAt: new Date().toISOString() };
       await Photos.put(photo);
       photos.push(photo);
       comparePose = photo.pose;
@@ -371,6 +541,12 @@
     if (!viewing || !confirm('¿Eliminar esta foto?')) return;
     try {
       await Photos.remove(viewing.id);
+      // S2-4: lápida para que, al sincronizar, el borrado no "resucite" desde otro dispositivo.
+      if (Schema.isUUID(viewing.id) && Schema.isISODate(viewing.date)) {
+        const t = new Date().toISOString();
+        state.deleted.photos.push({ id: viewing.id, date: viewing.date, deletedAt: t, updatedAt: t });
+        save();
+      }
       URL.revokeObjectURL(photoUrls.get(viewing.id));
       photoUrls.delete(viewing.id);
       photos = photos.filter((p) => p.id !== viewing.id);
@@ -394,8 +570,8 @@
       return `<div class="photo-day">
         <div class="meal-head"><strong>${fmtDate(d)}</strong><span class="muted">${w ? fmt(w.weight) + ' kg' : ''}</span></div>
         <div class="thumbs">${byDate[d].map((p) => `
-          <button class="thumb" data-photo="${p.id}" aria-label="Ver foto ${POSES[p.pose]} del ${fmtDate(d)}">
-            <img src="${photoUrl(p)}" alt="" loading="lazy"><span>${POSES[p.pose]}</span>
+          <button class="thumb" data-photo="${esc(p.id)}" aria-label="Ver foto ${esc(POSES[p.pose])} del ${esc(fmtDate(d))}">
+            <img src="${esc(photoUrl(p))}" alt="" loading="lazy"><span>${esc(POSES[p.pose])}</span>
           </button>`).join('')}</div>
       </div>`;
     }).join('') : '<p class="muted small">Aún no hay fotos.</p>';
@@ -406,7 +582,7 @@
     const list = sortedPhotos().filter((p) => p.pose === comparePose);
     const selA = $('#compare-a'), selB = $('#compare-b');
     const prevA = selA.value, prevB = selB.value;
-    const opts = list.map((p) => `<option value="${p.id}">${fmtDate(p.date)}</option>`).join('');
+    const opts = list.map((p) => `<option value="${esc(p.id)}">${esc(fmtDate(p.date))}</option>`).join('');
     selA.innerHTML = opts;
     selB.innerHTML = opts;
     const has = (id) => list.some((p) => p.id === id);
@@ -428,7 +604,7 @@
       parts.push(`${d > 0 ? '+' : ''}${fmt(d)} kg`);
     }
     const fig = (p, w, label) => `<figure>
-        <button class="thumb" data-photo="${p.id}"><img src="${photoUrl(p)}" alt="${label}"></button>
+        <button class="thumb" data-photo="${esc(p.id)}"><img src="${esc(photoUrl(p))}" alt="${esc(label)}"></button>
         <figcaption><strong>${label}</strong> · ${fmtDate(p.date)}${w ? ' · ' + fmt(w.weight) + ' kg' : ''}</figcaption>
       </figure>`;
     box.innerHTML = `<div class="compare-pair">${fig(a, wa, 'Antes')}${fig(b, wb, 'Después')}</div>
@@ -595,57 +771,509 @@
     let photoData = [];
     try { photoData = await Photos.exportAll(); }
     catch { toast('No se pudieron incluir las fotos en la copia'); }
-    download(`perdida-grasa-${today()}.json`, JSON.stringify({ ...state, photos: photoData }, null, 2), 'application/json');
+    download(`perdida-grasa-${today()}.json`, JSON.stringify({ ...state, profile: state.profile || (pending && pending.profile) || null, schemaVersion: Schema.CURRENT_VERSION, exportedAt: new Date().toISOString(), photos: photoData }, null, 2), 'application/json');
   });
+  // CSV completo (medidas, comidas y hábitos), con ';' y coma decimal para Excel/Sheets en Colombia: ver coach.js.
   $('#btn-export-csv').addEventListener('click', () => {
-    const rows = [['fecha', 'peso_kg', 'cintura_cm', 'cuello_cm', 'cadera_cm', 'grasa_pct', 'kcal', 'proteina_g', 'pasos', 'nota']];
-    const dates = new Set([...state.entries.map((e) => e.date), ...Object.keys(state.foods), ...Object.keys(state.habits)]);
-    [...dates].sort().forEach((d) => {
-      const e = state.entries.find((x) => x.date === d) || {};
-      const t = dayTotals(d);
-      const bf = e.date ? bodyFatOf(e) : null;
-      rows.push([d, e.weight ?? '', e.waist ?? '', e.neck ?? '', e.hip ?? '', bf ?? '', t.kcal || '', t.protein || '', state.habits[d]?.steps ?? '', (e.note ?? '').replace(/"/g, '""')]);
-    });
-    download(`perdida-grasa-${today()}.csv`, rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n'), 'text/csv');
+    download(`perdida-grasa-${today()}.csv`, Coach.toCSV(state), 'text/csv;charset=utf-8');
   });
+  // Importación atómica: se valida TODO en memoria; si algo falla no se toca ni localStorage ni IndexedDB.
   $('#file-import').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];
     if (!file) return;
     try {
-      const data = JSON.parse(await file.text());
-      if (!data || !Array.isArray(data.entries)) throw new Error('formato');
-      if (!confirm('Esto reemplazará los datos actuales. ¿Continuar?')) return;
-      const { photos: photoData, ...rest } = data;
-      state = { ...emptyState(), ...rest };
-      save();
+      let data;
+      try { data = JSON.parse(await file.text()); }
+      catch { throw new Error('El archivo no es un JSON válido'); }
+      const { state: next, warnings, rejected } = Schema.normalize(Schema.migrate(data));
+      next.consent = state.consent; // LEGAL-01: el consentimiento es de quien usa este dispositivo, no del respaldo
       // Las copias anteriores a las fotos no traen la clave `photos`: se conservan las actuales.
-      if (Array.isArray(photoData)) await Photos.importAll(photoData);
+      // Si la trae con un formato que no es lista, normalizePhotos lanza y no se importa nada.
+      let hasPhotos = data.photos !== undefined && data.photos !== null;
+      const ph = hasPhotos ? Schema.normalizePhotos(data.photos) : { photos: [], warnings: [] };
+      // Si el respaldo traía fotos y TODAS son inválidas, no se vacía la galería actual.
+      const keepGallery = hasPhotos && data.photos.length > 0 && ph.photos.length === 0;
+      if (keepGallery) hasPhotos = false;
+      // LEGAL-01 D3: sin autorización de fotos no se escriben en IndexedDB (las actuales tampoco se tocan).
+      const photosSkipped = hasPhotos && !photosAllowed() ? ph.photos.length : 0;
+      if (photosSkipped) hasPhotos = false;
+      const discarded = warnings.length + ph.warnings.length;
+      if (discarded) console.warn('Importación: datos descartados o corregidos', [...warnings, ...ph.warnings]);
+      const summary = `${next.entries.length} registros, ${Object.keys(next.foods).length} días de comidas` +
+        (hasPhotos ? `, ${ph.photos.length} fotos` : '') +
+        (discarded ? `. Se descartarán o corregirán ${discarded} datos no válidos` : '') +
+        (rejected.profile ? `. El perfil no es válido (${rejected.reason}): se cargará en el formulario para que lo corrijas` : '') +
+        (keepGallery ? '. Ninguna foto del respaldo es válida: se conservan las fotos actuales' : '') +
+        (photosSkipped ? `. Las ${photosSkipped} fotos no se importarán porque no autorizaste fotos` : '');
+      if (!confirm(`Se importarán ${summary}.\nEsto reemplazará los datos actuales. ¿Continuar?`)) return;
+
+      const prevRaw = localStorage.getItem(STORAGE_KEY);
+      // Si falla (p. ej. sin espacio) se lanza antes de tocar las fotos.
+      try { persist(next, rejected.profile || null); } catch (err) { throw new Error(err.code === 'health-lock' ? err.message : isQuotaError(err) ? QUOTA_MSG : 'No se pudo guardar en este navegador'); }
+      if (hasPhotos) {
+        try { await Photos.importAll(ph.photos); }
+        catch {
+          // Deshace localStorage para que la importación sea todo o nada.
+          if (prevRaw == null) localStorage.removeItem(STORAGE_KEY); else localStorage.setItem(STORAGE_KEY, prevRaw);
+          savedJSON = prevRaw;
+          throw new Error('No se pudieron guardar las fotos; no se cambió nada');
+        }
+      }
+      state = next;
+      pending = rejected.profile ? { profile: rejected.profile, reason: rejected.reason } : null;
       await loadPhotos();
+      profileForm.reset();
       fillProfileForm();
-      toast('Datos importados');
+      toast(discarded ? `Datos importados (${discarded} corregidos o descartados)` : 'Datos importados');
       render();
-    } catch {
-      toast('Archivo no válido');
+    } catch (err) {
+      toast('No se importó. ' + (err.message || 'Archivo no válido'), true);
     } finally {
       ev.target.value = '';
     }
   });
   $('#btn-reset').addEventListener('click', async () => {
     if (!confirm('¿Borrar todos los datos de este dispositivo (incluidas las fotos)? No se puede deshacer.')) return;
+    // Se borran las claves (no se escribe un estado vacío): no depende de la cuota ni del bloqueo por versión.
+    // Incluye las copias :backup/:corrupto y las marcas de copia de HU-01: también son datos personales.
+    try {
+      for (const k of [STORAGE_KEY, BACKUP_KEY, CORRUPT_KEY, LAST_BACKUP_KEY, BACKUP_SNOOZE_KEY]) localStorage.removeItem(k);
+      // Copias por versión de origen (:backup-v1, :backup-v3…) creadas al migrar (S2-4).
+      for (const k of Object.keys(localStorage)) if (k.startsWith(BACKUP_KEY + '-v')) localStorage.removeItem(k);
+    } catch {
+      toast('No se pudieron borrar los datos de este navegador', true);
+      return;
+    }
     state = emptyState();
-    save();
-    try { await Photos.clear(); } catch { toast('No se pudieron borrar las fotos'); }
+    pending = null;
+    saveBlocked = false;
+    savedJSON = null;
+    let photosOk = true;
+    try { await Photos.clear(); } catch { photosOk = false; }
     await loadPhotos();
     profileForm.reset();
     fillProfileForm();
-    toast('Datos borrados');
+    if (photosOk) toast('Datos borrados');
+    else toast('Se borraron los datos, pero no las fotos. Inténtalo de nuevo', true);
     render();
   });
 
+  // ---------- Copia de un cliente (modo coach, solo lectura) ----------
+  // Lee un respaldo JSON SOLO en memoria: no toca `state`, localStorage ni IndexedDB. Todo pasa por
+  // Schema.normalize y esc(). Las fotos se muestran con object URLs que se liberan al cerrar o al abrir otra.
+  const coachViewer = $('#coach-viewer');
+  let coachUrls = [];
+  let coachGen = 0;   // cambia al abrir otra o cerrar: corta la decodificación de fotos en curso
+  const revokeCoachUrls = () => { coachUrls.forEach((u) => URL.revokeObjectURL(u)); coachUrls = []; };
+  const setCoachError = (msg) => { const e = $('#coach-error'); e.textContent = msg; e.classList.toggle('hidden', !msg); };
+  coachViewer.addEventListener('close', () => { coachGen++; revokeCoachUrls(); $('#coach-body').innerHTML = ''; setCoachError(''); });
+  $('#coach-close').addEventListener('click', () => coachViewer.close());
+
+  // Con el visor abierto el toast queda debajo del modal: el error se muestra dentro del visor (role="alert").
+  function coachFail(msg) {
+    if (coachViewer.open) setCoachError(`${msg}. Sigues viendo la copia anterior.`);
+    else toast(msg, true);
+  }
+
+  // Decodifica las fotos de una en una, cediendo el hilo entre ellas para no congelar la UI con copias grandes.
+  async function decodeCoachThumbs(list, gen) {
+    const box = $('#coach-thumbs');
+    for (const ph of list) {
+      await new Promise((r) => setTimeout(r));
+      if (gen !== coachGen) return;
+      try {
+        const url = URL.createObjectURL(Photos.decode(ph.data));
+        coachUrls.push(url);
+        box.insertAdjacentHTML('beforeend', `<figure class="thumb"><img src="${esc(url)}" alt="${esc(POSES[ph.pose])} del ${esc(fmtDate(ph.date))}" loading="lazy"><span>${esc(POSES[ph.pose])} · ${esc(fmtDate(ph.date))}</span></figure>`);
+      } catch { /* foto ilegible: se omite */ }
+    }
+  }
+
+  async function openCoachCopy(file) {
+    let data;
+    try { data = JSON.parse(await file.text()); }
+    catch { coachFail(`No se pudo abrir «${file.name}». El archivo no es un JSON válido`); return; }
+    let copy, photoList = [], photoNote = '';
+    try { copy = Schema.normalize(Schema.migrate(data)); }
+    catch (err) { coachFail(`No se pudo abrir «${file.name}». ${err.message}`); return; }
+    try {
+      photoList = Schema.normalizePhotos(data.photos).photos;
+    } catch { photoNote = 'Las fotos de la copia no tienen un formato válido.'; }
+    // Día de referencia: el de la exportación si viene en el archivo (el coach suele abrirlo al día siguiente),
+    // pero nunca posterior a hoy (reloj del cliente adelantado).
+    const exportedAt = typeof data.exportedAt === 'string' ? new Date(data.exportedAt) : null;
+    const exported = exportedAt && !Number.isNaN(exportedAt.getTime()) ? toISO(exportedAt) : null;
+    const ref = exported && exported < today() ? exported : today();
+    const refLabel = !exported ? ' (hoy)' : exported > today() ? ' (hoy; la fecha de exportación es posterior)' : ' (fecha de exportación)';
+    const r = Coach.summarize(copy.state, { today: ref });
+
+    const gen = ++coachGen;
+    revokeCoachUrls();
+    setCoachError('');
+    photoList.sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+    const kg = (v) => (v == null ? '—' : fmt(v) + ' kg');
+    const sign = (v, d = 1) => (v == null ? '—' : (v > 0 ? '+' : '') + fmt(v, d));
+    const w = r.weight;
+    const prot = (a) => (a.proteinAvg == null ? '—' : `${esc(a.proteinAvg)} g${r.target ? ' / ' + esc(r.target.protein) + ' g' : ''}`);
+    $('#coach-title').textContent = r.name ? `Copia de ${r.name}` : 'Copia de cliente';
+    $('#coach-file').textContent = `${file.name} · referencia ${fmtDate(r.reference)}${refLabel}`;
+    const discarded = copy.warnings.length;
+    $('#coach-body').innerHTML = `
+      ${discarded ? `<p class="warn small">${esc(discarded)} datos no válidos de la copia se ignoraron.</p>` : ''}
+      ${copy.rejected.profile ? `<p class="warn small">Perfil no válido: ${esc(copy.rejected.reason)}</p>` : ''}
+      <p class="small">${r.range ? `Datos del ${esc(fmtDate(r.range.from))} al ${esc(fmtDate(r.range.to))} · ${esc(r.range.days)} ${r.range.days === 1 ? 'día' : 'días'} con algún registro` : 'La copia no tiene registros.'}</p>
+      <div class="stats">
+        <div class="stat"><span class="stat-label">Peso inicial</span><span class="stat-value">${esc(kg(w.start))}</span><span class="stat-sub">Meta ${esc(kg(w.goal))}</span></div>
+        <div class="stat"><span class="stat-label">Peso actual</span><span class="stat-value">${esc(kg(w.current))}</span><span class="stat-sub">${esc(sign(w.change))} kg desde el inicio</span></div>
+        <div class="stat"><span class="stat-label">Tendencia 7 días</span><span class="stat-value">${esc(kg(w.trend))}</span><span class="stat-sub">Ritmo ${esc(sign(w.weeklyRate, 2))} kg/sem${w.weeklyRatePct != null ? ' (' + esc(sign(w.weeklyRatePct, 2)) + ' %)' : ''}</span></div>
+        <div class="stat"><span class="stat-label">% Grasa</span><span class="stat-value">${r.bodyFat ? esc(fmt(r.bodyFat.current)) + ' %' : '—'}</span><span class="stat-sub">${r.bodyFat && r.bodyFat.first !== r.bodyFat.current ? esc(sign(r.bodyFat.current - r.bodyFat.first)) + ' pts' : ''}</span></div>
+      </div>
+      <h3>Adherencia</h3>
+      <div class="table-scroll" role="region" aria-label="Tabla de adherencia" tabindex="0">
+      <table class="coach-table">
+        <thead><tr><th>Últimos</th><th>Días activos</th><th>Comidas</th><th>Hábitos</th><th>Pesajes</th><th>Proteína media</th></tr></thead>
+        <tbody>${r.adherence.map((a) => `<tr><td>${esc(a.days / 7)} sem</td><td>${esc(a.anyDays)}/${esc(a.days)}</td><td>${esc(a.foodDays)}</td><td>${esc(a.habitDays)}</td><td>${esc(a.weighIns)}</td><td>${prot(a)}</td></tr>`).join('')}</tbody>
+      </table>
+      </div>
+      <p class="muted small">Proteína media de los días con comidas registradas, frente al objetivo calculado con su perfil.</p>
+      <h3>Últimas notas</h3>
+      ${r.notes.length ? `<ul class="coach-notes small">${r.notes.map((n) => `<li><strong>${esc(fmtDate(n.date))}</strong>: ${esc(n.note)}</li>`).join('')}</ul>` : '<p class="muted small">Sin notas.</p>'}
+      <h3>Fotos</h3>
+      ${photoNote ? `<p class="warn small">${esc(photoNote)}</p>` : ''}
+      ${photoList.length ? '<div class="thumbs" id="coach-thumbs"></div>' : '<p class="muted small">La copia no trae fotos.</p>'}`;
+    if (!coachViewer.open) coachViewer.showModal();
+    coachViewer.scrollTop = 0;
+    $('#coach-title').focus();   // el lector de pantalla anuncia primero de quién es la copia
+    if (photoList.length) decodeCoachThumbs(photoList, gen);
+  }
+  for (const id of ['#file-coach', '#file-coach-other']) {
+    $(id).addEventListener('change', async (ev) => {
+      const file = ev.target.files[0];
+      if (file) await openCoachCopy(file);
+      ev.target.value = '';
+    });
+  }
+
+  // ---------- Respaldo y almacenamiento (HU-01) ----------
+  // Claves propias, fuera de `state`, para no depender del esquema de datos.
+  const LAST_BACKUP_KEY = 'perdida-grasa:lastBackup';
+  const BACKUP_SNOOZE_KEY = 'perdida-grasa:backupSnooze';
+  const SNOOZE_DAYS = 3;
+  const getPref = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+  const setPref = (k, v) => {
+    try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* sin almacenamiento */ }
+  };
+
+  function renderBackup() {
+    const last = getPref(LAST_BACKUP_KEY);
+    const lastDate = last ? new Date(last) : null;
+    const validLast = lastDate && !Number.isNaN(lastDate.getTime()) ? toISO(lastDate) : null;
+    const hasData = state.entries.length > 0;
+    const due = Calc.backupDue(validLast, getPref(BACKUP_SNOOZE_KEY), today(), hasData);
+    const ago = validLast ? Calc.toDay(today()) - Calc.toDay(validLast) : null;
+    const agoText = ago == null ? '' : ago <= 0 ? 'hoy' : ago === 1 ? 'ayer' : `hace ${ago} días`;
+
+    setText($('#backup-status'), validLast
+      ? `Última copia exportada: ${fmtDate(validLast)} (${agoText}).`
+      : 'Aún no has exportado ninguna copia.');
+    // El banner es una región viva: solo se toca si cambia, para que el lector no lo repita.
+    setText($('#backup-banner-text'), validLast
+      ? `Tu última copia de seguridad es de ${agoText}. Tus datos solo están en este dispositivo: exporta una copia para no perderlos.`
+      : 'Aún no tienes copia de seguridad. Tus datos solo están en este dispositivo: exporta una copia para no perderlos.');
+    const body = $('#backup-banner-body');
+    if (body.classList.contains('hidden') === due) body.classList.toggle('hidden', !due);
+  }
+  function setText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
+
+  // Foco a un lugar estable cuando el elemento enfocado desaparece.
+  function focusSafe(el) {
+    (el && el.offsetParent ? el : $('#panel-summary')).focus();
+  }
+
+  // Tras exportar no sabemos si el archivo se guardó (en iOS se puede cancelar):
+  // se pregunta y solo con "Sí" se registra la copia.
+  let confirmReturn = null;
+  $('#btn-export').addEventListener('click', (ev) => {
+    confirmReturn = ev.isTrusted ? ev.currentTarget : $('#btn-backup-now');
+    $('#toast').classList.remove('show');
+    $('#backup-confirm').classList.remove('hidden');
+    $('#btn-backup-yes').focus();
+  });
+  function closeConfirm() {
+    $('#backup-confirm').classList.add('hidden');
+    const back = confirmReturn;
+    confirmReturn = null;
+    return back;
+  }
+  $('#btn-backup-yes').addEventListener('click', () => {
+    setPref(LAST_BACKUP_KEY, new Date().toISOString());
+    setPref(BACKUP_SNOOZE_KEY, null);
+    const back = closeConfirm();
+    renderBackup();
+    focusSafe(back);
+    toast('Copia registrada');
+  });
+  $('#btn-backup-no').addEventListener('click', () => {
+    focusSafe(closeConfirm());
+    toast('Copia no registrada');
+  });
+  $('#btn-backup-now').addEventListener('click', () => $('#btn-export').click());
+  $('#btn-backup-later').addEventListener('click', () => {
+    setPref(BACKUP_SNOOZE_KEY, Calc.addDays(today(), SNOOZE_DAYS));
+    renderBackup();
+    focusSafe(null);
+    toast(`Te lo recordaremos en ${SNOOZE_DAYS} días`);
+  });
+
+  // Escape en la barra = "No".
+  $('#backup-confirm').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') { ev.preventDefault(); $('#btn-backup-no').click(); }
+  });
+
+  // En iPhone la PWA se reanuda sin recargar. Solo se re-renderiza si cambió el día, para no
+  // pisar lo que se estaba escribiendo (hábitos sin guardar). Las fechas que seguían en "hoy" pasan al nuevo día.
+  let lastDay = today();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    const now = today();
+    if (now === lastDay) return;
+    for (const input of [foodDate, entryForm.elements.date, photoForm.elements.date]) {
+      if (input.value === lastDay) input.value = now;
+    }
+    lastDay = now;
+    render();
+  });
+
+  async function checkStorage() {
+    const el = $('#storage-status');
+    let persisted = false;
+    try {
+      const st = navigator.storage;
+      if (st && st.persisted) persisted = await st.persisted();
+      if (!persisted && st && st.persist) persisted = await st.persist();
+    } catch { persisted = false; }
+    el.classList.toggle('ok', persisted);
+    el.textContent = persisted
+      ? 'Almacenamiento protegido: el navegador no borrará tus datos por falta de espacio.'
+      : 'El navegador puede borrar tus datos: haz copias con regularidad.';
+    try {
+      const est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+      if (est && est.usage != null) {
+        const mb = est.usage / 1048576;
+        el.textContent += ` Espacio usado: ${mb < 1 ? fmt(est.usage / 1024, 0) + ' KB' : fmt(mb) + ' MB'}.`;
+      }
+    } catch { /* estimación no disponible */ }
+  }
+  checkStorage();
+
+  // ---------- LEGAL-01: consentimiento y privacidad ----------
+  // El consentimiento vive en `state.consent` (schema v3) y se exporta con el respaldo, pero es de quien usa ESTE
+  // dispositivo: al importar un respaldo se conserva el consentimiento actual (no se adopta el de otra persona).
+  // Resumen de cambios que se muestra al pedir re-aceptación, por versión nueva (vacío = sin resumen).
+  const LEGAL_CHANGES = { terms: {}, privacy: {} };
+
+  // Control central de escritura de datos de salud: TODO pasa por persist() (formularios, copiar/repetir/deshacer
+  // comidas, borrar registros o alimentos, importar). Sin autorización vigente de salud se rechaza cualquier cambio en
+  // perfil, registros, comidas, hábitos o biblioteca; solo se permiten cambios del consentimiento y dejarlo todo vacío.
+  const HEALTH_LOCK_MSG = 'Sin tu autorización de datos de salud no se guardan cambios en tu seguimiento';
+  // S2-4: incluye ids/updatedAt (van dentro de cada registro) y las lápidas de salud (borrar también es un cambio).
+  // La migración v3→v4 al cargar escribe directamente en load() (no es una escritura del usuario) y la base se
+  // toma después, así que nunca queda bloqueada por este control.
+  function healthPart(s) {
+    const d = s.deleted || {};
+    return JSON.stringify([s.profile || null, s.entries || [], s.foods || {}, s.habits || {}, s.library || {}, d.entries || [], d.foods || [], d.habits || []]);
+  }
+  function healthWriteBlocked(s) {
+    const c = s.consent;
+    if (Schema.consentStatus(c) === 'ok' && c.sensitiveHealth === true) return false;
+    const empty = !s.profile && !(s.entries || []).length && ![s.foods, s.habits, s.library].some((d) => d && Object.keys(d).length);
+    return !empty && healthPart(s) !== healthBaseline;
+  }
+  function photosAllowed() { const c = state.consent; return Schema.consentStatus(c) === 'ok' && c.photos === true; }
+  healthBaseline = healthPart(state);
+  const consentForm = $('#form-consent');
+  const REQUIRED = ['terms', 'privacy', 'adult'];
+  const nowISO = () => new Date().toISOString();
+  const fmtStamp = (iso) => (iso ? new Date(iso).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
+  const consentOK = () => Schema.consentStatus(state.consent) === 'ok';
+  const can = (k) => consentOK() && state.consent[k] === true;
+  let consentShown = false;
+
+  // Bloqueo de datos de salud: la misma tarjeta en cada vista de seguimiento.
+  for (const v of ['panel', 'registro', 'comidas', 'fotos']) {
+    $('#view-' + v).prepend($('#tpl-health-gate').content.cloneNode(true));
+  }
+
+  function renderConsent() {
+    const status = Schema.consentStatus(state.consent);
+    const open = status !== 'ok';
+    document.body.classList.toggle('consent-open', open);
+    $('#consent').classList.toggle('hidden', !open);
+    document.body.classList.toggle('no-health', !open && !can('sensitiveHealth'));
+    document.body.classList.toggle('no-photos', !open && !can('photos'));
+    // Con datos de una versión más nueva no se puede guardar la aceptación: se ofrece la salida de "Borrar todo".
+    $('#consent-blocked').classList.toggle('hidden', !(open && saveBlocked));
+    if (open && !consentShown) {
+      const upd = $('#consent-update');
+      if (status === 'outdated') {
+        const V = Schema.LEGAL_VERSIONS, c = state.consent;
+        const parts = [];
+        if (c.termsVersion !== V.terms) parts.push(`Términos y Condiciones (versión ${c.termsVersion} → ${V.terms})`);
+        if (c.privacyVersion !== V.privacy) parts.push(`Política de Tratamiento de Datos (versión ${c.privacyVersion} → ${V.privacy})`);
+        const notes = [LEGAL_CHANGES.terms[V.terms], LEGAL_CHANGES.privacy[V.privacy]].filter(Boolean);
+        upd.textContent = `Actualizamos ${parts.join(' y ')}. ` + (notes.length ? 'Cambios: ' + notes.join(' ') + ' ' : 'Revisa los textos completos. ') +
+          'Tus datos siguen guardados; para seguir usando la app, vuelve a aceptar.';
+      }
+      upd.classList.toggle('hidden', status !== 'outdated');
+      consentForm.reset();
+      // Re-aceptación (decisión SM, Ley 1581: autorización expresa): TODAS las casillas vuelven sin marcar; solo se
+      // recuerda lo que la persona había autorizado antes, para que lo marque de nuevo si sigue de acuerdo.
+      const prev = status === 'outdated' ? Schema.normalizeConsent(state.consent) : null;
+      const had = ['sensitiveHealth', 'photos'].filter((k) => prev && prev[k]);
+      for (const k of ['sensitiveHealth', 'photos']) $('#prev-' + k).classList.toggle('hidden', !had.includes(k));
+      if (had.length) {
+        const names = had.map((k) => (k === 'photos' ? 'fotos de progreso' : 'datos de salud'));
+        upd.textContent += ` Antes autorizaste: ${names.join(' y ')}; márcalo de nuevo si sigues de acuerdo.`;
+      }
+      updateConsentButton();
+      $('#consent-title').focus();
+    }
+    consentShown = open;
+    renderPrivacy();
+  }
+
+  function updateConsentButton() {
+    const el = consentForm.elements;
+    const ok = REQUIRED.every((k) => el[k].checked);
+    $('#btn-consent').disabled = !ok;
+    $('#consent-hint').textContent = ok ? 'Listo: pulsa Continuar.' : 'Marca las casillas obligatorias para continuar.';
+  }
+  consentForm.addEventListener('change', updateConsentButton);
+  $('#btn-consent-reset').addEventListener('click', () => $('#btn-reset').click());
+  $('#btn-consent-reload').addEventListener('click', () => location.reload());
+  consentForm.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const el = consentForm.elements;
+    let c;
+    try {
+      c = Schema.buildConsent({ terms: el.terms.checked, privacy: el.privacy.checked, adult: el.adult.checked, sensitiveHealth: el.sensitiveHealth.checked, photos: el.photos.checked }, nowISO());
+    } catch { updateConsentButton(); return; }
+    const prev = state.consent;
+    state.consent = c;
+    if (!save()) { state.consent = prev; return; }
+    render();
+    if (!state.profile) show('perfil');
+    loadPhotos();
+    ($('.tabbar button.on') || $('#tab-panel')).focus();
+    // Si al arrancar hubo un aviso de carga (datos corregidos, perfil a revisar…), se repite: quedó tras la pantalla legal.
+    toast(loadNotice || 'Aceptación guardada');
+    loadNotice = '';
+  });
+
+  function renderPrivacy() {
+    const c = consentOK() ? state.consent : null;
+    const dl = $('#privacy-list');
+    const rows = c ? [
+      ['Términos', `Versión ${c.termsVersion}, aceptados el ${fmtStamp(c.acceptedAt)}`],
+      ['Política', `Versión ${c.privacyVersion}, aceptada el ${fmtStamp(c.acceptedAt)}`],
+      ['Mayor de 18', 'Declarado'],
+      ['Datos de salud', `${c.sensitiveHealth ? 'Autorizado' : 'No autorizado'} (desde el ${fmtStamp(c.sensitiveHealthAt || c.acceptedAt)})`],
+      ['Fotos', `${c.photos ? 'Autorizado' : 'No autorizado'} (desde el ${fmtStamp(c.photosAt || c.acceptedAt)})`],
+    ] : [['Estado', 'Sin aceptar']];
+    const html = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+    if (dl.innerHTML !== html) dl.innerHTML = html;
+    $('#btn-toggle-health').textContent = c && c.sensitiveHealth ? 'Retirar autorización de datos de salud' : 'Autorizar datos de salud';
+    $('#btn-toggle-photos').textContent = c && c.photos ? 'Retirar autorización de fotos' : 'Autorizar fotos';
+  }
+
+  const GRANT_TEXT = {
+    sensitiveHealth: 'Autorizo de forma expresa el tratamiento de mis datos sensibles de salud (peso, medidas, % de grasa, comidas, hábitos). Sé que es facultativo.\n\n¿Confirmas la autorización?',
+    photos: 'Autorizo el tratamiento de mis fotos de progreso (dato sensible, opcional).\n\n¿Confirmas la autorización?',
+  };
+  function setFlag(key, value) {
+    if (!consentOK()) return false;
+    const prev = state.consent;
+    state.consent = Schema.setConsentFlag(prev, key, value, nowISO());
+    if (!save()) { state.consent = prev; return false; }
+    render();
+    return true;
+  }
+  function grant(key) {
+    if (!confirm(GRANT_TEXT[key])) return;
+    if (!setFlag(key, true)) return;
+    if (key === 'photos') loadPhotos();
+    toast(key === 'photos' ? 'Fotos autorizadas' : 'Datos de salud autorizados');
+  }
+  async function revoke(key) {
+    if (key === 'sensitiveHealth') {
+      if (!confirm('Si retiras la autorización de tus datos de salud, no podrás usar el seguimiento (peso, medidas, comidas y hábitos).\n\nTus datos seguirán en este dispositivo hasta que los borres: te recomendamos exportar una copia y, si quieres, usar «Borrar todo».\n\n¿Retirar la autorización?')) return;
+      if (setFlag(key, false)) toast('Autorización retirada. Puedes exportar tus datos o borrarlos');
+      return;
+    }
+    if (!confirm('¿Retirar la autorización de fotos? La pestaña Fotos quedará bloqueada y no se podrán subir fotos.')) return;
+    if (!setFlag(key, false)) return;
+    if (photos.length && confirm(`¿Borrar también las ${photos.length} fotos guardadas en este dispositivo? No se puede deshacer.`)) {
+      try { await Photos.clear(); toast('Autorización retirada y fotos borradas'); }
+      catch { toast('No se pudieron borrar las fotos', true); }
+      await loadPhotos();
+      render();
+    } else {
+      await loadPhotos(); // deja de tenerlas cargadas en memoria
+      toast('Autorización de fotos retirada');
+    }
+  }
+  $('#btn-toggle-health').addEventListener('click', () => (can('sensitiveHealth') ? revoke('sensitiveHealth') : grant('sensitiveHealth')));
+  $('#btn-toggle-photos').addEventListener('click', () => (can('photos') ? revoke('photos') : grant('photos')));
+  $('#btn-withdraw-legal').addEventListener('click', () => {
+    if (!confirm('La app no puede usarse sin aceptar los Términos y la Política. Para retirarlos hay que borrar todos los datos de este dispositivo (exporta antes una copia si la quieres).\n\n¿Continuar?')) return;
+    $('#btn-reset').click();
+  });
+  document.addEventListener('click', (ev) => {
+    const g = ev.target.closest('[data-consent-grant]');
+    if (g) { grant(g.dataset.consentGrant); return; }
+    const a = ev.target.closest('[data-gate-action]');
+    if (a) $(a.dataset.gateAction === 'export' ? '#btn-export' : '#btn-reset').click();
+  });
+
+  // Ningún formulario de datos se guarda sin las autorizaciones que necesita (defensa además del bloqueo visual).
+  const HEALTH_FORMS = ['form-profile', 'form-entry', 'form-food', 'form-habits'];
+  document.addEventListener('submit', (ev) => {
+    const id = ev.target.id;
+    if (id === 'form-consent') return;
+    const blocked = !consentOK() ? 'Acepta los Términos y la Política para continuar'
+      : HEALTH_FORMS.includes(id) && !can('sensitiveHealth') ? 'Autoriza tus datos de salud para registrar tu seguimiento'
+        : id === 'form-photo' && !can('photos') ? 'Autoriza tus fotos para poder subirlas' : '';
+    if (!blocked) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    toast(blocked, true);
+  }, true);
+
+  // Textos legales dentro de la app (sin perder lo marcado); funcionan sin conexión (están en la caché del SW).
+  const legalDialog = $('#legal-dialog');
+  let legalReturn = null;
+  document.addEventListener('click', (ev) => {
+    const a = ev.target.closest('a[data-legal]');
+    if (!a || typeof legalDialog.showModal !== 'function') return;
+    ev.preventDefault();
+    legalReturn = a;
+    const title = /privacidad/.test(a.getAttribute('href')) ? 'Política de Tratamiento de Datos' : 'Términos y Condiciones';
+    $('#legal-dialog-title').textContent = title;
+    $('#legal-frame').title = title;
+    $('#legal-frame').src = a.getAttribute('href');
+    legalDialog.showModal();
+    $('#legal-close').focus();
+  });
+  $('#legal-close').addEventListener('click', () => legalDialog.close());
+  legalDialog.addEventListener('close', () => { if (legalReturn) legalReturn.focus(); legalReturn = null; });
+
   // ---------- Render ----------
   function render() {
+    renderConsent();
     $('#today-label').textContent = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
     renderPanel();
+    renderProfileIssue();
+    renderBackup();
     renderEntries();
     renderFoods();
     renderPlan();
@@ -658,6 +1286,9 @@
   fillProfileForm();
   render();
   if (!state.profile) show('perfil');
+  // El perfil a revisar ya se anuncia en #profile-issue (role=alert): no se repite en el toast (Obs. QA S1-1).
+  if (pending && !state.profile) loadNotice = '';
+  if (loadNotice) toast(loadNotice);
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});

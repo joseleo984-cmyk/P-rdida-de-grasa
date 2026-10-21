@@ -58,3 +58,24 @@ test('semanas a la meta', () => {
   assert.strictEqual(Calc.weeksToGoal(79, 80, 0.5), 0);
   assert.strictEqual(Calc.weeksToGoal(90, 80, 0), null);
 });
+
+test('recordatorio de copia (backupDue)', () => {
+  const hoy = '2026-10-21';
+  assert.strictEqual(Calc.backupDue(null, null, hoy, true), true, 'nunca se hizo copia');
+  assert.strictEqual(Calc.backupDue('2026-10-15', null, hoy, true), false, 'hace 6 días');
+  assert.strictEqual(Calc.backupDue('2026-10-14', null, hoy, true), true, 'hace 7 días');
+  assert.strictEqual(Calc.backupDue('2026-10-14T23:59:00.000Z', null, hoy, true), true, 'acepta fecha con hora');
+  assert.strictEqual(Calc.backupDue(null, '2026-10-24', hoy, true), false, 'pospuesto');
+  assert.strictEqual(Calc.backupDue(null, '2026-10-21', hoy, true), true, 'el aplazamiento terminó hoy');
+  assert.strictEqual(Calc.backupDue('2026-10-01', '2026-10-24', hoy, true), false, 'pospuesto aunque toque');
+  assert.strictEqual(Calc.backupDue(null, null, hoy, false), false, 'sin datos');
+  assert.strictEqual(Calc.backupDue('2026-10-01', null, hoy, false), false, 'sin datos aunque toque');
+  assert.strictEqual(Calc.backupDue('basura', 'basura', hoy, true), true, 'fechas inválidas = nunca');
+  assert.strictEqual(Calc.backupDue('2026-12-31', null, '2027-01-07', true), true, 'cruza de año');
+});
+
+test('addDays', () => {
+  assert.strictEqual(Calc.addDays('2026-10-21', 3), '2026-10-24');
+  assert.strictEqual(Calc.addDays('2026-12-30', 3), '2027-01-02');
+  assert.strictEqual(Calc.addDays('2028-02-28', 1), '2028-02-29');
+});
