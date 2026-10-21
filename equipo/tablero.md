@@ -1,12 +1,12 @@
 # Tablero Kanban — WIP máximo "En curso": 2
 
-## Sprint 1 — PROPUESTO (pendiente de aprobación del Stakeholder)
+## Sprint 1 — EN CURSO (aprobado por el Stakeholder 2026-10-21)
 **Objetivo:** "Que nadie pierda sus datos ni la app se rompa, y que registrar comida cueste menos."
 
 | Backlog | Listo | En curso | En revisión | Hecho |
 |---|---|---|---|---|
-| HU-03 Editar registros/alimentos (Sprint 2) | S1-1 Esquema versionado + importación segura | | | |
-| HU-04 Porciones (Sprint 2) | S1-2 HU-01 Proteger datos y recordar copia | | | |
+| HU-03 Editar registros/alimentos (Sprint 2) | | S1-1 Esquema + importación segura — Dev Backend | | |
+| HU-04 Porciones (Sprint 2) | | S1-2 HU-01 Proteger datos — Dev Frontend | | |
 | HU-05 Gasto real estimado (Sprint 2) | S1-3 HU-02 Repetir comidas | | | |
 | Deuda: dividir app.js, SW, a11y | | | | |
 
@@ -31,7 +31,10 @@ Orden: S1-1 primero (S1-3 depende del esquema). QA revisa cada historia con la D
 |---|
 | Equipo y tablero (SM) · backlog.md (Analista) · arquitectura.md (Arquitecto) · qa-informe.md + capturas (QA) |
 
-## Decisiones pendientes del Stakeholder
+## Decisiones del Stakeholder (supuestos por defecto mientras no responda)
+- Se asume: usuarios con iPhone (máxima protección), sin servidor, `file://` debe seguir funcionando (scripts clásicos, sin módulos ES), sin dependencias de desarrollo en el repo.
+
+Preguntas originales:
 1. ¿Los usuarios usan iPhone/Safari? (más riesgo de borrado de datos)
 2. ¿"Sin servidor" es innegociable?
 3. ¿Hace falta abrir la app con doble clic (`file://`)? Si no, podemos usar módulos ES para dividir `app.js`.
