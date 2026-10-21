@@ -176,7 +176,7 @@ async function accept(page, marks) {
     await page.reload();
     const upd = await page.locator('#consent-update').innerText().catch(() => '');
     log('Cambio de versión: se vuelve a pedir con aviso "Actualizamos…"', await visible(page, '#consent') && /Actualizamos/.test(upd) && upd.includes('0.0') && upd.includes(Schema.LEGAL_VERSIONS.terms), upd);
-    log('Re-aceptación: obligatorias sin marcar; salud (autorizada antes) precargada y explicada', (await Promise.all(['terms', 'privacy', 'adult', 'photos'].map((k) => box(page, k).isChecked()))).every((x) => !x) && await box(page, 'sensitiveHealth').isChecked() && await visible(page, '#prev-sensitiveHealth'));
+    log('Re-aceptación: todas sin marcar y nota de lo autorizado antes (salud)', (await Promise.all(BOXES.map((k) => box(page, k).isChecked()))).every((x) => !x) && await visible(page, '#prev-sensitiveHealth') && /Antes autorizaste: datos de salud/.test(await page.locator('#consent-update').innerText()));
     await page.screenshot({ path: SHOTS + 's2-1-reaceptar.png' });
     await accept(page, ['terms', 'privacy', 'sensitiveHealth', 'adult']);
     log('Tras re-aceptar: versión vigente y datos intactos', (await stored(page)).consent.termsVersion === Schema.LEGAL_VERSIONS.terms && (await stored(page)).entries.length === v1.entries.length);

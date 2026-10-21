@@ -762,13 +762,17 @@
       // Si el respaldo traía fotos y TODAS son inválidas, no se vacía la galería actual.
       const keepGallery = hasPhotos && data.photos.length > 0 && ph.photos.length === 0;
       if (keepGallery) hasPhotos = false;
+      // LEGAL-01 D3: sin autorización de fotos no se escriben en IndexedDB (las actuales tampoco se tocan).
+      const photosSkipped = hasPhotos && !photosAllowed() ? ph.photos.length : 0;
+      if (photosSkipped) hasPhotos = false;
       const discarded = warnings.length + ph.warnings.length;
       if (discarded) console.warn('Importación: datos descartados o corregidos', [...warnings, ...ph.warnings]);
       const summary = `${next.entries.length} registros, ${Object.keys(next.foods).length} días de comidas` +
         (hasPhotos ? `, ${ph.photos.length} fotos` : '') +
         (discarded ? `. Se descartarán o corregirán ${discarded} datos no válidos` : '') +
         (rejected.profile ? `. El perfil no es válido (${rejected.reason}): se cargará en el formulario para que lo corrijas` : '') +
-        (keepGallery ? '. Ninguna foto del respaldo es válida: se conservan las fotos actuales' : '');
+        (keepGallery ? '. Ninguna foto del respaldo es válida: se conservan las fotos actuales' : '') +
+        (photosSkipped ? `. Las ${photosSkipped} fotos no se importarán porque no autorizaste fotos` : '');
       if (!confirm(`Se importarán ${summary}.\nEsto reemplazará los datos actuales. ¿Continuar?`)) return;
 
       const prevRaw = localStorage.getItem(STORAGE_KEY);
@@ -1082,13 +1086,14 @@
       }
       upd.classList.toggle('hidden', status !== 'outdated');
       consentForm.reset();
-      // Re-aceptación: las autorizaciones facultativas que ya tenía vienen marcadas (puede desmarcarlas);
-      // las obligatorias se vuelven a marcar a mano. Nada que no hubiera autorizado se marca por defecto.
+      // Re-aceptación (decisión SM, Ley 1581: autorización expresa): TODAS las casillas vuelven sin marcar; solo se
+      // recuerda lo que la persona había autorizado antes, para que lo marque de nuevo si sigue de acuerdo.
       const prev = status === 'outdated' ? Schema.normalizeConsent(state.consent) : null;
-      for (const k of ['sensitiveHealth', 'photos']) {
-        const had = !!(prev && prev[k]);
-        consentForm.elements[k].checked = had;
-        $('#prev-' + k).classList.toggle('hidden', !had);
+      const had = ['sensitiveHealth', 'photos'].filter((k) => prev && prev[k]);
+      for (const k of ['sensitiveHealth', 'photos']) $('#prev-' + k).classList.toggle('hidden', !had.includes(k));
+      if (had.length) {
+        const names = had.map((k) => (k === 'photos' ? 'fotos de progreso' : 'datos de salud'));
+        upd.textContent += ` Antes autorizaste: ${names.join(' y ')}; márcalo de nuevo si sigues de acuerdo.`;
       }
       updateConsentButton();
       $('#consent-title').focus();

@@ -131,9 +131,10 @@ test('textos legales sin marcadores por rellenar ([NOMBRE COMPLETO], [CORREO]…
 
 // ---- Re-verificación de las correcciones (b3aeeba) ----
 
-// S2-1 D3 (re-verificación): la importación escribe las fotos del respaldo en IndexedDB aunque no estén autorizadas.
+// S2-1 D3 (corregido): sin autorización de fotos, importar no escribe las fotos del respaldo en IndexedDB.
 test('importar con fotos NO las escribe si las fotos no están autorizadas', async ({ app, page }) => {
-  test.fail(true, 'S2-1 D3: importar guarda fotos sin autorización de fotos');
+  const msgs = [];
+  page.on('dialog', (d) => msgs.push(d.message()));
   await app.open({ state: state({ consent: { ...CONSENT, photos: false } }) });
   await app.importJSON(FIXTURE_V1);
   // Sin autorización la app no lee IndexedDB (O4): se consulta directamente.
@@ -148,6 +149,7 @@ test('importar con fotos NO las escribe si las fotos no están autorizadas', asy
     r.onerror = () => res(-1);
   }));
   expect(n, 'fotos de un respaldo guardadas sin autorización de fotos').toBe(0);
+  expect(msgs.some((m) => /Las 2 fotos no se importarán porque no autorizaste fotos/.test(m)), msgs.join(' | ')).toBe(true);
 });
 
 test('"Deshacer" de una copia tras retirar la autorización de salud no escribe', async ({ app, page }) => {
