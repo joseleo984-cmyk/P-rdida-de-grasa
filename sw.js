@@ -1,6 +1,6 @@
 // Cache simple para que la app funcione sin conexión.
-const CACHE = 'perdida-grasa-v2';
-const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'photos.js', 'app.js', 'manifest.webmanifest', 'icon.svg'];
+const CACHE = 'perdida-grasa-v3';
+const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'photos.js', 'app.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

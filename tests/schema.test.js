@@ -1,0 +1,154 @@
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
+const Schema = require('../schema.js');
+
+const fixture = () => JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/backup-v1.json'), 'utf8'));
+let n = 0;
+const uid = () => 'gen' + ++n;
+const load = (raw) => Schema.normalize(Schema.migrate(raw), { uid });
+
+test('migrate: v1 sin schemaVersion pasa a la versión actual sin mutar la entrada', () => {
+  const raw = { entries: [] };
+  const s = Schema.migrate(raw);
+  assert.strictEqual(s.schemaVersion, Schema.CURRENT_VERSION);
+  assert.strictEqual(Schema.CURRENT_VERSION, 2);
+  assert.strictEqual(raw.schemaVersion, undefined);
+});
+
+test('migrate: rechaza estructuras irreconocibles y versiones futuras o inválidas', () => {
+  for (const bad of [null, 42, 'texto', [], [{ entries: [] }]]) assert.throws(() => Schema.migrate(bad));
+  assert.throws(() => Schema.migrate({ schemaVersion: 99, entries: [] }), /más nueva/);
+  assert.throws(() => Schema.migrate({ schemaVersion: '2', entries: [] }), /no válida/);
+  assert.throws(() => Schema.migrate({ schemaVersion: 0, entries: [] }), /no válida/);
+});
+
+test('normalize: rechaza objetos que no son de la app', () => {
+  assert.throws(() => Schema.normalize({ foo: 1 }), /respaldo/);
+  assert.throws(() => Schema.normalize(null));
+});
+
+test('respaldo v1 real: se migra sin pérdidas ni avisos', () => {
+  const raw = fixture();
+  const { state, warnings } = load(raw);
+  const ph = Schema.normalizePhotos(raw.photos, { uid });
+  assert.deepStrictEqual(warnings, []);
+  assert.deepStrictEqual(ph.warnings, []);
+  assert.strictEqual(state.schemaVersion, 2);
+  assert.deepStrictEqual(state.profile, raw.profile);
+  assert.deepStrictEqual(state.entries, raw.entries);
+  assert.deepStrictEqual({ ...state.foods }, raw.foods);
+  assert.deepStrictEqual({ ...state.habits }, raw.habits);
+  assert.deepStrictEqual({ ...state.library }, raw.library);
+  assert.strictEqual(ph.photos.length, 2);
+  assert.deepStrictEqual(ph.photos[0], raw.photos[0]);
+  // Ida y vuelta: lo normalizado se vuelve a normalizar igual (idempotente).
+  const again = load(JSON.parse(JSON.stringify(state)));
+  assert.deepStrictEqual(again.warnings, []);
+  assert.deepStrictEqual(JSON.stringify(again.state), JSON.stringify(state));
+});
+
+test('BUG-01: habits null, foods array y entradas sin fecha no rompen el estado', () => {
+  const { state, warnings } = load({ entries: [{ weight: 80 }, { date: '2026-13-40', weight: 80 }, { date: '2026-10-20', weight: 80 }], foods: [], habits: null });
+  assert.strictEqual(state.entries.length, 1);
+  assert.strictEqual(state.entries[0].date, '2026-10-20');
+  assert.ok(state.entries[0].id);
+  assert.deepStrictEqual(Object.keys(state.foods), []);
+  assert.deepStrictEqual(Object.keys(state.habits), []);
+  assert.strictEqual(state.profile, null);
+  assert.ok(warnings.length >= 3);
+  // Faltan claves: se rellenan.
+  const s2 = load({ profile: null }).state;
+  assert.deepStrictEqual(s2.entries, []);
+  // entries que no es array ni foods con días no válidos
+  const s3 = load({ entries: 'x', foods: { '2026-10-20': null, 'no-fecha': [] }, habits: { '2026-10-20': 'x' } });
+  assert.deepStrictEqual(s3.state.entries, []);
+  assert.deepStrictEqual(Object.keys(s3.state.foods), []);
+  assert.deepStrictEqual(Object.keys(s3.state.habits), []);
+});
+
+test('XSS: ids peligrosos se regeneran y kcal no numérica se descarta', () => {
+  const evil = '"><img src=x onerror="window.__xss=1">';
+  const { state } = load({
+    entries: [{ id: evil, date: '2026-10-20', weight: 90 }],
+    foods: { '2026-10-20': [
+      { id: evil, name: 'a', meal: 'Cena', kcal: '<img src=x onerror=alert(1)>' },
+      { id: evil, name: 'b', meal: '<script>', kcal: 100, protein: '<b>' },
+    ] },
+  });
+  assert.match(state.entries[0].id, /^[a-z0-9-]{1,40}$/i);
+  const foods = state.foods['2026-10-20'];
+  assert.strictEqual(foods.length, 1);
+  assert.match(foods[0].id, /^[a-z0-9-]{1,40}$/i);
+  assert.strictEqual(foods[0].meal, 'Snack');
+  assert.strictEqual(foods[0].protein, 0);
+  const ph = Schema.normalizePhotos([
+    { id: evil, date: '2026-10-20', pose: 'frente', data: 'data:image/png;base64,AAAA' },
+    { id: 'ok', date: '2026-10-20', pose: '<b>', data: 'data:image/svg+xml;base64,AAAA' },
+    { id: 'ok2', date: '2026-10-20', pose: 'x', data: 'javascript:alert(1)' },
+    { id: 'ok3', date: 'ayer', pose: 'frente', data: 'data:image/png;base64,AAAA' },
+  ], { uid });
+  assert.strictEqual(ph.photos.length, 1);
+  assert.match(ph.photos[0].id, /^[a-z0-9-]{1,40}$/i);
+  assert.strictEqual(ph.warnings.length, 3);
+  assert.throws(() => Schema.normalizePhotos({}), /fotos/);
+});
+
+test('BUG-03: números como texto se convierten a Number (no "100200")', () => {
+  const { state } = load({
+    entries: [{ id: 'a', date: '2026-10-20', weight: '80.5', waist: 'abc', neck: -5 }],
+    foods: { '2026-10-20': [{ name: 'x', kcal: '100' }, { name: 'y', kcal: '200', fat: '3.5' }] },
+    habits: { '2026-10-20': { steps: '9000', water: 'mucha', trained: 'true' } },
+  });
+  const total = state.foods['2026-10-20'].reduce((s, x) => s + x.kcal, 0);
+  assert.strictEqual(total, 300);
+  assert.strictEqual(state.foods['2026-10-20'][1].fat, 3.5);
+  assert.strictEqual(state.entries[0].weight, 80.5);
+  assert.strictEqual(state.entries[0].waist, undefined);
+  assert.strictEqual(state.entries[0].neck, undefined);
+  assert.deepStrictEqual({ ...state.habits['2026-10-20'] }, { trained: false, steps: 9000 });
+  // Valores absurdos o no finitos
+  const s2 = load({ entries: [{ date: '2026-10-20', weight: 1e9 }, { date: '2026-10-21', weight: NaN }] }).state;
+  assert.strictEqual(s2.entries.length, 0);
+});
+
+test('__proto__ y claves peligrosas no contaminan prototipos', () => {
+  const raw = JSON.parse('{"entries":[],"library":{"__proto__":{"name":"__proto__","kcal":1,"polluted":true},"constructor":{"name":"constructor","kcal":1},"ok":{"name":"Arroz","kcal":130}},"foods":{"__proto__":[{"name":"x","kcal":1}]},"habits":{"__proto__":{"trained":true}}}');
+  const { state } = load(raw);
+  assert.deepStrictEqual(Object.keys(state.library), ['arroz']);
+  assert.strictEqual(Object.getPrototypeOf(state.library), null);
+  assert.deepStrictEqual(Object.keys(state.foods), []);
+  assert.deepStrictEqual(Object.keys(state.habits), []);
+  assert.strictEqual({}.polluted, undefined);
+  // Un diccionario sin prototipo admite cualquier nombre como clave sin efectos colaterales.
+  state.library['__proto__'] = { name: '__proto__' };
+  assert.strictEqual(Object.getPrototypeOf(state.library), null);
+});
+
+test('ids duplicados se regeneran', () => {
+  const { state } = load({ entries: [{ id: 'a', date: '2026-10-19', weight: 80 }, { id: 'a', date: '2026-10-20', weight: 79 }] });
+  assert.notStrictEqual(state.entries[0].id, state.entries[1].id);
+});
+
+test('perfil: se valida y se descarta si es inválido (BUG-04)', () => {
+  const base = fixture().profile;
+  assert.strictEqual(Schema.profileError(base), null);
+  assert.match(Schema.profileError({ ...base, goalWeight: 80 }), /meta/);
+  assert.match(Schema.profileError({ ...base, age: NaN }), /edad/);
+  assert.match(Schema.profileError({ ...base, startDate: '' }), /fecha/);
+  assert.match(Schema.profileError({ ...base, activity: 3 }), /actividad/);
+  // Strings numéricos se aceptan; actividad desconocida se corrige con aviso.
+  const r = load({ profile: { ...base, age: '35', activity: 'x' } });
+  assert.strictEqual(r.state.profile.age, 35);
+  assert.strictEqual(r.state.profile.activity, 1.2);
+  assert.strictEqual(r.warnings.length, 1);
+  const bad = load({ profile: { ...base, goalWeight: 75 } });
+  assert.strictEqual(bad.state.profile, null);
+  assert.strictEqual(load({ profile: 'x' }).state.profile, null);
+});
+
+test('isISODate', () => {
+  assert.ok(Schema.isISODate('2024-02-29'));
+  for (const d of ['2023-02-29', '2026-1-1', '2026-10-20T00:00', '', null, 20261020, '1800-01-01']) assert.ok(!Schema.isISODate(d), String(d));
+});
