@@ -140,6 +140,8 @@ const text = (page) => page.locator('#backup-banner-text').textContent();
     await seed(page);
     const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#btn-backup-now').click()]);
     log('23:50 local: nombre de archivo con día local', dl.suggestedFilename() === 'perdida-grasa-2026-10-21.json', dl.suggestedFilename());
+    await page.locator('#btn-backup-yes').click(); // D5: la copia se registra al confirmar
+    log('Confirmar "Sí" registra la copia', !!(await page.evaluate(() => localStorage.getItem('perdida-grasa:lastBackup'))));
     await page.clock.fastForward('00:20:00'); // 22 oct 00:10 local
     await page.locator('.tabbar button[data-view=perfil]').click();
     const st = await page.locator('#backup-status').textContent();

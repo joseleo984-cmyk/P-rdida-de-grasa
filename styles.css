@@ -187,6 +187,13 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
 .backup-banner p { margin: 0 0 10px; }
 .data-status { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 4px; }
 .data-status .ok::before { content: "✓ "; color: var(--accent); font-weight: 700; }
+.backup-confirm {
+  position: fixed; z-index: 15; left: 16px; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom));
+  max-width: 728px; margin: 0 auto; padding: 12px 14px;
+  background: var(--card); border: 1px solid var(--accent); border-radius: var(--radius);
+  box-shadow: 0 6px 24px rgba(0,0,0,.18);
+}
+.backup-confirm p { margin: 0 0 10px; font-weight: 600; }
 .btn:focus-visible, .file-btn:focus-within { outline: 3px solid var(--goal); outline-offset: 2px; }
 
 @media (max-width: 420px) {
