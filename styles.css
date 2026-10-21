@@ -182,6 +182,13 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
 .viewer img { max-width: 100%; max-height: calc(100% - 80px); object-fit: contain; border-radius: 10px; }
 .viewer-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; width: 100%; max-width: 600px; color: #fff; font-size: .9rem; }
 
+/* Respaldo (HU-01) */
+.backup-banner { border-color: var(--goal); border-left-width: 4px; }
+.backup-banner p { margin: 0 0 10px; }
+.data-status { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 4px; }
+.data-status .ok::before { content: "✓ "; color: var(--accent); font-weight: 700; }
+.btn:focus-visible, .file-btn:focus-within { outline: 3px solid var(--goal); outline-offset: 2px; }
+
 @media (max-width: 420px) {
   .grid-form { grid-template-columns: 1fr; }
   .grid-form .span-2 { grid-column: span 1; }

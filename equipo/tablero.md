@@ -6,7 +6,7 @@
 | Backlog | Listo | En curso | En revisión | Hecho |
 |---|---|---|---|---|
 | HU-03 Editar registros/alimentos (Sprint 2) | | S1-1 Esquema + importación segura — Dev Backend | | |
-| HU-04 Porciones (Sprint 2) | | S1-2 HU-01 Proteger datos — Dev Frontend | | |
+| HU-04 Porciones (Sprint 2) | | | S1-2 HU-01 Proteger datos — QA revisando | |
 | HU-05 Gasto real estimado (Sprint 2) | S1-3 HU-02 Repetir comidas | | | |
 | Deuda: dividir app.js, SW, a11y | | | | |
 
@@ -31,11 +31,14 @@ Orden: S1-1 primero (S1-3 depende del esquema). QA revisa cada historia con la D
 |---|
 | Equipo y tablero (SM) · backlog.md (Analista) · arquitectura.md (Arquitecto) · qa-informe.md + capturas (QA) |
 
-## Decisiones del Stakeholder (supuestos por defecto mientras no responda)
-- Se asume: usuarios con iPhone (máxima protección), sin servidor, `file://` debe seguir funcionando (scripts clásicos, sin módulos ES), sin dependencias de desarrollo en el repo.
+## Decisiones del Stakeholder (2026-10-21)
+1. Usuarios: **la mayoría con iPhone/Safari** → la protección de datos (S1-1, S1-2) sigue siendo prioridad máxima.
+2. **Habrá servidor** → nueva épica "Cuentas y sincronización". Antes de construir: spike del Arquitecto (opciones, coste, privacidad de datos de salud). Falta definir para qué se usa el servidor.
+3. **No hace falta `file://`** → se permiten módulos ES; se habilita refactor de `app.js` (deuda M2).
+4. **Se permiten dependencias de desarrollo** → Playwright E2E en CI (punto 3 de la DoD pasa a obligatorio).
 
-Preguntas originales:
-1. ¿Los usuarios usan iPhone/Safari? (más riesgo de borrado de datos)
-2. ¿"Sin servidor" es innegociable?
-3. ¿Hace falta abrir la app con doble clic (`file://`)? Si no, podemos usar módulos ES para dividir `app.js`.
-4. ¿Se permiten dependencias solo de desarrollo (Playwright para pruebas E2E en CI)?
+## Próximo (Listo para Sprint 2, tras cerrar Sprint 1)
+- SPIKE-01 Arquitecto: elegir servidor (Supabase / PocketBase / API propia), auth, coste, privacidad, plan local-first
+- QA-01: Playwright E2E en CI (workflow en PR) a partir de equipo/qa/run-sprint0.js
+- DEUDA-M2: dividir app.js en módulos ES (después de QA-01, para tener red de seguridad)
+- HU-03 Editar registros/alimentos
