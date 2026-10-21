@@ -123,3 +123,54 @@ PREGUNTAS:
 - @Arquitecto: ¿te vale el desempate por JSON mayor (sin `deviceId`) hasta R1? ¿Y las lápidas aparte (`deleted`) en
   vez de `deletedAt` dentro de cada registro? Lo elegí para que ningún lector (UI, Calc, CSV, visor) tenga que filtrar.
 - @QA: revisad los ajustes de `qa-s1-1.js` y `run-s1-3.js` (arriba). Solo cambian la forma de comparar, no lo que se exige.
+
+---
+
+## ADENDA (correcciones del veredicto `2026-10-21-S2-4-qa-veredicto.md`: «aprobado con condiciones»)
+BASE: se integró `claude/agent-team-app-org-nnunot` con `git merge` (D3 del Frontend, CACHE v15, `s2-4-qa.spec.js`).
+
+HECHO:
+- **D1 (condición) · `photos.js` `migrateIds`**: `getAll()` y la reescritura (`delete` + `put`) van dentro de **la misma
+  transacción readwrite**.
+  - IndexedDB serializa las transacciones de escritura del mismo almacén: si dos pestañas (o dos `loadPhotos()`)
+    migran a la vez, la segunda ve las fotos ya migradas y no hace nada. Es idempotente.
+  - Si algo falla dentro, se aborta la transacción entera, con los `delete` incluidos, y se reintenta en la siguiente
+    carga, sin error de página.
+  - En `s2-4-qa.spec.js` el `test.fail` de D1 es ahora un test normal (3 fotos → 3 fotos), y el caso «fallo de
+    IndexedDB a mitad» sigue en verde.
+- **D2 · `schema.js` `mergeRecords`**: LWW (`newer`) se aplica también al rellenar cada lado. Con clave natural, una
+  lápida vieja ya no pisa al registro vivo más nuevo del mismo día.
+  - Además, `normalize()` retira las lápidas de registros o hábitos cuyo día tiene un dato vivo.
+  - El `test.fail` de D2 es ahora un test normal.
+  - Unitarias nuevas en `tests/sync.test.js`: los dos órdenes, el lado remoto y `normalize`.
+- **Obs. (a) · reloj acotado**: `clampStamp()` y `MAX_SKEW_MS` (5 min). Un `updatedAt` o `deletedAt` más de 5 min en
+  el futuro se trata como **ahora**:
+  - **al guardar**, en `stampChanges`: los registros sin cambios y las lápidas existentes se acotan a `nowISO`;
+  - **al fusionar**, en `mergeRecords` y `mergeState` (opción `now`, por defecto `Date.now()`), y también el perfil.
+  - Una marca de 2030 ya no gana siempre, y una lápida futura ya no impide recrear el dato.
+  - Hay prueba unitaria. En R1 el servidor debe aplicar la misma regla con su propio reloj (spike §4.2).
+- **Obs. (b) · copias acotadas**: al migrar se borran las `:backup-v*` anteriores y se guarda solo la
+  **`:backup-v<N>` más reciente**. `:backup` (la primera copia, nunca se pisa) y `:corrupto` siguen igual, y «Borrar
+  todo» elimina todas. Hay E2E nueva en `s2-4.spec.js`.
+- **Obs. (c) · lápidas**: `purgeDeleted` sigue **sin llamarse**: se usará con la sincronización en R1, al confirmar el
+  servidor, o para purgar las anteriores al primer sync.
+  - Crecimiento esperado, medido por QA: unos **0,1-0,2 KB por lápida**.
+  - Cada alimento borrado, cada «Deshacer» de una copia de comidas (una lápida por alimento copiado), cada registro
+    borrado y cada foto borrada suman una. Volver a registrar el mismo día retira la lápida del registro o del hábito.
+  - Uso intensivo: 30 «Copiar de ayer» de 10 alimentos + «Deshacer» → 300 lápidas, unos 30-60 KB. Un usuario típico
+    (unos 5 borrados por semana) acumula unas 250 al año, unos **25-50 KB/año**. Es poco frente al límite de unos
+    5 MB de localStorage.
+  - Si R1 se retrasa mucho, se podría purgar a más de 365 días sin riesgo, porque no hay servidor.
+- `tests/sync.test.js`: las marcas de prueba T1-T3 pasan al 1-oct. Con el reloj acotado, una marca "futura" respecto
+  al reloj real se trataría como "ahora".
+- `sw.js`: `CACHE = 'perdida-grasa-v16'`. No toqué `reuseExistingServer` (lo cambia QA). Usé `E2E_PORT=4391`.
+
+DoD (adenda):
+- [x] D1 y D2 corregidos, y sus `test.fail` convertidos en pruebas normales.
+- [x] Obs. (a), (b) y (c) resueltas o documentadas, con pruebas para (a) y (b).
+- [x] `npm test` en verde: **61/61**.
+- [x] `E2E_PORT=4391 PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers npm run test:e2e` en verde: **79 passed**. Solo queda el
+      `test.fail` esperado de S2-1 D2 (marcadores legales).
+- [x] `node equipo/qa/run-all.js` en verde: **8 suites en verde**.
+- [x] Sin errores de consola. El aborto controlado de `migrateIds` ya no deja `pageerror`.
+- [x] CACHE v16.

@@ -70,9 +70,9 @@ test('fotos: un fallo de IndexedDB a mitad de la migración a UUID no pierde ni 
   await expect(page.locator('#gallery .thumb')).toHaveCount(3);
 });
 
-// S2-4 D1: migrateIds lee la lista FUERA de la transacción; dos ejecuciones a la vez duplican cada foto con otro UUID.
+// S2-4 D1 (corregido): migrateIds lee y reescribe en la MISMA transacción readwrite; dos ejecuciones a la vez se
+// serializan y la segunda ya ve las fotos migradas.
 test('fotos: dos migraciones simultáneas (dos pestañas al actualizar) no duplican fotos', async ({ app, page, context }) => {
-  test.fail(true, 'S2-4 D1: migración de fotos concurrente duplica fotos');
   await app.open({ state: state({ consent: CONSENT }) });
   await seedLegacyPhotos(page, 3);
   // Equivale a dos pestañas abiertas que ejecutan la migración a la vez.
@@ -215,10 +215,9 @@ test('mergeRecords / mergeState: relojes desordenados, empates, lápidas y forma
   expect(nat[0]).toMatchObject({ weight: 80, id: R.id });
 });
 
-// S2-4 D2 (latente hasta R1): con clave natural, el relleno inicial del lado local no aplica LWW y el último
-// registro de la lista con esa clave pisa a los anteriores (p. ej. una lápida vieja al registro vivo del mismo día).
+// S2-4 D2 (corregido): con clave natural, LWW se aplica también al rellenar cada lado, así una lápida vieja no pisa
+// al registro vivo más nuevo del mismo día.
 test('mergeRecords con clave natural: dos registros del mismo día en el MISMO lado se resuelven por LWW', async () => {
-  test.fail(true, 'S2-4 D2: mergeRecords no aplica LWW dentro del mismo lado');
   // Mismo lado con registro vivo + lápida del mismo día (respaldo antiguo/importado): no debe perderse el vivo.
   const live = { id: Schema.uuid(), date: '2026-10-16', weight: 79, updatedAt: '2026-10-16T10:00:00.000Z' };
   const oldTomb = { id: Schema.uuid(), date: '2026-10-16', deletedAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z' };
