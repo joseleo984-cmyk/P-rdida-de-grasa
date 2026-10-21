@@ -233,7 +233,8 @@
           return;
         }
         if (code && previewed) {
-          const shares = { body: true, nutrition: form.elements.share_nutrition.checked, habits: form.elements.share_habits.checked, notes: form.elements.share_notes.checked, photos: false };
+          const shares = { body: true, nutrition: form.elements.share_nutrition.checked, habits: form.elements.share_habits.checked, notes: form.elements.share_notes.checked, photos: false,
+            ...(await shareText($('#acc-share'))) };
           meta.link = await remote.client.joinCoach(code, shares);
         }
       }
@@ -274,17 +275,26 @@
     const tag = `${c.termsVersion}|${c.privacyVersion}|${c.sensitiveHealth}|${c.updatedAt}`;
     if (meta.consentsSent === tag) return;
     const at = c.acceptedAt;
-    const events = [
-      { kind: 'terms', granted: true, version: c.termsVersion, clientAt: at },
-      { kind: 'privacy', granted: true, version: c.privacyVersion, clientAt: at },
-      { kind: 'adult', granted: true, version: c.termsVersion, clientAt: at },
-      { kind: 'sensitive_health', granted: c.sensitiveHealth === true, version: c.privacyVersion, clientAt: c.sensitiveHealthAt || at },
-    ];
     try {
+      // v1.1 §10.1: textHash = SHA-256 del texto exacto mostrado (las páginas legales y la etiqueta de cada casilla).
+      const page = async (url) => Remote.textHash(await (await fetch(url, { cache: 'no-cache' })).text());
+      const label = (name) => Remote.textHash(shown(document.querySelector(`#form-consent [name=${name}]`).closest('label')));
+      const [hTerms, hPrivacy, hAdult, hHealth] = await Promise.all([page('legal/terminos.html'), page('legal/privacidad.html'), label('adult'), label('sensitiveHealth')]);
+      const events = [
+        { kind: 'terms', granted: true, version: c.termsVersion, textHash: hTerms, clientAt: at },
+        { kind: 'privacy', granted: true, version: c.privacyVersion, textHash: hPrivacy, clientAt: at },
+        { kind: 'adult', granted: true, version: c.termsVersion, textHash: hAdult, clientAt: at },
+        { kind: 'sensitive_health', granted: c.sensitiveHealth === true, version: c.privacyVersion, textHash: hHealth, clientAt: c.sensitiveHealthAt || at },
+      ];
       await remote.account.recordConsents(events);
       writeMeta({ ...readMeta(), consentsSent: tag });
     } catch { /* sin conexión: se reintenta al abrir la app con sesión */ }
   }
+
+  // Texto tal como se ve (para el hash de lo aceptado) y versión de la pantalla de compartir con el coach.
+  const SHARE_VERSION = 'compartir-1';
+  const shown = (el) => (el ? (el.innerText || el.textContent || '').replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim() : '');
+  async function shareText(el) { return { version: SHARE_VERSION, textHash: await Remote.textHash(shown(el)) }; }
 
   // ---------- Perfil → Cuenta ----------
   async function renderCard() {
@@ -303,21 +313,80 @@
       extra.textContent = '';
     }
     const signedIn = !!(s && meta && meta.userId === s.user.id);
+    const isCoach = signedIn && (meta.roles || []).includes('coach');
     $('#btn-account-login').classList.toggle('hidden', signedIn && !(meta && meta.authExpired));
     $('#btn-account-logout').classList.toggle('hidden', !signedIn);
+    $('#btn-account-link').classList.toggle('hidden', !signedIn || isCoach || !!meta.link);
+    $('#btn-account-coach').classList.toggle('hidden', !isCoach);
+    $('#tab-coach').classList.toggle('hidden', !isCoach);
+    // Cliente vinculado: qué comparte (lo escribe el propio cliente; el nombre del coach lo escribe otra persona → textContent).
+    const sf = $('#form-shares');
+    sf.classList.toggle('hidden', !signedIn || !meta.link);
+    if (signedIn && meta.link) {
+      $('#shares-title').textContent = `Tu coach: «${meta.link.businessName}», desde el ${new Date(meta.link.since).toLocaleDateString('es')}.`;
+      for (const k of ['nutrition', 'habits', 'notes', 'photos']) sf.elements['share_' + k].checked = !!(meta.link.shares && meta.link.shares[k]);
+    }
+    if (!signedIn) $('#form-logout').classList.add('hidden');
+    document.dispatchEvent(new CustomEvent('pg:account-changed', { detail: { signedIn, isCoach } }));
   }
+  $('#btn-account-link').addEventListener('click', () => {
+    openScreen('role');
+    $('#form-acc-role').reset();
+    $('#form-acc-role').elements.role.value = 'client';
+    updateRoleFields();
+    $('#acc-coach-code').focus();
+  });
+  $('#btn-account-coach').addEventListener('click', () => $('#tab-coach').click());
+  $('#form-shares').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const f = ev.currentTarget;
+    const shares = { body: true, nutrition: f.elements.share_nutrition.checked, habits: f.elements.share_habits.checked,
+      notes: f.elements.share_notes.checked, photos: f.elements.share_photos.checked, ...(await shareText($('#shares-fieldset'))) };
+    showError('#shares-error', '');
+    busy(f, true);
+    try {
+      const link = await remote.client.updateShares(shares);
+      writeMeta({ ...readMeta(), link });
+      toast('Guardado: tu coach ya ve solo lo que marcaste');
+    } catch (err) { showError('#shares-error', errorText(err, 'shares')); }
+    finally { busy(f, false); renderCard(); }
+  });
+  $('#btn-leave-coach').addEventListener('click', async () => {
+    const meta = readMeta();
+    if (!meta || !meta.link) return;
+    if (!confirm(`¿Terminar el vínculo con «${meta.link.businessName}»?\n\nDesde ese momento tu coach deja de ver tus datos. Tus datos siguen en tu cuenta y en este teléfono.`)) return;
+    try {
+      await remote.client.leaveCoach();
+      writeMeta({ ...readMeta(), link: null });
+      toast('Vínculo terminado');
+      renderCard();
+      $('#btn-account-link').focus();
+    } catch (err) { showError('#shares-error', errorText(err, 'shares')); }
+  });
   $('#btn-account-login').addEventListener('click', () => {
     const meta = readMeta();
     if (meta && meta.email) $('#acc-email').value = meta.email;
     openScreen('email');
   });
-  $('#btn-account-logout').addEventListener('click', async () => {
-    // Por ahora los datos se quedan en el dispositivo; la pregunta "¿borrar tus datos?" (contrato §5.6) la define el Analista.
-    if (!confirm('¿Cerrar sesión en este dispositivo?\n\nTus datos siguen guardados aquí.')) return;
+  // Cerrar sesión: pregunta si borrar también los datos del teléfono, con "No" por defecto (decisión del SM;
+  // el texto definitivo lo da el Analista, contrato §5.6).
+  $('#btn-account-logout').addEventListener('click', () => {
+    const f = $('#form-logout');
+    f.reset();
+    f.classList.remove('hidden');
+    f.querySelector('input[value=no]').focus();
+  });
+  $('#btn-logout-cancel').addEventListener('click', () => { $('#form-logout').classList.add('hidden'); $('#btn-account-logout').focus(); });
+  $('#form-logout').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const wipe = ev.currentTarget.elements.wipe.value === 'yes';
     await remote.auth.signOut({ local: true });
     writeMeta(null);
-    renderCard();
+    ev.currentTarget.classList.add('hidden');
+    await renderCard();
     toast('Sesión cerrada');
+    if (wipe) $('#btn-reset').click(); // "Borrar todo" de la app (pide su propia confirmación)
+    else $('#btn-account-login').focus();
   });
 
   // Con sesión guardada: refresca roles en segundo plano. Sin conexión no pasa nada (la sesión sirve offline).
@@ -327,7 +396,10 @@
     if (!s || !meta || meta.userId !== s.user.id) return;
     try {
       const roles = await remote.account.roles();
-      writeMeta({ ...readMeta(), roles, authExpired: false });
+      const next = { ...readMeta(), roles, authExpired: false };
+      if (roles.includes('coach')) next.coach = await remote.coach.myCoach();
+      else next.link = await remote.client.myLink();
+      writeMeta(next);
       await sendConsents();
     } catch (err) {
       if (err && err.code === 'auth') writeMeta({ ...readMeta(), authExpired: true });
@@ -350,11 +422,14 @@
   // ---------- Arranque ----------
   connect().then(async (r) => {
     remote = r;
+    // Puente para coach-panel.js (S3-4): el mismo Remote y los metadatos de la cuenta. Sin servidor no existe.
+    window.PGAccount = { remote, meta: readMeta, setMeta: (m) => writeMeta({ ...readMeta(), ...m }), refresh, errorText };
     await renderCard();
     await maybeOffer();
     refresh();
     document.addEventListener('pg:legal-accepted', () => { maybeOffer(); sendConsents(); });
     window.addEventListener('online', refresh);
+    document.dispatchEvent(new CustomEvent('pg:account-ready'));
   }).catch((err) => {
     console.warn('Cuenta no disponible:', err);
   });

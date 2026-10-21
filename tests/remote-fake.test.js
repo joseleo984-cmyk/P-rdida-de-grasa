@@ -14,6 +14,8 @@ async function login(remote, backend, email) {
   await remote.auth.sendCode(email);
   return remote.auth.verifyCode(email, backend.lastCode(email));
 }
+const H = 'a'.repeat(64);
+const SH = { version: 'compartir-1', textHash: H };
 const rejects = (p, code) => assert.rejects(p, (e) => e instanceof Error && e.code === code);
 
 test('config: sin PG_CONFIG o vacío → null (la app sigue solo local)', () => {
@@ -83,9 +85,10 @@ test('account: joinApp da rol client; becomeCoach añade coach; consent_events s
   assert.match(inviteCode, /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
   assert.deepStrictEqual((await a.coach.becomeCoach('Otro nombre')).inviteCode, inviteCode, 'idempotente');
   assert.deepStrictEqual(await a.account.roles(), ['client', 'coach']);
-  await rejects(a.account.recordConsents([{ kind: 'inventado', granted: true, version: '1', clientAt: T0 }]), 'invalid');
-  await a.account.recordConsents([{ kind: 'terms', granted: true, version: '0.2', clientAt: T0 }, { kind: 'terms', granted: false, version: '0.2', clientAt: T0 }]);
-  assert.deepStrictEqual((await a.account.consents()).terms, { granted: false, version: '0.2', clientAt: T0 });
+  await rejects(a.account.recordConsents([{ kind: 'inventado', granted: true, version: '1', textHash: H, clientAt: T0 }]), 'invalid');
+  await rejects(a.account.recordConsents([{ kind: 'terms', granted: true, version: '0.2', clientAt: T0 }]), 'invalid'); // v1.1: sin textHash
+  await a.account.recordConsents([{ kind: 'terms', granted: true, version: '0.2', textHash: H, clientAt: T0 }, { kind: 'terms', granted: false, version: '0.2', textHash: H, clientAt: T0 }]);
+  assert.deepStrictEqual((await a.account.consents()).terms, { granted: false, version: '0.2', textHash: H, clientAt: T0 });
   assert.strictEqual(backend.consentEvents.length, 2);
 });
 
@@ -98,8 +101,9 @@ test('cliente ↔ coach: código, vínculo único, filtros del coach (sin note, 
   await login(otro, backend, 'otro@x.co'); await otro.account.joinApp(); await otro.coach.becomeCoach('Otro');
   await rejects(cli.client.previewCode('ZZZZZZ'), 'invalid_code');
   assert.deepStrictEqual(await cli.client.previewCode(inviteCode.toLowerCase()), { businessName: 'Fit Ana' });
-  await rejects(cli.client.joinCoach(inviteCode, { body: false }), 'invalid');
-  const link = await cli.client.joinCoach(inviteCode, { body: true, notes: false, nutrition: true, habits: false, photos: false });
+  await rejects(cli.client.joinCoach(inviteCode, { body: false, ...SH }), 'invalid');
+  await rejects(cli.client.joinCoach(inviteCode, { body: true }), 'invalid'); // v1.1: sin version/textHash
+  const link = await cli.client.joinCoach(inviteCode, { body: true, notes: false, nutrition: true, habits: false, photos: false, ...SH });
   assert.strictEqual(link.businessName, 'Fit Ana');
   assert.strictEqual(backend.consentEvents.filter((e) => e.kind.startsWith('share_')).length, 5);
   await cli.sync.push({ records: [
@@ -167,4 +171,38 @@ test('Remote.create (real) aún no implementado: errores claros, session() null'
   const r = Remote.create({ url: 'https://abc.supabase.co', key: 'sb_publishable_x' });
   assert.strictEqual(await r.auth.session(), null);
   await assert.rejects(r.auth.sendCode('a@b.co'), (e) => e.code === 'server');
+});
+
+test('v1.1: rotateCode con caducidad y usos; código caducado o agotado = invalid_code; coach inactivo pierde acceso', async () => {
+  const { backend, clock, dev } = setup();
+  const coach = dev(), c1 = dev(), c2 = dev();
+  await login(coach, backend, 'k@x.co'); await coach.account.joinApp(); await coach.coach.becomeCoach('Coach K');
+  await rejects(coach.coach.rotateCode({ validDays: 0 }), 'invalid');
+  const code = await coach.coach.rotateCode({ validDays: 7, maxUses: 1 });
+  const me = await coach.coach.myCoach();
+  assert.strictEqual(me.inviteCode, code);
+  assert.strictEqual(me.maxUses, 1);
+  assert.strictEqual(me.uses, 0);
+  assert.strictEqual(Date.parse(me.expiresAt), clock.now() + 7 * 86400000);
+  await login(c1, backend, 'c1@x.co'); await c1.account.joinApp();
+  await c1.client.joinCoach(code, { body: true, ...SH });
+  assert.strictEqual((await coach.coach.myCoach()).uses, 1);
+  await login(c2, backend, 'c2@x.co'); await c2.account.joinApp();
+  await rejects(c2.client.previewCode(code), 'invalid_code'); // agotado
+  const code2 = await coach.coach.rotateCode({ validDays: 1 });
+  clock.advance(86400000 + 1);
+  await rejects(c2.client.previewCode(code2), 'invalid_code'); // caducado
+  const uid1 = (await c1.auth.session()).user.id;
+  assert.ok(await coach.coach.clientData(uid1));
+  backend.coaches[(await coach.auth.session()).user.id].active = false;
+  await rejects(coach.coach.clientData(uid1), 'forbidden');
+});
+
+test('v1.1: textHash = SHA-256 hex con saltos de línea normalizados (mismo valor que el servidor)', async () => {
+  // sha256("Acepto\n") calculado aparte; \r\n y \r dan lo mismo.
+  const h = await Remote.textHash('Acepto\n');
+  assert.match(h, /^[0-9a-f]{64}$/);
+  assert.strictEqual(await Remote.textHash('Acepto\r\n'), h);
+  assert.strictEqual(await Remote.textHash('Acepto\r'), h);
+  assert.strictEqual(await Remote.textHash('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
 });

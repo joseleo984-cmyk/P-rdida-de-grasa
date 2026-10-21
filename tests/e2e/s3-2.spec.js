@@ -130,6 +130,8 @@ test('coach: nombre comercial → código de invitación; un cliente se vincula 
 
   // Cerrar sesión (los datos se quedan) y entrar como cliente con el código
   await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+  // S3-4 (decisión SM): pregunta si borrar también los datos del teléfono, con "No" por defecto.
+  await page.locator('#form-logout').getByRole('button', { name: 'Cerrar sesión' }).click();
   await expect(page.locator('#account-status')).toContainText('Sin cuenta');
   expect((await app.stored()).entries.length).toBe(1);
   await page.getByRole('button', { name: 'Entrar o crear cuenta' }).click();
@@ -143,9 +145,9 @@ test('coach: nombre comercial → código de invitación; un cliente se vincula 
   await page.getByRole('button', { name: 'Comprobar código' }).click();
   await expect(page.locator('#acc-share-title')).toHaveText('Te vas a vincular con «Fit Ana».');
   // Ninguna categoría opcional viene marcada; la corporal es obligatoria
-  await expect(page.getByLabel(/Peso, medidas y perfil/)).toBeChecked();
-  for (const l of [/Comidas del diario/, /Hábitos/, /Notas de tus registros/]) await expect(page.getByLabel(l)).not.toBeChecked();
-  await page.getByLabel(/Comidas del diario/).check();
+  await expect(page.locator('#acc-share').getByLabel(/Peso, medidas y perfil/)).toBeChecked();
+  for (const l of [/Comidas del diario/, /Hábitos/, /Notas de tus registros/]) await expect(page.locator('#acc-share').getByLabel(l)).not.toBeChecked();
+  await page.locator('#acc-share').getByLabel(/Comidas del diario/).check();
   expect(await app.scrollWidth()).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'equipo/qa-capturas/s3-2-cuenta-vincular.png', fullPage: true });
   await page.getByRole('button', { name: 'Vincularme y continuar' }).click();

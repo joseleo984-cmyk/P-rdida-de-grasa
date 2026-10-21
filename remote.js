@@ -41,6 +41,16 @@
     return { url, key, mode: 'real' };
   }
 
+  // v1.1 §10.1: SHA-256 hex del texto EXACTO mostrado (saltos de línea normalizados a \n). Mismo resultado que el
+  // servidor (core.record_consent) para el mismo texto.
+  async function textHash(text) {
+    const norm = String(text == null ? '' : text).replace(/\r\n?/g, '\n');
+    const c = (typeof crypto !== 'undefined' && crypto.subtle) ? crypto : (typeof require === 'function' ? require('node:crypto').webcrypto : null);
+    if (!c || !c.subtle) throw new RemoteError('server', 'Este navegador no puede calcular el hash del texto');
+    const buf = await c.subtle.digest('SHA-256', new TextEncoder().encode(norm));
+    return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
   function createFake(opts = {}) {
     const F = root.RemoteFake;
     if (!F) throw new RemoteError('server', 'remote-fake.js no está cargado');
@@ -64,7 +74,7 @@
     };
   }
 
-  const api = { config, create, createFake, fakeAllowed, RemoteError, PRODUCTION_HOSTS };
+  const api = { config, create, createFake, fakeAllowed, textHash, RemoteError, PRODUCTION_HOSTS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Remote = api;
 })(typeof window !== 'undefined' ? window : globalThis);
