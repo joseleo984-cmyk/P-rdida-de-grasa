@@ -26,6 +26,20 @@ Origen: Arquitecto A2, A3, M1, M4 · QA BUG-01, BUG-02 y bug "100200".
 
 Orden: S1-1 primero (S1-3 depende del esquema). QA revisa cada historia con la DoD.
 
+## ⏸ PAUSA (decisión del Stakeholder 2026-10-21): ahorrar consumo
+Se pausa el equipo hasta que exista el proyecto Supabase (guía: `guia-supabase-stakeholder.md`).
+**Reglas al retomar:**
+1. Un solo agente a la vez para sincronización/seguridad; Frontend y QA de rutina con modelo más barato (Sonnet). Modelo potente solo para BD/RLS y sync.
+2. QA revisa por lotes (una vez por bloque de historias), no por historia; la seguridad de BD sigue con revisión propia.
+3. No reanudar agentes con contexto enorme: lanzar agentes nuevos con un resumen corto del handoff.
+**Estado exacto para retomar:**
+- Rama del sprint al día y publicada hasta `0ee762e` (S3-0, S3-1 + correcciones de seguridad, S3-2, S3-3 `sync.js`). 92 unitarias, 205 comprobaciones BD (modo estricto), 93 E2E, CI verde incluido job `db`.
+- Pendiente de QA: re-verificación de las correcciones de seguridad de S3-1 y revisión de S3-3 (`sync.js`).
+- Pendiente del Frontend (worktree `agent-af1625ac0d1874b1b`, sin commitear): S3-4 panel del coach + correcciones de S3-2 (textHash, fake solo en localhost, dueño de los datos por userId).
+- Pendiente del Backend: S3-3b (`remote.js` real con supabase-js vendorizado + integrar sync en la app).
+- Pendiente del Arquitecto: revisar contrato §11 (v1.2).
+- Del Stakeholder: crear cuenta y proyectos `plataforma` y `pruebas` en Supabase, pasar URL y clave `sb_publishable_`; textos legales (fecha de vigencia, dónde guarda archivos, abogado).
+
 ## Sprint 3 — EN CURSO: R1 "Cuentas y panel del coach" (decisión del Stakeholder 2026-10-21: opción B)
 **Objetivo:** "El cliente registra en la app y el coach ve su progreso en su panel, sin enviar archivos."
 Motivo: el Stakeholder considera que enviar datos por WhatsApp no da confianza → se adelanta R1 al piloto.
