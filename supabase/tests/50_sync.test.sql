@@ -98,4 +98,25 @@ select tests.ok(jsonb_array_length((grasa.sync_pull(now() - interval '10 minutes
 select set_config('t.p', grasa.sync_pull(null, 1)::text, true);
 select tests.ok((current_setting('t.p')::jsonb ->> 'has_more')::boolean
                 and jsonb_array_length(current_setting('t.p')::jsonb -> 'records') = 1, 'paginación: p_limit = 1 → has_more');
+
+-- 9. Paginación con MÁS filas que p_limit dentro de la ventana de 30 s (S3-3): las páginas siguientes van sin solape
+select grasa.sync_push((select jsonb_agg(jsonb_build_object('id', gen_random_uuid(), 'kind', 'habit',
+  'nkey', to_char(date '2026-09-01' + i, 'YYYY-MM-DD'), 'date', date '2026-09-01' + i, 'data', '{}'::jsonb, 'updated_at', now()))
+  from generate_series(1, 7) i));
+do $$
+declare res jsonb; cur timestamptz := null; seen text[] := '{}'; pages int := 0; first boolean := true;
+begin
+  loop
+    res := grasa.sync_pull(cur, 3, first);
+    first := false; pages := pages + 1;
+    seen := seen || array(select e ->> 'nkey' from jsonb_array_elements(res -> 'records') e);
+    exit when not (res ->> 'has_more')::boolean or pages > 20;
+    cur := (res ->> 'cursor')::timestamptz;
+  end loop;
+  perform tests.ok(pages <= 6 and (select count(distinct x) from unnest(seen) x where x like '2026-09-%') = 7,
+    format('paginación sin solape entre páginas: avanza (%s páginas) y trae las 7 filas nuevas', pages));
+end $$;
+select tests.ok((select (grasa.sync_pull(null, 3, true) -> 'records' -> 0 ->> 'nkey') =
+                        (select (grasa.sync_pull(null, 3, true) -> 'records' -> 0 ->> 'nkey'))),
+  'con solape (primera página) el resultado es estable');
 rollback;

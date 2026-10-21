@@ -58,6 +58,20 @@ async function concurrency(dir, port) {
   else { failed++; console.log('FALLO concurrencia sync_pull', JSON.stringify({ t1: r1, t2, mid, after, seenMid }).slice(0, 600)); }
 }
 
+// QA-S3-1-D1 (carrera): 25 sesiones REALES a la vez prueban códigos inventados. Con el bloqueo por usuario
+// (pg_advisory_xact_lock) se registran exactamente 20 intentos y el resto recibe rate_limited.
+async function attemptsRace(dir, port) {
+  const sql = `select tests.login('bea'); select grasa.join_coach('ZZZZZZ', jsonb_build_object('body', true,
+    'version', '0.1', 'text_hash', tests.h('c')));`;
+  const res = await Promise.all(Array.from({ length: 25 }, () => psqlAsync(dir, port, sql)));
+  const limited = res.filter((r) => /rate_limited/.test(r.out)).length;
+  const count = await psqlAsync(dir, port, `select count(*) from grasa.invite_attempts where user_id = tests.uid('bea');`);
+  await psqlAsync(dir, port, `delete from grasa.invite_attempts;`);
+  const n = Number(count.out.trim().split('\n').pop());
+  if (n === 20 && limited === 5) { oks += 1; console.log('OK    concurrencia: 25 intentos simultáneos → 20 registrados y 5 rate_limited (1 comprobación)'); }
+  else { failed++; console.log(`FALLO concurrencia de intentos: registrados=${n} rate_limited=${limited}`); }
+}
+
 let failed = 0, oks = 0;
 (async () => {
   if (fs.readFileSync(OUT, 'utf8') !== build()) {
@@ -106,6 +120,7 @@ let failed = 0, oks = 0;
     if (ok) {
       for (const f of fs.readdirSync(TESTS).filter((x) => x.endsWith('.test.sql')).sort()) apply(f, path.join(TESTS, f), { single: false });
       await concurrency(dir, port);
+      await attemptsRace(dir, port);
     }
   } catch (err) {
     failed++;
