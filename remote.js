@@ -1,14 +1,20 @@
-// Interfaz Remote (equipo/r1-contrato.md §3). Único punto de contacto con el servidor: ningún otro archivo llama a
-// supabase-js. Script clásico: expone window.Remote y module.exports (pruebas en Node).
+// Interfaz Remote (equipo/r1-contrato.md §3, v1.1 §10 y v1.2 §11). Único punto de contacto con el servidor: ningún
+// otro archivo llama a supabase-js. Script clásico: expone window.Remote y module.exports (pruebas en Node).
 // - Remote.config(): lee window.PG_CONFIG (config.js) → { url, key, mode } o null si no hay servidor configurado
 //   (la app sigue solo local, como antes de R1).
 // - Remote.createFake(...): implementación en memoria de remote-fake.js (solo pruebas).
-// - Remote.create(...): implementación real con supabase-js → TODO S3-3 (Backend).
+// - Remote.create(...): implementación real con supabase-js vendorizado (vendor/supabase-2.117.2.js, global
+//   `supabase`). Misma interfaz y mismos códigos de error que remote-fake.js.
 (function (root) {
   'use strict';
 
   const PRODUCTION_HOSTS = ['joseleo984-cmyk.github.io'];
   const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+  const BUCKET = 'grasa-photos';
+  const CURSOR0 = '1970-01-01T00:00:00.000Z';
+  const BATCH = 500;              // máx. elementos (registros + fotos) por llamada a sync_push (§2.3)
+  const TIMEOUT_MS = 15000;       // §3: timeout 15 s → offline
+  const SIGNED_URL_S = 60;        // §11.6: URL firmadas de 60 s, nunca se guardan
 
   class RemoteError extends Error {
     constructor(code, message) {
@@ -44,27 +50,400 @@
   function createFake(opts = {}) {
     const F = root.RemoteFake;
     if (!F) throw new RemoteError('server', 'remote-fake.js no está cargado');
-    return F.createFake(opts);
+    const r = F.createFake(opts);
+    // §11.8: sync.js llama pull(since, { overlap }); el fake acepta pull(since, limit). Se adapta aquí la firma.
+    const pull = r.sync.pull;
+    r.sync.pull = (since, o) => pull(since, typeof o === 'number' ? o : (o && o.limit) || undefined);
+    return r;
   }
 
-  // Implementación real (S3-3, Backend): supabase-js vendorizado (vendor/supabase-2.X.Y.js) con
-  // { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storage } }.
-  // Misma interfaz y mismos códigos de error que remote-fake.js. Hasta entonces, lanza un error claro.
-  function create({ url, key, app = 'grasa', storage } = {}) {
-    void url; void key; void app; void storage;
-    const todo = async () => { throw new RemoteError('server', 'Conexión con el servidor aún no disponible (S3-3)'); };
-    const group = (names) => Object.fromEntries(names.map((n) => [n, todo]));
-    return {
-      kind: 'real',
-      auth: { ...group(['sendCode', 'verifyCode', 'signOut']), session: async () => null, onChange: () => () => {} },
-      account: group(['joinApp', 'roles', 'profile', 'setDisplayName', 'recordConsents', 'consents', 'deleteAccount']),
-      sync: group(['push', 'pull', 'uploadPhoto', 'downloadPhoto', 'deletePhotoFile']),
-      client: group(['previewCode', 'joinCoach', 'myLink', 'updateShares', 'leaveCoach', 'markCommentRead', 'setPhotoShared']),
-      coach: group(['becomeCoach', 'myCoach', 'rotateCode', 'clients', 'clientData', 'photoBlob', 'addComment', 'deleteComment', 'endClient']),
+  // ---------- Errores (§10.4) ----------
+  // 1.º por el TEXTO del mensaje (las RPC lanzan `raise exception '<código>'`; P0002 vale para not_found e invalid_code),
+  // 2.º por SQLSTATE / código de PostgREST, 3.º red, HTTP y códigos de Auth. La UI nunca muestra el mensaje crudo:
+  // va en `detail` solo para depurar.
+  const DB_CODES = ['auth', 'forbidden', 'not_found', 'invalid', 'invalid_code', 'rate_limited'];
+  const SQLSTATE = {
+    42501: 'forbidden',
+    23514: 'invalid', 22023: 'invalid', '22P02': 'invalid', 23502: 'invalid', 22001: 'invalid', 23505: 'invalid',
+    28000: 'auth', PGRST301: 'auth', PGRST302: 'auth', PGRST303: 'auth',
+    54000: 'rate_limited',
+  };
+  const MESSAGES = {
+    offline: 'Sin conexión', auth: 'Sesión no iniciada o caducada', invalid_code: 'Código incorrecto o caducado',
+    rate_limited: 'Demasiados intentos: espera un poco', forbidden: 'Sin permiso', not_found: 'No encontrado',
+    invalid: 'Datos no válidos', server: 'Error del servidor',
+  };
+  const NET_NAMES = ['TypeError', 'AbortError', 'TimeoutError', 'AuthRetryableFetchError', 'StorageUnknownError', 'FunctionsFetchError'];
+  const NET_TEXT = /^(TypeError|AbortError|TimeoutError)\b|failed to fetch|networkerror|load failed|fetch failed|network request failed|aborted/i;
+
+  function mapError(err, { status, ctx = 'db', nav } = {}) {
+    if (err instanceof RemoteError) return err;
+    const e = err || {};
+    const msg = String(e.message || '').trim();
+    const st = Number(status || e.status || e.statusCode) || 0;
+    const code = String(e.code || e.error_code || '');
+    const mk = (c) => {
+      const r = new RemoteError(c, MESSAGES[c]);
+      const detail = e.details || e.detail || msg;
+      if (detail) r.detail = String(detail).slice(0, 500);
+      if (st) r.status = st;
+      return r;
     };
+    if (DB_CODES.includes(msg)) return mk(msg);
+    if (code && Object.prototype.hasOwnProperty.call(SQLSTATE, code)) return mk(SQLSTATE[code]);
+    if (/^PGRST/.test(code)) return mk(st === 401 ? 'auth' : 'server');
+    const offlineNav = nav && nav.onLine === false;
+    if (st < 500 && (offlineNav || (!st || st === 0) && (NET_NAMES.includes(e.name) || NET_TEXT.test(msg)))) return mk('offline');
+    if (st === 429 || /rate_limit/.test(code)) return mk('rate_limited');
+    if (ctx === 'verify' && (code === 'otp_expired' || code === 'invalid_credentials' || (st >= 400 && st < 500))) return mk('invalid_code');
+    if (st === 401 || e.name === 'AuthSessionMissingError' || /^(bad_jwt|session_not_found|session_expired|refresh_token_not_found|refresh_token_already_used|no_authorization)$/.test(code) || /jwt expired/i.test(msg)) return mk('auth');
+    if (ctx === 'storage') {
+      if (st === 404 || /not.?found/i.test(msg)) return mk('not_found');
+      if (st === 403 || /row-level security|unauthorized|permission/i.test(msg)) return mk('forbidden');
+      if (st === 400 || st === 413 || st === 415 || /mime|too large|exceeded|invalid/i.test(msg)) return mk('invalid');
+    }
+    if (ctx === 'auth' && (st === 400 || st === 422 || /^(email_address_invalid|validation_failed|email_address_not_authorized)$/.test(code))) return mk('invalid');
+    if (st === 403) return mk('forbidden');
+    if (st === 404) return mk('not_found');
+    return mk('server');
   }
 
-  const api = { config, create, createFake, fakeAllowed, RemoteError, PRODUCTION_HOSTS };
+  // ---------- Implementación real ----------
+  const clients = new Map(); // un solo cliente supabase-js por (url, key): account.js y la sincronización lo comparten
+
+  // Opciones: createClient / fetch / navigator / timeoutMs se inyectan en las pruebas (cliente supabase-js simulado).
+  function create({ url, key, app = 'grasa', storage, createClient, fetch: fetchImpl, navigator: nav, timeoutMs = TIMEOUT_MS } = {}) {
+    const sbLib = root.supabase;
+    const make = createClient || (sbLib && sbLib.createClient);
+    if (typeof make !== 'function') throw new RemoteError('server', 'supabase-js no está cargado');
+    const store = storage || (typeof localStorage !== 'undefined' ? localStorage : null);
+    const navi = nav || (typeof navigator !== 'undefined' ? navigator : null);
+    const baseFetch = fetchImpl || ((...a) => root.fetch(...a));
+    const ref = (String(url).match(/^https:\/\/([a-z0-9-]+)\./i) || [])[1] || 'local';
+    const storageKey = `sb-${ref}-auth-token`;
+
+    // fetch con timeout de 15 s (se aborta → offline). También para las descargas con URL firmada.
+    const timedFetch = (input, init = {}) => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      if (init.signal) {
+        if (init.signal.aborted) ctrl.abort();
+        else init.signal.addEventListener('abort', () => ctrl.abort(), { once: true });
+      }
+      return Promise.resolve(baseFetch(input, { ...init, signal: ctrl.signal })).finally(() => clearTimeout(timer));
+    };
+
+    const cacheKey = `${url}|${key}`;
+    let sb = !createClient && clients.get(cacheKey);
+    if (!sb) {
+      sb = make(url, key, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storage: store || undefined, storageKey },
+        global: { fetch: timedFetch },
+      });
+      if (!createClient) clients.set(cacheKey, sb);
+    }
+
+    const offlineNow = () => navi && navi.onLine === false;
+    // Ejecuta una llamada de supabase-js ({ data, error, status }) y traduce el error a RemoteError.
+    async function call(fn, ctx = 'db') {
+      if (offlineNow()) throw new RemoteError('offline', MESSAGES.offline);
+      let res;
+      try { res = await fn(); }
+      catch (err) { throw mapError(err, { ctx, nav: navi }); }
+      if (res && res.error) throw mapError(res.error, { status: res.status, ctx, nav: navi });
+      return res ? res.data : undefined;
+    }
+    const rpc = (schema, fn, args) => call(() => sb.schema(schema).rpc(fn, args || {}));
+    const table = (schema, name) => sb.schema(schema).from(name);
+    const bucket = () => sb.storage.from(BUCKET);
+    const rows = (d) => (Array.isArray(d) ? d : d == null ? [] : [d]);
+
+    // Sesión guardada por supabase-js (§5.7): se lee SIN red, sirve offline aunque el token haya caducado.
+    function readSession() {
+      if (!store) return null;
+      let s = null;
+      try { s = JSON.parse(store.getItem(storageKey) || 'null'); } catch { s = null; }
+      if (s && s.currentSession) s = s.currentSession; // formato antiguo
+      if (!s || typeof s !== 'object' || !s.refresh_token) return null;
+      let user = s.user;
+      if (!user) { try { user = (JSON.parse(store.getItem(storageKey + '-user') || 'null') || {}).user; } catch { user = null; } }
+      if (!user || typeof user.id !== 'string') return null;
+      return { user: { id: user.id, email: user.email || '' } };
+    }
+    async function me() {
+      const s = readSession();
+      if (!s) throw new RemoteError('auth', MESSAGES.auth);
+      return s.user;
+    }
+
+    // ---------- Frontera camelCase ↔ snake_case ----------
+    const isoOrNull = (v) => { if (v == null) return null; const t = Date.parse(v); return Number.isFinite(t) ? new Date(t).toISOString() : null; };
+    const recIn = (r) => ({ id: r.id, kind: r.kind, nkey: r.nkey, date: r.date || null, data: r.deletedAt ? {} : (r.data || {}),
+      updated_at: r.updatedAt, deleted_at: r.deletedAt || null });
+    const recOut = (r) => ({ id: r.id, kind: r.kind, nkey: r.nkey, date: r.date || null, data: r.data || {},
+      updatedAt: isoOrNull(r.updated_at), deletedAt: isoOrNull(r.deleted_at), serverUpdatedAt: r.server_updated_at || null });
+    const photoIn = (p, uid) => ({ id: p.id, date: p.date, pose: p.pose, width: p.width == null ? null : p.width, height: p.height == null ? null : p.height,
+      storage_path: p.storagePath || `${uid}/${p.id}.jpg`, shared_with_coach: !!p.sharedWithCoach,
+      created_at: p.createdAt || p.updatedAt, updated_at: p.updatedAt, deleted_at: p.deletedAt || null });
+    const photoOut = (p) => ({ id: p.id, date: p.date, pose: p.pose, width: p.width == null ? null : p.width, height: p.height == null ? null : p.height,
+      storagePath: p.storage_path, sharedWithCoach: !!p.shared_with_coach, createdAt: isoOrNull(p.created_at),
+      updatedAt: isoOrNull(p.updated_at), deletedAt: isoOrNull(p.deleted_at), serverUpdatedAt: p.server_updated_at || null });
+    const commentOut = (c) => ({ id: c.id, linkId: c.link_id, coachId: c.coach_id, clientId: c.client_id, refDate: c.ref_date || null,
+      body: c.body, createdAt: isoOrNull(c.created_at), readAt: isoOrNull(c.read_at), deletedAt: isoOrNull(c.deleted_at),
+      serverUpdatedAt: c.server_updated_at || null });
+    const sharesOut = (s) => ({ body: !!s.body, notes: !!s.notes, nutrition: !!s.nutrition, habits: !!s.habits, photos: !!s.photos });
+    // Mismos valores por defecto que el fake: body, nutrition y habits sí; notes y photos no. Lleva version y
+    // text_hash del texto de la pantalla de compartir (§10.1): la BD rechaza con `invalid` si faltan.
+    const sharesIn = (s = {}) => ({
+      body: s.body === undefined ? true : s.body === true, notes: s.notes === true,
+      nutrition: s.nutrition === undefined ? true : s.nutrition === true, habits: s.habits === undefined ? true : s.habits === true,
+      photos: s.photos === true, version: s.version, text_hash: s.textHash || s.text_hash,
+    });
+    const linkOut = (l) => (l && l.id ? { id: l.id, coachId: l.coach_id, businessName: l.business_name || '',
+      shares: sharesOut({ body: l.share_body, notes: l.share_notes, nutrition: l.share_nutrition, habits: l.share_habits, photos: l.share_photos }),
+      since: l.since || l.created_at } : null);
+    const uuid = () => (root.crypto && root.crypto.randomUUID ? root.crypto.randomUUID() : root.Schema.uuid());
+
+    // Descarga con URL firmada de 60 s (§2.4, §11.6). La URL no se guarda ni se cachea (el SW no toca otros orígenes).
+    async function signedBlob(path) {
+      const d = await call(() => bucket().createSignedUrl(path, SIGNED_URL_S), 'storage');
+      if (!d || !d.signedUrl) throw new RemoteError('not_found', MESSAGES.not_found);
+      let res;
+      try { res = await timedFetch(d.signedUrl, { cache: 'no-store' }); }
+      catch (err) { throw mapError(err, { ctx: 'storage', nav: navi }); }
+      if (!res.ok) throw mapError({ message: 'HTTP ' + res.status }, { status: res.status, ctx: 'storage' });
+      return res.blob();
+    }
+
+    // ---------- auth ----------
+    const AUTH_EVENTS = { SIGNED_IN: 'signed_in', SIGNED_OUT: 'signed_out', TOKEN_REFRESHED: 'refreshed' };
+    const auth = {
+      async sendCode(email) {
+        const e = String(email || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) || e.length > 254) throw new RemoteError('invalid', 'Correo no válido');
+        await call(() => sb.auth.signInWithOtp({ email: e, options: { shouldCreateUser: true } }), 'auth');
+      },
+      async verifyCode(email, code) {
+        const e = String(email || '').trim().toLowerCase();
+        const c = String(code || '').replace(/\s/g, '');
+        if (!/^\d{6,10}$/.test(c)) throw new RemoteError('invalid_code', MESSAGES.invalid_code);
+        const d = await call(() => sb.auth.verifyOtp({ email: e, token: c, type: 'email' }), 'verify');
+        const u = (d && (d.user || (d.session && d.session.user))) || null;
+        if (!u) throw new RemoteError('invalid_code', MESSAGES.invalid_code);
+        return { user: { id: u.id, email: u.email || e } };
+      },
+      async session() { return readSession(); },
+      async signOut({ local = true } = {}) {
+        try { await sb.auth.signOut({ scope: local ? 'local' : 'global' }); }
+        catch { /* sin red: se borra la sesión local igualmente */ }
+        if (store) { try { store.removeItem(storageKey); store.removeItem(storageKey + '-user'); } catch { /* nada */ } }
+      },
+      onChange(cb) {
+        const { data } = sb.auth.onAuthStateChange((event, session) => {
+          const ev = AUTH_EVENTS[event];
+          if (!ev) return;
+          const u = session && session.user;
+          try { cb({ event: ev, user: u ? { id: u.id, email: u.email || '' } : null }); } catch { /* el oyente no rompe la sesión */ }
+        });
+        return () => { try { data.subscription.unsubscribe(); } catch { /* nada */ } };
+      },
+    };
+
+    // ---------- account ----------
+    async function removeAllPhotos(uid) {
+      for (let i = 0; i < 100; i++) {
+        const list = await call(() => bucket().list(uid, { limit: 1000 }), 'storage');
+        const names = rows(list).map((f) => f && f.name).filter(Boolean);
+        if (!names.length) return;
+        await call(() => bucket().remove(names.map((n) => `${uid}/${n}`)), 'storage');
+      }
+    }
+    const account = {
+      async joinApp() { await me(); return rows(await rpc('core', 'join_app', { p_app: app })).flat(); },
+      async roles() { await me(); return rows(await rpc('core', 'my_roles', { p_app: app })).flat(); },
+      async profile() {
+        const u = await me();
+        const d = await call(() => table('core', 'profiles').select('display_name').eq('id', u.id).maybeSingle());
+        return { id: u.id, email: u.email, displayName: (d && d.display_name) || '' };
+      },
+      async setDisplayName(name) {
+        const u = await me();
+        const n = String(name || '').trim();
+        if (n.length > 60) throw new RemoteError('invalid', 'Nombre demasiado largo');
+        await call(() => table('core', 'profiles').update({ display_name: n }).eq('id', u.id));
+      },
+      async recordConsents(events) {
+        const u = await me();
+        if (!Array.isArray(events) || !events.length) throw new RemoteError('invalid', 'Sin eventos');
+        const list = events.map((ev) => {
+          if (!ev || typeof ev.kind !== 'string' || typeof ev.granted !== 'boolean' || typeof ev.version !== 'string' ||
+              !/^[0-9a-f]{64}$/.test(String(ev.textHash || '')) || Number.isNaN(Date.parse(ev.clientAt))) {
+            throw new RemoteError('invalid', 'Evento de consentimiento no válido');
+          }
+          return { user_id: u.id, app_id: app, kind: ev.kind, granted: ev.granted, version: ev.version, text_hash: ev.textHash,
+            coach_id: ev.coachId || null, client_at: ev.clientAt };
+        });
+        await call(() => table('core', 'consent_events').insert(list));
+      },
+      async consents() {
+        await me();
+        const out = {};
+        for (const r of rows(await rpc('core', 'my_consents', { p_app: app }))) {
+          out[r.kind] = { granted: r.granted, version: r.version, clientAt: isoOrNull(r.client_at), textHash: r.text_hash };
+        }
+        return out;
+      },
+      // §11.2: primero las fotos de Storage; si la BD aún ve archivos (`invalid`), se reintenta el borrado una vez.
+      async deleteAccount() {
+        const u = await me();
+        await removeAllPhotos(u.id);
+        try { await rpc('core', 'delete_my_account'); }
+        catch (err) {
+          if (err.code !== 'invalid') throw err;
+          await removeAllPhotos(u.id);
+          await rpc('core', 'delete_my_account');
+        }
+        await auth.signOut({ local: true });
+      },
+    };
+
+    // ---------- sync (lo usa sync.js) ----------
+    const sync = {
+      async push({ records = [], photos = [] } = {}) {
+        const u = await me();
+        if (!Array.isArray(records) || !Array.isArray(photos)) throw new RemoteError('invalid', 'Formato no válido');
+        const items = [...records.map((r) => ['r', r]), ...photos.map((p) => ['p', p])];
+        const rejected = { records: [], photos: [] };
+        let serverNow = null;
+        for (let i = 0; i < items.length; i += BATCH) {
+          const part = items.slice(i, i + BATCH);
+          const d = await rpc('grasa', 'sync_push', {
+            p_records: part.filter((x) => x[0] === 'r').map((x) => recIn(x[1])),
+            p_photos: part.filter((x) => x[0] === 'p').map((x) => photoIn(x[1], u.id)),
+          });
+          const rj = (d && d.rejected) || {};
+          rejected.records.push(...rows(rj.records).map(recOut));
+          rejected.photos.push(...rows(rj.photos).map(photoOut));
+          serverNow = (d && d.server_now) || serverNow;
+        }
+        return { serverNow, rejected };
+      },
+      // §11.8: solape de 30 s solo con overlap = true (1.ª página). El cursor se devuelve TAL CUAL lo da el servidor
+      // (microsegundos incluidos) para no perder ni repetir filas al paginar.
+      async pull(since, { overlap = true, limit = 1000 } = {}) {
+        await me();
+        const d = (await rpc('grasa', 'sync_pull', { p_since: since || CURSOR0, p_limit: limit, p_overlap: overlap !== false })) || {};
+        return {
+          records: rows(d.records).map(recOut), photos: rows(d.photos).map(photoOut), comments: rows(d.comments).map(commentOut),
+          cursor: d.cursor || since || CURSOR0, hasMore: d.has_more === true, serverNow: d.server_now || null,
+        };
+      },
+      async uploadPhoto(photoId, blob) {
+        const u = await me();
+        const path = `${u.id}/${photoId}.jpg`;
+        await call(() => bucket().upload(path, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '0' }), 'storage');
+        return { path };
+      },
+      async downloadPhoto(path) {
+        const u = await me();
+        if (!String(path).startsWith(u.id + '/')) throw new RemoteError('forbidden', 'Foto de otra cuenta');
+        return signedBlob(path);
+      },
+      async deletePhotoFile(path) {
+        const u = await me();
+        if (!String(path).startsWith(u.id + '/')) throw new RemoteError('forbidden', 'Foto de otra cuenta');
+        await call(() => bucket().remove([path]), 'storage');
+      },
+    };
+
+    // ---------- cliente ↔ coach ----------
+    const myLink = async () => { await me(); return linkOut(rows(await rpc('grasa', 'my_link'))[0]); };
+    const client = {
+      // §10.5: 0 filas = código inexistente (el intento queda contado) → invalid_code.
+      async previewCode(code) {
+        await me();
+        const r = rows(await rpc('grasa', 'preview_invite_code', { p_code: String(code || '') }))[0];
+        if (!r || !r.business_name) throw new RemoteError('invalid_code', 'Código de coach no válido');
+        return { businessName: r.business_name };
+      },
+      // §11.1: código inválido, caducado o agotado → la BD devuelve null (intento contado) → invalid_code.
+      async joinCoach(code, shares) {
+        await me();
+        const r = rows(await rpc('grasa', 'join_coach', { p_code: String(code || ''), p_shares: sharesIn(shares) }))[0];
+        if (!r || !r.id) throw new RemoteError('invalid_code', 'Código de coach no válido');
+        return (await myLink()) || linkOut(r);
+      },
+      myLink,
+      async updateShares(shares) {
+        const cur = await myLink();
+        if (!cur) throw new RemoteError('not_found', 'No tienes coach');
+        await rpc('grasa', 'update_shares', { p_shares: sharesIn({ ...cur.shares, ...shares }) });
+        return myLink();
+      },
+      async leaveCoach() { await me(); await rpc('grasa', 'leave_coach'); },
+      async markCommentRead(commentId) { await me(); await rpc('grasa', 'mark_comment_read', { p_id: commentId }); },
+      async setPhotoShared(photoId, shared) {
+        const u = await me();
+        const d = await call(() => table('grasa', 'photos').update({ shared_with_coach: !!shared, updated_at: new Date().toISOString() })
+          .eq('id', photoId).eq('user_id', u.id).select('id'));
+        if (!rows(d).length) throw new RemoteError('not_found', 'Foto no encontrada');
+      },
+    };
+
+    // ---------- coach ----------
+    const coach = {
+      async becomeCoach(businessName) {
+        await me();
+        const name = String(businessName || '').trim();
+        if (name.length < 2 || name.length > 60) throw new RemoteError('invalid', 'El nombre comercial debe tener entre 2 y 60 caracteres');
+        const r = rows(await rpc('grasa', 'become_coach', { p_business_name: name }))[0];
+        return { inviteCode: r && (r.invite_code || r) };
+      },
+      async myCoach() {
+        const u = await me();
+        const c = await call(() => table('grasa', 'coaches')
+          .select('business_name, invite_code, free_clients, invite_expires_at, invite_max_uses, invite_uses').eq('user_id', u.id).maybeSingle());
+        return c ? { businessName: c.business_name, inviteCode: c.invite_code, freeClients: c.free_clients,
+          expiresAt: isoOrNull(c.invite_expires_at), maxUses: c.invite_max_uses == null ? null : c.invite_max_uses, uses: c.invite_uses || 0 } : null;
+      },
+      async rotateCode({ validDays = null, maxUses = null } = {}) {
+        await me();
+        return rpc('grasa', 'rotate_invite_code', { p_valid_days: validDays, p_max_uses: maxUses });
+      },
+      async clients() {
+        await me();
+        return rows(await rpc('grasa', 'coach_clients')).map((c) => ({ clientId: c.client_id, displayName: c.display_name || '',
+          linkId: c.link_id, since: c.since, shares: sharesOut(c.shares || {}), lastActivity: c.last_activity || null, overFreeLimit: !!c.over_free_limit }));
+      },
+      async clientData(clientId, since) {
+        await me();
+        const d = (await rpc('grasa', 'coach_pull', { p_client: clientId, p_since: since || CURSOR0 })) || {};
+        return { records: rows(d.records).map(recOut), photos: rows(d.photos).map(photoOut), comments: rows(d.comments).map(commentOut),
+          cursor: d.cursor || since || CURSOR0 };
+      },
+      // Registro de acceso (coach_photo_opened) ANTES de firmar la URL; la autorización la impone la política de Storage.
+      async photoBlob(clientId, photo) {
+        await me();
+        const path = photo && photo.storagePath;
+        if (!photo || !photo.id || !String(path || '').startsWith(clientId + '/')) throw new RemoteError('forbidden', 'Foto no compartida');
+        await rpc('grasa', 'coach_photo_opened', { p_photo: photo.id });
+        return signedBlob(path);
+      },
+      async addComment(clientId, { id, refDate, body } = {}) {
+        await me();
+        const text = String(body || '').trim();
+        if (!text || text.length > 1000) throw new RemoteError('invalid', 'El comentario debe tener entre 1 y 1000 caracteres');
+        const r = rows(await rpc('grasa', 'add_comment', { p_id: id || uuid(), p_client: clientId, p_ref_date: refDate || null, p_body: text }))[0];
+        return r ? commentOut(r) : null;
+      },
+      async deleteComment(commentId) { await me(); await rpc('grasa', 'delete_comment', { p_id: commentId }); },
+      async endClient(clientId) { await me(); await rpc('grasa', 'end_client', { p_client: clientId }); },
+    };
+
+    return { kind: 'real', auth, account, sync, client, coach };
+  }
+
+  const api = { config, create, createFake, fakeAllowed, mapError, RemoteError, PRODUCTION_HOSTS, BUCKET };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Remote = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -163,8 +163,7 @@ test('fallos inyectables: failNext, latencia y serialización del backend', asyn
   assert.strictEqual(copy.lastCode('f@x.co'), backend.lastCode('f@x.co'));
 });
 
-test('Remote.create (real) aún no implementado: errores claros, session() null', async () => {
-  const r = Remote.create({ url: 'https://abc.supabase.co', key: 'sb_publishable_x' });
-  assert.strictEqual(await r.auth.session(), null);
-  await assert.rejects(r.auth.sendCode('a@b.co'), (e) => e.code === 'server');
+// S3-3b: la implementación real se prueba en tests/remote.test.js (cliente supabase-js simulado).
+test('Remote.create (real) sin supabase-js cargado: error claro (server)', () => {
+  assert.throws(() => Remote.create({ url: 'https://abc.supabase.co', key: 'sb_publishable_x' }), (e) => e.code === 'server');
 });

@@ -83,3 +83,19 @@ El mensaje del error es el `code` de `RemoteError` (contrato §3), para que `rem
 `auth`, `forbidden`, `not_found`, `invalid`, `invalid_code`, `rate_limited`. El motivo concreto va en `DETAIL`.
 Excepción: `grasa.join_coach` con un código que no sirve devuelve `null` (sin error), para que el intento cuente;
 `remote.js` lo convierte en `invalid_code` (contrato §11.1).
+
+## Comprobación rápida del proyecto real (`npm run smoke:remote`)
+
+Comprobaciones **sin iniciar sesión e inofensivas** (no escriben nada ni crean usuarios) contra un proyecto ya creado.
+Necesitan red; la URL y la clave se pasan **solo por variables de entorno**, nunca se guardan en el repo:
+
+```bash
+SUPABASE_URL=https://<ref>.supabase.co SUPABASE_KEY=sb_publishable_... npm run smoke:remote
+```
+
+Solo acepta la clave **publicable** (se niega con una `sb_secret_…` / `service_role`) y no la imprime. Comprueba:
+Auth responde y acepta la clave, el inicio con correo está activado, `core` y `grasa` están en *Exposed schemas*
+(si no, PostgREST da `PGRST106`), el rol anónimo **no** ejecuta RPC ni lee tablas (401/403 con `42501`) y el bucket
+`grasa-photos` no es público. Sale con código 1 si algo falla (cada línea dice qué y el estado HTTP).
+Las comprobaciones con sesión (login con código, push/pull, permisos del coach) quedan para
+`tests/remote-contract.test.js` contra el proyecto `pruebas` (contrato §4, §10.8).

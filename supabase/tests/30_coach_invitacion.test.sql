@@ -30,6 +30,18 @@ select tests.ok((select granted from core.consent_events where kind = 'share_hab
                 and (select text_hash from core.consent_events where kind = 'share_body') = tests.h('compartir'),
   'cada evento guarda su valor y el hash del texto de compartir');
 select tests.throws($$update grasa.coach_links set share_photos = true$$, 'permission denied', 'el vínculo solo cambia por RPC');
+-- S3-3b: my_link() da el vínculo activo con el nombre comercial (sin exponer el código ni la tabla de coaches)
+select tests.ok((select business_name from grasa.my_link()) = 'Coach X Fit'
+                and (select id from grasa.my_link()) = current_setting('t.link')::uuid
+                and (select share_habits from grasa.my_link()) = false,
+  'my_link devuelve el vínculo activo del cliente con el nombre comercial del coach');
+reset role; select tests.login('bea');
+select tests.ok(not exists (select 1 from grasa.my_link()), 'my_link: sin vínculo activo no devuelve nada');
+reset role; select tests.login('ana');
+select grasa.leave_coach();
+select tests.ok(not exists (select 1 from grasa.my_link()), 'my_link: tras terminar el vínculo no devuelve nada');
+reset role;
+select tests.ok(not has_function_privilege('anon', 'grasa.my_link()', 'execute'), 'anon no ejecuta my_link');
 rollback;
 
 -- Límites del código (usos y caducidad), rotación y un solo coach activo.
