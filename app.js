@@ -642,10 +642,74 @@
     render();
   });
 
+  // ---------- Respaldo y almacenamiento (HU-01) ----------
+  // Claves propias, fuera de `state`, para no depender del esquema de datos.
+  const LAST_BACKUP_KEY = 'perdida-grasa:lastBackup';
+  const BACKUP_SNOOZE_KEY = 'perdida-grasa:backupSnooze';
+  const SNOOZE_DAYS = 3;
+  const getPref = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+  const setPref = (k, v) => {
+    try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* sin almacenamiento */ }
+  };
+
+  function renderBackup() {
+    const last = getPref(LAST_BACKUP_KEY);
+    const lastDate = last ? new Date(last) : null;
+    const validLast = lastDate && !Number.isNaN(lastDate.getTime()) ? toISO(lastDate) : null;
+    const hasData = state.entries.length > 0;
+    const due = Calc.backupDue(validLast, getPref(BACKUP_SNOOZE_KEY), today(), hasData);
+    const ago = validLast ? Calc.toDay(today()) - Calc.toDay(validLast) : null;
+    const agoText = ago == null ? '' : ago <= 0 ? 'hoy' : ago === 1 ? 'ayer' : `hace ${ago} días`;
+
+    $('#backup-status').textContent = validLast
+      ? `Última copia exportada: ${fmtDate(validLast)} (${agoText}).`
+      : 'Aún no has exportado ninguna copia.';
+    $('#backup-banner-text').textContent = validLast
+      ? `Tu última copia de seguridad es de ${agoText}. Tus datos solo están en este dispositivo: exporta una copia para no perderlos.`
+      : 'Aún no tienes copia de seguridad. Tus datos solo están en este dispositivo: exporta una copia para no perderlos.';
+    $('#backup-banner-body').classList.toggle('hidden', !due);
+  }
+
+  // Se registra junto al listener de exportación existente (mismo clic).
+  $('#btn-export').addEventListener('click', () => {
+    setPref(LAST_BACKUP_KEY, new Date().toISOString());
+    setPref(BACKUP_SNOOZE_KEY, null);
+    renderBackup();
+  });
+  $('#btn-backup-now').addEventListener('click', () => $('#btn-export').click());
+  $('#btn-backup-later').addEventListener('click', () => {
+    setPref(BACKUP_SNOOZE_KEY, Calc.addDays(today(), SNOOZE_DAYS));
+    renderBackup();
+    toast(`Te lo recordaremos en ${SNOOZE_DAYS} días`);
+  });
+
+  async function checkStorage() {
+    const el = $('#storage-status');
+    let persisted = false;
+    try {
+      const st = navigator.storage;
+      if (st && st.persisted) persisted = await st.persisted();
+      if (!persisted && st && st.persist) persisted = await st.persist();
+    } catch { persisted = false; }
+    el.classList.toggle('ok', persisted);
+    el.textContent = persisted
+      ? 'Almacenamiento protegido: el navegador no borrará tus datos por falta de espacio.'
+      : 'El navegador puede borrar tus datos: haz copias con regularidad.';
+    try {
+      const est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+      if (est && est.usage != null) {
+        const mb = est.usage / 1048576;
+        el.textContent += ` Espacio usado: ${mb < 1 ? fmt(est.usage / 1024, 0) + ' KB' : fmt(mb) + ' MB'}.`;
+      }
+    } catch { /* estimación no disponible */ }
+  }
+  checkStorage();
+
   // ---------- Render ----------
   function render() {
     $('#today-label').textContent = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
     renderPanel();
+    renderBackup();
     renderEntries();
     renderFoods();
     renderPlan();
