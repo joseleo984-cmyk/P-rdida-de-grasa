@@ -689,16 +689,9 @@
     catch { toast('No se pudieron incluir las fotos en la copia'); }
     download(`perdida-grasa-${today()}.json`, JSON.stringify({ ...state, profile: state.profile || (pending && pending.profile) || null, schemaVersion: Schema.CURRENT_VERSION, exportedAt: new Date().toISOString(), photos: photoData }, null, 2), 'application/json');
   });
+  // CSV completo (medidas, comidas y hábitos), con ';' y coma decimal para Excel/Sheets en Colombia: ver coach.js.
   $('#btn-export-csv').addEventListener('click', () => {
-    const rows = [['fecha', 'peso_kg', 'cintura_cm', 'cuello_cm', 'cadera_cm', 'grasa_pct', 'kcal', 'proteina_g', 'pasos', 'nota']];
-    const dates = new Set([...state.entries.map((e) => e.date), ...Object.keys(state.foods), ...Object.keys(state.habits)]);
-    [...dates].sort().forEach((d) => {
-      const e = state.entries.find((x) => x.date === d) || {};
-      const t = dayTotals(d);
-      const bf = e.date ? bodyFatOf(e) : null;
-      rows.push([d, e.weight ?? '', e.waist ?? '', e.neck ?? '', e.hip ?? '', bf ?? '', t.kcal || '', t.protein || '', state.habits[d]?.steps ?? '', (e.note ?? '').replace(/"/g, '""')]);
-    });
-    download(`perdida-grasa-${today()}.csv`, rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n'), 'text/csv');
+    download(`perdida-grasa-${today()}.csv`, Coach.toCSV(state), 'text/csv;charset=utf-8');
   });
   // Importación atómica: se valida TODO en memoria; si algo falla no se toca ni localStorage ni IndexedDB.
   $('#file-import').addEventListener('change', async (ev) => {
@@ -773,6 +766,78 @@
     else toast('Se borraron los datos, pero no las fotos. Inténtalo de nuevo', true);
     render();
   });
+
+  // ---------- Copia de un cliente (modo coach, solo lectura) ----------
+  // Lee un respaldo JSON SOLO en memoria: no toca `state`, localStorage ni IndexedDB. Todo pasa por
+  // Schema.normalize y esc(). Las fotos se muestran con object URLs que se liberan al cerrar o al abrir otra.
+  const coachViewer = $('#coach-viewer');
+  let coachUrls = [];
+  const revokeCoachUrls = () => { coachUrls.forEach((u) => URL.revokeObjectURL(u)); coachUrls = []; };
+  coachViewer.addEventListener('close', () => { revokeCoachUrls(); $('#coach-body').innerHTML = ''; });
+  $('#coach-close').addEventListener('click', () => coachViewer.close());
+
+  async function openCoachCopy(file) {
+    let data;
+    try { data = JSON.parse(await file.text()); }
+    catch { toast('No se pudo abrir. El archivo no es un JSON válido', true); return; }
+    let copy, photoList = [], photoNote = '';
+    try { copy = Schema.normalize(Schema.migrate(data)); }
+    catch (err) { toast('No se pudo abrir. ' + err.message, true); return; }
+    try {
+      photoList = Schema.normalizePhotos(data.photos).photos;
+    } catch { photoNote = 'Las fotos de la copia no tienen un formato válido.'; }
+    // Día de referencia: el de la exportación si viene en el archivo (el coach suele abrirlo al día siguiente).
+    const exported = typeof data.exportedAt === 'string' ? new Date(data.exportedAt) : null;
+    const ref = exported && !Number.isNaN(exported.getTime()) ? toISO(exported) : today();
+    const r = Coach.summarize(copy.state, { today: ref });
+
+    revokeCoachUrls();
+    const thumbs = [];
+    for (const ph of photoList.sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt)) {
+      try {
+        const url = URL.createObjectURL(Photos.decode(ph.data));
+        coachUrls.push(url);
+        thumbs.push(`<figure class="thumb"><img src="${esc(url)}" alt="${esc(POSES[ph.pose])} del ${esc(fmtDate(ph.date))}" loading="lazy"><span>${esc(POSES[ph.pose])} · ${esc(fmtDate(ph.date))}</span></figure>`);
+      } catch { /* foto ilegible: se omite */ }
+    }
+    const kg = (v) => (v == null ? '—' : fmt(v) + ' kg');
+    const sign = (v, d = 1) => (v == null ? '—' : (v > 0 ? '+' : '') + fmt(v, d));
+    const w = r.weight;
+    const prot = (a) => (a.proteinAvg == null ? '—' : `${esc(a.proteinAvg)} g${r.target ? ' / ' + esc(r.target.protein) + ' g' : ''}`);
+    $('#coach-title').textContent = r.name ? `Copia de ${r.name}` : 'Copia de cliente';
+    $('#coach-file').textContent = `${file.name} · referencia ${fmtDate(r.reference)}${exported ? ' (fecha de exportación)' : ' (hoy)'}`;
+    const discarded = copy.warnings.length;
+    $('#coach-body').innerHTML = `
+      ${discarded ? `<p class="warn small">${esc(discarded)} datos no válidos de la copia se ignoraron.</p>` : ''}
+      ${copy.rejected.profile ? `<p class="warn small">Perfil no válido: ${esc(copy.rejected.reason)}</p>` : ''}
+      <p class="small">${r.range ? `Datos del ${esc(fmtDate(r.range.from))} al ${esc(fmtDate(r.range.to))} · ${esc(r.range.days)} ${r.range.days === 1 ? 'día' : 'días'} con algún registro` : 'La copia no tiene registros.'}</p>
+      <div class="stats">
+        <div class="stat"><span class="stat-label">Peso inicial</span><span class="stat-value">${esc(kg(w.start))}</span><span class="stat-sub">Meta ${esc(kg(w.goal))}</span></div>
+        <div class="stat"><span class="stat-label">Peso actual</span><span class="stat-value">${esc(kg(w.current))}</span><span class="stat-sub">${esc(sign(w.change))} kg desde el inicio</span></div>
+        <div class="stat"><span class="stat-label">Tendencia 7 días</span><span class="stat-value">${esc(kg(w.trend))}</span><span class="stat-sub">Ritmo ${esc(sign(w.weeklyRate, 2))} kg/sem${w.weeklyRatePct != null ? ' (' + esc(sign(w.weeklyRatePct, 2)) + ' %)' : ''}</span></div>
+        <div class="stat"><span class="stat-label">% Grasa</span><span class="stat-value">${r.bodyFat ? esc(fmt(r.bodyFat.current)) + ' %' : '—'}</span><span class="stat-sub">${r.bodyFat && r.bodyFat.first !== r.bodyFat.current ? esc(sign(r.bodyFat.current - r.bodyFat.first)) + ' pts' : ''}</span></div>
+      </div>
+      <h3>Adherencia</h3>
+      <table class="coach-table">
+        <thead><tr><th>Últimos</th><th>Días con algo</th><th>Comidas</th><th>Hábitos</th><th>Pesajes</th><th>Proteína media</th></tr></thead>
+        <tbody>${r.adherence.map((a) => `<tr><td>${esc(a.days / 7)} sem</td><td>${esc(a.anyDays)}/${esc(a.days)}</td><td>${esc(a.foodDays)}</td><td>${esc(a.habitDays)}</td><td>${esc(a.weighIns)}</td><td>${prot(a)}</td></tr>`).join('')}</tbody>
+      </table>
+      <p class="muted small">Proteína media de los días con comidas registradas, frente al objetivo calculado con su perfil.</p>
+      <h3>Últimas notas</h3>
+      ${r.notes.length ? `<ul class="coach-notes small">${r.notes.map((n) => `<li><strong>${esc(fmtDate(n.date))}</strong>: ${esc(n.note)}</li>`).join('')}</ul>` : '<p class="muted small">Sin notas.</p>'}
+      <h3>Fotos</h3>
+      ${photoNote ? `<p class="warn small">${esc(photoNote)}</p>` : ''}
+      ${thumbs.length ? `<div class="thumbs">${thumbs.join('')}</div>` : '<p class="muted small">La copia no trae fotos.</p>'}`;
+    if (!coachViewer.open) coachViewer.showModal();
+    coachViewer.scrollTop = 0;
+  }
+  for (const id of ['#file-coach', '#file-coach-other']) {
+    $(id).addEventListener('change', async (ev) => {
+      const file = ev.target.files[0];
+      if (file) await openCoachCopy(file);
+      ev.target.value = '';
+    });
+  }
 
   // ---------- Respaldo y almacenamiento (HU-01) ----------
   // Claves propias, fuera de `state`, para no depender del esquema de datos.

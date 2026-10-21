@@ -21,7 +21,15 @@ Sin dependencias ni servidor: todos los datos se guardan en el propio dispositiv
   Galería por fecha con el peso de ese día y comparador antes/después por pose.
 - **Recomendaciones automáticas**: avisa de estancamientos, pérdida demasiado rápida,
   proteína baja, poco sueño o falta de entrenamiento.
-- **Datos**: exportar/importar JSON (respaldo, incluye las fotos) y exportar CSV.
+- **Datos**: exportar/importar JSON (respaldo, incluye las fotos) y exportar CSV. El CSV trae una fila
+  por día con peso, medidas, % de grasa, kcal y macros, n.º de alimentos, pasos, agua, sueño, fuerza y nota.
+  Usa `;` como separador, coma decimal y BOM UTF-8, para que Excel en español (Colombia) lo abra en columnas
+  con tildes correctas. En Google Sheets: Archivo → Importar → separador "Detectar automáticamente".
+- **Ver copia de un cliente** (para coaches): en Perfil → Datos, "Abrir copia de cliente" lee el JSON
+  de un cliente **solo en memoria** y muestra un resumen de solo lectura: rango de fechas, peso inicial,
+  actual y tendencia, ritmo semanal, % de grasa, adherencia de 1, 2 y 4 semanas (días con registro,
+  comidas, hábitos, pesajes y proteína media frente al objetivo), últimas notas y miniaturas de fotos.
+  No modifica los datos del dispositivo. Se pueden abrir varias copias seguidas, y "Cerrar" vuelve a los datos propios.
 - **Protección de datos**: al abrir, la app pide al navegador almacenamiento protegido y en
   Perfil → Datos muestra si lo está, el espacio usado y la fecha de la última copia.
   Si hay registros y han pasado 7 días o más sin copia, el panel muestra un aviso con
@@ -34,7 +42,7 @@ Abre `index.html` en el navegador, o sírvela localmente:
 
 ```bash
 npm start        # http://localhost:8080
-npm test         # pruebas de los cálculos
+npm test         # pruebas de cálculos, esquema, comidas y kit del coach (tests/*.test.js)
 ```
 
 ## Publicación (GitHub Pages)

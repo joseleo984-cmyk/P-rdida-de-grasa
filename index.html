@@ -263,6 +263,14 @@
           <button class="btn btn-danger" id="btn-reset">Borrar todo</button>
         </div>
       </div>
+
+      <div class="card">
+        <h2>Ver copia de un cliente</h2>
+        <p class="muted small">Para coaches: abre el respaldo JSON de un cliente y mira su resumen <strong>sin mezclarlo con tus datos</strong>. No se guarda nada en este dispositivo.</p>
+        <div class="row-actions">
+          <label class="btn btn-ghost file-btn">Abrir copia de cliente<input type="file" id="file-coach" accept="application/json,.json"></label>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -283,6 +291,21 @@
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <dialog id="coach-viewer" class="coach-viewer" aria-labelledby="coach-title">
+    <div class="coach-bar">
+      <div>
+        <h2 id="coach-title">Copia de cliente</h2>
+        <p class="muted small" id="coach-file"></p>
+      </div>
+      <div class="row-actions">
+        <label class="btn btn-ghost file-btn">Abrir otra<input type="file" id="file-coach-other" accept="application/json,.json"></label>
+        <button type="button" class="btn" id="coach-close">Cerrar</button>
+      </div>
+    </div>
+    <p class="coach-ro small">Solo lectura: estos datos no se guardan ni se mezclan con los tuyos.</p>
+    <div id="coach-body"></div>
+  </dialog>
+
   <dialog id="photo-viewer" class="viewer">
     <img alt="">
     <div class="viewer-bar">
@@ -296,6 +319,7 @@
 
   <script src="calc.js"></script>
   <script src="schema.js"></script>
+  <script src="coach.js"></script>
   <script src="photos.js"></script>
   <script src="app.js"></script>
 </body>
