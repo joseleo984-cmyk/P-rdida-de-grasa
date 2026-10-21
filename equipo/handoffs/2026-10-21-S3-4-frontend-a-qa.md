@@ -52,13 +52,13 @@ HECHO:
 - `index.html`: vista `#view-coach`, pestaña `#tab-coach` oculta, tarjeta de notas y formularios de compartir y de
   cerrar sesión.
 - `styles.css`: la barra de pestañas usa columnas automáticas (5 o 6 pestañas).
-- `sw.js`: CACHE **`perdida-grasa-v18`** + `coach-panel.js`. `pages.yml` publica `coach-panel.js`.
+- `sw.js`: CACHE **`perdida-grasa-v19`** + `coach-panel.js` (junto a `sync.js` y el vendor del Backend). `pages.yml` publica `coach-panel.js`.
 
 PRUEBAS:
-- `npm test`: 77/77.
+- `npm test`: 120/120 (tras el merge del sprint).
   - `coach-panel.test.js`: semáforo, orden, `stateFromWire` con XSS y datos inválidos.
   - `remote-fake.test.js` (+2): rotación con caducidad y usos, coach inactivo, hash.
-- `E2E_PORT=4802 … npm run test:e2e`: 87 passed (el ✘ es el `test.fail` esperado de S2-1 D2).
+- `E2E_PORT=4871 … npm run test:e2e`: 102 passed, sin `test.fail`.
   - **`tests/e2e/s3-4.spec.js`**, con **dos usuarios en contextos separados** (coach y cliente):
     - invitación y vínculo eligiendo qué se comparte;
     - semáforo verde;
@@ -80,3 +80,16 @@ NOTAS / RIESGOS:
 - El nombre del cliente es `display_name` o, si no hay, el `name` de su perfil. Aún no hay pantalla para fijar el
   `display_name`.
 - El marcado por foto (`setPhotoShared`) llega con las fotos en la nube (Sprint 4); hoy solo existe la categoría.
+
+CORRECCIONES S3-2 (veredicto de QA) E INTEGRACIÓN S3-3b:
+- D1: `textHash` en cada consentimiento; el fake valida los mismos campos obligatorios que la BD. D2: el modo falso solo
+  en localhost/127.0.0.1/[::1] (lista blanca). Ambos `test.fail` son ahora pruebas normales.
+- O1: los datos locales tienen dueño (`perdida-grasa:owner`). Sin dueño: «¿Estos datos son tuyos?» (Sí / Empezar de cero).
+  De otra cuenta: nunca se mezclan (Cerrar sesión o Borrar datos del teléfono). El consentimiento solo se sube con la
+  aceptación de quien entró. Tres casos E2E nuevos en `s3-2.spec.js`.
+- «Sí, son míos» llama a `PGSync.confirmOwner()`; tras el login se emite `pg:signed-in`;
+  `remote-fake.sync.pull(since, { overlap, limit })` (también acepta el número); se quitó el adaptador de `Remote.createFake`.
+- Conflictos del merge (remote.js, sw.js, pages.yml) resueltos conservando ambos lados.
+- Riesgo: con el fake, `PGSync` y account.js comparten `window.__pgFakeBackend`.
+
+DoD: [x] npm test  [x] E2E  [x] run-all (8 suites)  [x] sin config.js la app es idéntica  [x] CACHE v19  [x] sin push, sin tocar sync.js ni migraciones.
