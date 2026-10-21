@@ -97,12 +97,22 @@
   });
 
   let toastTimer;
-  function toast(msg) {
+  // `action` opcional: { label, run } añade un botón (p. ej. "Deshacer") y alarga el toast a 6 s.
+  function toast(msg, action) {
     const t = $('#toast');
     t.textContent = msg;
+    if (action) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'toast-action';
+      b.textContent = action.label;
+      b.addEventListener('click', () => { t.classList.remove('show', 'has-action'); action.run(); }, { once: true });
+      t.append(' ', b);
+    }
+    t.classList.toggle('has-action', !!action);
     t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    toastTimer = setTimeout(() => t.classList.remove('show', 'has-action'), action ? 6000 : 2200);
   }
 
   // ---------- Perfil ----------
@@ -248,29 +258,52 @@
 
   // HU-02: repetir comidas. La lógica (ids nuevos + saneado) vive en Schema.copyMeals.
   const plural = (n) => `${n} alimento${n === 1 ? '' : 's'}`;
+  // Copiar un bloque no pide confirmación (es explícito y aditivo): basta "Deshacer" en el toast.
+  // Copiar un día entero sobre un día que ya tiene comidas sí la pide (evita duplicar con un doble toque).
   function repeatMeals(from, to, meal) {
     const src = (state.foods[from] || []).filter((x) => !meal || x.meal === meal);
     const yesterday = from === Schema.addDays(today(), -1);
-    if (!src.length) { toast(`No hay comidas${meal ? ' de ' + meal : ''} registradas ${yesterday ? 'ayer' : 'el ' + fmtDate(from)}; no se copió nada`); return; }
-    const dest = to === today() ? 'hoy' : 'el ' + fmtDate(to);
-    if (state.foods[to]?.length &&
-      !confirm(`${to === today() ? 'Hoy' : 'El ' + fmtDate(to)} ya tiene comidas. ¿Añadir ${plural(src.length)}${meal ? ' de ' + meal : ''} ${yesterday ? 'de ayer' : 'del ' + fmtDate(from)}? No se reemplaza nada.`)) return;
+    if (!src.length) { toast(`No hay comidas${meal ? ' de ' + meal : ''} registradas ${yesterday ? 'ayer' : 'el ' + fmtDate(from)}; no se copió nada`); return false; }
+    const dest = to === today() ? 'a hoy' : 'al ' + fmtDate(to);
+    if (!meal && state.foods[to]?.length &&
+      !confirm(`${to === today() ? 'Hoy' : 'El ' + fmtDate(to)} ya tiene comidas. ¿Añadir ${plural(src.length)} ${yesterday ? 'de ayer' : 'del ' + fmtDate(from)}? No se reemplaza nada.`)) return false;
     let r;
     try { r = Schema.copyMeals(state.foods, from, to, { meal }); }
-    catch (err) { toast('No se pudo copiar: ' + err.message); return; }
+    catch (err) { toast('No se pudo copiar: ' + err.message); return false; }
+    const prevIds = new Set((state.foods[to] || []).map((x) => x.id));
+    const added = new Set((r.foods[to] || []).filter((x) => !prevIds.has(x.id)).map((x) => x.id));
     state.foods = r.foods;
     save();
-    toast(`${r.copied === 1 ? 'Se copió' : 'Se copiaron'} ${plural(r.copied)} a ${dest}` + (r.skipped ? ` (${r.skipped} no válidos omitidos)` : ''));
     render();
+    toast(`${r.copied === 1 ? 'Se copió' : 'Se copiaron'} ${plural(r.copied)} ${dest}` + (r.skipped ? ` (${r.skipped} no válidos omitidos)` : ''),
+      { label: 'Deshacer', run: () => undoCopy(to, added) });
+    return true;
+  }
+  // Deshacer quita solo lo que se añadió en esa copia (respeta lo que se haya registrado después).
+  function undoCopy(day, ids) {
+    const left = (state.foods[day] || []).filter((x) => !ids.has(x.id));
+    if (left.length) state.foods[day] = left; else delete state.foods[day];
+    save();
+    render();
+    if (!document.activeElement || document.activeElement === document.body) $('#food-list-title').focus();
+    toast('Copia deshecha');
   }
   $('#btn-copy-prev').addEventListener('click', () => {
     const d = foodDate.value || today();
     repeatMeals(Schema.addDays(d, -1), d);
   });
+  $('#btn-copy-to-today').addEventListener('click', () => repeatMeals(foodDate.value, today()));
 
   $('#food-list').addEventListener('click', (ev) => {
     const rep = ev.target.closest('[data-repeat-meal]');
-    if (rep) { repeatMeals(foodDate.value, today(), rep.dataset.repeatMeal); return; }
+    if (rep) {
+      const { repeatMeal: meal, from } = rep.dataset;
+      repeatMeals(from, today(), meal);
+      // El botón se regenera (o desaparece): devolver el foco al equivalente o al título del bloque.
+      const same = $(`#food-list [data-repeat-meal="${meal}"][data-from="${from}"]`);
+      (same || $(`#food-list [data-meal-title="${meal}"]`) || $('#food-list-title')).focus();
+      return;
+    }
     const btn = ev.target.closest('[data-del-food]');
     if (!btn) return;
     const d = foodDate.value;
@@ -325,16 +358,28 @@
     const isToday = d === today();
     $('#btn-copy-prev').textContent = isToday ? 'Copiar de ayer' : 'Copiar del día anterior';
     $('#btn-copy-prev').setAttribute('aria-label', `Copiar las comidas del ${fmtDate(Schema.addDays(d, -1))} a este día`);
-    $('#food-list').innerHTML = list.length ? meals.map((m) => {
+    $('#btn-copy-to-today').classList.toggle('hidden', isToday || !list.length);
+    $('#btn-copy-to-today').setAttribute('aria-label', `Copiar las comidas del ${fmtDate(d)} a hoy`);
+    // Hoy: por cada bloque vacío que ayer sí tenía, "Repetir <bloque> de ayer".
+    // Otro día: por cada bloque, "Repetir hoy" (lo copia al día de hoy).
+    const prev = Schema.addDays(d, -1);
+    const prevList = isToday ? state.foods[prev] || [] : [];
+    const html = meals.map((m) => {
       const xs = list.filter((x) => x.meal === m);
-      if (!xs.length) return '';
+      const ys = prevList.filter((x) => x.meal === m);
+      if (!xs.length && !ys.length) return '';
       const sum = xs.reduce((s, x) => s + x.kcal, 0);
-      // "Repetir hoy" solo tiene sentido al mirar otro día (copia este bloque al día de hoy).
-      const rep = isToday ? '' : `<button type="button" class="btn-link small" data-repeat-meal="${esc(m)}" aria-label="Repetir ${esc(m)} hoy">Repetir hoy</button>`;
-      return `<div class="meal"><div class="meal-head"><strong>${esc(m)}</strong><span class="meal-side">${rep}<span class="muted">${Math.round(sum)} kcal</span></span></div>
+      const rep = !isToday
+        ? `<button type="button" class="btn-link small" data-repeat-meal="${esc(m)}" data-from="${esc(d)}" aria-label="Repetir ${esc(m)} hoy">Repetir hoy</button>`
+        : !xs.length
+          ? `<button type="button" class="btn-link small" data-repeat-meal="${esc(m)}" data-from="${esc(prev)}">Repetir ${esc(m.toLowerCase())} de ayer</button>`
+          : '';
+      const side = xs.length ? `${Math.round(sum)} kcal` : `Ayer: ${Math.round(ys.reduce((s, x) => s + x.kcal, 0))} kcal`;
+      return `<div class="meal"><div class="meal-head"><strong data-meal-title="${esc(m)}" tabindex="-1">${esc(m)}</strong><span class="meal-side">${rep}<span class="muted">${side}</span></span></div>
         ${xs.map((x) => `<div class="food-row"><span>${esc(x.name)}</span><span class="muted small">${esc(x.kcal)} kcal · P${fmt(x.protein, 0)} C${fmt(x.carbs, 0)} G${fmt(x.fat, 0)}</span><button class="icon-btn" data-del-food="${esc(x.id)}" aria-label="Eliminar">✕</button></div>`).join('')}
       </div>`;
-    }).join('') : '<p class="muted small">Nada registrado este día.</p>';
+    }).join('');
+    $('#food-list').innerHTML = (list.length ? '' : '<p class="muted small">Nada registrado este día.</p>') + html;
 
     $('#food-suggestions').innerHTML = Object.values(state.library).map((x) => `<option value="${esc(x.name)}">`).join('');
 
@@ -797,9 +842,23 @@
     toast(`Te lo recordaremos en ${SNOOZE_DAYS} días`);
   });
 
-  // En iPhone la PWA se reanuda sin recargar: recalcular al volver (cambio de día).
+  // Escape en la barra = "No".
+  $('#backup-confirm').addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') { ev.preventDefault(); $('#btn-backup-no').click(); }
+  });
+
+  // En iPhone la PWA se reanuda sin recargar. Solo se re-renderiza si cambió el día, para no
+  // pisar lo que se estaba escribiendo (hábitos sin guardar). Las fechas que seguían en "hoy" pasan al nuevo día.
+  let lastDay = today();
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') render();
+    if (document.visibilityState !== 'visible') return;
+    const now = today();
+    if (now === lastDay) return;
+    for (const input of [foodDate, entryForm.elements.date, photoForm.elements.date]) {
+      if (input.value === lastDay) input.value = now;
+    }
+    lastDay = now;
+    render();
   });
 
   async function checkStorage() {

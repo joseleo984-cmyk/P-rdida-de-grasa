@@ -47,7 +47,9 @@ const seed = {
   // 1. Día local de Bogotá, no UTC
   log('Fecha del diario = día local de Bogotá (21), no UTC (22)', (await page.inputValue('#food-date')) === D21, await page.inputValue('#food-date'));
   log('Botón "Copiar de ayer" visible en hoy', (await page.locator('#btn-copy-prev').innerText()).trim() === 'Copiar de ayer');
-  log('En hoy no hay "Repetir hoy" por bloque', (await page.locator('[data-repeat-meal]').count()) === 0);
+  // Decisión SM (D1 de QA): en hoy, cada bloque vacío que ayer tenía ofrece "Repetir <bloque> de ayer".
+  log('En hoy: "Repetir <bloque> de ayer" por cada bloque de ayer (3)', (await page.locator(`[data-repeat-meal][data-from="${D20}"]`).count()) === 3
+    && (await page.locator('[data-repeat-meal="Desayuno"]').innerText()).trim() === 'Repetir desayuno de ayer');
 
   // 2. Copiar de ayer con el día vacío: sin confirmación
   await page.click('#btn-copy-prev');

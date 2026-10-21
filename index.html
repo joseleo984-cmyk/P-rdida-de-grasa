@@ -142,8 +142,11 @@
 
       <div class="card">
         <div class="card-head">
-          <h2>Registrado este día</h2>
-          <button type="button" class="btn btn-ghost" id="btn-copy-prev">Copiar de ayer</button>
+          <h2 id="food-list-title" tabindex="-1">Registrado este día</h2>
+          <div class="row-actions">
+            <button type="button" class="btn btn-ghost btn-tall" id="btn-copy-prev">Copiar de ayer</button>
+            <button type="button" class="btn btn-ghost btn-tall hidden" id="btn-copy-to-today">Copiar este día a hoy</button>
+          </div>
         </div>
         <div id="food-list"></div>
       </div>
