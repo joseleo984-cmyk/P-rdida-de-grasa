@@ -45,7 +45,7 @@ Notas de hecho: el cliente solo puede declarar que es **mayor de 18 años** con 
 | Tercero | Para qué | Qué recibe | Ubicación | Estado |
 |---|---|---|---|---|
 | **Supabase** (proyecto `plataforma`) | Base de datos, cuentas, almacenamiento de fotos | Todos los datos de la tabla B marcados «Supabase» | **EE. UU.** (región East US, Virginia, según `guia-supabase-stakeholder.md`). Plan gratuito. **DPA y país exacto de la empresa: por confirmar** | Montado y probado |
-| **Brevo** (correo de códigos) | Enviar el código de 6 dígitos | Correo del usuario y el código | **No consta en el repositorio dónde están sus servidores** (se asume UE por su sede; **por confirmar**). Plan gratuito, 300 correos al día. El remitente hoy es un correo personal de Gmail (sin dominio propio) | Montado |
+| **Brevo** (correo de códigos) | Enviar el código de 6 dígitos | Correo del usuario y el código | **No consta en el repositorio dónde están sus servidores** (se asume UE por su sede; **por confirmar**). Plan gratuito, 300 correos al día. El remitente hoy es una dirección genérica de Brevo (brevosend.com), sin dominio propio | Montado |
 | **GitHub Pages** | Alojar la aplicación (archivos estáticos) | Ninguno de los datos de salud; solo recibe la visita como cualquier sitio web | EE. UU. (por confirmar) | En uso |
 | **WhatsApp (Meta)** | Solo para que el coach **comparta el enlace de invitación** | **Ningún dato de salud**: el código dice que solo va el enlace | Meta, fuera de Colombia | Ya no se usa para datos |
 | Google Drive u otras carpetas | Ya **no se usan** para archivos de clientes (eran del piloto con WhatsApp) | — | — | Descartado |
