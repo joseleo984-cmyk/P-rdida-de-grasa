@@ -321,3 +321,13 @@ body.has-env-banner .topbar { top: 32px; }
 /* Texto del usuario sin espacios (nombre de negocio, etc.): que parta en vez de ensanchar la página.
    Un desborde horizontal agranda el viewport de maquetación en móvil y empuja la barra de pestañas fuera de pantalla. */
 main, .consent, .acc-share p, .acc-step p { overflow-wrap: anywhere; }
+
+/* A1: invitación por WhatsApp */
+a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+a.btn.disabled { opacity: .5; pointer-events: none; }
+#invite-name, #invite-link-input { width: 100%; font: inherit; font-size: 1.05rem; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+.invite-preview { margin: 4px 0 12px; padding: 10px 12px; background: var(--bg); border-left: 4px solid var(--accent); border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.invite-lead { margin: 10px 0 0; }
+#invite-copy-fallback { margin-top: 10px; }
+#invite-card .btn-tall { flex: 1 1 200px; }
+.acc-note { margin: 0 0 12px; padding: 8px 10px; border-left: 4px solid var(--accent); background: var(--bg); border-radius: 6px; }

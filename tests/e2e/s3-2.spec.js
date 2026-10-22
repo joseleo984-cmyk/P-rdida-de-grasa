@@ -143,7 +143,7 @@ test('coach: nombre comercial → código de invitación; un cliente se vincula 
   await page.getByLabel(/Soy cliente/).check();
   await page.getByLabel(/Código de mi coach/).fill('ZZZZZZ');
   await page.getByRole('button', { name: 'Comprobar código' }).click();
-  await expect(page.locator('#acc-role-error')).toHaveText(/no existe o ya no es válido/);
+  await expect(page.locator('#acc-role-error')).toHaveText(/no existe o ya venció/);
   await page.getByLabel(/Código de mi coach/).fill(invite.toLowerCase());
   await page.getByRole('button', { name: 'Comprobar código' }).click();
   await expect(page.locator('#acc-share-title')).toHaveText('Te vas a vincular con «Fit Ana».');

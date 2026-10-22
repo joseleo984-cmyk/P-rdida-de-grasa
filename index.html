@@ -66,6 +66,7 @@
       <div id="acc-step-email" class="acc-step">
         <h2 id="account-title" tabindex="-1">Crear cuenta o entrar</h2>
         <p class="small">Con una cuenta tus datos se guardan también en el servidor y, si quieres, tu coach puede ver tu progreso sin que le envíes archivos.</p>
+        <p id="acc-invite-email" class="small acc-note hidden">Tu coach te invitó. Entra con tu correo y quedas conectado con él.</p>
         <form id="form-acc-email" novalidate>
           <label class="acc-label" for="acc-email">Tu correo</label>
           <input type="email" id="acc-email" name="email" autocomplete="email" inputmode="email" required maxlength="254" aria-describedby="acc-email-help acc-email-error">
@@ -94,6 +95,7 @@
 
       <div id="acc-step-role" class="acc-step hidden">
         <h2 id="acc-role-title" tabindex="-1">¿Cómo vas a usar la app?</h2>
+        <p id="acc-invite-note" class="small acc-note hidden"></p>
         <form id="form-acc-role" novalidate>
           <fieldset class="acc-roles">
             <legend class="sr-only">Elige tu rol</legend>
@@ -371,6 +373,21 @@
             </ul>
           </details>
         </div>
+        <div class="card" id="invite-card">
+          <h2>Invitar por WhatsApp</h2>
+          <label class="acc-label" for="invite-name">Nombre del cliente <span class="muted">(opcional)</span></label>
+          <input type="text" id="invite-name" maxlength="40" autocomplete="off" aria-describedby="invite-preview">
+          <p class="small muted invite-lead">Así se verá tu mensaje:</p>
+          <p id="invite-preview" class="invite-preview"></p>
+          <div class="row-actions">
+            <a class="btn btn-tall" id="btn-invite-wa" href="#" target="_blank" rel="noopener noreferrer">Invitar por WhatsApp</a>
+            <button type="button" class="btn btn-ghost btn-tall" id="btn-invite-copy">Copiar enlace</button>
+          </div>
+          <div id="invite-copy-fallback" class="hidden">
+            <label class="small" for="invite-link-input">Mantén pulsado el enlace y elige Copiar:</label>
+            <input type="text" id="invite-link-input" readonly>
+          </div>
+        </div>
         <div class="card">
           <h2>Código para invitar clientes</h2>
           <p class="coach-invite" id="coach-invite-code"></p>
@@ -634,6 +651,7 @@
   <script src="photos.js"></script>
   <script src="app.js"></script>
   <script src="vendor/supabase-2.117.2.js"></script>
+  <script src="invite.js"></script>
   <script src="remote.js"></script>
   <script src="account.js"></script>
   <script src="coach-panel.js"></script>

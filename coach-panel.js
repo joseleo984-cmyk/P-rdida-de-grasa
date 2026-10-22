@@ -91,8 +91,42 @@
     }).join('');
   }
 
+  // A1: invitación por WhatsApp. Todo lo que escribe una persona entra al DOM con textContent y a la URL con encodeURIComponent.
+  function inviteParts() {
+    const mine = A && (A.meta() || {}).coach;
+    if (!mine || !window.Invite) return null;
+    const link = Invite.inviteLink(location, mine.inviteCode);
+    if (!link) return null;
+    return { link, message: Invite.inviteMessage({ clientName: $('#invite-name').value, businessName: mine.businessName, link }) };
+  }
+  function renderInvitePreview() {
+    const p = inviteParts();
+    const wa = $('#btn-invite-wa');
+    $('#invite-preview').textContent = p ? p.message : 'Cuando tu código esté listo verás aquí el mensaje.';
+    wa.setAttribute('href', p ? Invite.whatsappUrl(p.message) : '#');
+    wa.setAttribute('aria-disabled', p ? 'false' : 'true');
+    wa.classList.toggle('disabled', !p);
+    $('#invite-link-input').value = p ? p.link : '';
+  }
+  async function copyInviteLink() {
+    const p = inviteParts();
+    if (!p) return;
+    try {
+      await navigator.clipboard.writeText(p.link);
+      $('#invite-copy-fallback').classList.add('hidden');
+      toast('Enlace copiado');
+    } catch {
+      const box = $('#invite-link-input');
+      $('#invite-copy-fallback').classList.remove('hidden');
+      box.focus();
+      box.select();
+      try { box.setSelectionRange(0, box.value.length); document.execCommand('copy'); } catch { /* queda seleccionado para copiar a mano */ }
+    }
+  }
+
   function renderInvite(mine) {
     if (!mine) return;
+    renderInvitePreview();
     $('#coach-invite-code').textContent = mine.inviteCode;
     const parts = [mine.expiresAt ? `Válido hasta el ${new Date(mine.expiresAt).toLocaleDateString('es')}` : 'Sin caducidad',
       mine.maxUses ? `usado ${mine.uses} de ${mine.maxUses} veces` : `usado ${mine.uses || 0} veces, sin límite`];
@@ -196,6 +230,10 @@
   function wireCoach() {
     $('#tab-coach').addEventListener('click', () => { showList(); loadClients(); });
     $('#btn-coach-refresh').addEventListener('click', loadClients);
+    $('#invite-name').addEventListener('input', renderInvitePreview);
+    $('#btn-invite-copy').addEventListener('click', copyInviteLink);
+    $('#btn-invite-wa').addEventListener('click', (ev) => { if (!inviteParts()) ev.preventDefault(); });
+    renderInvitePreview();
     $('#coach-clients').addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-client]');
       if (b) openClient(b.dataset.client);
