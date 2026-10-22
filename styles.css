@@ -39,7 +39,7 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.45;
-  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
 }
 h1 { font-size: 1.15rem; margin: 0; }
 h2 { font-size: 1rem; margin: 0 0 12px; }
@@ -159,13 +159,14 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
 
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); /* 5 pestañas, 6 con «Clientes» (coach) */
   background: var(--card); border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom);
 }
 .tabbar button {
-  border: 0; background: transparent; color: var(--muted); font: inherit; font-size: .75rem;
+  border: 0; background: transparent; color: var(--muted); font: inherit; font-size: .72rem;
   display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 0 10px; cursor: pointer;
+  min-width: 0; overflow: hidden; letter-spacing: 0; /* nunca ensanchar la barra: con fuentes anchas desbordaba y sacaba «Perfil» de la pantalla */
 }
 .tabbar button span { font-size: 1.25rem; line-height: 1; }
 .tabbar button.on { color: var(--accent); font-weight: 700; }
@@ -259,3 +260,64 @@ body.no-photos:not(.no-health) #view-fotos > :not(.photos-gate) { display: none 
 .coach-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
 .coach-table th, .coach-table td { text-align: left; padding: 6px 3px; border-bottom: 1px solid var(--line); }
 .coach-notes { padding-left: 18px; margin: 0; }
+
+/* S3-2: cuenta (crear / entrar con código) */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+body.account-open main, body.account-open .tabbar, body.account-open .backup-confirm { display: none !important; }
+body.account-open { padding-bottom: 16px; }
+.acc-label { display: block; font-weight: 600; margin: 12px 0 6px; }
+#account input[type=email], #account input[type=text] { width: 100%; font: inherit; font-size: 1.05rem; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+#acc-code { letter-spacing: .3em; font-variant-numeric: tabular-nums; }
+#account input:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.acc-main { width: 100%; margin-top: 12px; }
+.acc-error { margin: 8px 0 0; padding: 8px 10px; border-left: 4px solid var(--danger); background: var(--bg); color: var(--text); border-radius: 6px; }
+.acc-links { margin-top: 12px; align-items: center; }
+#btn-acc-skip { margin-top: 12px; }
+.acc-roles { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; }
+.acc-role { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.acc-role:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.acc-role input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+.acc-share { margin-top: 12px; padding: 12px; border: 1px solid var(--accent); border-radius: 10px; }
+.acc-share fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+.acc-share .check { display: flex; align-items: flex-start; gap: 10px; }
+.acc-share input { width: 20px; height: 20px; flex: none; accent-color: var(--accent); }
+.acc-invite { font-size: 1.6rem; font-weight: 700; letter-spacing: .2em; text-align: center; padding: 12px; border: 2px dashed var(--accent); border-radius: 10px; }
+
+/* S3-4: panel del coach y notas del coach */
+.coach-clients, .coach-notes, .coach-photos { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.client-btn { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; width: 100%; text-align: left; font: inherit; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+.client-btn:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.client-btn .light { grid-row: span 2; align-self: center; }
+.client-btn .who { font-weight: 700; overflow-wrap: anywhere; }
+.client-btn .meta { font-size: .82rem; color: var(--muted); }
+.light { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: .82rem; }
+.light::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: currentColor; flex: none; }
+.light-rojo { color: #b91c1c; } .light-amarillo { color: #a16207; } .light-verde { color: #15803d; }
+@media (prefers-color-scheme: dark) { .light-rojo { color: #f87171; } .light-amarillo { color: #facc15; } .light-verde { color: #4ade80; } }
+.coach-invite { font-size: 1.5rem; font-weight: 700; letter-spacing: .2em; margin: 0 0 6px; }
+.coach-notes li { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; overflow-wrap: anywhere; }
+.coach-notes li.unread { border-color: var(--accent); }
+.coach-notes .note-meta { font-size: .8rem; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-top: 6px; }
+.coach-notes .note-body { white-space: pre-wrap; margin: 0; }
+.badge { display: inline-block; min-width: 1.4em; padding: 0 6px; border-radius: 99px; background: var(--accent); color: #fff; font-size: .75rem; text-align: center; vertical-align: middle; }
+#comment-body { width: 100%; font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+#comment-date { font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+#form-comment .btn { margin-top: 10px; }
+#coach-photo-view img { max-width: 100%; border-radius: 10px; display: block; }
+.coach-photos { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+#form-shares, #form-logout { margin-top: 12px; }
+#form-shares fieldset, #form-logout fieldset { border: 0; padding: 0; margin: 0 0 10px; display: grid; gap: 8px; }
+#form-shares .check, #form-logout .check { display: flex; align-items: flex-start; gap: 10px; }
+
+/* Copia de pruebas: banner fijo arriba (solo existe cuando config.js define env 'pruebas'). */
+.env-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 30; height: 32px; display: flex; align-items: center; justify-content: center;
+  background: #b45309; color: #fff; font-weight: 700; font-size: .85rem; text-align: center; padding: 0 8px;
+}
+body.has-env-banner { padding-top: 32px; }
+body.has-env-banner .topbar { top: 32px; }
+
+/* Texto del usuario sin espacios (nombre de negocio, etc.): que parta en vez de ensanchar la página.
+   Un desborde horizontal agranda el viewport de maquetación en móvil y empuja la barra de pestañas fuera de pantalla. */
+main, .consent, .acc-share p, .acc-step p { overflow-wrap: anywhere; }

@@ -2,9 +2,9 @@
   'use strict';
 
   // La clave conserva el nombre histórico ":v1"; la versión real va dentro del dato (`schemaVersion`).
-  const STORAGE_KEY = 'perdida-grasa:v1';
-  const BACKUP_KEY = 'perdida-grasa:backup';      // copia del dato crudo antes de migrarlo o corregirlo
-  const CORRUPT_KEY = 'perdida-grasa:corrupto';   // dato ilegible que no se pudo cargar
+  const STORAGE_KEY = PGNS.key('v1');
+  const BACKUP_KEY = PGNS.key('backup');      // copia del dato crudo antes de migrarlo o corregirlo
+  const CORRUPT_KEY = PGNS.key('corrupto');   // dato ilegible que no se pudo cargar
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
   const fmt = (n, d = 1) => (n == null || Number.isNaN(n) ? '—' : Number(n).toLocaleString('es', { minimumFractionDigits: d, maximumFractionDigits: d }));
@@ -32,6 +32,8 @@
   let pending = null;    // { profile, reason }
   let state = load();
   let chartRange = 30;
+  let syncEngine = null; // S3-3b: sincronización con la cuenta (solo si config.js tiene servidor; ver más abajo)
+  let syncTimer = null;
 
   // Migra y normaliza lo guardado. Si está dañado, la app arranca igualmente y el dato crudo se conserva.
   function load() {
@@ -90,6 +92,7 @@
     localStorage.setItem(STORAGE_KEY, json);
     savedJSON = json;
     healthBaseline = healthPart(s);
+    scheduleSync();
   }
   const QUOTA_MSG = 'Almacenamiento lleno: exporta una copia y borra fotos antiguas';
   const isQuotaError = (err) => err && (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22);
@@ -853,6 +856,7 @@
     await loadPhotos();
     profileForm.reset();
     fillProfileForm();
+    document.dispatchEvent(new CustomEvent('pg:data-reset')); // S3-2 O1: los datos del teléfono ya no tienen dueño
     if (photosOk) toast('Datos borrados');
     else toast('Se borraron los datos, pero no las fotos. Inténtalo de nuevo', true);
     render();
@@ -956,8 +960,8 @@
 
   // ---------- Respaldo y almacenamiento (HU-01) ----------
   // Claves propias, fuera de `state`, para no depender del esquema de datos.
-  const LAST_BACKUP_KEY = 'perdida-grasa:lastBackup';
-  const BACKUP_SNOOZE_KEY = 'perdida-grasa:backupSnooze';
+  const LAST_BACKUP_KEY = PGNS.key('lastBackup');
+  const BACKUP_SNOOZE_KEY = PGNS.key('backupSnooze');
   const SNOOZE_DAYS = 3;
   const getPref = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
   const setPref = (k, v) => {
@@ -1168,6 +1172,8 @@
     // Si al arrancar hubo un aviso de carga (datos corregidos, perfil a revisar…), se repite: quedó tras la pantalla legal.
     toast(loadNotice || 'Aceptación guardada');
     loadNotice = '';
+    // S3-2: punto de integración con la cuenta (account.js): tras la pantalla legal se ofrece crear cuenta o entrar.
+    document.dispatchEvent(new CustomEvent('pg:legal-accepted'));
   });
 
   function renderPrivacy() {
@@ -1289,6 +1295,155 @@
   // El perfil a revisar ya se anuncia en #profile-issue (role=alert): no se repite en el toast (Obs. QA S1-1).
   if (pending && !state.profile) loadNotice = '';
   if (loadNotice) toast(loadNotice);
+
+  // ---------- S3-3b: sincronización con la cuenta (contrato R1 §5) ----------
+  // Sin servidor configurado (config.js vacío) no se hace NADA: la app sigue idéntica, solo en este dispositivo.
+  // Disparadores: al abrir, al volver a la app, 2 s después de guardar, al recuperar la conexión, cada 5 min visible y
+  // el botón "Sincronizar ahora". Nunca sincroniza sin autorización de datos de salud ni con datos de otra cuenta.
+  const SYNC_META_KEY = PGNS.key('sync');
+  const OWNER_KEY = PGNS.key('owner');
+  const COMMENTS_KEY = PGNS.key('comments');
+  const PRE_SYNC_KEY = PGNS.key('backup-pre-sync');
+  let syncCfg = null; // config.js y remote.js se cargan DESPUÉS de app.js: se lee en DOMContentLoaded
+  let syncRemote = null;
+  const readJSON = (k) => { try { return JSON.parse(getPref(k) || 'null'); } catch { return null; } };
+  const hasLocalData = () => !!(state.profile || state.entries.length || [state.foods, state.habits, state.library].some((d) => d && Object.keys(d).length));
+  const syncStore = {
+    getState: () => state,
+    // §5.3 regla crítica: lo recibido se guarda SIN stampChanges (no se re-sella como edición nueva).
+    saveMerged(merged) {
+      const json = JSON.stringify({ ...merged, profile: merged.profile || (pending && pending.profile) || null, schemaVersion: Schema.CURRENT_VERSION });
+      localStorage.setItem(STORAGE_KEY, json);
+      savedJSON = json;
+      state = merged;
+      healthBaseline = healthPart(merged);
+      if (!profileForm.contains(document.activeElement)) fillProfileForm();
+      render();
+    },
+    getMeta: () => readJSON(SYNC_META_KEY) || {},
+    setMeta: (m) => setPref(SYNC_META_KEY, JSON.stringify(m)),
+    healthAllowed: () => !saveBlocked && can('sensitiveHealth'),
+    ownerId: () => getPref(OWNER_KEY),
+    photosCloudAllowed: () => false, // S3-5: aún no existe la autorización "copia de fotos en la nube" → fotos solo locales
+    saveComments(list) {
+      const byId = new Map((readJSON(COMMENTS_KEY) || []).map((c) => [c.id, c]));
+      for (const c of list) if (c && c.id) byId.set(c.id, c);
+      setPref(COMMENTS_KEY, JSON.stringify([...byId.values()]));
+    },
+  };
+
+  const SYNC_TEXT = {
+    running: 'Sincronizando…',
+    ok: 'Sincronizado',
+    offline: 'Sin conexión: se subirá luego',
+    error: 'No se pudo sincronizar: se reintentará',
+    auth: 'Tu sesión caducó: vuelve a entrar con tu correo para sincronizar (tus datos siguen aquí)',
+    blocked: 'Sincronización en pausa: falta tu autorización de datos de salud',
+    owner: 'Sincronización en pausa: confirma que los datos de este dispositivo son tuyos',
+  };
+  function showSync(stateName, extra = '') {
+    const el = $('#sync-status');
+    if (!el) return;
+    el.classList.toggle('hidden', !stateName);
+    el.dataset.state = stateName || '';
+    el.textContent = stateName ? SYNC_TEXT[stateName] + extra : '';
+    $('#btn-sync-now').classList.toggle('hidden', !stateName || stateName === 'running');
+  }
+
+  function scheduleSync(delay = 2000) {
+    if (!syncEngine) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => syncNow(), delay);
+  }
+
+  // Sesión guardada (sin red). Si cambia la cuenta, los metadatos de sincronización empiezan de cero para esa cuenta.
+  async function syncSession() {
+    const s = syncRemote ? await syncRemote.auth.session().catch(() => null) : null;
+    if (!s) return null;
+    const meta = syncStore.getMeta();
+    if (meta.userId !== s.user.id) syncStore.setMeta({ userId: s.user.id, deviceId: meta.deviceId || Schema.uuid(), cursor: null, pushedUpTo: null });
+    return s;
+  }
+
+  async function syncNow() {
+    if (!syncEngine || !syncRemote) return null;
+    const s = await syncSession();
+    if (!s) { showSync(null); return null; }
+    // §5.6: sin dueño y sin datos locales es seguro adoptar la cuenta; con datos, lo confirma el usuario (confirmOwner).
+    if (!getPref(OWNER_KEY) && !hasLocalData()) setPref(OWNER_KEY, s.user.id);
+    if (syncEngine.isRunning()) return null;
+    showSync('running');
+    const go = () => syncEngine.run();
+    let r = null;
+    try {
+      r = navigator.locks && navigator.locks.request
+        ? await navigator.locks.request('pg-sync', { ifAvailable: true }, (lock) => (lock ? go() : null))
+        : await go();
+    } catch { r = null; }
+    if (!r) { const st = syncEngine.status(); if (st.state === 'idle') showSync(null); else onSyncStatus(st); } // otra pestaña sincronizaba
+    return r;
+  }
+
+  function onSyncStatus(st) {
+    if (st.state === 'idle') return;
+    const at = st.state === 'ok' && st.lastOkAt ? ` (${new Date(st.lastOkAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })})` : '';
+    showSync(SYNC_TEXT[st.state] ? st.state : 'error', at);
+    if (st.nextRetryAt && (st.state === 'offline' || st.state === 'error')) scheduleSync(Math.max(1000, Date.parse(st.nextRetryAt) - Date.now()));
+  }
+
+  // §5.6 "¿Estos datos son tuyos?": la UI de la cuenta lo llama al confirmar. Copia de seguridad previa (como el export).
+  async function confirmOwner() {
+    const s = await syncSession();
+    if (!s) return false;
+    if (hasLocalData() && savedJSON && getPref(PRE_SYNC_KEY) == null) setPref(PRE_SYNC_KEY, savedJSON);
+    setPref(OWNER_KEY, s.user.id);
+    scheduleSync(0);
+    return true;
+  }
+
+  function waitFakeBackend(ms = 10000) {
+    return new Promise((resolve, reject) => {
+      const t0 = Date.now();
+      (function poll() {
+        if (window.__pgFakeBackend) resolve(window.__pgFakeBackend);
+        else if (Date.now() - t0 > ms) reject(new Error('Servidor simulado no disponible'));
+        else setTimeout(poll, 50);
+      })();
+    });
+  }
+  async function startSync() {
+    // En pruebas (mode fake) se comparte el backend simulado que crea account.js; en real, el cliente supabase-js.
+    syncRemote = syncCfg.mode === 'fake'
+      ? Remote.createFake({ backend: await waitFakeBackend(), storage: localStorage })
+      : Remote.create({ url: syncCfg.url, key: syncCfg.key, app: 'grasa', storage: localStorage });
+    syncEngine = Sync.createSync({ remote: syncRemote, store: syncStore, onStatus: onSyncStatus });
+    window.PGSync = { run: syncNow, confirmOwner, status: () => syncEngine.status() };
+    if (syncRemote.auth.onChange) syncRemote.auth.onChange((e) => { if (e.event === 'signed_in') scheduleSync(0); if (e.event === 'signed_out') showSync(null); });
+    $('#btn-sync-now').addEventListener('click', () => syncNow());
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleSync(0); });
+    window.addEventListener('online', () => scheduleSync(0));
+    document.addEventListener('pg:signed-in', () => scheduleSync(0));
+    setInterval(() => { if (document.visibilityState === 'visible') scheduleSync(0); }, 5 * 60 * 1000);
+    syncNow();
+  }
+  function initSync() {
+    syncCfg = window.Remote && window.Sync ? Remote.config() : null;
+    if (syncCfg) startSync().catch((err) => console.warn('Sincronización no disponible:', err && err.message));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSync);
+  else initSync();
+
+  // Copia de pruebas (env 'pruebas'): banner fijo y visible; en producción no existe.
+  if (PGNS.isTest) {
+    const banner = document.createElement('div');
+    banner.id = 'env-banner';
+    banner.className = 'env-banner';
+    banner.setAttribute('role', 'note');
+    banner.setAttribute('data-testid', 'env-banner');
+    banner.textContent = 'VERSIÓN DE PRUEBAS — no uses datos reales';
+    document.body.prepend(banner);
+    document.body.classList.add('has-env-banner');
+  }
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});

@@ -458,9 +458,9 @@ const eqData = (a, b) => eq(bare(a), bare(b));
     const yml = fs.readFileSync(path.join(ROOT, '.github/workflows/pages.yml'), 'utf8');
     const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    log('pages.yml copia schema.js', /cp [^\n]*schema\.js[^\n]*_site/.test(yml));
+    log('el despliegue (build-site.js, invocado por pages.yml) copia schema.js', /npm run build:site/.test(yml) && /'schema\.js'/.test(fs.readFileSync(path.join(ROOT, 'scripts/build-site.js'), 'utf8')));
     // CACHE solo debe ser >= v3 (la versión en que entró schema.js); otras historias la siguen subiendo.
-    const cacheV = Number((sw.match(/CACHE\s*=\s*'perdida-grasa-v(\d+)'/) || [])[1]);
+    const cacheV = Number((sw.match(/CACHE\s*=\s*PGNS\.cacheName\((\d+)\)/) || [])[1]);
     log('sw.js: schema.js en ASSETS y CACHE >= v3', /'schema\.js'/.test(sw) && cacheV >= 3, 'CACHE=v' + cacheV);
     log('index.html carga schema.js antes de photos.js y app.js', html.indexOf('schema.js') > 0 && html.indexOf('schema.js') < html.indexOf('photos.js') && html.indexOf('photos.js') < html.indexOf('app.js'));
   }

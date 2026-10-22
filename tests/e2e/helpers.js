@@ -46,7 +46,8 @@ async function acceptLegalIfPresent(page, { photos = true, sensitive = true } = 
 }
 
 // La app arrancó: o se ve la barra de pestañas o la pantalla legal (que la oculta hasta aceptar).
-const appReady = (page) => expect(page.locator('#tab-panel, [data-testid="legal-gate"]').filter({ visible: true }).first()).toBeVisible();
+// (S3-2) Con servidor de pruebas (?remote=fake) puede verse también la pantalla de cuenta.
+const appReady = (page) => expect(page.locator('#tab-panel, [data-testid="legal-gate"], [data-testid="account-gate"]').filter({ visible: true }).first()).toBeVisible();
 
 // Consentimiento vigente (todas las casillas) para sembrar estados que no deben pasar por la pantalla legal.
 const CONSENT = require('../../schema.js').buildConsent({ terms: true, privacy: true, adult: true, sensitiveHealth: true, photos: true }, '2026-10-01T12:00:00.000Z');
@@ -64,7 +65,7 @@ const test = base.extend({
       errors,
       allowConsoleErrors() { allowErrors = true; },
       /** Abre la app. `state` (objeto o string crudo) y `prefs` ({clave: valor}) se escriben una sola vez, antes de app.js. */
-      async open({ state: s, prefs = {}, time = NOW, legal = true } = {}) {
+      async open({ state: s, prefs = {}, time = NOW, legal = true, path = 'index.html' } = {}) {
         if (time) await page.clock.install({ time: new Date(time) });
         const seed = { raw: s === undefined ? null : typeof s === 'string' ? s : JSON.stringify(s), prefs };
         await page.addInitScript(({ raw, prefs, key }) => {
@@ -73,7 +74,7 @@ const test = base.extend({
           if (raw !== null) localStorage.setItem(key, raw);
           for (const [k, v] of Object.entries(prefs)) localStorage.setItem(k, v);
         }, { ...seed, key: KEY });
-        await page.goto('index.html');
+        await page.goto(path);
         await appReady(page);
         if (legal) await acceptLegalIfPresent(page);
       },
@@ -115,4 +116,21 @@ const test = base.extend({
   },
 });
 
-module.exports = { test, expect, acceptLegalIfPresent, CONSENT, KEY, FIXTURE_V1, NOW, D, PROFILE, state };
+// S3-2 O1: tras entrar con el código, si el teléfono tiene datos sin dueño la app pregunta "¿Estos datos son tuyos?".
+// Este helper responde "Sí, son míos" (los flujos que prueban otra respuesta lo hacen a mano).
+async function answerOwnerIfAsked(page) {
+  const next = page.locator('#acc-step-owner, #acc-step-other, #acc-step-role, #acc-step-done').filter({ visible: true }).first();
+  await expect(next).toBeVisible();
+  if (await page.locator('#acc-step-owner').isVisible()) await page.getByRole('button', { name: /Sí, son míos/ }).click();
+}
+
+// S3-2 O1: si entra OTRA cuenta en un teléfono con datos de la anterior, no se mezclan. Para seguir probando con la
+// cuenta nueva se borran los datos del teléfono ("Borrar todo") y se acepta de nuevo la pantalla legal.
+async function wipeOtherAndContinue(page) {
+  await expect(page.locator('#acc-step-other')).toBeVisible();
+  await page.getByRole('button', { name: 'Borrar los datos de este teléfono y continuar' }).click();
+  await acceptLegalIfPresent(page);
+  await expect(page.locator('#acc-step-role, #acc-step-done').filter({ visible: true }).first()).toBeVisible();
+}
+
+module.exports = { test, expect, acceptLegalIfPresent, answerOwnerIfAsked, wipeOtherAndContinue, CONSENT, KEY, FIXTURE_V1, NOW, D, PROFILE, state };
