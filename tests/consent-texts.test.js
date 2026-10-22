@@ -31,8 +31,8 @@ test('A1–A7: cada texto tiene id estable, versión, tipos de consentimiento y 
 
 test('versiones: A5 sube a compartir-2 y el resto lleva el prefijo del borrador', () => {
   assert.strictEqual(CT.version('A5'), 'compartir-2');
-  for (const id of ['A1', 'A2', 'A3', 'A4', 'A6a', 'A6b', 'A7', 'A8'].filter((x) => x !== 'A8')) assert.match(CT.version(id), /^0\.2-A/);
-  assert.strictEqual(CT.A8.version, '0.2-A8');
+  for (const id of ['A1', 'A2', 'A3', 'A4', 'A6a', 'A6b', 'A7', 'A8'].filter((x) => x !== 'A8')) assert.match(CT.version(id), /^0\.[23]-A/);
+  assert.strictEqual(CT.A8.version, '0.3-A8');
 });
 
 test('A4 nombra a Supabase (EE. UU.) y a Brevo, avisa de la transmisión internacional y que es opcional', () => {
@@ -41,10 +41,24 @@ test('A4 nombra a Supabase (EE. UU.) y a Brevo, avisa de la transmisión interna
   assert.match(t, /EE\. UU\./);
   assert.match(t, /Brevo/);
   assert.match(t, /transmisión internacional/);
-  assert.match(t, /Es opcional/);
+  assert.match(t, /Es facultativo/);
   assert.match(CT.fullText('A4code'), /Brevo/);
   assert.match(CT.fullText('A3'), /datos sensibles/);
-  assert.match(CT.fullText('A3'), /voluntario/);
+  assert.match(CT.fullText('A3'), /completamente facultativo/);
+  assert.match(CT.fullText('A3'), /modo local sin cuenta/);
+});
+
+test('Sprint 8: A3 y A4 llevan EXACTAMENTE la redacción aprobada y quien aceptó la v0.2 debe aceptar otra vez (una sola vez)', () => {
+  assert.strictEqual(CT.TEXTS.A3.body, 'Autorizo a José Granados a tratar mis datos sensibles de salud (peso, medidas, comidas, hábitos) para calcular mi plan y registrar mi progreso. Reconozco que autorizar es completamente facultativo y que puedo utilizar la aplicación en modo local sin cuenta.');
+  assert.strictEqual(CT.TEXTS.A4.body, 'Autorizo almacenar una copia de mis datos en la nube (Supabase, servidores en EE. UU.) y procesar mi correo con Brevo. Conozco que es una transmisión internacional a proveedores encargados donde las medidas de protección pueden diferir de las de Colombia. Es facultativo; sin esta casilla la app funciona únicamente en tu teléfono.');
+  assert.ok(!CT.fullText('A3').includes('☐') && !CT.fullText('A4').includes('☐'));
+  assert.deepStrictEqual([CT.version('A3'), CT.version('A4')], ['0.3-A3', '0.3-A4']);
+  const ok = (v3, v4) => ({ consents: { sensitive_health: { granted: true, version: v3 }, cloud_transfer: { granted: true, version: v4 } } });
+  assert.strictEqual(CT.cloudAllowed(ok('0.2-A3', '0.2-A4')), false);   // versión anterior: se vuelve a pedir
+  assert.strictEqual(CT.cloudAllowed(ok('0.3-A3', '0.2-A4')), false);
+  assert.strictEqual(CT.cloudAllowed(ok('0.3-A3', '0.3-A4')), true);    // aceptada la nueva: no se vuelve a pedir
+  assert.match(CT.A8text.delete(), /3 años/);
+  assert.doesNotMatch(CT.TEXTS.A7.intro, /24–48/);
 });
 
 test('A6a y A6b son textos distintos, opcionales y A6b nombra al coach', () => {
@@ -74,7 +88,7 @@ test('A2 muestra la versión VIGENTE de los textos legales (hoy 0.1, enlaces a l
 
 test('A7: el resumen incluye lo esencial del acuerdo', () => {
   const t = CT.fullText('A7');
-  for (const w of [/solo para acompañar a ese cliente/, /no descargas, capturas ni compartes fotos/, /confidencialidad/, /planes de alimentación terapéuticos/, /24–48 h/, /borras al terminar el vínculo/, /respondes por tu propio uso/, /Acepto el Acuerdo del coach/]) assert.match(t, w);
+  for (const w of [/solo para acompañar a ese cliente/, /no descargas, capturas ni compartes fotos/, /confidencialidad/, /planes de alimentación terapéuticos/, /máximo 24 horas/, /borras al terminar el vínculo/, /respondes por tu propio uso/, /Acepto el Acuerdo del coach/]) assert.match(t, w);
 });
 
 test('A8: avisos de retiro, borrado y fin de vínculo (coach)', () => {
@@ -82,7 +96,7 @@ test('A8: avisos de retiro, borrado y fin de vínculo (coach)', () => {
   assert.match(CT.A8text.withdraw('x', { borra: true }), /se borrará/);
   assert.match(CT.A8text.withdraw('x'), /prueba mínima de tu autorización anterior, sin tu nombre/);
   assert.match(CT.A8text.delete(), /no se puede deshacer/);
-  assert.match(CT.A8text.delete(), /3 a 5 años una prueba mínima y sin tu nombre/);
+  assert.match(CT.A8text.delete(), /3 años una prueba mínima y sin tu nombre/);
   assert.strictEqual(CT.A8text.coachEnded('Luis'), 'Perdiste el acceso a los datos de Luis. Borra cualquier copia que tengas en un máximo de 30 días.');
 });
 
@@ -121,15 +135,15 @@ test('estado local: acuerdo del coach y migración de compartir-1 a compartir-2'
 });
 
 test('mergeServer: gana lo más reciente por tipo y no toca la cola', () => {
-  const m = { consents: { cloud_transfer: { granted: true, version: '0.2-A4', clientAt: '2026-10-22T10:00:00.000Z' } }, consentQueue: [{ kind: 'x' }] };
+  const m = { consents: { cloud_transfer: { granted: true, version: '0.3-A4', clientAt: '2026-10-22T10:00:00.000Z' } }, consentQueue: [{ kind: 'x' }] };
   const out = CT.mergeServer(m, {
-    cloud_transfer: { granted: false, version: '0.2-A4', textHash: 'h', clientAt: '2026-10-22T11:00:00.000Z' },
+    cloud_transfer: { granted: false, version: '0.3-A4', textHash: 'h', clientAt: '2026-10-22T11:00:00.000Z' },
     coach_agreement: { granted: true, version: '0.2-A7', textHash: 'h', clientAt: '2026-10-22T09:00:00.000Z' },
   });
   assert.strictEqual(out.consents.cloud_transfer.granted, false);
   assert.strictEqual(out.consents.coach_agreement.granted, true);
   assert.deepStrictEqual(out.consentQueue, [{ kind: 'x' }]);
-  const older = CT.mergeServer(m, { cloud_transfer: { granted: false, version: '0.2-A4', textHash: 'h', clientAt: '2026-10-22T08:00:00.000Z' } });
+  const older = CT.mergeServer(m, { cloud_transfer: { granted: false, version: '0.3-A4', textHash: 'h', clientAt: '2026-10-22T08:00:00.000Z' } });
   assert.strictEqual(older.consents.cloud_transfer.granted, true);
 });
 

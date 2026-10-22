@@ -132,11 +132,11 @@ test('A1 y A2 vienen sin marcar y sin ellas no sale el correo; A3 y A4 son un pa
   await expect(page.locator('#acc-step-cloud')).toBeVisible();
   await expect(page.locator('#acc-a3')).not.toBeChecked();
   await expect(page.locator('#acc-a4')).not.toBeChecked();
-  await expect(page.locator('#acc-a3-text')).toContainText('Autorizo a José Granados (responsable) a tratar mis datos de salud');
+  await expect(page.locator('#acc-a3-text')).toContainText('Autorizo a José Granados a tratar mis datos sensibles de salud');
   await expect(page.locator('#acc-a4-text')).toContainText('Supabase, servidores en EE. UU.');
   await expect(page.locator('#acc-a4-text')).toContainText('Brevo');
   await expect(page.locator('#acc-a4-text')).toContainText('transmisión internacional');
-  await expect(page.locator('#acc-a4-text')).toContainText('Es opcional');
+  await expect(page.locator('#acc-a4-text')).toContainText('Es facultativo');
   await checkLayout(page, '#acc-step-cloud');
   await shot(page, 's6-a3-a4-nube.png', { fullPage: true });
   // Solo una marcada: no se activa
@@ -440,7 +440,7 @@ test('A8 al borrar la cuenta: aviso con "Exportar", Cancelar no borra, Borrar de
   const uid = (await backend(page)).users['borrar@ejemplo.com'].id;
   const del = page.getByRole('button', { name: 'Borrar mi cuenta' });
   await del.click();
-  await expect(page.locator('#a8-text')).toHaveText('Se borrarán tu cuenta, tus datos, fotos y vínculos de la nube; no se puede deshacer. Tu teléfono conserva su copia hasta que la borres. Guardamos 3 a 5 años una prueba mínima y sin tu nombre de lo que autorizaste.');
+  await expect(page.locator('#a8-text')).toHaveText('Se borrarán tu cuenta, tus datos, fotos y vínculos de la nube; no se puede deshacer. Tu teléfono conserva su copia hasta que la borres. Guardamos 3 años una prueba mínima y sin tu nombre de lo que autorizaste.');
   await checkLayout(page, '#sheet-a8');
   await shot(page, 's6-a8-borrar-cuenta.png');
   await page.locator('#a8-cancel').click();
