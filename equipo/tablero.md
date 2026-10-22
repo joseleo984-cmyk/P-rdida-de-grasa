@@ -102,3 +102,9 @@ Fuera de alcance sin el Stakeholder: merge a main/publicación, crear el proyect
 - QA-01: Playwright E2E en CI (workflow en PR) a partir de equipo/qa/run-sprint0.js
 - DEUDA-M2: dividir app.js en módulos ES (después de QA-01, para tener red de seguridad)
 - HU-03 Editar registros/alimentos
+
+## Sprint 5 — Mostrar QR en Invitar (Dev Frontend) ✅ listo para revisión de QA
+Alcance cerrado por el Stakeholder: solo el botón "Mostrar QR" en Invitar del coach, con hoja de QR grande + código de respaldo.
+- Generador QR propio `qr.js` (modo byte, versión 1-10, nivel M/L, mejor máscara), sin dependencias ni servicios externos; el enlace no sale del dispositivo.
+- Validado con jsQR (solo devDependency de pruebas) + vectores de la norma; E2E con letra ancha a 390 px; caché v27.
+- Handoff: `equipo/handoffs/2026-10-22-sprint5-qr.md`. Pendiente: probar con la cámara de un iPhone y un Android reales.

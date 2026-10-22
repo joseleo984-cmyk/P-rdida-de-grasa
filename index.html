@@ -485,6 +485,7 @@
         <div class="row-actions">
           <a class="btn btn-tall" id="btn-invite-wa" href="#" target="_blank" rel="noopener noreferrer">Invitar por WhatsApp</a>
           <button type="button" class="btn btn-ghost btn-tall" id="btn-invite-copy">Copiar enlace</button>
+          <button type="button" class="btn btn-ghost btn-tall" id="btn-invite-qr" disabled aria-haspopup="dialog">Mostrar QR</button>
         </div>
         <div id="invite-copy-fallback" class="hidden">
           <label class="small" for="invite-link-input">Mantén pulsado el enlace y elige Copiar:</label>
@@ -704,6 +705,19 @@
     </div>
   </dialog>
 
+  <!-- Sprint 5: QR de la invitación del coach (se dibuja en el teléfono; el enlace no sale del dispositivo) -->
+  <dialog id="sheet-qr" class="sheet qr-sheet" aria-labelledby="qr-title">
+    <div class="sheet-head">
+      <h2 id="qr-title" tabindex="-1">Tu cliente apunta la cámara aquí</h2>
+    </div>
+    <div class="qr-body">
+      <div id="qr-box" class="qr-box"></div>
+      <p class="small muted qr-lead">Si no le funciona, que escriba este código:</p>
+      <p id="qr-code" class="qr-code"></p>
+      <button type="button" class="btn btn-tall qr-close" id="qr-close">Cerrar</button>
+    </div>
+  </dialog>
+
   <div id="backup-confirm" class="backup-confirm hidden" role="group" aria-labelledby="backup-confirm-q">
     <p id="backup-confirm-q">¿Se guardó el archivo de copia en tu dispositivo?</p>
     <div class="row-actions">
@@ -794,6 +808,7 @@
   <script src="app.js"></script>
   <script src="vendor/supabase-2.117.2.js"></script>
   <script src="invite.js"></script>
+  <script src="qr.js"></script>
   <script src="remote.js"></script>
   <script src="account.js"></script>
   <script src="coach-panel.js"></script>

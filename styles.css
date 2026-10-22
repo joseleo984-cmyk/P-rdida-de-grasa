@@ -344,7 +344,7 @@ a.btn.disabled { opacity: .5; pointer-events: none; }
 .invite-preview { margin: 4px 0 12px; padding: 10px 12px; background: var(--bg); border-left: 4px solid var(--accent); border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .invite-lead { margin: 10px 0 0; }
 #invite-copy-fallback { margin-top: 10px; }
-#invite-card .btn-tall { flex: 1 1 200px; }
+#invite-card .btn-tall { flex: 1 1 140px; min-height: 48px; }
 .acc-note { margin: 0 0 12px; padding: 8px 10px; border-left: 4px solid var(--accent); background: var(--bg); border-radius: 6px; }
 
 /* A3: guía para instalar en iPhone */
@@ -474,3 +474,13 @@ body:not(.has-remote) .needs-account { display: none; }
 .chip-late { background: var(--late-bg); color: var(--late-fg); } .chip-late::before { background: var(--late-dot); }
 .chip-none { background: var(--none-bg); color: var(--none-fg); } .chip-none::before { background: var(--none-dot); }
 #btn-coach-refresh { min-height: 48px; }
+/* Sprint 5: hoja con el QR de invitación (siempre fondo blanco con zona silenciosa, también en tema oscuro) */
+.qr-sheet { max-width: 420px; margin: auto; border-radius: 20px; }
+.qr-body { padding: 4px 16px 20px; text-align: center; }
+.qr-box { background: #fff; border-radius: 12px; padding: 0; width: min(100%, 320px); margin: 0 auto; line-height: 0; }
+.qr-box svg { display: block; width: 100%; height: auto; }
+.qr-lead { margin: 12px 0 2px; }
+.qr-code { margin: 0 0 14px; font-size: 2.2rem; font-weight: 800; letter-spacing: .14em; line-height: 1.2; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.qr-close { width: 100%; min-height: 56px; font-size: 1.05rem; }
+.qr-close:focus-visible, #btn-invite-qr:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+#btn-invite-qr:disabled { opacity: .5; cursor: default; }
