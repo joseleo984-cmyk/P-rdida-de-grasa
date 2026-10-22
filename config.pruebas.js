@@ -9,5 +9,5 @@ window.PG_CONFIG = {
   url: 'https://myeuoqvyyhveoxrpkjvg.supabase.co',
   key: 'sb_publishable_rWpRdRrVbpckMDa27HNCcA_IkvuMz4B',
   mode: 'real',
-  captchaSiteKey: '',
+  captchaSiteKey: '0x4AAAAAAFhgmwvskIW2eP_B',
 };
