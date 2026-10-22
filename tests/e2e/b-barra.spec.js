@@ -168,6 +168,7 @@ test('cliente con cuenta: cabecera con correo y "Guardado en tu cuenta", Cerrar 
   // Cerrar sesión desde Más
   await p.getByRole('button', { name: /Cerrar sesión/ }).click();
   await expect(p.locator('#form-logout')).toBeVisible();
+  await expect(p.locator('#form-logout')).toBeInViewport(); // se ve sin tener que buscarlo bajando
   await p.getByRole('button', { name: 'Cerrar sesión', exact: true }).last().click();
   await expect(p.locator('#toast')).toHaveText('Sesión cerrada');
   await ctx.close();

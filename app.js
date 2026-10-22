@@ -215,7 +215,7 @@
     const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-coach': ['perfil', 'coach'],
       'row-datos': ['perfil', 'datos'], 'row-copia': ['perfil', 'copia'], 'row-ayuda': ['ayuda'] }[b.id];
     if (to) goTo(to[0], to[1], b.id);
-    else if (b.id === 'row-salir') { goTo('perfil', 'datos', b.id); $('#btn-account-logout').click(); }
+    else if (b.id === 'row-salir') { goTo('perfil', 'datos', b.id); $('#btn-account-logout').click(); const f = $('#form-logout'); if (f && f.scrollIntoView) f.scrollIntoView({ block: 'center' }); }
   });
   document.addEventListener('pg:account-changed', (ev) => {
     navAcct = { signedIn: !!(ev.detail && ev.detail.signedIn), isCoach: !!(ev.detail && ev.detail.isCoach) };
