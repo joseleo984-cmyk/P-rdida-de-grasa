@@ -710,6 +710,7 @@
         <li class="coach-only hidden"><button type="button" class="more-row" id="row-c-comidas"><span class="more-text"><strong>Mis comidas</strong><span class="more-sub">Tu diario de comidas y hábitos</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-plan"><span class="more-text"><strong>Mi plan y perfil</strong><span class="more-sub">Tus datos, tu meta y tus calorías del día</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-fotos"><span class="more-text"><strong>Mis fotos</strong><span class="more-sub">Fotos de progreso y comparación</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="coach-only hidden"><button type="button" class="more-row" id="row-c-acuerdo"><span class="more-text"><strong>Mi acuerdo</strong><span class="more-sub">El Acuerdo del coach que aceptaste, con copia</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-link hidden"><button type="button" class="more-row" id="row-coach"><span class="more-text"><strong>Mi coach</strong><span class="more-sub">Qué puede ver y cómo dejar de compartir</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-datos"><span class="more-text"><strong>Mis datos y permisos</strong><span class="more-sub">Tu <span class="needs-account">cuenta, tu </span>privacidad y tus datos de salud</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-copia"><span class="more-text"><strong>Descargar una copia</strong><span class="more-sub">Guarda tus datos en un archivo</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
@@ -717,6 +718,35 @@
         <li><button type="button" class="more-row" id="row-ayuda"><span class="more-text"><strong>Ayuda</strong><span class="more-sub">Respuestas a las dudas más comunes</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-login hidden"><button type="button" class="more-row" id="row-salir"><span class="more-text"><strong>Cerrar sesión</strong><span class="more-sub">Salir de tu cuenta en este teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
       </ul>
+    </section>
+
+    <!-- Sprint 10: MI ACUERDO (coach): el texto exacto aceptado, con fecha, versión, huella y copia descargable / por correo -->
+    <section id="view-acuerdo" class="view" aria-labelledby="acuerdo-title">
+      <div class="back-row"><button type="button" class="btn-link back-btn" data-goto="mas">← Más</button><h2 class="back-title" id="acuerdo-title" tabindex="-1">Mi acuerdo</h2></div>
+      <div class="card hidden" id="acuerdo-none">
+        <p>Todavía no has aceptado el Acuerdo del coach.</p>
+        <p class="small muted">Se acepta una vez, en la pestaña Clientes. Después podrás ver aquí el texto exacto que aceptaste.</p>
+        <button type="button" class="btn btn-tall acc-main" id="btn-acuerdo-ir">Ir a Clientes para aceptarlo</button>
+      </div>
+      <div class="card hidden" id="acuerdo-new" role="region" aria-label="Hay una versión nueva del acuerdo">
+        <p class="acc-note" id="acuerdo-new-text"></p>
+        <button type="button" class="btn btn-tall acc-main" id="btn-acuerdo-nuevo">Revisar y aceptar la versión nueva</button>
+      </div>
+      <div class="card hidden" id="acuerdo-card">
+        <dl class="acuerdo-meta">
+          <div><dt>Aceptado el</dt><dd id="acuerdo-when"></dd></div>
+          <div><dt>Versión</dt><dd id="acuerdo-version"></dd></div>
+          <div><dt>Huella</dt><dd id="acuerdo-hash" class="mono"></dd></div>
+        </dl>
+        <p class="small muted" id="acuerdo-lead">Este es el texto exacto que aceptaste. La huella es su firma digital: si cambiara una letra, la huella sería otra.</p>
+        <pre class="acuerdo-text" id="acuerdo-text" tabindex="0" aria-label="Texto del acuerdo aceptado"></pre>
+        <p class="acc-note small hidden" id="acuerdo-mismatch">No podemos mostrar el texto exacto de tu aceptación en este teléfono. Tu aceptación sigue registrada en la plataforma.</p>
+        <div class="row-actions">
+          <button type="button" class="btn btn-tall" id="btn-acuerdo-download">Descargar copia</button>
+          <button type="button" class="btn btn-ghost btn-tall" id="btn-acuerdo-mail">Reenviarme la copia</button>
+        </div>
+        <p class="small muted" id="acuerdo-copy-status" role="status" aria-live="polite"></p>
+      </div>
     </section>
 
     <!-- AYUDA -->
@@ -868,6 +898,7 @@
   <script src="consent-texts.js"></script>
   <script src="sync.js"></script>
   <script src="cloud-view.js"></script>
+  <script src="acuerdo-view.js"></script>
   <script src="install-guide.js"></script>
   <script src="coach.js"></script>
   <script src="estado-cliente.js"></script>

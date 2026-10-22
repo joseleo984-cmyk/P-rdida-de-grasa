@@ -38,6 +38,7 @@ function mock(h = {}) {
       if (name === 'onAuthStateChange') { h.authCb = a[0]; return { data: { subscription: { unsubscribe: () => calls.push(['unsub']) } } }; }
       return reply(h.auth, name, ...a);
     } }),
+    functions: { invoke: (name, o) => { calls.push(['fn', name, o]); return reply(h.fn, name, o); } },
     storage: { from: (b) => new Proxy({}, { get: (_, name) => (...a) => { calls.push(['storage', b, name, ...a]); return reply(h.storage, name, ...a); } }) },
   };
   let opts = null;
@@ -377,4 +378,38 @@ test('createFake: adapta pull(since, { overlap }) a la firma del fake (§11.8)',
     const out = await r.sync.pull(null, { overlap: true });
     assert.strictEqual(out.records.length, 1);
   } finally { delete globalThis.RemoteFake; }
+});
+
+// ---------- Sprint 10: copia del acuerdo por correo (función de borde acuerdo-coach-copia) ----------
+const fnErr = (status, body, name = 'FunctionsHttpError') => ({ data: null, error: { name, message: 'x', context: { status, json: async () => body } } });
+
+test('sendAgreementCopy: invoca la función con el JWT de la sesión (supabase-js) y SIN datos en el cuerpo', async () => {
+  const m = mock({ fn: () => ({ data: { ok: true }, error: null }) });
+  const r = await make(m).account.sendAgreementCopy();
+  assert.deepStrictEqual(r, { sent: true });
+  assert.deepStrictEqual(m.calls.filter((c) => c[0] === 'fn'), [['fn', 'acuerdo-coach-copia', { body: {} }]]);
+});
+
+test('sendAgreementCopy: errores amables (429, 401, 403, 404/503/5xx = unavailable, red = offline)', async () => {
+  const cases = [
+    [fnErr(429, { ok: false, error: 'rate_limited' }), 'rate_limited'],
+    [fnErr(401, { ok: false, error: 'unauthorized' }), 'auth'],
+    [fnErr(403, { ok: false, error: 'agreement_not_granted' }), 'agreement_required'],
+    [fnErr(404, null), 'unavailable'],
+    [fnErr(503, { ok: false, error: 'not_configured' }), 'unavailable'],
+    [fnErr(502, { ok: false, error: 'send_failed' }), 'unavailable'],
+    [fnErr(409, { ok: false, error: 'hash_mismatch' }), 'unavailable'],
+    [{ data: null, error: { name: 'FunctionsFetchError', message: 'Failed to send a request to the Edge Function' } }, 'offline'],
+    [{ data: null, error: { name: 'FunctionsRelayError', message: 'relay' } }, 'unavailable'],
+  ];
+  for (const [res, code] of cases) await rejects(make(mock({ fn: () => res })).account.sendAgreementCopy(), code);
+  await rejects(make(mock({ fn: () => { throw new TypeError('Failed to fetch'); } })).account.sendAgreementCopy(), 'offline');
+});
+
+test('sendAgreementCopy: sin sesión → auth; sin internet → offline sin llamar', async () => {
+  const m = mock();
+  await rejects(Remote.create({ url: URL0, key: KEY0, storage: memStorage(), createClient: m.createClient }).account.sendAgreementCopy(), 'auth');
+  const m2 = mock();
+  await rejects(make(m2, { navigator: { onLine: false } }).account.sendAgreementCopy(), 'offline');
+  assert.strictEqual(m2.calls.filter((c) => c[0] === 'fn').length, 0);
 });

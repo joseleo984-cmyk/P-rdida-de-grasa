@@ -445,6 +445,7 @@
         // A7: el acuerdo se acepta ANTES de crear el código de invitación y de ver datos de clientes.
         if (!$('#acc-a7').checked) { showError('#acc-role-error', 'Para ser coach acepta el Acuerdo del coach: marca la casilla.'); busy(form, false); $('#acc-a7').focus(); return; }
         if (!(await acceptStrict('A7', 'coach_agreement'))) { showError('#acc-role-error', 'No pudimos guardar tu aceptación. Revisa tu conexión e inténtalo de nuevo.'); busy(form, false); return; }
+        copyAfterAccept();
         await remote.coach.becomeCoach(name);
         meta.coach = await remote.coach.myCoach();
         meta.roles = await remote.account.roles();
@@ -547,6 +548,18 @@
     if (await flushConsents()) { document.dispatchEvent(new CustomEvent('pg:consents-changed')); return true; }
     writeMeta(prev);
     return false;
+  }
+  // Sprint 10: copia del acuerdo aceptado por correo (función de borde `acuerdo-coach-copia`). Es COMPLEMENTARIA: el acuerdo ya quedó
+  // registrado en la plataforma; si la función no está desplegada o falla, no pasa nada (nunca lanza ni muestra errores técnicos).
+  // → { status: 'sent' | 'rate_limited' | 'offline' | 'auth' | 'unavailable' }
+  async function sendAgreementCopy() {
+    if (!remote || typeof remote.account.sendAgreementCopy !== 'function') return { status: 'unavailable' };
+    try { await remote.account.sendAgreementCopy(); return { status: 'sent' }; }
+    catch (err) { return { status: window.AcuerdoView.copyKey(err && err.code) }; }
+  }
+  // Justo tras aceptar A7: se pide la copia sin esperar y se avisa a quien escuche (coach-panel.js).
+  function copyAfterAccept() {
+    sendAgreementCopy().then((r) => document.dispatchEvent(new CustomEvent('pg:agreement-copy', { detail: { ...r, auto: true } })));
   }
   const shareMeta = async (coach) => ({ version: CT.version('A5'), textHash: await Remote.textHash(CT.fullText('A5', { coach })) });
 
@@ -901,7 +914,7 @@
     // Puente para coach-panel.js (S3-4): el mismo Remote y los metadatos de la cuenta. Sin servidor no existe.
     window.PGAccount = { remote, meta: readMeta, setMeta: (m) => writeMeta({ ...readMeta(), ...m }), refresh, errorText,
       // Sprint 6: A7 (acuerdo del coach) y A8 los usa coach-panel.js; ConsentTexts decide si el acuerdo está vigente.
-      acceptCoachAgreement: () => acceptStrict('A7', 'coach_agreement'), a8Confirm, fillLinks };
+      acceptCoachAgreement: async () => { const ok = await acceptStrict('A7', 'coach_agreement'); if (ok) copyAfterAccept(); return ok; }, sendAgreementCopy, a8Confirm, fillLinks };
     renderTermsStep();
     renderA7Box();
     await renderCard();

@@ -99,3 +99,6 @@ Auth responde y acepta la clave, el inicio con correo está activado, `core` y `
 `grasa-photos` no es público. Sale con código 1 si algo falla (cada línea dice qué y el estado HTTP).
 Las comprobaciones con sesión (login con código, push/pull, permisos del coach) quedan para
 `tests/remote-contract.test.js` contra el proyecto `pruebas` (contrato §4, §10.8).
+
+## Funciones de borde (Edge Functions)
+- `functions/acuerdo-coach-copia` (Sprint 10): manda por Brevo al coach la copia del Acuerdo (A7) que aceptó. Opcional; sin ella la app funciona igual. Lógica pura en `functions/_shared/*.mjs` (se prueba con `node --test`, sin Deno). `functions/_shared/textos-acuerdo.mjs` y `functions/acuerdo-coach-copia/pegar-en-el-panel.ts` están GENERADOS desde `consent-texts.js`: `npm run build:funcion` (las pruebas fallan si están desactualizados). Secretos (solo en el panel de Supabase, nunca en el repo): `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`. Verify JWT activado. Guía para el Stakeholder: `equipo/handoffs/acuerdo-coach-correo.md`.

@@ -251,3 +251,24 @@ test('Sprint 7: el acuerdo del coach manda (revocarlo bloquea), el código de un
   await cli.account.recordConsents([ev('cloud_transfer')]);
   await cli.sync.pull('1970-01-01T00:00:00Z');
 });
+
+// ---------- Sprint 10: doble de la función de borde «acuerdo-coach-copia» ----------
+test('sendAgreementCopy (doble): solo con el acuerdo vigente, 1 por versión y hora, correo de la sesión, modo no disponible', async () => {
+  const be = new Fake.FakeBackend({ clock: Fake.FakeClock(T0) });
+  const r = Fake.createFake({ backend: be, storage: undefined });
+  await r.auth.sendCode('coach@x.co');
+  await r.auth.verifyCode('coach@x.co', be.lastCode('coach@x.co'));
+  await r.account.joinApp();
+  await rejects(r.account.sendAgreementCopy(), 'agreement_required');
+  await agree(r);
+  assert.deepStrictEqual(await r.account.sendAgreementCopy(), { sent: true });
+  assert.strictEqual(be.agreementCopies.length, 1);
+  assert.strictEqual(be.agreementCopies[0].to, 'coach@x.co');
+  await rejects(r.account.sendAgreementCopy(), 'rate_limited');
+  be.clock.advance(61 * 60000);
+  await r.account.sendAgreementCopy();
+  assert.strictEqual(be.agreementCopies.length, 2);
+  be.copyMode = 'unavailable';
+  await rejects(r.account.sendAgreementCopy(), 'unavailable');
+  assert.strictEqual(Fake.FakeBackend.fromJSON(JSON.parse(JSON.stringify(be))).agreementCopies.length, 2);
+});

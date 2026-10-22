@@ -11,6 +11,7 @@
     "build:site": "node scripts/build-site.js",
     "legal": "node scripts/build-legal.js",
     "build:db": "node scripts/build-r1.js",
+    "build:funcion": "node scripts/build-funcion-acuerdo.js",
     "test:db": "node scripts/test-db.js",
     "vendor": "node scripts/vendor.js",
     "smoke:remote": "node scripts/smoke-remote.js",

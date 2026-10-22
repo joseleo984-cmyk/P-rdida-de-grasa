@@ -134,7 +134,7 @@
   // ---------- Navegación ----------
   // Barra de abajo. Cliente (y sin cuenta): Inicio | Comidas | ＋ Registrar | Progreso | Más.
   // Coach: Clientes | ＋ Invitar | Más (su propio seguimiento sigue en Más). Las vistas conservan sus ids (#view-…).
-  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar' };
+  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
   let navCoach = false;
   function show(view, mode) {
@@ -212,7 +212,7 @@
   $('#view-mas').addEventListener('click', (ev) => {
     const b = ev.target.closest('.more-row');
     if (!b) return;
-    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-coach': ['perfil', 'coach'],
+    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-coach': ['perfil', 'coach'],
       'row-datos': ['perfil', 'datos'], 'row-copia': ['perfil', 'copia'], 'row-ayuda': ['ayuda'] }[b.id];
     if (to) goTo(to[0], to[1], b.id);
     else if (b.id === 'row-salir') { goTo('perfil', 'datos', b.id); $('#btn-account-logout').click(); }

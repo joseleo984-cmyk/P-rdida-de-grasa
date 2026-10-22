@@ -109,6 +109,19 @@ Alcance cerrado por el Stakeholder: solo el botón "Mostrar QR" en Invitar del c
 - Validado con jsQR (solo devDependency de pruebas) + vectores de la norma; E2E con letra ancha a 390 px; caché v27.
 - Handoff: `equipo/handoffs/2026-10-22-sprint5-qr.md`. Pendiente: probar con la cámara de un iPhone y un Android reales.
 
+## Sprint 10 — Acuerdo del coach solo digital + copia por correo (Dev Full-stack) ✅ listo para revisión de QA
+Origen: decisión del Stakeholder (2026-10-23): el acuerdo con los coaches es **solo digital** (A7 click-wrap con SHA-256); sin firma en papel ni electrónica aparte (a validar por el abogado). **Aprobó reforzar la prueba:** el coach recibe copia por correo y puede ver/descargar el acuerdo en la app.
+
+| Listo | En curso | En revisión | Hecho |
+|---|---|---|---|
+| | | | S10-1 App: Más → **Mi acuerdo** (coach): texto exacto aceptado, fecha y hora, versión, huella abreviada, **Descargar copia** (.html imprimible con la huella completa), **Reenviarme la copia**, aviso y re-aceptación si hay versión nueva. `acuerdo-view.js`, caché v32 |
+| | | | S10-2 Edge Function `acuerdo-coach-copia` (Deno, Brevo): correo del JWT, texto resuelto por versión y verificado contra la huella registrada, 1 envío por persona y versión por hora, secretos solo en Supabase. Lógica pura en `supabase/functions/_shared/*.mjs` + paquete de un solo archivo para pegar en el panel |
+| | | | S10-3 Pruebas: unitarias (función, vista, remote y doble) y E2E `s10-acuerdo` (390 px, 48 px, claro/oscuro). **Sin migración SQL** |
+| | | | S10-4 Documentación: `handoffs/acuerdo-coach-correo.md` (iPad), decisión en P5, decisiones #16b, checklist, paquete y borradores del abogado |
+| ⏳ | | | **SH (opcional):** activar la copia por correo (clave de API de Brevo, desplegar y secretos). **Ya no es tarea suya** «firmar con los 2 coaches» |
+
+Handoff: `equipo/handoffs/2026-10-23-sprint10.md`.
+
 ## Sprint 8 — Respuestas jurídicas P1–P18 (Analista + Dev Frontend) ✅ listo para revisión de QA
 Origen: el Stakeholder recibió respuestas a las 18 preguntas y las adoptó como instrucciones (valen como segunda preasesoría hasta que firme un abogado colombiano). Nada de lo legal está vigente: siguen los v0.1 y `config.js` vacío.
 
@@ -119,7 +132,7 @@ Origen: el Stakeholder recibió respuestas a las 18 preguntas y las adoptó como
 | | | | S8-3 App: A3 y A4 con la redacción aprobada (`0.3-A3`, `0.3-A4`; quien tenía la v0.2 re-acepta una vez), A7 (24 h) y A8 (3 años) ajustados, caché v30. Sin cambios de base de datos |
 | | | | S8-4 `plan-incidentes.md` (24 h / 15 días hábiles), `conectar-plataforma.md` (DPA y acuerdo firmado antes de conectar), checklist |
 | | | | S8-5 Diseño sin implementar: `equipo/handoffs/diseno-borrado-inactivas.md` |
-| ⏳ | | | **SH:** archivar DPA Supabase + Brevo, firmar acuerdo con los 2 coaches, decidir el borrado de inactivas |
+| ⏳ | | | **SH:** archivar DPA Supabase + Brevo, decidir el borrado de inactivas. *(«Firmar acuerdo con los 2 coaches» se quitó en el Sprint 10: el acuerdo es solo digital.)* |
 
 Handoff: `equipo/handoffs/2026-10-23-sprint8.md`.
 
