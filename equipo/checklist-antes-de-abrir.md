@@ -1,0 +1,42 @@
+# Lista "antes de abrir la app" a coaches y clientes (piloto)
+
+Estado al 2026-10-22. Marcar `[x]` al completar. Quién: **SH** = Stakeholder (José), **EQ** = equipo de agentes.
+
+## 1. Legal (bloquea datos reales)
+- [ ] **SH** Revisión del abogado de `equipo/legal/*.md` con la lista `equipo/legal/preguntas-abogado.md` (P1–P5 bloquean el piloto; el art. 6 de la Ley 1581: no condicionar el servicio a datos sensibles).
+- [ ] **SH** Datos pendientes en los textos: fecha de vigencia y dónde se guardan los archivos recibidos (ya no aplica WhatsApp: se actualiza con la versión con cuentas).
+- [ ] **EQ** S3-5: textos legales y consentimiento de la **versión con cuentas** (Supabase en EE. UU., coach como encargado, registro de consentimientos) y subir la versión (0.1 → 1.0) cuando el abogado apruebe.
+- [ ] **EQ** Actualizar `equipo/piloto-r0.md`: el cliente ya **no envía archivos por WhatsApp**; usa cuenta propia y el coach ve su panel.
+
+## 2. Supabase `plataforma` (replicar lo hecho en `pruebas`)
+- [ ] **SH** Pegar `supabase/r1.sql` (el más reciente) y ver `OK r1 v1`. Solo cuando `pruebas` esté validada de punta a punta.
+- [ ] **SH** *Project Settings → Data API → Exposed schemas*: `core` y `grasa`, **y pulsar Save**.
+- [ ] **SH** Consulta de comprobación (5 filas): `politicas_fotos=5`, `fotos_publicas=false`, `puede_borrar_cuentas=true`, `esquemas_creados=2`, `my_link=1`.
+- [ ] **SH** Auth → Email: *OTP Length* = **6**, *Expiration* = 600; plantillas **Confirm sign up** y **Magic link or OTP** con asunto `Tu código para entrar: {{ .Token }}` y cuerpo con `{{ .Token }}` (sin enlace).
+- [ ] **SH** SMTP propio (Brevo) y *Rate Limits* de correo.
+- [ ] **SH** Duración de la sesión (JWT) en **3600 s o menos**.
+- [ ] **SH** Brevo → Seguridad: autorizar la IP que mande `plataforma` (otra región que `pruebas`) y **decidir** mantener el bloqueo (A) o desactivarlo para SMTP (B): si la IP cambia y no se autoriza, el código no llega y la app parece rota.
+- [ ] **EQ** `npm run smoke:remote` contra `plataforma` (con `NODE_USE_ENV_PROXY=1`) y repetir la matriz en vivo de QA (`scripts/qa-live-rls.js`, `scripts/qa-live-recheck.js`) con cuentas de prueba nuevas.
+
+## 3. Abuso del correo de códigos (también aplica en producción)
+- [ ] **SH+EQ** **Captcha** en Auth (*Attack Protection*, Cloudflare Turnstile, gratis) y que la app lo soporte.
+- [ ] **SH** Límite por hora de correos bajo (hoy 60).
+- [ ] **SH** **Dominio propio** para el remitente (≈10–15 USD/año) autenticado en Brevo (SPF/DKIM); evita depender de un remitente @gmail.com.
+- [ ] **SH** Decidir si el cliente solo puede registrarse **con código de coach** (invitación obligatoria).
+- [ ] **SH** Decidir si pasar a un plan de pago de Brevo (más de 300 correos/día).
+
+## 4. Datos y respaldo
+- [ ] **SH** Ejecutar `supabase/tools/sweep-orphan-photos.js` cuando haya bajas por fuera de la app (con la clave `service_role`, en su computador, nunca en el repo) y la consulta H9 de huérfanos tras una baja.
+- [ ] **SH** El plan gratis **no tiene copias de seguridad** y se pausa tras ~7 días sin uso: decidir pasar a Pro (≈25 USD/mes) antes de tener clientes reales.
+- [ ] **SH** Borrar las cuentas de prueba de `pruebas` (coach, cliente A, `+otp1`, invitados) en *Authentication → Users*.
+
+## 5. Publicación
+- [ ] **EQ** Probar en **iPhone/Safari real** (el entorno no tiene WebKit): instalación, login con código, sincronización offline→online, fotos, panel del coach.
+- [ ] **EQ** `config.js` de producción con la URL y la clave publicable de `plataforma` (nunca claves secretas) y PR a `main`; CI en verde (unitarias, E2E, BD).
+- [ ] **SH** Proteger `main` exigiendo el check "CI" (Settings → Branches).
+- [ ] **EQ** Decidir con el Stakeholder si se publica una **copia de pruebas** pública (riesgo de la sección 3) o solo se prueba con 2–3 personas de confianza.
+- [ ] **SH** Piloto con los 2 coaches siguiendo `equipo/piloto-r0.md` (actualizado).
+
+## Riesgos conocidos aceptados
+- El JWT de una cuenta borrada sigue válido hasta caducar (sin fuga de datos).
+- Los códigos OTP reales solo se verifican con correo real (primer envío OK en `pruebas`, 6 dígitos).

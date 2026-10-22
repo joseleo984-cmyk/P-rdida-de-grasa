@@ -40,6 +40,8 @@ Se pausa el equipo hasta que exista el proyecto Supabase (guía: `guia-supabase-
 - Pendiente del Arquitecto: revisar contrato §11 (v1.2).
 - Del Stakeholder: crear cuenta y proyectos `plataforma` y `pruebas` en Supabase, pasar URL y clave `sb_publishable_`; textos legales (fecha de vigencia, dónde guarda archivos, abogado).
 
+> 📋 **Lista maestra antes de abrir la app a coaches y clientes: [`checklist-antes-de-abrir.md`](checklist-antes-de-abrir.md)**
+
 ## ▶ Reanudado con reglas de ahorro (2026-10-21 noche)
 Un agente a la vez; Frontend y QA de rutina con Sonnet; modelo potente solo para BD/RLS y sync.
 **Estado:** rama del sprint con S3-0…S3-4 integrados (S3-1 BD + seguridad, S3-2 cuenta, S3-3 sync, S3-3b remote.js real, S3-4 panel del coach). 120 unitarias, 209 comprobaciones BD (estricto), 102 E2E.
