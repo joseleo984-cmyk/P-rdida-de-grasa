@@ -21,20 +21,39 @@
   }
 
   const TEXT = {
-    running: 'Sincronizando…',
-    offline: 'Sin conexión: se subirá al volver.',
-    error: 'No se pudo sincronizar: se reintentará solo.',
-    auth: 'Tu sesión caducó: vuelve a entrar con tu correo para sincronizar (tus datos siguen aquí).',
-    blocked: 'No sincroniza: no autorizaste datos de salud.',
-    owner: 'Falta confirmar que estos datos son tuyos.',
+    running: 'Guardando en tu cuenta…',
+    offline: 'Sin internet: se guardará en tu cuenta cuando vuelva.',
+    error: 'No se pudo guardar en tu cuenta. Lo intentamos de nuevo solos.',
+    auth: 'Tu sesión se cerró. Entra de nuevo con tu correo para seguir guardando en tu cuenta (tus datos siguen aquí).',
+    blocked: 'No se guarda en tu cuenta porque no autorizaste los datos de salud.',
+    owner: 'Falta que confirmes que estos datos son tuyos.',
   };
   // Texto del indicador para el estado del motor (sync.js). Devuelve '' si no hay nada que decir (idle sin éxito previo).
   function syncText(st, now = Date.now(), tz) {
     const s = (st && st.state) || 'idle';
-    if (s === 'ok') return st.lastOkAt ? `Sincronizado ${when(st.lastOkAt, now, tz)}` : 'Sincronizado';
+    if (s === 'ok') return st.lastOkAt ? `Se guardó en tu cuenta ${when(st.lastOkAt, now, tz)}` : 'Se guardó en tu cuenta';
     if (s === 'syncing') return TEXT.running;
     if (TEXT[s]) return TEXT[s];
     return s === 'idle' ? '' : TEXT.error;
+  }
+  // "hace un momento" / "hace 5 min" / "hace 3 h" / fecha: para la cabecera del menú Más.
+  function ago(iso, now = Date.now(), tz) {
+    const t = validMs(iso);
+    if (t == null || t > now + 60000) return '';
+    const min = Math.floor((now - t) / 60000);
+    if (min < 1) return 'hace un momento';
+    if (min < 60) return `hace ${min} min`;
+    if (min < 24 * 60) return `hace ${Math.floor(min / 60)} h`;
+    return when(iso, now, tz);
+  }
+  // Línea de la cabecera de Más con cuenta: "Guardado en tu cuenta · hace 5 min" o el aviso del estado (sin internet, sesión cerrada…).
+  function savedLine(st, now = Date.now(), tz) {
+    const s = (st && st.state) || 'idle';
+    if (s === 'ok' || (s === 'syncing' && st.lastOkAt) || s === 'idle') {
+      const a = st && st.lastOkAt ? ago(st.lastOkAt, now, tz) : '';
+      return a ? `Guardado en tu cuenta · ${a}` : 'Tu cuenta está activa';
+    }
+    return syncText(st, now, tz);
   }
   // Clave de estado normalizada para el atributo data-state.
   const stateKey = (st) => { const s = (st && st.state) || 'idle'; return s === 'syncing' ? 'running' : s; };
@@ -51,7 +70,7 @@
     return { cloud, quietBackup: recentOk(st && st.lastOkAt, now, 24) };
   }
 
-  const api = { when, syncText, stateKey, recentOk, dataMode, TEXT };
+  const api = { when, ago, savedLine, syncText, stateKey, recentOk, dataMode, TEXT };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CloudView = api;
 })(typeof window !== 'undefined' ? window : globalThis);

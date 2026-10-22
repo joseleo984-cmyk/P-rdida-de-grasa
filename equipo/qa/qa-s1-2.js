@@ -57,7 +57,7 @@ const text = (page) => page.locator('#backup-banner-text').textContent();
     log('Oscuro: borde del banner vs fondo >= 3:1 (WCAG 1.4.11)', contrast(s.border, bg) >= 3, `${s.border} / ${bg} = ${contrast(s.border, bg).toFixed(2)}`);
     log('Oscuro: texto del banner >= 4.5:1', contrast(s.fg, bg) >= 4.5, `${s.fg} / ${bg} = ${contrast(s.fg, bg).toFixed(2)}`);
     await page.screenshot({ path: SHOTS + 's1-2-qa-banner-oscuro.png' });
-    await page.locator('.tabbar button[data-view=perfil]').click();
+    await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
     await page.locator('#backup-status').evaluate((el) => el.closest('.card').scrollIntoView({ block: 'center' }));
     const st = await page.evaluate(() => { const el = document.querySelector('#backup-status'); return { fg: getComputedStyle(el).color, bg: getComputedStyle(el.closest('.card')).backgroundColor }; });
     log('Oscuro: "Última copia" (muted) >= 4.5:1', contrast(st.fg, st.bg) >= 4.5, `${st.fg} / ${st.bg} = ${contrast(st.fg, st.bg).toFixed(2)}`);
@@ -145,7 +145,7 @@ const text = (page) => page.locator('#backup-banner-text').textContent();
     await page.locator('#btn-backup-yes').click(); // D5: la copia se registra al confirmar
     log('Confirmar "Sí" registra la copia', !!(await page.evaluate(() => localStorage.getItem('perdida-grasa:lastBackup'))));
     await page.clock.fastForward('00:20:00'); // 22 oct 00:10 local
-    await page.locator('.tabbar button[data-view=perfil]').click();
+    await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
     const st = await page.locator('#backup-status').textContent();
     log('Tras medianoche, la copia figura como "ayer" con fecha local', st.includes('(ayer)') && st.includes('21 oct'), st);
     await ctx.close();

@@ -12,7 +12,9 @@
   const META_KEY = PGNS.key('account');     // { userId, email, roles, onboarded, coach, link, consentsSent }
   const SKIP_KEY = PGNS.key('account-skip'); // "Ahora no": no volver a mostrar la pantalla al abrir
   const STATE_KEY = PGNS.key('v1');
+  const INVITE_KEY = PGNS.key('invite');      // A1: invitación pendiente { code, at } (caduca a los 7 días)
   const RESEND_S = 60;
+  const OTP_LEN = 6;           // largo del código del correo (el mismo que el campo y su maxlength)
   const ls = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* sin espacio */ } },
@@ -20,6 +22,26 @@
   };
   const readMeta = () => { try { return JSON.parse(ls.get(META_KEY) || 'null'); } catch { return null; } };
   const writeMeta = (m) => (m ? ls.set(META_KEY, JSON.stringify(m)) : ls.del(META_KEY));
+
+  // A1: si la app se abrió con ?c=CODIGO (enlace de invitación del coach), se guarda como invitación pendiente y el
+  // parámetro se quita de la barra de direcciones (no queda en el historial ni se comparte sin querer).
+  let inviteFresh = false;
+  try {
+    const got = window.Invite && Invite.codeFromSearch(location.search);
+    if (got) {
+      ls.set(INVITE_KEY, JSON.stringify(Invite.makePending(got.code)));
+      inviteFresh = true;
+      history.replaceState(history.state, '', location.pathname + Invite.withoutCode(location.search, location.hash));
+    }
+  } catch { /* sin history: la app sigue igual */ }
+  function pendingInvite() {
+    let p = null;
+    try { p = JSON.parse(ls.get(INVITE_KEY) || 'null'); } catch { p = null; }
+    const st = window.Invite ? Invite.pendingState(p) : 'none';
+    if (st === 'expired') ls.del(INVITE_KEY);
+    return st === 'ok' ? p : null;
+  }
+  const clearInvite = () => ls.del(INVITE_KEY);
 
   let remote = null;
   let email = '';
@@ -62,15 +84,15 @@
   function errorText(err, where) {
     switch (err && err.code) {
       case 'offline': return where === 'email' || where === 'code'
-        ? 'Sin conexión. Para entrar la primera vez en este dispositivo necesitas internet.'
-        : 'Sin conexión. Inténtalo cuando vuelvas a tener internet.';
+        ? 'No hay internet. Para entrar por primera vez en este teléfono necesitas conexión.'
+        : 'No hay internet. Inténtalo cuando vuelva la conexión.';
       case 'invalid_code': return where === 'role'
-        ? 'Ese código de coach no existe o ya no es válido. Revísalo con tu coach.'
-        : 'Código incorrecto o caducado. Revisa el último correo que te llegó o pide otro.';
+        ? 'Ese código no existe o ya venció. Pídele a tu coach un enlace nuevo, o escríbelo aquí a mano.'
+        : 'Ese código no es el correcto o ya venció. Mira el último correo que te llegó o pide uno nuevo.';
       case 'rate_limited': return 'Demasiados intentos seguidos. Espera un poco y vuelve a intentarlo.';
       case 'invalid': return where === 'email' ? 'Escribe un correo válido, por ejemplo nombre@correo.com.' : (err.message || 'Revisa los datos.');
-      case 'auth': return 'Tu sesión caducó: vuelve a entrar con tu correo.';
-      default: return 'No se pudo conectar con el servidor. Inténtalo de nuevo en un momento.';
+      case 'auth': return 'Tu sesión se cerró. Entra de nuevo con tu correo.';
+      default: return 'No pudimos conectarnos. Inténtalo de nuevo en un momento.';
     }
   }
   function showError(id, msg) {
@@ -88,6 +110,7 @@
   const STEPS = ['email', 'code', 'owner', 'other', 'role', 'done'];
   function step(name, focusSel) {
     for (const s of STEPS) $('#acc-step-' + s).classList.toggle('hidden', s !== name);
+    $('#acc-invite-email').classList.toggle('hidden', !(name === 'email' && pendingInvite()));
     const f = $(focusSel || `#acc-step-${name} h2`);
     if (f) f.focus();
   }
@@ -122,6 +145,7 @@
       email = value.toLowerCase();
       $('#acc-code-email').textContent = email;
       $('#acc-code').value = '';
+      codeSent = '';
       showError('#acc-code-error', '');
       startResend();
       step('code', '#acc-code');
@@ -134,7 +158,7 @@
   $('#btn-acc-skip').addEventListener('click', () => {
     ls.set(SKIP_KEY, '1');
     closeScreen();
-    toast('Puedes crear tu cuenta cuando quieras en Perfil → Cuenta');
+    toast('Cuando quieras, crea tu cuenta en Perfil');
   });
 
   // ---------- Paso 2: código ----------
@@ -163,12 +187,21 @@
     } catch (err) { showError('#acc-code-error', errorText(err, 'code')); }
   });
   $('#btn-acc-change').addEventListener('click', () => { stopResend(); step('email', '#acc-email'); });
-  $('#acc-code').addEventListener('input', (ev) => { ev.target.value = ev.target.value.replace(/\D/g, '').slice(0, 10); });
+  // A4: el código del correo (o el que sugiere el teclado) entra solo al completar los dígitos. `codeSent` evita enviarlo dos veces.
+  let codeSent = '';
+  $('#acc-code').addEventListener('input', (ev) => {
+    const el = ev.target;
+    el.value = el.value.replace(/\D/g, '').slice(0, OTP_LEN);
+    const form = $('#form-acc-code');
+    if (el.value.length === OTP_LEN && el.value !== codeSent && form.getAttribute('aria-busy') !== 'true' && email) { codeSent = el.value; form.requestSubmit(); }
+  });
   $('#form-acc-code').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const form = ev.currentTarget;
+    if (form.getAttribute('aria-busy') === 'true') return; // ya se está enviando
     const code = $('#acc-code').value.trim();
-    if (!/^\d{6,10}$/.test(code)) { showError('#acc-code-error', 'El código tiene 6 dígitos (algunos correos traen hasta 10).'); $('#acc-code').focus(); return; }
+    codeSent = code;
+    if (code.length !== OTP_LEN || !/^\d+$/.test(code)) { showError('#acc-code-error', `El código tiene ${OTP_LEN} dígitos.`); $('#acc-code').focus(); codeSent = ''; return; }
     showError('#acc-code-error', '');
     busy(form, true);
     try {
@@ -184,7 +217,7 @@
     } catch (err) {
       showError('#acc-code-error', errorText(err, 'code'));
       $('#acc-code').focus();
-    } finally { busy(form, false); }
+    } finally { codeSent = ''; busy(form, false); }
   });
 
   // ---------- Dueño de los datos del teléfono (QA S3-2 O1, decisión del SM) ----------
@@ -220,10 +253,41 @@
   async function continueOnboarding() {
     const meta = readMeta() || {};
     await sendConsents();
-    if (meta.onboarded) { finish((meta.roles || []).includes('coach') ? 'coach' : 'client'); return; }
+    if (meta.onboarded) {
+      if (handleInvite(meta)) return;
+      finish((meta.roles || []).includes('coach') ? 'coach' : 'client');
+      return;
+    }
+    const inv = pendingInvite();
+    if (inv) { showInviteRole(inv); return; }
     $('#form-acc-role').reset();
     updateRoleFields();
     step('role');
+  }
+  // A1: pantalla de vinculación con el código de la invitación ya escrito y "cliente" elegido.
+  function showInviteRole(inv) {
+    openScreen('role');
+    const form = $('#form-acc-role');
+    form.reset();
+    form.elements.role.value = 'client';
+    $('#acc-coach-code').value = inv.code;
+    updateRoleFields();
+    const ok = Invite.isValidCode(inv.code);
+    const note = $('#acc-invite-note');
+    note.textContent = ok ? 'Tu coach te invitó. Ya pusimos su código; revisa que sea el correcto.'
+      : 'Ese enlace no trae un código válido. Escribe a mano el código que te dio tu coach.';
+    note.classList.remove('hidden');
+    if (ok) form.requestSubmit(); // comprueba el código y muestra el nombre del coach
+    else $('#acc-coach-code').focus();
+  }
+  // Con invitación pendiente: coach → frase simple; cliente ya vinculado → aviso; cliente sin coach → ofrecer vincularse.
+  function handleInvite(meta) {
+    const inv = pendingInvite();
+    if (!inv) return false;
+    if ((meta.roles || []).includes('coach')) { clearInvite(); finish('coach', 'Ese enlace es para clientes: tú ya tienes tu cuenta de coach.'); return true; }
+    if (meta.link) { clearInvite(); finish('client', `Ya estás con «${meta.link.businessName}», así que el enlace de invitación no cambió nada.`); return true; }
+    showInviteRole(inv);
+    return true;
   }
   // Borra los datos del teléfono con el "Borrar todo" de la app (pide su confirmación). Al terminar (evento
   // pg:data-reset) los datos quedan a nombre de esta cuenta y la pantalla legal pide la aceptación de ESTA persona.
@@ -250,7 +314,7 @@
     await remote.auth.signOut({ local: true });
     writeMeta(null);
     closeScreen();
-    toast('Sesión cerrada: los datos de este teléfono siguen intactos');
+    toast('Cerraste sesión. Tus datos siguen en este teléfono');
   });
 
   // ---------- Paso 3: rol ----------
@@ -260,7 +324,7 @@
     $('#acc-coach-fields').classList.toggle('hidden', role !== 'coach');
     const code = $('#acc-coach-code').value.trim();
     if (!previewed || previewed.code !== normCode(code)) { previewed = null; $('#acc-share').classList.add('hidden'); }
-    $('#btn-acc-role').textContent = role === 'client' && code && !previewed ? 'Comprobar código' : role === 'client' && previewed ? 'Vincularme y continuar' : 'Continuar';
+    $('#btn-acc-role').textContent = role === 'client' && code && !previewed ? 'Comprobar código' : role === 'client' && previewed ? 'Conectarme y continuar' : 'Continuar';
   }
   const normCode = (c) => String(c || '').toUpperCase().replace(/[\s-]/g, '');
   $('#form-acc-role').addEventListener('change', updateRoleFields);
@@ -277,7 +341,7 @@
       const meta = readMeta() || {};
       if (role === 'coach') {
         const name = String(f.get('business') || '').trim();
-        if (name.length < 2 || name.length > 60) { showError('#acc-role-error', 'Escribe tu nombre comercial (2 a 60 caracteres).'); busy(form, false); $('#acc-business').focus(); return; }
+        if (name.length < 2 || name.length > 60) { showError('#acc-role-error', 'Escribe el nombre de tu negocio (de 2 a 60 letras).'); busy(form, false); $('#acc-business').focus(); return; }
         await remote.coach.becomeCoach(name);
         meta.coach = await remote.coach.myCoach();
         meta.roles = await remote.account.roles();
@@ -286,7 +350,7 @@
         if (code && !previewed) {
           const { businessName } = await remote.client.previewCode(code);
           previewed = { code, businessName };
-          $('#acc-share-title').textContent = `Te vas a vincular con «${businessName}».`;
+          $('#acc-share-title').textContent = `Te vas a conectar con «${businessName}».`;
           $('#acc-share').classList.remove('hidden');
           updateRoleFields();
           busy(form, false);
@@ -302,6 +366,7 @@
       }
       meta.onboarded = true;
       writeMeta(meta);
+      clearInvite();
       finish(role);
     } catch (err) {
       showError('#acc-role-error', errorText(err, 'role'));
@@ -309,20 +374,23 @@
   });
 
   // ---------- Paso 4: listo ----------
-  function finish(role) {
+  function finish(role, note) {
+    document.body.classList.add('account-open');
+    $('#account').classList.remove('hidden');
     const meta = readMeta() || {};
     const code = $('#acc-done-code');
     if (role === 'coach' && meta.coach) {
-      $('#acc-done-text').textContent = `Tu cuenta de coach «${meta.coach.businessName}» está lista. Comparte este código con tus clientes para que se vinculen:`;
+      $('#acc-done-text').textContent = `Tu cuenta de coach «${meta.coach.businessName}» está lista. Comparte este código con tus clientes para que se conecten contigo:`;
       code.textContent = meta.coach.inviteCode;
       code.classList.remove('hidden');
     } else {
-      $('#acc-done-text').textContent = meta.link ? `Sesión iniciada como ${meta.email}. Ya estás vinculado con «${meta.link.businessName}».` : `Sesión iniciada como ${meta.email}.`;
+      $('#acc-done-text').textContent = meta.link ? `Entraste como ${meta.email}. Ya estás con tu coach «${meta.link.businessName}».` : `Entraste como ${meta.email}.`;
       code.classList.add('hidden');
     }
+    if (note) $('#acc-done-text').textContent += ' ' + note;
     step('done');
   }
-  $('#btn-acc-done').addEventListener('click', () => { closeScreen(); toast('Sesión iniciada'); });
+  $('#btn-acc-done').addEventListener('click', () => { closeScreen(); toast('Listo, ya entraste'); });
 
   // ---------- Consentimiento → servidor ----------
   // PUNTO DE INTEGRACIÓN LEGAL (S3-5, Analista): la aceptación local (state.consent, pantalla legal de S2-1) se registra
@@ -368,12 +436,12 @@
     const meta = readMeta();
     const status = $('#account-status'), extra = $('#account-extra');
     if (s && meta && meta.userId === s.user.id) {
-      const roles = (meta.roles || []).includes('coach') ? 'coach' : 'cliente';
-      status.textContent = `Sesión iniciada: ${s.user.email} (${roles}).` + (navigator.onLine === false ? ' Sin conexión: sigues usando la app con normalidad.' : '');
-      extra.textContent = meta.coach ? `Tu código para clientes: ${meta.coach.inviteCode}` : meta.link ? `Coach: ${meta.link.businessName}` : '';
-      if (meta.authExpired) extra.textContent = 'Tu sesión caducó: vuelve a entrar con tu correo (tus datos siguen aquí).';
+      const roles = (meta.roles || []).includes('coach') ? ' Tienes cuenta de coach.' : '';
+      status.textContent = `Entraste con ${s.user.email}.${roles}` + (navigator.onLine === false ? ' No hay internet: puedes seguir usando la app con normalidad.' : '');
+      extra.textContent = meta.coach ? `Tu código para invitar clientes: ${meta.coach.inviteCode}` : meta.link ? `Tu coach: ${meta.link.businessName}` : '';
+      if (meta.authExpired) extra.textContent = 'Tu sesión se cerró. Entra de nuevo con tu correo (tus datos siguen aquí).';
     } else {
-      status.textContent = 'Sin cuenta: estás usando la app solo en este dispositivo. Entra o crea una cuenta para guardar una copia en la nube.';
+      status.textContent = 'Sin cuenta: tus datos están solo en este teléfono. Crea una cuenta o entra para que queden guardados también en tu cuenta.';
       extra.textContent = '';
     }
     const signedIn = !!(s && meta && meta.userId === s.user.id);
@@ -389,6 +457,9 @@
     if (signedIn && meta.link) {
       $('#shares-title').textContent = `Tu coach: «${meta.link.businessName}», desde el ${new Date(meta.link.since).toLocaleDateString('es')}.`;
       for (const k of ['nutrition', 'habits', 'notes', 'photos']) sf.elements['share_' + k].checked = !!(meta.link.shares && meta.link.shares[k]);
+      const SEE = { nutrition: 'tus comidas', habits: 'tus hábitos', notes: 'tus notas', photos: 'las fotos que marques' };
+      const sees = ['tu peso y tus medidas', ...Object.keys(SEE).filter((k) => meta.link.shares && meta.link.shares[k]).map((k) => SEE[k])];
+      $('#shares-summary').textContent = `Tu coach puede ver ${sees.length > 1 ? sees.slice(0, -1).join(', ') + ' y ' + sees[sees.length - 1] : sees[0]}.`;
     }
     if (!signedIn) $('#form-logout').classList.add('hidden');
     document.dispatchEvent(new CustomEvent('pg:account-changed', { detail: { signedIn, isCoach } }));
@@ -397,6 +468,8 @@
     openScreen('role');
     $('#form-acc-role').reset();
     $('#form-acc-role').elements.role.value = 'client';
+    const inv = pendingInvite();
+    if (inv) $('#acc-coach-code').value = inv.code;
     updateRoleFields();
     $('#acc-coach-code').focus();
   });
@@ -411,18 +484,18 @@
     try {
       const link = await remote.client.updateShares(shares);
       writeMeta({ ...readMeta(), link });
-      toast('Guardado: tu coach ya ve solo lo que marcaste');
+      toast('Listo: tu coach verá solo lo que marcaste');
     } catch (err) { showError('#shares-error', errorText(err, 'shares')); }
     finally { busy(f, false); renderCard(); }
   });
   $('#btn-leave-coach').addEventListener('click', async () => {
     const meta = readMeta();
     if (!meta || !meta.link) return;
-    if (!confirm(`¿Terminar el vínculo con «${meta.link.businessName}»?\n\nDesde ese momento tu coach deja de ver tus datos. Tus datos siguen en tu cuenta y en este teléfono.`)) return;
+    if (!confirm(`¿Dejar de compartir con «${meta.link.businessName}»?\n\nTu coach ya no verá tus datos. Tus datos siguen en tu cuenta y en este teléfono.`)) return;
     try {
       await remote.client.leaveCoach();
       writeMeta({ ...readMeta(), link: null });
-      toast('Vínculo terminado');
+      toast('Dejaste de compartir con tu coach');
       renderCard();
       $('#btn-account-link').focus();
     } catch (err) { showError('#shares-error', errorText(err, 'shares')); }
@@ -478,10 +551,11 @@
     if (s && meta && meta.userId === s.user.id) {
       const own = ownership(s.user.id);
       if (own !== 'ok') { openScreen(own === 'other' ? 'other' : 'owner'); return; }
-      if (!meta.onboarded) { openScreen('role'); updateRoleFields(); }
+      if (!meta.onboarded) { const inv = pendingInvite(); if (inv) showInviteRole(inv); else { openScreen('role'); updateRoleFields(); } return; }
+      if (inviteFresh) handleInvite(meta);
       return;
     }
-    if (ls.get(SKIP_KEY) === '1') return;
+    if (ls.get(SKIP_KEY) === '1' && !(inviteFresh && pendingInvite())) return;
     openScreen('email');
   }
 

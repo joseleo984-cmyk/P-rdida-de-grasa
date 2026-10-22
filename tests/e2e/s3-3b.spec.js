@@ -48,11 +48,11 @@ test('dos dispositivos: confirmar dueño → sube; guardar sube a los 2 s; el ot
   // Hay datos locales y aún no hay dueño: NO se sube nada hasta que el usuario lo confirme (§5.6 / §11.10).
   await page.evaluate(() => PGSync.run());
   await app.tab('perfil');
-  await expect(status(page)).toHaveText(/Falta confirmar que estos datos son tuyos/);
+  await expect(status(page)).toHaveText(/Falta que confirmes que estos datos son tuyos/);
   await expect(status(page)).toHaveAttribute('role', 'status');
   expect(records(await backend(page), uid)).toHaveLength(0);
   await page.evaluate(() => PGSync.confirmOwner());
-  await expect(status(page)).toHaveText(/^Sincronizado/);
+  await expect(status(page)).toHaveText(/^Se guardó en tu cuenta/);
   expect(JSON.parse(await app.pref('perdida-grasa:backup-pre-sync')).entries).toHaveLength(1); // copia previa
   expect(records(await backend(page), uid).map((r) => r.kind).sort()).toEqual(['entry', 'profile']);
 
@@ -102,7 +102,7 @@ test('bloqueo de salud: sin autorización de datos de salud no se sube ni se baj
   await page.evaluate(() => PGSync.confirmOwner());
   await page.evaluate(() => PGSync.run());
   await app.tab('perfil');
-  await expect(status(page)).toHaveText(/no autorizaste datos de salud/);
+  await expect(status(page)).toHaveText(/no autorizaste los datos de salud/);
   expect(records(await backend(page), uid)).toHaveLength(0);
 });
 
@@ -112,11 +112,11 @@ test('sin conexión: "se subirá luego"; al volver la conexión se sube solo', a
   await page.evaluate(() => window.__pgFakeBackend.setOnline(false));
   await page.evaluate(() => PGSync.confirmOwner());
   await app.tab('perfil');
-  await expect(status(page)).toHaveText('Sin conexión: se subirá al volver.');
+  await expect(status(page)).toHaveText('Sin internet: se guardará en tu cuenta cuando vuelva.');
   await expect(page.locator('#btn-sync-now')).toBeVisible();
   expect(records(await backend(page), uid)).toHaveLength(0);
   await page.evaluate(() => { window.__pgFakeBackend.setOnline(true); window.dispatchEvent(new Event('online')); });
-  await expect(status(page)).toHaveText(/^Sincronizado/);
+  await expect(status(page)).toHaveText(/^Se guardó en tu cuenta/);
   expect(records(await backend(page), uid).length).toBeGreaterThan(0);
   expect(await app.scrollWidth()).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'equipo/qa-capturas/s3-3b-sincronizado.png' });

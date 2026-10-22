@@ -79,7 +79,7 @@ const log = (n, ok, d = '') => { if (!ok) fails++; console.log((ok ? 'OK   ' : '
   const act = await page.evaluate(() => ({ id: document.activeElement.id, visible: !!document.activeElement.offsetParent }));
   log('Foco tras ocultar el banner va al resumen del panel', act.id === 'panel-summary' && act.visible, JSON.stringify(act));
 
-  await page.locator('.tabbar button[data-view=perfil]').click();
+  await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
   await page.locator('#backup-status').scrollIntoViewIfNeeded();
   log('Datos muestra la última copia', (await page.locator('#backup-status').textContent()).includes('(hoy)'), await page.locator('#backup-status').textContent());
   const sw2 = await page.evaluate(() => document.documentElement.scrollWidth);

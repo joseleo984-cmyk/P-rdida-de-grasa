@@ -2,8 +2,8 @@
 // Cada entorno (raíz / pruebas) tiene su propia caché: config.js + ns.js deciden el nombre (ver ns.js).
 self.window = self;
 importScripts('config.js', 'ns.js');
-const CACHE = PGNS.cacheName(22);
-const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'sync.js', 'cloud-view.js', 'coach.js', 'photos.js', 'app.js', 'config.js', 'ns.js', 'vendor/supabase-2.117.2.js', 'remote.js', 'account.js', 'coach-panel.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
+const CACHE = PGNS.cacheName(25);
+const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'sync.js', 'cloud-view.js', 'invite.js', 'install-guide.js', 'coach.js', 'photos.js', 'app.js', 'config.js', 'ns.js', 'vendor/supabase-2.117.2.js', 'remote.js', 'account.js', 'coach-panel.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

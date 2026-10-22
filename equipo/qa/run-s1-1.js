@@ -56,7 +56,7 @@ const photoCount = (page) => page.evaluate(() => Photos.all().then((x) => x.leng
     log('Fotos importadas (2)', (await photoCount(page)) === 2);
     await page.click('#tab-registro');
     log('Historial muestra 3 registros y nota escapada', (await page.locator('#entries-table tbody tr').count()) === 3 && (await page.locator('#entries-table').innerText()).includes('<b>nota</b>'));
-    await page.click('#tab-fotos');
+    await page.evaluate(() => (window.PGNav ? PGNav.show('fotos') : document.querySelector('#tab-fotos').click()));
     log('Galería con 2 miniaturas', (await page.locator('#gallery .thumb').count()) === 2);
     if (SHOTS) await page.screenshot({ path: SHOTS + '/s1-1-import-v1-fotos.png' });
 
@@ -67,7 +67,7 @@ const photoCount = (page) => page.evaluate(() => Photos.all().then((x) => x.leng
     const t3 = await importJSON(page, '{roto');
     log('Importación rechazada no cambia localStorage', before === JSON.stringify(await stored(page)), [t1, t2, t3].join(' | '));
     log('Importación rechazada no toca las fotos', (await photoCount(page)) === 2);
-    if (SHOTS) { await page.click('#tab-perfil'); await importJSON(page, { foo: 1 }); await page.screenshot({ path: SHOTS + '/s1-1-import-rechazado.png' }); }
+    if (SHOTS) { await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click())); await importJSON(page, { foo: 1 }); await page.screenshot({ path: SHOTS + '/s1-1-import-rechazado.png' }); }
 
     // Atomicidad: un fallo de IndexedDB revierte localStorage y conserva la galería
     await page.evaluate(() => { window.__orig = Photos.importAll; Photos.importAll = () => Promise.reject(new Error('fallo simulado')); });
@@ -90,9 +90,9 @@ const photoCount = (page) => page.evaluate(() => Photos.all().then((x) => x.leng
       foods: { [iso(0)]: [{ id: evil, name: 'x', meal: 'Cena', kcal: '<img src=x onerror="window.__xss=2">' }, { id: evil, name: 'a', meal: 'Cena', kcal: '100' }, { id: 'b', name: 'b', meal: 'Cena', kcal: '200' }] },
       photos: [{ id: evil, date: iso(0), pose: '<img src=x onerror="window.__xss=3">', data: fixture.photos[0].data }],
     });
-    for (const v of ['registro', 'comidas', 'fotos']) { await page.click('#tab-' + v); await page.waitForTimeout(150); }
+    for (const v of ['registro', 'comidas', 'fotos']) { await page.evaluate((v) => (window.PGNav && v === 'fotos' ? PGNav.show('fotos') : document.querySelector('#tab-' + v).click()), v); await page.waitForTimeout(150); }
     await page.reload(); await page.waitForTimeout(300);
-    for (const v of ['registro', 'comidas', 'fotos']) { await page.click('#tab-' + v); await page.waitForTimeout(150); }
+    for (const v of ['registro', 'comidas', 'fotos']) { await page.evaluate((v) => (window.PGNav && (v === 'perfil' || v === 'fotos') ? PGNav.show(v, v === 'perfil' ? 'all' : undefined) : document.querySelector('#tab-' + v).click()), v); await page.waitForTimeout(150); }
     log('BUG-02: JSON malicioso no ejecuta JS (también tras recargar)', await page.evaluate(() => window.__xss === undefined), t);
     await page.click('#tab-comidas');
     const kcal = await page.locator('#day-macros').innerText();

@@ -65,23 +65,24 @@
     <div class="card">
       <div id="acc-step-email" class="acc-step">
         <h2 id="account-title" tabindex="-1">Crear cuenta o entrar</h2>
-        <p class="small">Con una cuenta tus datos se guardan también en el servidor y, si quieres, tu coach puede ver tu progreso sin que le envíes archivos.</p>
+        <p class="small">Con una cuenta tus datos quedan guardados y no los pierdes si cambias de teléfono. Si tienes coach, podrá ver tu progreso sin que le mandes nada.</p>
+        <p id="acc-invite-email" class="small acc-note hidden">Tu coach te invitó. Entra con tu correo y quedas conectado con él.</p>
         <form id="form-acc-email" novalidate>
           <label class="acc-label" for="acc-email">Tu correo</label>
-          <input type="email" id="acc-email" name="email" autocomplete="email" inputmode="email" required maxlength="254" aria-describedby="acc-email-help acc-email-error">
-          <p id="acc-email-help" class="small muted">Te enviaremos un código de 6 dígitos. No usamos contraseña.</p>
+          <input type="email" id="acc-email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" required maxlength="254" aria-describedby="acc-email-help acc-email-error">
+          <p id="acc-email-help" class="small muted">Te enviamos un código de 6 números a tu correo. No necesitas contraseña.</p>
           <p id="acc-email-error" class="acc-error hidden" role="alert"></p>
           <button type="submit" class="btn btn-tall acc-main">Enviarme el código</button>
         </form>
-        <button type="button" class="btn-link small" id="btn-acc-skip">Ahora no: usar solo en este dispositivo</button>
+        <button type="button" class="btn-link small" id="btn-acc-skip">Ahora no: usar solo en este teléfono</button>
       </div>
 
       <div id="acc-step-code" class="acc-step hidden">
         <h2 id="acc-code-title" tabindex="-1">Escribe el código</h2>
-        <p class="small">Lo enviamos a <strong id="acc-code-email"></strong>. Puede tardar un minuto; revisa también el correo no deseado.</p>
+        <p class="small">Te lo enviamos a <strong id="acc-code-email"></strong>. Puede tardar un minuto; mira también en spam o correo no deseado.</p>
         <form id="form-acc-code" novalidate>
           <label class="acc-label" for="acc-code">Código</label>
-          <input type="text" id="acc-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" pattern="\d{6,10}" required aria-describedby="acc-code-error">
+          <input type="text" id="acc-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" autocapitalize="off" autocorrect="off" spellcheck="false" required aria-describedby="acc-code-error">
           <p id="acc-code-error" class="acc-error hidden" role="alert"></p>
           <button type="submit" class="btn btn-tall acc-main">Entrar</button>
         </form>
@@ -94,32 +95,33 @@
 
       <div id="acc-step-role" class="acc-step hidden">
         <h2 id="acc-role-title" tabindex="-1">¿Cómo vas a usar la app?</h2>
+        <p id="acc-invite-note" class="small acc-note hidden"></p>
         <form id="form-acc-role" novalidate>
           <fieldset class="acc-roles">
-            <legend class="sr-only">Elige tu rol</legend>
-            <label class="check acc-role"><input type="radio" name="role" value="client"> <span><strong>Soy cliente</strong><br><span class="small muted">Registro mi progreso; puedo tener un coach.</span></span></label>
+            <legend class="sr-only">Elige una opción</legend>
+            <label class="check acc-role"><input type="radio" name="role" value="client"> <span><strong>Soy cliente</strong><br><span class="small muted">Llevo mi progreso; puedo tener un coach.</span></span></label>
             <label class="check acc-role"><input type="radio" name="role" value="coach"> <span><strong>Soy coach</strong><br><span class="small muted">Acompaño a mis clientes y veo su progreso.</span></span></label>
           </fieldset>
           <div id="acc-client-fields" class="hidden">
             <label class="acc-label" for="acc-coach-code">Código de mi coach <span class="muted">(opcional)</span></label>
             <input type="text" id="acc-coach-code" name="coachCode" autocomplete="off" autocapitalize="characters" maxlength="8" aria-describedby="acc-coach-help">
-            <p id="acc-coach-help" class="small muted">Te lo da tu coach. Puedes añadirlo después.</p>
+            <p id="acc-coach-help" class="small muted">Te lo da tu coach. Si no lo tienes, lo puedes poner después.</p>
             <div id="acc-share" class="acc-share hidden">
               <p id="acc-share-title"></p>
               <fieldset>
-                <legend class="small">Qué podrá ver tu coach (lo puedes cambiar cuando quieras):</legend>
-                <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario para vincularte)</em></span></label>
+                <legend class="small">Esto podrá ver tu coach (lo cambias cuando quieras):</legend>
+                <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario para conectarte con tu coach)</em></span></label>
                 <label class="check"><input type="checkbox" name="share_nutrition"> <span>Comidas del diario</span></label>
                 <label class="check"><input type="checkbox" name="share_habits"> <span>Hábitos (pasos, agua, sueño, entrenamiento)</span></label>
                 <label class="check"><input type="checkbox" name="share_notes"> <span>Notas de tus registros</span></label>
               </fieldset>
-              <p class="small muted">Las fotos nunca se comparten salvo que lo autorices foto a foto (próximamente).</p>
+              <p class="small muted">Tus fotos no las ve nadie, a menos que tú lo autorices (próximamente, foto por foto).</p>
             </div>
           </div>
           <div id="acc-coach-fields" class="hidden">
             <label class="acc-label" for="acc-business">Nombre comercial</label>
             <input type="text" id="acc-business" name="business" autocomplete="organization" maxlength="60" aria-describedby="acc-business-help">
-            <p id="acc-business-help" class="small muted">Es lo que verán tus clientes al usar tu código (2 a 60 caracteres).</p>
+            <p id="acc-business-help" class="small muted">Es el nombre que verán tus clientes cuando usen tu código (de 2 a 60 letras).</p>
           </div>
           <p id="acc-role-error" class="acc-error hidden" role="alert"></p>
           <button type="submit" class="btn btn-tall acc-main" id="btn-acc-role">Continuar</button>
@@ -129,14 +131,15 @@
       <!-- S3-2 O1: los datos de este teléfono tienen dueño. Nunca se mezclan los de dos cuentas. -->
       <div id="acc-step-owner" class="acc-step hidden">
         <h2 id="acc-owner-title" tabindex="-1">¿Estos datos son tuyos?</h2>
-        <p>Este teléfono ya tiene registros que se hicieron sin cuenta. Si son tuyos, se guardarán en tu cuenta. Si no, empieza de cero: se borrarán de este teléfono (exporta antes una copia si alguien los necesita).</p>
+        <p>Estos datos se guardaron en este teléfono antes de crear tu cuenta. ¿Son tuyos?</p>
+        <p class="small muted">Si son tuyos, quedan guardados en tu cuenta. Si no, empiezas de cero y se borran de este teléfono (antes puedes descargar una copia).</p>
         <button type="button" class="btn btn-tall acc-main" id="btn-owner-mine">Sí, son míos: guardarlos en mi cuenta</button>
         <button type="button" class="btn btn-ghost btn-tall acc-main" id="btn-owner-fresh">No: empezar de cero en esta cuenta</button>
       </div>
 
       <div id="acc-step-other" class="acc-step hidden">
         <h2 id="acc-other-title" tabindex="-1">Este teléfono tiene datos de otra cuenta</h2>
-        <p>Para proteger esos datos no se mezclan con los tuyos. Cierra sesión para que la otra persona siga usando este teléfono, o borra sus datos de aquí para usar tu cuenta.</p>
+        <p>Para cuidar esos datos, no los mezclamos con los tuyos. Cierra sesión para que la otra persona siga usando este teléfono, o borra sus datos de aquí para usar tu cuenta.</p>
         <button type="button" class="btn btn-tall acc-main" id="btn-other-logout">Cerrar sesión</button>
         <button type="button" class="btn btn-danger btn-tall acc-main" id="btn-other-wipe">Borrar los datos de este teléfono y continuar</button>
       </div>
@@ -151,6 +154,15 @@
   </section>
 
   <main>
+    <section id="install-card" class="card install-card hidden" aria-labelledby="install-card-title">
+      <h2 id="install-card-title">Instala la app en tu iPhone</h2>
+      <p class="small">Así la abres con un toque, sin buscar la dirección.</p>
+      <div id="install-card-steps"></div>
+      <div class="row-actions">
+        <button type="button" class="btn btn-tall" id="btn-install-ok">Entendido</button>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-install-never">No mostrar más</button>
+      </div>
+    </section>
     <!-- PANEL -->
     <section id="view-panel" class="view active" aria-labelledby="tab-panel">
       <!-- S3-4 (HU-P07): notas del coach para el cliente. El texto lo escribe otra persona: siempre escapado. -->
@@ -304,7 +316,8 @@
     </section>
 
     <!-- FOTOS -->
-    <section id="view-fotos" class="view" aria-labelledby="tab-fotos">
+    <section id="view-fotos" class="view" aria-labelledby="fotos-title">
+      <div class="back-row"><button type="button" class="btn-link back-btn" data-goto="mas">← Más</button><h2 class="back-title" id="fotos-title" tabindex="-1">Mis fotos</h2></div>
       <div class="card gate photos-gate">
         <h2>Fotos bloqueadas</h2>
         <p>No has autorizado el tratamiento de tus <strong>fotos de progreso</strong>. Son un dato sensible y su autorización es opcional y aparte de la de tus datos de salud.</p>
@@ -371,23 +384,6 @@
             </ul>
           </details>
         </div>
-        <div class="card">
-          <h2>Código para invitar clientes</h2>
-          <p class="coach-invite" id="coach-invite-code"></p>
-          <p id="coach-invite-info" class="small muted"></p>
-          <form id="form-rotate" class="grid-form" novalidate>
-            <label>Validez
-              <select name="validDays"><option value="">Sin caducidad</option><option value="7">7 días</option><option value="30">30 días</option></select>
-            </label>
-            <label>Usos
-              <select name="maxUses"><option value="">Sin límite</option><option value="1">1 cliente</option><option value="5">5 clientes</option><option value="20">20 clientes</option></select>
-            </label>
-            <div class="span-2 form-actions">
-              <button type="submit" class="btn btn-ghost">Generar código nuevo</button>
-              <span class="small muted">El código anterior deja de servir para nuevos clientes.</span>
-            </div>
-          </form>
-        </div>
       </div>
 
       <div id="coach-detail-view" class="hidden">
@@ -404,7 +400,7 @@
           <dl id="coach-detail-summary" class="privacy-list"></dl>
         </div>
         <div class="card">
-          <h2>Adherencia</h2>
+          <h2>Constancia</h2>
           <div class="table-wrap"><table class="table" id="coach-detail-adherence"></table></div>
         </div>
         <div class="card hidden" id="coach-detail-photos-card">
@@ -427,24 +423,62 @@
           </form>
         </div>
         <div class="card">
-          <button type="button" class="btn btn-danger" id="btn-end-client">Terminar el vínculo con este cliente</button>
+          <button type="button" class="btn btn-danger" id="btn-end-client">Dejar de acompañar a este cliente</button>
         </div>
       </div>
     </section>
 
+    <!-- Invitar (coach): mensaje de WhatsApp y código -->
+    <section id="view-invitar" class="view" aria-labelledby="invitar-title">
+      <h2 id="invitar-title" class="view-title" tabindex="-1">Invitar a un cliente</h2>
+      <div class="card" id="invite-card">
+        <h2>Invitar por WhatsApp</h2>
+        <label class="acc-label" for="invite-name">Nombre del cliente <span class="muted">(opcional)</span></label>
+        <input type="text" id="invite-name" maxlength="40" autocomplete="off" aria-describedby="invite-preview">
+        <p class="small muted invite-lead">Así se verá tu mensaje:</p>
+        <p id="invite-preview" class="invite-preview"></p>
+        <div class="row-actions">
+          <a class="btn btn-tall" id="btn-invite-wa" href="#" target="_blank" rel="noopener noreferrer">Invitar por WhatsApp</a>
+          <button type="button" class="btn btn-ghost btn-tall" id="btn-invite-copy">Copiar enlace</button>
+        </div>
+        <div id="invite-copy-fallback" class="hidden">
+          <label class="small" for="invite-link-input">Mantén pulsado el enlace y elige Copiar:</label>
+          <input type="text" id="invite-link-input" readonly>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Código para invitar clientes</h2>
+        <p class="coach-invite" id="coach-invite-code"></p>
+        <p id="coach-invite-info" class="small muted"></p>
+        <form id="form-rotate" class="grid-form" novalidate>
+          <label>Cuánto dura
+            <select name="validDays"><option value="">Sin caducidad</option><option value="7">7 días</option><option value="30">30 días</option></select>
+          </label>
+          <label>A cuántos clientes sirve
+            <select name="maxUses"><option value="">Sin límite</option><option value="1">1 cliente</option><option value="5">5 clientes</option><option value="20">20 clientes</option></select>
+          </label>
+          <div class="span-2 form-actions">
+            <button type="submit" class="btn btn-ghost">Generar código nuevo</button>
+            <span class="small muted">El código anterior deja de servir para nuevos clientes.</span>
+          </div>
+        </form>
+      </div>
+    </section>
+
     <!-- PERFIL -->
-    <section id="view-perfil" class="view" aria-labelledby="tab-perfil">
-      <div class="card hidden" id="account-card">
-        <h2>Cuenta y copia en la nube</h2>
+    <section id="view-perfil" class="view" data-mode="all" aria-labelledby="perfil-title">
+      <div class="back-row"><button type="button" class="btn-link back-btn" data-goto="mas">← Más</button><h2 class="back-title" id="perfil-title" tabindex="-1">Perfil</h2></div>
+      <div class="card hidden" id="account-card" data-pane="datos">
+        <h2>Tu cuenta</h2>
         <p id="account-status" class="small"></p>
         <p id="account-extra" class="small muted"></p>
         <p id="sync-status" class="small muted hidden" role="status" aria-live="polite"></p>
         <div class="row-actions">
           <button type="button" class="btn btn-ghost hidden" id="btn-account-login">Entrar o crear cuenta</button>
-          <button type="button" class="btn btn-ghost hidden" id="btn-account-link">Vincularme con un coach</button>
+          <button type="button" class="btn btn-ghost hidden" id="btn-account-link">Conectarme con mi coach</button>
           <button type="button" class="btn btn-ghost hidden" id="btn-account-coach">Ver mis clientes</button>
           <button type="button" class="btn btn-ghost hidden" id="btn-account-logout">Cerrar sesión</button>
-          <button type="button" class="btn btn-ghost hidden" id="btn-sync-now">Sincronizar ahora</button>
+          <button type="button" class="btn btn-ghost hidden" id="btn-sync-now">Guardar ahora</button>
         </div>
         <!-- Cerrar sesión: "No" por defecto (decisión del SM; el Analista afinará el texto). -->
         <form id="form-logout" class="acc-share hidden" novalidate>
@@ -458,26 +492,28 @@
             <button type="button" class="btn btn-ghost" id="btn-logout-cancel">Cancelar</button>
           </div>
         </form>
-        <!-- S3-4: el cliente ve y cambia qué comparte con su coach, o termina el vínculo. -->
-        <form id="form-shares" class="acc-share hidden" novalidate>
-          <p id="shares-title"></p>
-          <fieldset id="shares-fieldset">
-            <legend class="small">Qué ve tu coach (efecto inmediato):</legend>
-            <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario mientras tengas coach)</em></span></label>
-            <label class="check"><input type="checkbox" name="share_nutrition"> <span>Comidas del diario</span></label>
-            <label class="check"><input type="checkbox" name="share_habits"> <span>Hábitos (pasos, agua, sueño, entrenamiento)</span></label>
-            <label class="check"><input type="checkbox" name="share_notes"> <span>Notas de tus registros</span></label>
-            <label class="check"><input type="checkbox" name="share_photos"> <span>Fotos que marques como compartidas</span></label>
-          </fieldset>
-          <p id="shares-error" class="acc-error hidden" role="alert"></p>
-          <div class="row-actions">
-            <button type="submit" class="btn">Guardar lo que comparto</button>
-            <button type="button" class="btn btn-danger" id="btn-leave-coach">Terminar el vínculo</button>
-          </div>
-        </form>
       </div>
 
-      <div class="card needs-health">
+      <!-- S3-4: el cliente ve y cambia qué comparte con su coach, o deja de compartir. -->
+      <form id="form-shares" class="card acc-share hidden" data-pane="coach" novalidate>
+        <h2 id="shares-title" class="shares-title"></h2>
+        <p id="shares-summary" class="small"></p>
+        <fieldset id="shares-fieldset">
+          <legend class="small">Lo que ve tu coach (se aplica al momento):</legend>
+          <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario mientras tengas coach)</em></span></label>
+          <label class="check"><input type="checkbox" name="share_nutrition"> <span>Comidas del diario</span></label>
+          <label class="check"><input type="checkbox" name="share_habits"> <span>Hábitos (pasos, agua, sueño, entrenamiento)</span></label>
+          <label class="check"><input type="checkbox" name="share_notes"> <span>Notas de tus registros</span></label>
+          <label class="check"><input type="checkbox" name="share_photos"> <span>Fotos que marques como compartidas</span></label>
+        </fieldset>
+        <p id="shares-error" class="acc-error hidden" role="alert"></p>
+        <div class="row-actions">
+          <button type="submit" class="btn">Guardar lo que comparto</button>
+          <button type="button" class="btn btn-danger" id="btn-leave-coach">Dejar de compartir con mi coach</button>
+        </div>
+      </form>
+
+      <div class="card needs-health" data-pane="plan">
         <h2>Tu perfil</h2>
         <p id="profile-issue" class="warn small hidden" role="alert"></p>
         <form id="form-profile" class="grid-form">
@@ -514,13 +550,13 @@
         </form>
       </div>
 
-      <div class="card needs-health">
+      <div class="card needs-health" data-pane="plan">
         <h2>Tu plan calculado</h2>
         <div id="plan"></div>
         <p class="muted small">Gasto basal por Mifflin-St Jeor × factor de actividad. Proteína 2 g/kg, grasas ≥ 25 % de las calorías, el resto carbohidratos. Son estimaciones: ajústalas según tu tendencia real de peso cada 2–3 semanas.</p>
       </div>
 
-      <div class="card" id="privacy-card">
+      <div class="card" id="privacy-card" data-pane="datos">
         <h2>Privacidad</h2>
         <dl id="privacy-list" class="privacy-list"></dl>
         <div class="row-actions">
@@ -532,7 +568,7 @@
         <button type="button" class="btn btn-danger" id="btn-withdraw-legal">Retirar aceptación y borrar todo</button>
       </div>
 
-      <div class="card">
+      <div class="card" id="data-card" data-pane="datos copia">
         <h2>Datos</h2>
         <p class="muted small" id="data-intro">Todo se guarda solo en este dispositivo. Exporta una copia para respaldarla o pasarla a otro dispositivo.</p>
         <ul class="data-status small">
@@ -548,7 +584,7 @@
         </div>
       </div>
 
-      <div class="card" id="coach-copy-card">
+      <div class="card" id="coach-copy-card" data-pane="datos copia">
         <h2>Ver copia de un cliente</h2>
         <p class="muted small">Para coaches: abre el respaldo JSON de un cliente y mira su resumen <strong>sin mezclarlo con tus datos</strong>. No se guarda nada en este dispositivo.</p>
         <div class="row-actions">
@@ -556,16 +592,72 @@
         </div>
       </div>
     </section>
+
+    <!-- MÁS: cuenta y menú con todo lo que no está en la barra -->
+    <section id="view-mas" class="view" aria-labelledby="mas-title">
+      <h2 id="mas-title" class="sr-only" tabindex="-1">Más</h2>
+      <div class="card more-head">
+        <span class="more-avatar" id="more-avatar" aria-hidden="true">?</span>
+        <div class="more-who">
+          <strong id="more-name">Tú</strong>
+          <span class="small muted" id="more-sub">Tus datos están solo en este teléfono.</span>
+          <span class="small muted" id="more-saved" role="status" aria-live="polite"></span>
+          <button type="button" class="btn btn-ghost btn-tall hidden" id="btn-more-login">Crear cuenta o entrar</button>
+        </div>
+      </div>
+      <ul class="more-list">
+        <li class="coach-only hidden"><button type="button" class="more-row" id="row-c-panel"><span class="more-text"><strong>Mi panel</strong><span class="more-sub">Tu progreso personal</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="coach-only hidden"><button type="button" class="more-row" id="row-c-registro"><span class="more-text"><strong>Mi peso y medidas</strong><span class="more-sub">Tu historial y tu registro</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="coach-only hidden"><button type="button" class="more-row" id="row-c-comidas"><span class="more-text"><strong>Mis comidas</strong><span class="more-sub">Tu diario de comidas y hábitos</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li><button type="button" class="more-row" id="row-plan"><span class="more-text"><strong>Mi plan y perfil</strong><span class="more-sub">Tus datos, tu meta y tus calorías del día</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li><button type="button" class="more-row" id="row-fotos"><span class="more-text"><strong>Mis fotos</strong><span class="more-sub">Fotos de progreso y comparación</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="needs-link hidden"><button type="button" class="more-row" id="row-coach"><span class="more-text"><strong>Mi coach</strong><span class="more-sub">Qué puede ver y cómo dejar de compartir</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li><button type="button" class="more-row" id="row-datos"><span class="more-text"><strong>Mis datos y permisos</strong><span class="more-sub">Tu <span class="needs-account">cuenta, tu </span>privacidad y tus datos de salud</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li><button type="button" class="more-row" id="row-copia"><span class="more-text"><strong>Descargar una copia</strong><span class="more-sub">Guarda tus datos en un archivo</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li><button type="button" class="more-row" id="row-instalar" data-install-guide><span class="more-text"><strong>Cómo instalar la app</strong><span class="more-sub">Ponla en la pantalla de inicio de tu teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li><button type="button" class="more-row" id="row-ayuda"><span class="more-text"><strong>Ayuda</strong><span class="more-sub">Respuestas a las dudas más comunes</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="needs-login hidden"><button type="button" class="more-row" id="row-salir"><span class="more-text"><strong>Cerrar sesión</strong><span class="more-sub">Salir de tu cuenta en este teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+      </ul>
+    </section>
+
+    <!-- AYUDA -->
+    <section id="view-ayuda" class="view" aria-labelledby="ayuda-title">
+      <div class="back-row"><button type="button" class="btn-link back-btn" data-goto="mas">← Más</button><h2 class="back-title" id="ayuda-title" tabindex="-1">Ayuda</h2></div>
+      <div class="card help">
+        <details open><summary>¿Cómo anoto mi peso?</summary><p>Toca el botón <strong>＋ Registrar</strong> y elige «Mi peso de hoy». También puedes entrar a <strong>Progreso</strong> y llenar el formulario.</p></details>
+        <details><summary>¿Cómo anoto lo que comí?</summary><p>Toca <strong>＋ Registrar</strong> y elige «Una comida». Si hoy comiste lo mismo que ayer, usa «Repetir la de ayer».</p></details>
+        <details><summary>¿Dónde se guardan mis datos?</summary><p>Se guardan en tu teléfono. <span class="needs-account">Si tienes cuenta, también quedan guardados en ella y no los pierdes si cambias de teléfono.</span> Las fotos se guardan solo en tu teléfono.</p></details>
+        <details><summary>¿Cómo cambio mi meta o mi plan?</summary><p>Entra a <strong>Más → Mi plan y perfil</strong> y cambia lo que necesites.</p></details>
+        <details><summary>¿Cómo instalo la app en mi teléfono?</summary><p>Entra a <strong>Más → Cómo instalar la app</strong> y sigue los pasos.</p></details>
+        <p class="small muted">Textos completos: <a href="legal/terminos.html" data-legal>Términos y Condiciones</a> · <a href="legal/privacidad.html" data-legal>Política de Tratamiento de Datos</a></p>
+      </div>
+    </section>
   </main>
 
-  <nav class="tabbar" role="tablist">
-    <button role="tab" id="tab-panel" data-view="panel" class="on"><span aria-hidden="true">📊</span>Panel</button>
-    <button role="tab" id="tab-registro" data-view="registro"><span aria-hidden="true">⚖️</span>Registro</button>
-    <button role="tab" id="tab-comidas" data-view="comidas"><span aria-hidden="true">🍽️</span>Comidas</button>
-    <button role="tab" id="tab-fotos" data-view="fotos"><span aria-hidden="true">📷</span>Fotos</button>
-    <button role="tab" id="tab-perfil" data-view="perfil"><span aria-hidden="true">👤</span>Perfil</button>
-    <button role="tab" id="tab-coach" data-view="coach" class="hidden"><span aria-hidden="true">🧑‍🏫</span>Clientes</button>
+  <nav class="tabbar" id="tabbar" aria-label="Menú principal">
+    <button type="button" id="tab-panel" data-view="panel" class="on" aria-current="page"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg><span class="tb-label">Inicio</span></button>
+    <button type="button" id="tab-comidas" data-view="comidas"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3v8"/><path d="M4 3v5a3 3 0 0 0 6 0V3"/><path d="M7 11v10"/><path d="M17 3c-2 2-3 4.5-3 7.5 0 1.5.8 2.5 3 2.5V21"/></svg><span class="tb-label">Comidas</span></button>
+    <button type="button" id="tab-registrar" class="tab-add" aria-haspopup="dialog"><span class="tab-disc"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span><span class="tb-label">Registrar</span></button>
+    <button type="button" id="tab-registro" data-view="registro"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg><span class="tb-label">Progreso</span></button>
+    <button type="button" id="tab-mas" data-view="mas"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg><span class="tb-label">Más</span></button>
+    <button type="button" id="tab-coach" data-view="coach" class="hidden"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3.2 3.2 0 0 1 0 6"/><path d="M18 14.5c1.8.8 3 2.6 3 5.5"/></svg><span class="tb-label">Clientes</span></button>
+    <button type="button" id="tab-invitar" data-view="invitar" class="tab-add hidden"><span class="tab-disc"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span><span class="tb-label">Invitar</span></button>
   </nav>
+
+  <!-- ＋ Registrar: hoja con lo que se puede anotar hoy -->
+  <dialog id="sheet-registrar" class="sheet" aria-labelledby="sheet-title">
+    <div class="sheet-head">
+      <h2 id="sheet-title" tabindex="-1">¿Qué quieres registrar?</h2>
+      <button type="button" class="sheet-x" id="sheet-close" aria-label="Cerrar">×</button>
+    </div>
+    <div class="sheet-list">
+      <button type="button" class="sheet-opt" id="opt-peso"><strong>Mi peso de hoy</strong><span>Anota tu peso y tus medidas</span></button>
+      <button type="button" class="sheet-opt" id="opt-comida"><strong>Una comida</strong><span>Lo que comiste hoy</span></button>
+      <button type="button" class="btn btn-ghost btn-tall hidden" id="opt-repetir">Repetir la de ayer</button>
+      <button type="button" class="sheet-opt" id="opt-habitos"><strong>Cómo me fue hoy</strong><span>Agua, pasos, sueño y entrenamiento</span></button>
+      <div class="sheet-opt sheet-soon" id="opt-foto"><strong>Foto de mi plato</strong><span>Próximamente</span></div>
+    </div>
+  </dialog>
 
   <div id="backup-confirm" class="backup-confirm hidden" role="group" aria-labelledby="backup-confirm-q">
     <p id="backup-confirm-q">¿Se guardó el archivo de copia en tu dispositivo?</p>
@@ -575,6 +667,25 @@
     </div>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- A3: guía para instalar la app en iPhone (se copia a la tarjeta y al cuadro "Cómo instalar la app"). -->
+  <template id="install-steps">
+    <ol class="install-steps">
+      <li><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg><span><strong>Toca Compartir</strong><br><span class="small muted">El cuadrito con una flecha hacia arriba, en la barra de abajo de Safari.</span></span></li>
+      <li><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8"/><path d="M8 12h8"/></svg><span><strong>Elige «Añadir a pantalla de inicio»</strong><br><span class="small muted">Si no la ves, desliza el menú hacia arriba.</span></span></li>
+      <li><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/></svg><span><strong>Toca «Añadir»</strong><br><span class="small muted">Arriba a la derecha. La app queda en tu pantalla, como cualquier otra.</span></span></li>
+    </ol>
+  </template>
+  <dialog id="install-dialog" class="legal-dialog" aria-labelledby="install-dialog-title">
+    <div class="legal-bar">
+      <h2 id="install-dialog-title">Cómo instalar la app</h2>
+      <button type="button" class="btn" id="install-dialog-close">Cerrar</button>
+    </div>
+    <div class="install-dialog-body">
+      <p id="install-dialog-note" class="small acc-note hidden">Estos pasos son para Safari en iPhone o iPad. En Android, abre el menú del navegador (los tres puntos) y elige «Instalar app» o «Añadir a la pantalla de inicio».</p>
+      <div id="install-dialog-steps"></div>
+    </div>
+  </dialog>
 
   <dialog id="legal-dialog" class="legal-dialog" aria-labelledby="legal-dialog-title">
     <div class="legal-bar">
@@ -630,10 +741,12 @@
   <script src="schema.js"></script>
   <script src="sync.js"></script>
   <script src="cloud-view.js"></script>
+  <script src="install-guide.js"></script>
   <script src="coach.js"></script>
   <script src="photos.js"></script>
   <script src="app.js"></script>
   <script src="vendor/supabase-2.117.2.js"></script>
+  <script src="invite.js"></script>
   <script src="remote.js"></script>
   <script src="account.js"></script>
   <script src="coach-panel.js"></script>

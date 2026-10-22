@@ -139,7 +139,7 @@ const box = (page, sel) => page.locator(sel).first().boundingBox();
   {
     const { page, errors, ctx } = await setup(browser, '2026-10-21T12:00:00-05:00');
     // R1. Barra de confirmación: Escape, solapes
-    await page.click('#tab-perfil');
+    await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#btn-export')]);
     void dl;
     const vis = () => page.locator('#backup-confirm').isVisible();

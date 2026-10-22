@@ -72,7 +72,7 @@
     const items = [...cache.values()].sort((a, b) => Coach.byLight(a.sem, b.sem));
     if (!items.length) {
       const code = (A.meta() || {}).coach;
-      ul.innerHTML = `<li class="small muted">Aún no tienes clientes. Comparte tu código${code ? ` <strong>${esc(code.inviteCode)}</strong>` : ''} para que se vinculen.</li>`;
+      ul.innerHTML = `<li class="small muted">Aún no tienes clientes. Comparte tu código${code ? ` <strong>${esc(code.inviteCode)}</strong>` : ''} para que se conecten contigo.</li>`;
       return;
     }
     ul.innerHTML = items.map((c) => {
@@ -91,8 +91,42 @@
     }).join('');
   }
 
+  // A1: invitación por WhatsApp. Todo lo que escribe una persona entra al DOM con textContent y a la URL con encodeURIComponent.
+  function inviteParts() {
+    const mine = A && (A.meta() || {}).coach;
+    if (!mine || !window.Invite) return null;
+    const link = Invite.inviteLink(location, mine.inviteCode);
+    if (!link) return null;
+    return { link, message: Invite.inviteMessage({ clientName: $('#invite-name').value, businessName: mine.businessName, link }) };
+  }
+  function renderInvitePreview() {
+    const p = inviteParts();
+    const wa = $('#btn-invite-wa');
+    $('#invite-preview').textContent = p ? p.message : 'Cuando tu código esté listo verás aquí el mensaje.';
+    wa.setAttribute('href', p ? Invite.whatsappUrl(p.message) : '#');
+    wa.setAttribute('aria-disabled', p ? 'false' : 'true');
+    wa.classList.toggle('disabled', !p);
+    $('#invite-link-input').value = p ? p.link : '';
+  }
+  async function copyInviteLink() {
+    const p = inviteParts();
+    if (!p) return;
+    try {
+      await navigator.clipboard.writeText(p.link);
+      $('#invite-copy-fallback').classList.add('hidden');
+      toast('Enlace copiado');
+    } catch {
+      const box = $('#invite-link-input');
+      $('#invite-copy-fallback').classList.remove('hidden');
+      box.focus();
+      box.select();
+      try { box.setSelectionRange(0, box.value.length); document.execCommand('copy'); } catch { /* queda seleccionado para copiar a mano */ }
+    }
+  }
+
   function renderInvite(mine) {
     if (!mine) return;
+    renderInvitePreview();
     $('#coach-invite-code').textContent = mine.inviteCode;
     const parts = [mine.expiresAt ? `Válido hasta el ${new Date(mine.expiresAt).toLocaleDateString('es')}` : 'Sin caducidad',
       mine.maxUses ? `usado ${mine.uses} de ${mine.maxUses} veces` : `usado ${mine.uses || 0} veces, sin límite`];
@@ -134,7 +168,7 @@
     $('#coach-detail-light').innerHTML = `<span class="light light-${esc(c.sem.color)}">${esc(c.sem.label)}</span> ${esc(c.sem.reason)}`;
     const yes = Object.keys(SHARE_NAMES).filter((k) => sh[k]).map((k) => SHARE_NAMES[k]);
     const no = Object.keys(SHARE_NAMES).filter((k) => !sh[k]).map((k) => SHARE_NAMES[k]);
-    $('#coach-detail-shares').textContent = `Comparte contigo: ${yes.join(', ') || '—'}. No comparte: ${no.join(', ') || '—'}. Vinculado desde el ${new Date(c.info.since).toLocaleDateString('es')}.`;
+    $('#coach-detail-shares').textContent = `Te muestra: ${yes.join(', ') || '—'}. No te muestra: ${no.join(', ') || '—'}. Es tu cliente desde el ${new Date(c.info.since).toLocaleDateString('es')}.`;
 
     // Progreso (categoría body, obligatoria). Nunca notas ni biblioteca.
     const s = c.sum, w = s.weight;
@@ -195,7 +229,17 @@
   // ---------- Eventos del coach ----------
   function wireCoach() {
     $('#tab-coach').addEventListener('click', () => { showList(); loadClients(); });
+    // ＋ Invitar: la vista con el mensaje de WhatsApp y el código; se refresca el código del coach sin cargar toda la lista.
+    $('#tab-invitar').addEventListener('click', async () => {
+      renderInvite((A.meta() || {}).coach);
+      try { const mine = await A.remote.coach.myCoach(); A.setMeta({ coach: mine }); renderInvite(mine); } catch { /* sin conexión: se ve el código guardado */ }
+      $('#invitar-title').focus();
+    });
     $('#btn-coach-refresh').addEventListener('click', loadClients);
+    $('#invite-name').addEventListener('input', renderInvitePreview);
+    $('#btn-invite-copy').addEventListener('click', copyInviteLink);
+    $('#btn-invite-wa').addEventListener('click', (ev) => { if (!inviteParts()) ev.preventDefault(); });
+    renderInvitePreview();
     $('#coach-clients').addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-client]');
       if (b) openClient(b.dataset.client);
@@ -204,7 +248,7 @@
     $('#form-rotate').addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const f = ev.currentTarget;
-      if (!confirm('¿Generar un código nuevo? El actual dejará de servir para nuevos clientes (los ya vinculados siguen igual).')) return;
+      if (!confirm('¿Crear un código nuevo? El de ahora ya no servirá para clientes nuevos (los que ya tienes siguen igual).')) return;
       const opt = {};
       if (f.elements.validDays.value) opt.validDays = Number(f.elements.validDays.value);
       if (f.elements.maxUses.value) opt.maxUses = Number(f.elements.maxUses.value);
@@ -259,8 +303,8 @@
     });
     $('#btn-end-client').addEventListener('click', async () => {
       const c = cache.get(current);
-      if (!c || !confirm(`¿Terminar el vínculo con «${displayName(c)}»? Dejarás de ver sus datos.`)) return;
-      try { await A.remote.coach.endClient(current); toast('Vínculo terminado'); await loadClients(); showList(); }
+      if (!c || !confirm(`¿Dejar de acompañar a «${displayName(c)}»? Ya no verás sus datos.`)) return;
+      try { await A.remote.coach.endClient(current); toast('Listo: ya no ves sus datos'); await loadClients(); showList(); }
       catch (err) { toast(errText(err), true); }
     });
   }
@@ -322,7 +366,7 @@
     wireClient();
     refreshNotes();
     document.addEventListener('pg:account-changed', (ev) => {
-      if (!(ev.detail && ev.detail.isCoach)) { cache.clear(); if ($('#view-coach').classList.contains('active')) $('#tab-panel').click(); }
+      if (!(ev.detail && ev.detail.isCoach)) { cache.clear(); if ($('#view-coach').classList.contains('active') || $('#view-invitar').classList.contains('active')) $('#tab-panel').click(); }
       refreshNotes();
     });
   }

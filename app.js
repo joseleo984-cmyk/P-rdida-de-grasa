@@ -132,17 +132,138 @@
   }
 
   // ---------- Navegación ----------
-  function show(view) {
+  // Barra de abajo. Cliente (y sin cuenta): Inicio | Comidas | ＋ Registrar | Progreso | Más.
+  // Coach: Clientes | ＋ Invitar | Más (su propio seguimiento sigue en Más). Las vistas conservan sus ids (#view-…).
+  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar' };
+  const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
+  let navCoach = false;
+  function show(view, mode) {
+    if (view === 'perfil') {
+      // Sin autorización de datos de salud las tarjetas del plan no se muestran: se enseña todo Perfil (privacidad incluida) para poder autorizar.
+      let m = PERFIL_TITLES[mode] ? mode : 'plan';
+      if (m === 'plan' && document.body.classList.contains('no-health')) m = 'all';
+      $('#view-perfil').dataset.mode = m;
+      $('#perfil-title').textContent = PERFIL_TITLES[m];
+    }
+    const tabView = navCoach && ['panel', 'comidas', 'registro'].includes(view) ? 'mas' : TAB_OF[view] || view;
     $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + view));
-    $$('.tabbar button').forEach((b) => b.classList.toggle('on', b.dataset.view === view));
+    $$('.tabbar button').forEach((b) => {
+      const on = b.dataset.view === tabView;
+      b.classList.toggle('on', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
     window.scrollTo({ top: 0 });
     render();
   }
-  $$('.tabbar button').forEach((b) => b.addEventListener('click', () => show(b.dataset.view)));
+  // Como show(), pero para las filas de Más: el foco va al título de la pantalla nueva.
+  let moreReturn = null;
+  function goTo(view, mode, fromId) {
+    if (fromId) moreReturn = fromId;
+    show(view, mode);
+    const t = $(`#view-${view} .back-title`);
+    if (t) t.focus();
+  }
+  $$('.tabbar button[data-view]').forEach((b) => b.addEventListener('click', () => show(b.dataset.view)));
   document.addEventListener('click', (ev) => {
     const go = ev.target.closest('[data-goto]');
-    if (go) show(go.dataset.goto);
+    if (!go) return;
+    const [view, mode] = go.dataset.goto.split(':');
+    if (view === 'mas' && go.classList.contains('back-btn')) {
+      show('mas');
+      ($('#' + moreReturn) || $('#mas-title')).focus();
+    } else show(view, mode);
   });
+  // Ayudante para las pruebas y para otros módulos: ir a una vista (Perfil con todas sus tarjetas: show('perfil', 'all')).
+  window.PGNav = { show: (view, mode) => show(view, mode), applyNav: (isCoach) => applyNav(isCoach) };
+
+  // Qué botones tiene la barra según la cuenta: el coach ve Clientes | Invitar | Más; todos los demás, las cinco de siempre.
+  function applyNav(isCoach) {
+    const was = navCoach;
+    navCoach = !!isCoach;
+    document.body.classList.toggle('mode-coach', navCoach);
+    const order = navCoach ? ['coach', 'invitar', 'mas'] : ['panel', 'comidas', 'registrar', 'registro', 'mas'];
+    const bar = $('#tabbar');
+    for (const id of ['panel', 'comidas', 'registrar', 'registro', 'mas', 'coach', 'invitar']) $('#tab-' + id).classList.toggle('hidden', !order.includes(id));
+    order.forEach((id) => bar.appendChild($('#tab-' + id))); // el orden de lectura es el orden visual
+    if (navCoach && !was) $('#tab-coach').click(); // el coach empieza en su lista de clientes
+    else if (!navCoach && was) {
+      const cur = document.querySelector('.view.active');
+      if (cur && (cur.id === 'view-coach' || cur.id === 'view-invitar')) show('panel');
+    }
+  }
+
+  // ---------- Más (cuenta y menú) ----------
+  let navAcct = { signedIn: false, isCoach: false };
+  function renderMas() {
+    const meta = (window.PGAccount && PGAccount.meta()) || null;
+    const remoteOn = document.body.classList.contains('has-remote');
+    const signed = remoteOn && navAcct.signedIn && !!meta;
+    const name = (state.profile && state.profile.name) || (signed && meta.email ? meta.email.split('@')[0] : '') || 'Tú';
+    setText($('#more-name'), name);
+    setText($('#more-avatar'), (name.trim()[0] || '?').toUpperCase());
+    setText($('#more-sub'), signed ? meta.email : remoteOn ? 'Sin cuenta: tus datos están solo en este teléfono.' : 'Tus datos están solo en este teléfono.');
+    setText($('#more-saved'), signed ? CloudView.savedLine(syncSt) : '');
+    $('#btn-more-login').classList.toggle('hidden', !remoteOn || signed);
+    $$('#view-mas .coach-only').forEach((el) => el.classList.toggle('hidden', !navCoach));
+    $('#view-mas .needs-link').classList.toggle('hidden', !(signed && !navAcct.isCoach && meta.link));
+    $('#view-mas .needs-login').classList.toggle('hidden', !signed);
+  }
+  $('#btn-more-login').addEventListener('click', () => $('#btn-account-login').click());
+  $('#view-mas').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.more-row');
+    if (!b) return;
+    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-coach': ['perfil', 'coach'],
+      'row-datos': ['perfil', 'datos'], 'row-copia': ['perfil', 'copia'], 'row-ayuda': ['ayuda'] }[b.id];
+    if (to) goTo(to[0], to[1], b.id);
+    else if (b.id === 'row-salir') { goTo('perfil', 'datos', b.id); $('#btn-account-logout').click(); }
+  });
+  document.addEventListener('pg:account-changed', (ev) => {
+    navAcct = { signedIn: !!(ev.detail && ev.detail.signedIn), isCoach: !!(ev.detail && ev.detail.isCoach) };
+    applyNav(navAcct.isCoach);
+    renderMas();
+  });
+
+  // ---------- ＋ Registrar ----------
+  const sheet = $('#sheet-registrar');
+  let sheetNext = null;
+  function openSheet() {
+    const prev = Schema.addDays(today(), -1);
+    $('#opt-repetir').classList.toggle('hidden', !(state.foods[prev] || []).length);
+    sheet.showModal();
+    $('#sheet-title').focus();
+  }
+  function sheetGo(fn) { sheetNext = fn; sheet.close(); }
+  $('#tab-registrar').addEventListener('click', openSheet);
+  $('#sheet-close').addEventListener('click', () => sheet.close());
+  sheet.addEventListener('click', (ev) => { if (ev.target === sheet) sheet.close(); }); // toque en el fondo
+  sheet.addEventListener('close', () => {
+    const fn = sheetNext;
+    sheetNext = null;
+    if (fn) fn(); else $('#tab-registrar').focus();
+  });
+  $('#opt-peso').addEventListener('click', () => sheetGo(() => {
+    show('registro');
+    entryForm.elements.date.value = today();
+    entryForm.elements.weight.focus();
+    entryForm.scrollIntoView({ block: 'start' });
+  }));
+  $('#opt-comida').addEventListener('click', () => sheetGo(() => {
+    foodDate.value = today();
+    show('comidas');
+    $('#form-food').elements.name.focus();
+  }));
+  $('#opt-repetir').addEventListener('click', () => sheetGo(() => {
+    foodDate.value = today();
+    show('comidas');
+    repeatMeals(Schema.addDays(today(), -1), today());
+    $('#food-list-title').focus();
+  }));
+  $('#opt-habitos').addEventListener('click', () => sheetGo(() => {
+    foodDate.value = today();
+    show('comidas');
+    habitsForm.elements.steps.focus();
+    habitsForm.scrollIntoView({ block: 'center' });
+  }));
 
   let toastTimer;
   // Duración según la longitud; los errores duran más (mín. 6 s).
@@ -998,7 +1119,7 @@
   }
   // Perfil → Datos: con cuenta y sync funcionando se dice la verdad (nube + fotos solo aquí); si no, el texto de siempre.
   const DATA_LOCAL = 'Todo se guarda solo en este dispositivo. Exporta una copia para respaldarla o pasarla a otro dispositivo.';
-  const DATA_CLOUD = 'Tus datos se guardan en este dispositivo y, con tu cuenta, también en la nube. Las fotos se guardan solo en este dispositivo por ahora.';
+  const DATA_CLOUD = 'Tus datos se guardan en este teléfono y también en tu cuenta. Las fotos, por ahora, solo se guardan en este teléfono.';
   function renderDataCard(mode) {
     setText($('#data-intro'), mode.cloud ? DATA_CLOUD : DATA_LOCAL);
     for (const id of ['#storage-status', '#backup-status']) $(id).classList.toggle('hidden', mode.cloud);
@@ -1301,6 +1422,7 @@
     renderFoods();
     renderPlan();
     renderPhotos();
+    renderMas();
   }
 
   entryForm.elements.date.value = today();
@@ -1440,6 +1562,7 @@
   }
   function initSync() {
     syncCfg = window.Remote && window.Sync ? Remote.config() : null;
+    if (syncCfg) { document.body.classList.add('has-remote'); renderMas(); }
     if (syncCfg) $('#coach-copy-card').classList.add('hidden'); // con servidor, el coach usa la pestaña Clientes
     if (syncCfg) startSync().catch((err) => console.warn('Sincronización no disponible:', err && err.message));
   }

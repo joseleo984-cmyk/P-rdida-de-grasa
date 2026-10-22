@@ -14,7 +14,6 @@ async function enterEmail(page, email) {
 }
 async function enterCode(page, email) {
   await page.getByLabel('Código', { exact: true }).fill(await lastCode(page, email.toLowerCase()));
-  await page.getByRole('button', { name: 'Entrar' }).click();
   await answerOwnerIfAsked(page);
 }
 
@@ -57,8 +56,7 @@ test('primer uso: la pantalla legal va antes; luego correo → código → rol c
 
   // Código incorrecto
   await page.getByLabel('Código', { exact: true }).fill(good === '111111' ? '222222' : '111111');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page.locator('#acc-code-error')).toHaveText(/Código incorrecto o caducado/);
+  await expect(page.locator('#acc-code-error')).toHaveText(/no es el correcto o ya venció/);
 
   await enterCode(page, 'ana@ejemplo.com');
   await expect(page.locator('#acc-step-role')).toBeVisible();
@@ -83,7 +81,7 @@ test('primer uso: la pantalla legal va antes; luego correo → código → rol c
   await expect(acc(page)).toBeHidden();
   await page.evaluate(() => window.__pgFakeBackend.setOnline(false));
   await app.tab('perfil');
-  await expect(page.locator('#account-status')).toContainText('Sesión iniciada: ana@ejemplo.com (cliente)');
+  await expect(page.locator('#account-status')).toContainText('Entraste con ana@ejemplo.com.');
   await app.tab('registro');
   await page.locator('#form-entry [name=weight]').fill('69.5');
   await page.locator('#form-entry button[type=submit]').click();
@@ -106,7 +104,6 @@ test('reenviar el código: espera de 60 s con cuenta atrás; "Usar otro correo" 
   const second = await lastCode(page, 'r@x.co');
   if (first !== second) {
     await page.getByLabel('Código', { exact: true }).fill(first);
-    await page.getByRole('button', { name: 'Entrar' }).click();
     await expect(page.locator('#acc-code-error')).toBeVisible();
   }
   await page.getByRole('button', { name: 'Usar otro correo' }).click();
@@ -119,7 +116,7 @@ test('coach: nombre comercial → código de invitación; un cliente se vincula 
   await enterCode(page, 'coach@x.co');
   await page.getByLabel(/Soy coach/).check();
   await page.getByRole('button', { name: 'Continuar' }).click();
-  await expect(page.locator('#acc-role-error')).toHaveText(/nombre comercial/);
+  await expect(page.locator('#acc-role-error')).toHaveText(/nombre de tu negocio/);
   await page.getByLabel('Nombre comercial').fill('Fit Ana');
   await page.getByRole('button', { name: 'Continuar' }).click();
   await expect(page.locator('#acc-done-code')).toBeVisible();
@@ -127,7 +124,7 @@ test('coach: nombre comercial → código de invitación; un cliente se vincula 
   expect(invite).toMatch(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
   await page.getByRole('button', { name: 'Ir a la app' }).click();
   await app.tab('perfil');
-  await expect(page.locator('#account-status')).toContainText('(coach)');
+  await expect(page.locator('#account-status')).toContainText('Tienes cuenta de coach');
   await expect(page.locator('#account-extra')).toContainText(invite);
 
   // Cerrar sesión (los datos se quedan) y entrar como cliente con el código
@@ -143,18 +140,18 @@ test('coach: nombre comercial → código de invitación; un cliente se vincula 
   await page.getByLabel(/Soy cliente/).check();
   await page.getByLabel(/Código de mi coach/).fill('ZZZZZZ');
   await page.getByRole('button', { name: 'Comprobar código' }).click();
-  await expect(page.locator('#acc-role-error')).toHaveText(/no existe o ya no es válido/);
+  await expect(page.locator('#acc-role-error')).toHaveText(/no existe o ya venció/);
   await page.getByLabel(/Código de mi coach/).fill(invite.toLowerCase());
   await page.getByRole('button', { name: 'Comprobar código' }).click();
-  await expect(page.locator('#acc-share-title')).toHaveText('Te vas a vincular con «Fit Ana».');
+  await expect(page.locator('#acc-share-title')).toHaveText('Te vas a conectar con «Fit Ana».');
   // Ninguna categoría opcional viene marcada; la corporal es obligatoria
   await expect(page.locator('#acc-share').getByLabel(/Peso, medidas y perfil/)).toBeChecked();
   for (const l of [/Comidas del diario/, /Hábitos/, /Notas de tus registros/]) await expect(page.locator('#acc-share').getByLabel(l)).not.toBeChecked();
   await page.locator('#acc-share').getByLabel(/Comidas del diario/).check();
   expect(await app.scrollWidth()).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'equipo/qa-capturas/s3-2-cuenta-vincular.png', fullPage: true });
-  await page.getByRole('button', { name: 'Vincularme y continuar' }).click();
-  await expect(page.locator('#acc-done-text')).toContainText('vinculado con «Fit Ana»');
+  await page.getByRole('button', { name: 'Conectarme y continuar' }).click();
+  await expect(page.locator('#acc-done-text')).toContainText('con tu coach «Fit Ana»');
   const be = await backend(page);
   const link = be.links.find((l) => l.status === 'active');
   expect(link.shares).toEqual({ body: true, notes: false, nutrition: true, habits: false, photos: false });
@@ -168,7 +165,7 @@ test('"Ahora no": la app se usa sin cuenta y se puede entrar después desde Perf
   await app.reload();
   await expect(acc(page)).toBeHidden();
   await app.tab('perfil');
-  await expect(page.locator('#account-status')).toContainText('Sin cuenta: estás usando la app solo en este dispositivo');
+  await expect(page.locator('#account-status')).toContainText('Sin cuenta: tus datos están solo en este teléfono');
   await page.getByRole('button', { name: 'Entrar o crear cuenta' }).click();
   await expect(acc(page)).toBeVisible();
 });
@@ -179,7 +176,7 @@ test('sin conexión al pedir el código: mensaje claro y la app sigue usable', a
   await page.evaluate(() => window.__pgFakeBackend.setOnline(false));
   await page.getByLabel('Tu correo').fill('o@x.co');
   await page.getByRole('button', { name: 'Enviarme el código' }).click();
-  await expect(page.locator('#acc-email-error')).toHaveText(/Sin conexión/);
+  await expect(page.locator('#acc-email-error')).toHaveText(/No hay internet/);
   await page.getByRole('button', { name: /Ahora no/ }).click();
   await expect(page.locator('.tabbar')).toBeVisible();
 });
@@ -193,7 +190,6 @@ const consentsOf = async (page, email) => {
 async function codeOnly(page, email) {
   await enterEmail(page, email);
   await page.getByLabel('Código', { exact: true }).fill(await lastCode(page, email));
-  await page.getByRole('button', { name: 'Entrar' }).click();
 }
 
 test('O1-a: datos sin dueño → "¿Estos datos son tuyos?" → Sí: quedan a nombre de la cuenta y se registra su aceptación', async ({ app, page }) => {

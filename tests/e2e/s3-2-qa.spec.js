@@ -13,7 +13,6 @@ async function enterEmail(page, email) {
 }
 async function enterCode(page, email) {
   await page.getByLabel('Código', { exact: true }).fill(await lastCode(page, email.toLowerCase()));
-  await page.getByRole('button', { name: 'Entrar' }).click();
   await answerOwnerIfAsked(page);
 }
 // Sirve la app local bajo otro origen (p. ej. el de GitHub Pages) para probar la lógica que depende del host.
@@ -83,8 +82,8 @@ test('XSS: nombre comercial y correo con HTML se muestran como texto en todas la
   await page.getByLabel(/Soy cliente/).check();
   await page.getByLabel(/Código de mi coach/).fill(invite);
   await page.getByRole('button', { name: 'Comprobar código' }).click();
-  await expect(page.locator('#acc-share-title')).toHaveText(`Te vas a vincular con «${XSS}».`);
-  await page.getByRole('button', { name: 'Vincularme y continuar' }).click();
+  await expect(page.locator('#acc-share-title')).toHaveText(`Te vas a conectar con «${XSS}».`);
+  await page.getByRole('button', { name: 'Conectarme y continuar' }).click();
   await expect(page.locator('#acc-done-text')).toContainText(XSS);
   await page.getByRole('button', { name: 'Ir a la app' }).click();
   await app.tab('perfil');
