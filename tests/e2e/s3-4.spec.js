@@ -86,7 +86,7 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
     await loginAs(client, 'cli@x.co', { displayName: XSS_NAME });
     await pushClientData(client);
     await expect(client.locator('#tab-coach')).toBeHidden();
-    await client.locator('#tab-perfil').click();
+    await client.evaluate(() => PGNav.show('perfil', 'all'));
     await client.getByRole('button', { name: 'Conectarme con mi coach' }).click();
     await client.getByLabel(/Código de mi coach/).fill(invite);
     await client.getByRole('button', { name: 'Comprobar código' }).click();
@@ -94,7 +94,7 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
     await client.locator('#acc-share').getByLabel(/Comidas del diario/).check();
     await client.getByRole('button', { name: 'Conectarme y continuar' }).click();
     await client.getByRole('button', { name: 'Ir a la app' }).click();
-    await client.locator('#tab-perfil').click();
+    await client.evaluate(() => PGNav.show('perfil', 'all'));
     await expect(client.locator('#shares-title')).toContainText(`«${XSS_BIZ}»`);
     await expect(client.locator('#form-shares [name=share_nutrition]')).toBeChecked();
     await expect(client.locator('#form-shares [name=share_habits]')).not.toBeChecked();
@@ -153,7 +153,7 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
       await r.sync.push({ photos: [{ id, date: '2026-10-20', pose: 'frente', width: 8, height: 8, storagePath: `${uid}/${id}.jpg`, sharedWithCoach: false, createdAt: '2026-10-20T10:00:00.000Z', updatedAt: '2026-10-20T10:00:00.000Z' }] });
       await r.client.setPhotoShared(id, true);
     });
-    await client.locator('#tab-perfil').click();
+    await client.evaluate(() => PGNav.show('perfil', 'all'));
     await client.locator('#form-shares [name=share_photos]').check();
     await client.getByRole('button', { name: 'Guardar lo que comparto' }).click();
     await expect(client.locator('#toast')).toContainText('tu coach verá solo lo que marcaste');
@@ -177,7 +177,7 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
 
   await test.step('el cliente deja de compartir comidas → el coach deja de ver esa columna', async () => {
     await transfer(coach, client);
-    await client.locator('#tab-perfil').click();
+    await client.evaluate(() => PGNav.show('perfil', 'all'));
     await client.locator('#form-shares [name=share_nutrition]').uncheck();
     await client.getByRole('button', { name: 'Guardar lo que comparto' }).click();
     await expect(client.locator('#toast')).toContainText('tu coach verá solo lo que marcaste');
@@ -188,7 +188,7 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
   });
 
   await test.step('el coach rota el código con caducidad y usos', async () => {
-    await coach.getByRole('button', { name: '← Mis clientes' }).click();
+    await coach.locator('#tab-invitar').click();
     await coach.locator('#form-rotate [name=validDays]').selectOption('7');
     await coach.locator('#form-rotate [name=maxUses]').selectOption('1');
     await coach.getByRole('button', { name: 'Generar código nuevo' }).click();
@@ -199,7 +199,7 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
 
   await test.step('el cliente termina el vínculo → el coach ya no lo ve', async () => {
     await transfer(coach, client);
-    await client.locator('#tab-perfil').click();
+    await client.evaluate(() => PGNav.show('perfil', 'all'));
     await client.getByRole('button', { name: 'Dejar de compartir con mi coach' }).click();
     await expect(client.getByRole('button', { name: 'Conectarme con mi coach' })).toBeVisible();
     await transfer(client, coach);

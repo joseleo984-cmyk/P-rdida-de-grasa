@@ -128,7 +128,7 @@ const toast = (page) => page.locator('#toast').textContent();
     await page.screenshot({ path: SHOTS + '05-panel-movil.png', fullPage: true });
 
     // Exportar JSON + CSV
-    await page.click('#tab-perfil');
+    await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#btn-export')]);
     const jsonPath = OUT + 'export.json';
     await dl.saveAs(jsonPath);

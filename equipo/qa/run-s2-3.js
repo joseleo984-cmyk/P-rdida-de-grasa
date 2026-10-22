@@ -62,7 +62,7 @@ async function openCopy(page, obj, selector = '#file-coach', name = 'cliente.jso
   log('Precondición: datos propios con 2 fotos', before.photos === 2 && before.ls.includes('Ana'));
 
   // CSV completo
-  await page.click('#tab-perfil');
+  await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#btn-export-csv')]);
   const csv = fs.readFileSync(await dl.path(), 'utf8');
   const lines = csv.replace(/^﻿/, '').split('\r\n');
@@ -112,7 +112,7 @@ async function openCopy(page, obj, selector = '#file-coach', name = 'cliente.jso
   const after = await snapshot(page);
   log('Datos propios intactos: localStorage byte a byte (todas las claves)', after.ls === before.ls);
   log('Datos propios intactos: IndexedDB con las mismas 2 fotos', after.photos === 2 && after.photoBytes === before.photoBytes);
-  await page.click('#tab-fotos');
+  await page.evaluate(() => (window.PGNav ? PGNav.show('fotos') : document.querySelector('#tab-fotos').click()));
   log('Mi galería sigue mostrando mis 2 fotos', (await page.locator('#gallery .thumb').count()) === 2);
   await page.click('#tab-panel');
   log('Mi panel sigue con mis datos', (await page.locator('#st-weight').innerText()).includes('68,8'));

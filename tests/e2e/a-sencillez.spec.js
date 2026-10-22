@@ -81,15 +81,15 @@ test.describe('A3 en Safari de iPhone', () => {
     await expect(card).toBeHidden();
   });
 
-  test('"No mostrar más" se recuerda, y "Cómo instalar la app" sigue disponible en Perfil', async ({ app, page }) => {
+  test('"No mostrar más" se recuerda, y "Cómo instalar la app" sigue disponible en Más', async ({ app, page }) => {
     await app.open({ state: state({ consent: CONSENT }) });
     await expect(page.locator('#install-card')).toBeVisible();
     await page.getByRole('button', { name: 'No mostrar más' }).click();
     expect(await app.pref(GUIDE_KEY)).toBe('never');
     await app.reload();
     await expect(page.locator('#install-card')).toBeHidden();
-    await app.tab('perfil');
-    const opener = page.getByRole('button', { name: 'Cómo instalar la app' });
+    await page.locator('#tab-mas').click();
+    const opener = page.getByRole('button', { name: /Cómo instalar la app/ });
     await opener.click();
     const dlg = page.locator('#install-dialog');
     await expect(dlg).toBeVisible();
@@ -114,8 +114,8 @@ test.describe('A3 en otros navegadores', () => {
     test('no aparece, pero la guía permanente avisa que los pasos son de Safari', async ({ app, page }) => {
       await app.open({ state: state({ consent: CONSENT }) });
       await expect(page.locator('#install-card')).toBeHidden();
-      await app.tab('perfil');
-      await page.getByRole('button', { name: 'Cómo instalar la app' }).click();
+      await page.locator('#tab-mas').click();
+      await page.getByRole('button', { name: /Cómo instalar la app/ }).click();
       await expect(page.locator('#install-dialog-note')).toBeVisible();
     });
   });

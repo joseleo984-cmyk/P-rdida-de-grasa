@@ -47,7 +47,7 @@ async function acceptLegalIfPresent(page, { photos = true, sensitive = true } = 
 
 // La app arrancó: o se ve la barra de pestañas o la pantalla legal (que la oculta hasta aceptar).
 // (S3-2) Con servidor de pruebas (?remote=fake) puede verse también la pantalla de cuenta.
-const appReady = (page) => expect(page.locator('#tab-panel, [data-testid="legal-gate"], [data-testid="account-gate"]').filter({ visible: true }).first()).toBeVisible();
+const appReady = (page) => expect(page.locator('.tabbar button, [data-testid="legal-gate"], [data-testid="account-gate"]').filter({ visible: true }).first()).toBeVisible();
 
 // Consentimiento vigente (todas las casillas) para sembrar estados que no deben pasar por la pantalla legal.
 const CONSENT = require('../../schema.js').buildConsent({ terms: true, privacy: true, adult: true, sensitiveHealth: true, photos: true }, '2026-10-01T12:00:00.000Z');
@@ -83,7 +83,10 @@ const test = base.extend({
         await appReady(page);
         if (legal) await acceptLegalIfPresent(page);
       },
-      tab: (name) => page.locator(`#tab-${name}`).click(),
+      // Pestañas de la barra. «perfil» y «fotos» ya no son botones de la barra (viven en Más): se abren con PGNav.
+      // Perfil se abre con todas sus tarjetas ('all'); las pruebas de la navegación de Más usan los botones de verdad.
+      tab: (name) => (name === 'perfil' ? page.evaluate(() => PGNav.show('perfil', 'all')) : name === 'fotos' ? page.evaluate(() => PGNav.show('fotos')) : page.locator(`#tab-${name}`).click()),
+      goPerfil: (mode = 'all') => page.evaluate((m) => PGNav.show('perfil', m), mode),
       stored: () => page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), KEY),
       pref: (k) => page.evaluate((k) => localStorage.getItem(k), k),
       toast: () => page.locator('#toast'),

@@ -1,54 +1,16 @@
 // A1: invitación por WhatsApp (panel del coach) y apertura de la app con ?c=CODIGO (lado del cliente). Servidor FALSO.
-const { test, expect, state, CONSENT, acceptLegalIfPresent } = require('./helpers');
+const { test, expect } = require('./helpers');
 
 const FAKE = 'index.html?remote=fake';
 const SKIP = { 'perdida-grasa:account-skip': '1' };
-const EMPTY = () => state({ profile: null, entries: [], consent: CONSENT });
-const INVITE_KEY = 'perdida-grasa:invite';
-
-async function loginAsCoach(page, email, biz) {
-  await page.evaluate(async ({ email, biz }) => {
-    const be = window.__pgFakeBackend;
-    const r = RemoteFake.createFake({ backend: be, storage: localStorage });
-    await r.auth.sendCode(email);
-    const { user } = await r.auth.verifyCode(email, be.lastCode(email));
-    await r.account.joinApp();
-    await r.coach.becomeCoach(biz);
-    const c = await r.coach.myCoach();
-    localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: await r.account.roles(), onboarded: true, coach: c }));
-    localStorage.setItem('perdida-grasa:owner', user.id);
-  }, { email, biz });
-  await page.reload();
-  await acceptLegalIfPresent(page);
-}
-async function newPhone(browser, testInfo, { backend, path, prefs = {} }) {
-  const ctx = await browser.newContext({ ...testInfo.project.use, baseURL: testInfo.project.use.baseURL, permissions: ['clipboard-read', 'clipboard-write'] });
-  const p = await ctx.newPage();
-  p.on('dialog', (d) => d.accept());
-  await p.clock.install({ time: new Date('2026-10-21T12:00:00-05:00') });
-  await p.addInitScript(({ s, prefs, backend }) => {
-    if (sessionStorage.getItem('__seed')) return;
-    sessionStorage.setItem('__seed', '1');
-    localStorage.setItem('perdida-grasa:v1', JSON.stringify(s));
-    if (backend) localStorage.setItem('pg-fake-backend', backend);
-    for (const [k, v] of Object.entries(prefs)) localStorage.setItem(k, v);
-  }, { s: EMPTY(), prefs, backend });
-  await p.goto(path);
-  await acceptLegalIfPresent(p);
-  return { ctx, p };
-}
-async function loginWithEmail(p, email) {
-  await p.getByLabel('Tu correo').fill(email);
-  await p.getByRole('button', { name: /Enviarme el código/ }).click();
-  await expect(p.locator('#acc-step-code')).toBeVisible();
-  await p.getByLabel('Código', { exact: true }).fill(await p.evaluate((e) => window.__pgFakeBackend.lastCode(e), email));
-}
+const { EMPTY, INVITE_KEY, loginAsCoach, newPhone, loginWithEmail } = require('./fake-helpers');
 
 test('coach: mensaje de WhatsApp con vista previa, enlace con el código y copia con alternativa', async ({ app, page }) => {
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await app.open({ path: FAKE, state: EMPTY(), prefs: SKIP });
   await loginAsCoach(page, 'coach@ejemplo.com', 'Fit <b>Ana</b> & Co');
-  await page.locator('#tab-coach').click();
+  await page.locator('#tab-invitar').click();
+  await expect(page.locator('#view-invitar')).toBeVisible();
   const code = await page.evaluate(() => JSON.parse(localStorage.getItem('perdida-grasa:account')).coach.inviteCode);
   await expect(page.locator('#invite-card')).toBeVisible();
   const origin = await page.evaluate(() => location.origin + location.pathname);

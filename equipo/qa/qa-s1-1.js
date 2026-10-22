@@ -48,7 +48,7 @@ async function importJSON(page, obj) {
 const stored = (page) => page.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), KEY);
 const exportPhotos = (page) => page.evaluate(() => Photos.exportAll());
 async function fillProfile(page, p) {
-  await page.click('#tab-perfil');
+  await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
   const f = page.locator('#form-profile');
   await f.locator('[name=name]').fill(p.name);
   await f.locator('[name=sex]').selectOption(p.sex);
@@ -92,7 +92,7 @@ async function addHabits(page, d, h) {
   await page.waitForTimeout(120);
 }
 async function addPhoto(page, d, pose) {
-  await page.click('#tab-fotos');
+  await page.evaluate(() => (window.PGNav ? PGNav.show('fotos') : document.querySelector('#tab-fotos').click()));
   const b64 = await page.evaluate(() => {
     const c = document.createElement('canvas'); c.width = 320; c.height = 240;
     const g = c.getContext('2d'); g.fillStyle = '#c33'; g.fillRect(0, 0, 320, 240); g.fillStyle = '#3c3'; g.fillRect(40, 40, 120, 90);
@@ -131,7 +131,7 @@ const eqData = (a, b) => eq(bare(a), bare(b));
   await addPhoto(old.page, iso(3), 'perfil');
   const oldRaw = await old.page.evaluate((k) => localStorage.getItem(k), KEY);
   const oldState = JSON.parse(oldRaw);
-  await old.page.click('#tab-perfil');
+  await old.page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
   const [dl] = await Promise.all([old.page.waitForEvent('download'), old.page.click('#btn-export')]);
   const oldBackup = JSON.parse(fs.readFileSync(await dl.path(), 'utf8'));
   log('App anterior: datos v1 creados por UI (sin schemaVersion, 2 fotos)', oldBackup.schemaVersion === undefined && oldBackup.photos.length === 2 && oldState.entries.length === 3 && old.errors.length === 0, old.errors.join(' | '));
@@ -151,10 +151,10 @@ const eqData = (a, b) => eq(bare(a), bare(b));
     const key = (x) => x.createdAt;   // v4: los ids de foto pasan a UUID; createdAt identifica cada foto
     const same = ph.length === 2 && oldBackup.photos.every((o) => { const n = ph.find((p) => key(p) === key(o)); return n && n.data === o.data && n.pose === o.pose && n.date === o.date && n.width === o.width && n.createdAt === o.createdAt; });
     log('Respaldo v1 real: 2 fotos con bytes, pose, fecha y metadatos idénticos', same);
-    await page.click('#tab-fotos');
+    await page.evaluate(() => (window.PGNav ? PGNav.show('fotos') : document.querySelector('#tab-fotos').click()));
     log('Respaldo v1 real: galería y comparador renderizan', (await page.locator('#gallery .thumb').count()) === 2 && errors.length === 0, errors.join(' | '));
     // Ida y vuelta: exportar desde la nueva y reimportar
-    await page.click('#tab-perfil');
+    await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
     const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('#btn-export')]);
     const newBackup = JSON.parse(fs.readFileSync(await dl2.path(), 'utf8'));
     log(`Exportación nueva lleva schemaVersion ${Schema.CURRENT_VERSION} y exportedAt`, newBackup.schemaVersion === Schema.CURRENT_VERSION && !Number.isNaN(Date.parse(newBackup.exportedAt)));
@@ -284,7 +284,7 @@ const eqData = (a, b) => eq(bare(a), bare(b));
       localStorage.setItem('perdida-grasa:backup', '{"profile":{"name":"secreto"}}');
       localStorage.setItem('perdida-grasa:corrupto', '{secreto');
     });
-    await page.click('#tab-perfil');
+    await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
     await page.click('#btn-reset');
     await page.waitForTimeout(400);
     const k = await page.evaluate(() => Object.fromEntries(['lastBackup', 'backupSnooze', 'backup', 'corrupto'].map((x) => [x, localStorage.getItem('perdida-grasa:' + x)])));
@@ -303,7 +303,7 @@ const eqData = (a, b) => eq(bare(a), bare(b));
       await Photos.put({ id: 'sinfecha', pose: 'frente', blob, createdAt: 2 });
     });
     await page.reload(); await page.waitForTimeout(400);
-    await page.click('#tab-fotos'); await page.waitForTimeout(200);
+    await page.evaluate(() => (window.PGNav ? PGNav.show('fotos') : document.querySelector('#tab-fotos').click())); await page.waitForTimeout(200);
     const xss = await page.evaluate(() => window.__xss);
     log('Fotos heredadas maliciosas en IndexedDB: sin XSS', xss === undefined, 'xss=' + xss);
     log('Fotos heredadas sin fecha: la galería no rompe', !errors.some((e) => e.startsWith('pageerror')), errors.join(' | '));
@@ -323,10 +323,10 @@ const eqData = (a, b) => eq(bare(a), bare(b));
       library: { k: { name: P(13), kcal: 1 } },
       photos: [{ id: P(14), date: d, pose: P(15), data: oldBackup.photos[0].data }, { id: 'z', date: iso(8), pose: P(16), data: oldBackup.photos[1].data }],
     });
-    for (const v of ['panel', 'registro', 'comidas', 'fotos', 'perfil']) { await page.click('#tab-' + v); await page.waitForTimeout(120); }
+    for (const v of ['panel', 'registro', 'comidas', 'fotos', 'perfil']) { await page.evaluate((v) => (window.PGNav && (v === 'perfil' || v === 'fotos') ? PGNav.show(v, v === 'perfil' ? 'all' : undefined) : document.querySelector('#tab-' + v).click()), v); await page.waitForTimeout(120); }
     await page.locator('#compare-pose button[data-pose=frente]').click().catch(() => {});
     await page.reload(); await page.waitForTimeout(300);
-    for (const v of ['panel', 'registro', 'comidas', 'fotos', 'perfil']) { await page.click('#tab-' + v); await page.waitForTimeout(120); }
+    for (const v of ['panel', 'registro', 'comidas', 'fotos', 'perfil']) { await page.evaluate((v) => (window.PGNav && (v === 'perfil' || v === 'fotos') ? PGNav.show(v, v === 'perfil' ? 'all' : undefined) : document.querySelector('#tab-' + v).click()), v); await page.waitForTimeout(120); }
     const fired = await page.evaluate(() => Object.keys(window).filter((k) => /^__x\d+$/.test(k)));
     log('Payload en todos los campos: ningún script ejecutado', fired.length === 0, fired.join(','));
     const s = await stored(page);
@@ -399,7 +399,7 @@ const eqData = (a, b) => eq(bare(a), bare(b));
     await page.locator('#form-food button[type=submit]').click(); await page.waitForTimeout(150);
     log('D2: cuota en alimento → no aparece en la lista', !(await page.locator('#food-list').innerText()).includes('Pan') && (await toast(page)).startsWith('Almacenamiento'), await toast(page));
     // D3 con cuota llena: Borrar todo funciona igualmente
-    await page.click('#tab-perfil'); await page.click('#btn-reset'); await page.waitForTimeout(300);
+    await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click())); await page.click('#btn-reset'); await page.waitForTimeout(300);
     const left = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('perdida-grasa')));
     log('D3: Borrar todo con cuota llena borra todas las claves', left.length === 0 && (await toast(page)) === 'Datos borrados', JSON.stringify(left) + ' ' + (await toast(page)));
     log('Sin errores de consola (re-verificación D2/D3)', errors.length === 0, errors.join(' | '));
@@ -421,6 +421,7 @@ const eqData = (a, b) => eq(bare(a), bare(b));
     const t = await toast(page);
     log('D1: aviso persistente con el motivo y formulario precargado', issue.includes('meta 80 kg') && (await page.locator('#form-profile [name=goalWeight]').inputValue()) === '80', issue);
     log('Obs: el motivo se anuncia dos veces al cargar (toast role=status + #profile-issue role=alert)', !(t.includes('Revisa tu perfil') && issue.includes('Revisa tu perfil')), `toast="${t}"`);
+    await page.evaluate(() => PGNav.show('perfil', 'all')); // el aviso se ve en «Mi plan y perfil»; la exportación está en Datos
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#btn-export')]);
     const exp = JSON.parse(fs.readFileSync(await dl.path(), 'utf8'));
     log('D1: la exportación conserva el borrador', exp.profile && exp.profile.goalWeight === 80);

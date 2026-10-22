@@ -110,7 +110,7 @@ async function accept(page, marks) {
     log('sensitiveHealth = true con su fecha', c2.sensitiveHealth === true && c2.sensitiveHealthAt >= c.acceptedAt && c2.acceptedAt === c.acceptedAt);
 
     // Fotos: bloqueadas → autorizar → retirar
-    await page.click('#tab-fotos');
+    await page.evaluate(() => (window.PGNav ? PGNav.show('fotos') : document.querySelector('#tab-fotos').click()));
     log('Fotos sin autorizar: pestaña bloqueada con botón para autorizar', await visible(page, '#view-fotos .photos-gate') && !(await visible(page, '#form-photo')));
     // (requestSubmit no sirve: el campo de archivo es obligatorio y la validación nativa lo frena antes)
     const pBlocked = await page.evaluate(() => { document.querySelector('#form-photo').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); return document.querySelector('#toast').textContent; });
@@ -119,7 +119,7 @@ async function accept(page, marks) {
     log('Autorizar fotos desbloquea la pestaña', !(await visible(page, '#view-fotos .photos-gate')) && await visible(page, '#form-photo') && (await stored(page)).consent.photos === true);
 
     // Perfil → Privacidad
-    await page.click('#tab-perfil');
+    await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
     const priv = await page.locator('#privacy-list').innerText();
     log('Privacidad muestra lo aceptado (versiones, salud, fotos)', priv.includes('Versión ' + Schema.LEGAL_VERSIONS.terms) && /Datos de salud\s+Autorizado/.test(priv) && /Fotos\s+Autorizado/.test(priv), priv.replace(/\n/g, ' / '));
     await page.locator('#privacy-card').scrollIntoViewIfNeeded();
@@ -147,7 +147,7 @@ async function accept(page, marks) {
     log('Tras aceptar ve sus 2 registros', (await page.locator('#entries-table tbody tr').count()) === 2);
     const mine = (await stored(page)).consent;
 
-    await page.click('#tab-perfil');
+    await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#btn-export')]);
     const backup = JSON.parse(fs.readFileSync(await dl.path(), 'utf8'));
     await page.locator('#btn-backup-no').click();
@@ -182,7 +182,7 @@ async function accept(page, marks) {
     log('Tras re-aceptar: versión vigente y datos intactos', (await stored(page)).consent.termsVersion === Schema.LEGAL_VERSIONS.terms && (await stored(page)).entries.length === v1.entries.length);
 
     // Retirar T&C/Política → Borrar todo con confirmación → vuelve la pantalla
-    await page.click('#tab-perfil');
+    await page.evaluate(() => (window.PGNav ? PGNav.show('perfil', 'all') : document.querySelector('#tab-perfil').click()));
     page.answer = false;
     await page.locator('#btn-withdraw-legal').click();
     log('Retirar T&C: si se cancela no se borra nada', (await stored(page)) !== null && !(await visible(page, '#consent')));

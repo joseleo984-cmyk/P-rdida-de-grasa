@@ -229,6 +229,12 @@
   // ---------- Eventos del coach ----------
   function wireCoach() {
     $('#tab-coach').addEventListener('click', () => { showList(); loadClients(); });
+    // ＋ Invitar: la vista con el mensaje de WhatsApp y el código; se refresca el código del coach sin cargar toda la lista.
+    $('#tab-invitar').addEventListener('click', async () => {
+      renderInvite((A.meta() || {}).coach);
+      try { const mine = await A.remote.coach.myCoach(); A.setMeta({ coach: mine }); renderInvite(mine); } catch { /* sin conexión: se ve el código guardado */ }
+      $('#invitar-title').focus();
+    });
     $('#btn-coach-refresh').addEventListener('click', loadClients);
     $('#invite-name').addEventListener('input', renderInvitePreview);
     $('#btn-invite-copy').addEventListener('click', copyInviteLink);
@@ -360,7 +366,7 @@
     wireClient();
     refreshNotes();
     document.addEventListener('pg:account-changed', (ev) => {
-      if (!(ev.detail && ev.detail.isCoach)) { cache.clear(); if ($('#view-coach').classList.contains('active')) $('#tab-panel').click(); }
+      if (!(ev.detail && ev.detail.isCoach)) { cache.clear(); if ($('#view-coach').classList.contains('active') || $('#view-invitar').classList.contains('active')) $('#tab-panel').click(); }
       refreshNotes();
     });
   }
