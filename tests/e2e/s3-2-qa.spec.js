@@ -13,7 +13,6 @@ async function enterEmail(page, email) {
 }
 async function enterCode(page, email) {
   await page.getByLabel('Código', { exact: true }).fill(await lastCode(page, email.toLowerCase()));
-  await page.getByRole('button', { name: 'Entrar' }).click();
   await answerOwnerIfAsked(page);
 }
 // Sirve la app local bajo otro origen (p. ej. el de GitHub Pages) para probar la lógica que depende del host.

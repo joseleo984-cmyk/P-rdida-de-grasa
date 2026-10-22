@@ -69,7 +69,7 @@
         <p id="acc-invite-email" class="small acc-note hidden">Tu coach te invitó. Entra con tu correo y quedas conectado con él.</p>
         <form id="form-acc-email" novalidate>
           <label class="acc-label" for="acc-email">Tu correo</label>
-          <input type="email" id="acc-email" name="email" autocomplete="email" inputmode="email" required maxlength="254" aria-describedby="acc-email-help acc-email-error">
+          <input type="email" id="acc-email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" required maxlength="254" aria-describedby="acc-email-help acc-email-error">
           <p id="acc-email-help" class="small muted">Te enviaremos un código de 6 dígitos. No usamos contraseña.</p>
           <p id="acc-email-error" class="acc-error hidden" role="alert"></p>
           <button type="submit" class="btn btn-tall acc-main">Enviarme el código</button>
@@ -82,7 +82,7 @@
         <p class="small">Lo enviamos a <strong id="acc-code-email"></strong>. Puede tardar un minuto; revisa también el correo no deseado.</p>
         <form id="form-acc-code" novalidate>
           <label class="acc-label" for="acc-code">Código</label>
-          <input type="text" id="acc-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" pattern="\d{6,10}" required aria-describedby="acc-code-error">
+          <input type="text" id="acc-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" autocapitalize="off" autocorrect="off" spellcheck="false" required aria-describedby="acc-code-error">
           <p id="acc-code-error" class="acc-error hidden" role="alert"></p>
           <button type="submit" class="btn btn-tall acc-main">Entrar</button>
         </form>

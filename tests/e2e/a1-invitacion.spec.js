@@ -42,7 +42,6 @@ async function loginWithEmail(p, email) {
   await p.getByRole('button', { name: /Enviarme el código/ }).click();
   await expect(p.locator('#acc-step-code')).toBeVisible();
   await p.getByLabel('Código', { exact: true }).fill(await p.evaluate((e) => window.__pgFakeBackend.lastCode(e), email));
-  await p.getByRole('button', { name: 'Entrar' }).click();
 }
 
 test('coach: mensaje de WhatsApp con vista previa, enlace con el código y copia con alternativa', async ({ app, page }) => {

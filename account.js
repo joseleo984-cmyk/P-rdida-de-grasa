@@ -14,6 +14,7 @@
   const STATE_KEY = PGNS.key('v1');
   const INVITE_KEY = PGNS.key('invite');      // A1: invitación pendiente { code, at } (caduca a los 7 días)
   const RESEND_S = 60;
+  const OTP_LEN = 6;           // largo del código del correo (el mismo que el campo y su maxlength)
   const ls = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* sin espacio */ } },
@@ -144,6 +145,7 @@
       email = value.toLowerCase();
       $('#acc-code-email').textContent = email;
       $('#acc-code').value = '';
+      codeSent = '';
       showError('#acc-code-error', '');
       startResend();
       step('code', '#acc-code');
@@ -185,12 +187,21 @@
     } catch (err) { showError('#acc-code-error', errorText(err, 'code')); }
   });
   $('#btn-acc-change').addEventListener('click', () => { stopResend(); step('email', '#acc-email'); });
-  $('#acc-code').addEventListener('input', (ev) => { ev.target.value = ev.target.value.replace(/\D/g, '').slice(0, 10); });
+  // A4: el código del correo (o el que sugiere el teclado) entra solo al completar los dígitos. `codeSent` evita enviarlo dos veces.
+  let codeSent = '';
+  $('#acc-code').addEventListener('input', (ev) => {
+    const el = ev.target;
+    el.value = el.value.replace(/\D/g, '').slice(0, OTP_LEN);
+    const form = $('#form-acc-code');
+    if (el.value.length === OTP_LEN && el.value !== codeSent && form.getAttribute('aria-busy') !== 'true' && email) { codeSent = el.value; form.requestSubmit(); }
+  });
   $('#form-acc-code').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const form = ev.currentTarget;
+    if (form.getAttribute('aria-busy') === 'true') return; // ya se está enviando
     const code = $('#acc-code').value.trim();
-    if (!/^\d{6,10}$/.test(code)) { showError('#acc-code-error', 'El código tiene 6 dígitos (algunos correos traen hasta 10).'); $('#acc-code').focus(); return; }
+    codeSent = code;
+    if (code.length !== OTP_LEN || !/^\d+$/.test(code)) { showError('#acc-code-error', `El código tiene ${OTP_LEN} dígitos.`); $('#acc-code').focus(); codeSent = ''; return; }
     showError('#acc-code-error', '');
     busy(form, true);
     try {
@@ -206,7 +217,7 @@
     } catch (err) {
       showError('#acc-code-error', errorText(err, 'code'));
       $('#acc-code').focus();
-    } finally { busy(form, false); }
+    } finally { codeSent = ''; busy(form, false); }
   });
 
   // ---------- Dueño de los datos del teléfono (QA S3-2 O1, decisión del SM) ----------

@@ -14,7 +14,6 @@ async function enterEmail(page, email) {
 }
 async function enterCode(page, email) {
   await page.getByLabel('Código', { exact: true }).fill(await lastCode(page, email.toLowerCase()));
-  await page.getByRole('button', { name: 'Entrar' }).click();
   await answerOwnerIfAsked(page);
 }
 
@@ -57,7 +56,6 @@ test('primer uso: la pantalla legal va antes; luego correo → código → rol c
 
   // Código incorrecto
   await page.getByLabel('Código', { exact: true }).fill(good === '111111' ? '222222' : '111111');
-  await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.locator('#acc-code-error')).toHaveText(/Código incorrecto o caducado/);
 
   await enterCode(page, 'ana@ejemplo.com');
@@ -106,7 +104,6 @@ test('reenviar el código: espera de 60 s con cuenta atrás; "Usar otro correo" 
   const second = await lastCode(page, 'r@x.co');
   if (first !== second) {
     await page.getByLabel('Código', { exact: true }).fill(first);
-    await page.getByRole('button', { name: 'Entrar' }).click();
     await expect(page.locator('#acc-code-error')).toBeVisible();
   }
   await page.getByRole('button', { name: 'Usar otro correo' }).click();
@@ -193,7 +190,6 @@ const consentsOf = async (page, email) => {
 async function codeOnly(page, email) {
   await enterEmail(page, email);
   await page.getByLabel('Código', { exact: true }).fill(await lastCode(page, email));
-  await page.getByRole('button', { name: 'Entrar' }).click();
 }
 
 test('O1-a: datos sin dueño → "¿Estos datos son tuyos?" → Sí: quedan a nombre de la cuenta y se registra su aceptación', async ({ app, page }) => {
