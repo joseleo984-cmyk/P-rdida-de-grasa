@@ -107,6 +107,13 @@
     return fill(t.body, vars) + linkLine(t.links);
   }
 
+  // Sprint 10: textos EXACTOS de versiones ANTERIORES del acuerdo del coach (A7) que alguien pudo haber aceptado. Al subir la versión
+  // de A7, el texto viejo (fullText completo) se MUEVE aquí sin cambiarle una letra: sirve para «Mi acuerdo» y para la copia por correo.
+  const A7_PAST = {};
+  // versión → texto exacto (el vigente más los anteriores). Alimenta supabase/functions/_shared/textos-acuerdo.mjs (npm run build:funcion).
+  const agreementTexts = () => ({ ...A7_PAST, [version('A7')]: fullText('A7') });
+  const agreementText = (ver) => { const all = agreementTexts(); return Object.prototype.hasOwnProperty.call(all, ver) ? all[ver] : null; };
+
   const A8text = {
     withdraw: (que, { borra = false } = {}) => fill(A8.withdraw, { que, destino: borra ? A8.destinoBorra : A8.destinoQuedaCuenta }),
     delete: () => A8.delete,
@@ -148,7 +155,7 @@
   // A1/A2 se piden al pedir el código (antes de que el correo salga hacia Brevo). `terms` = lo guardado en este teléfono.
   const termsCurrent = (terms, legal) => !!(terms && terms.a1 === version('A1') && terms.a2 === version('A2') && terms.legal && terms.legal.terms === legal.terms && terms.legal.privacy === legal.privacy);
 
-  const api = { TEXTS, A8, A8text, get, version, kinds, fullText, fill, cloudAllowed, coachAgreementOK, shareMigrationNeeded, applyEvent, mergeServer, dropSent, termsCurrent };
+  const api = { TEXTS, A8, A8text, get, version, kinds, fullText, agreementTexts, agreementText, fill, cloudAllowed, coachAgreementOK, shareMigrationNeeded, applyEvent, mergeServer, dropSent, termsCurrent };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.ConsentTexts = api;
 })(typeof window !== 'undefined' ? window : globalThis);
