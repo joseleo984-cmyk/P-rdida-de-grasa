@@ -7,6 +7,9 @@
 // Reglas (todas deben cumplirse; el script imprime cada fallo y sale con código 1):
 //   config.js: env '' · mode 'real' · url https://<ref>.supabase.co · key sb_publishable_… · ni sb_secret_ ni service_role
 //              en ningún sitio del archivo · la URL no es la del proyecto de pruebas (config.pruebas.js).
+//   captchaSiteKey (Sprint 9, opcional): vacía o con la forma de una site key PÚBLICA de Turnstile (0x4…, 22-30 caracteres);
+//              nada más con forma de clave en el archivo (una clave SECRETA de Turnstile también empieza por 0x4… pero es más
+//              larga) y no se aceptan las claves de prueba de Cloudflare (1x…, 2x…, 3x…). En --vacio debe estar vacía.
 //   legal/*.html: sin marcadores pendientes ([FECHA DE VIGENCIA], [NOMBRE COMPLETO DEL RESPONSABLE]…, cualquier [MAYÚSCULAS])
 //              y sin el aviso «Borrador pendiente de revisión legal».
 // No imprime nunca la clave completa.
@@ -17,6 +20,10 @@ const path = require('node:path');
 const URL_RE = /^https:\/\/[a-z0-9]{15,30}\.supabase\.co$/;
 const KEY_RE = /^sb_publishable_[A-Za-z0-9_-]{16,}$/;
 const SECRET_RE = /sb_secret_|service_role/i;
+// Site key PÚBLICA de Turnstile (Sprint 9). Mismo patrón que Remote.CAPTCHA_SITEKEY_RE (remote.js); una prueba lo comprueba.
+const CAPTCHA_RE = /^0x4[A-Za-z0-9_-]{17,27}$/;
+const CAPTCHA_TEST_RE = /^[123]x[0-9A-Za-z]{22}$/;
+const CAPTCHA_SECRET_NAME_RE = /captcha[_-]?secret|turnstile[_-]?secret|secret[_-]?key|secretKey/i;
 // [FECHA DE VIGENCIA], [CIUDAD], [NÚMERO DE CÉDULA]… (mayúsculas, espacios, barras), y la palabra PENDIENTE entre corchetes.
 const PLACEHOLDER_RE = /\[[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ0-9 ./_:-]{2,60}\]/g;
 const DRAFT_RE = /Borrador pendiente de revisión legal/i;
@@ -24,12 +31,29 @@ const DRAFT_RE = /Borrador pendiente de revisión legal/i;
 const field = (text, name) => { const m = text.match(new RegExp(`\\b${name}:\\s*(['"\`])([^'"\`]*)\\1`)); return m ? m[2] : null; };
 const mask = (k) => (k ? k.slice(0, 15) + '…' : '(vacía)');
 
+// Sprint 9: revisa SOLO lo del captcha en un config*.js. Devuelve la lista de problemas (vacía = bien).
+//   empty: reversa (captchaSiteKey debe estar vacía). allowTest: acepta las claves de prueba de Cloudflare (solo para pruebas).
+function checkCaptcha(text, { empty = false, allowTest = false } = {}) {
+  const problems = [];
+  const val = field(text, 'captchaSiteKey') || '';
+  if (val) {
+    if (empty) problems.push('REVERSA: captchaSiteKey debe estar vacía');
+    else if (CAPTCHA_TEST_RE.test(val)) { if (!allowTest) problems.push('captchaSiteKey es una clave de PRUEBA de Cloudflare: solo vale en las pruebas automáticas'); }
+    else if (!CAPTCHA_RE.test(val)) problems.push('captchaSiteKey no tiene la forma de una site key pública de Turnstile (0x4… de 22 a 30 caracteres). ¿Pegaste la clave SECRETA? Esa va solo en el panel de Supabase');
+  }
+  if (CAPTCHA_SECRET_NAME_RE.test(text)) problems.push('el archivo menciona una clave secreta del captcha: NUNCA va en el cliente');
+  // Cualquier otra cadena con forma de clave de Cloudflare que no sea el valor de captchaSiteKey es sospechosa.
+  for (const t of text.match(/\b0x4[A-Za-z0-9_-]{8,}/g) || []) if (t !== val) problems.push('hay una cadena con forma de clave de Cloudflare fuera de captchaSiteKey (' + t.slice(0, 8) + '…)');
+  return problems;
+}
+
 // Devuelve { problems: [], url, key } (key enmascarada). `testsRef`: referencia del proyecto de pruebas a rechazar.
 function checkConfig(text, { empty = false, testsUrl = null } = {}) {
   const problems = [];
   const url = field(text, 'url'), key = field(text, 'key'), env = field(text, 'env'), mode = field(text, 'mode');
   if (SECRET_RE.test(text)) problems.push('config.js contiene sb_secret_ o service_role: NUNCA van en el cliente');
   if (url === null || key === null) { problems.push('config.js no define url y key (formato de PG_CONFIG inesperado)'); return { problems, url, key: mask(key) }; }
+  problems.push(...checkCaptcha(text, { empty }));
   if (empty) {
     if (url !== '' || key !== '') problems.push('REVERSA: config.js debe tener url y key vacías');
     if (env !== '') problems.push("REVERSA: env debe ser ''");
@@ -74,7 +98,7 @@ function run(root, { empty = false } = {}) {
   return report;
 }
 
-module.exports = { checkConfig, checkLegal, run, URL_RE, KEY_RE };
+module.exports = { checkConfig, checkLegal, checkCaptcha, run, URL_RE, KEY_RE, CAPTCHA_RE };
 
 if (require.main === module) {
   const a = process.argv.slice(2);

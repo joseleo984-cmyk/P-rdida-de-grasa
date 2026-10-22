@@ -12,5 +12,6 @@
 | 7 | **Aviso de privacidad del correo (códigos)** | Qué datos recibe el proveedor de correo y para qué | P7 | Pantalla de correo y política |
 | 8 | **Procedimiento de incidentes y de reclamos (una página)** | Quién, a quién y en cuánto tiempo se avisa; modelo de respuesta al titular | P12 | Documento interno y enlace en la política |
 | 9 | **Texto de menores / mayoría de edad** | Declaración o verificación, qué pasa si se descubre un menor | P9 | Casilla y página «por qué solo mayores de 18» |
+| 10 | **Tercero nuevo: Cloudflare Turnstile (captcha)** *(Sprint 9, pendiente para el abogado)* | Al cargarse el widget (solo cuando hay `captchaSiteKey`, solo en la pantalla de entrada) Cloudflare recibe **señales del navegador y la dirección IP**; no recibe el correo ni datos de salud. Decidir: si va como encargado/subencargado en la política, la transmisión internacional (Cloudflare, EE. UU.), el aviso junto a A4code (Brevo) en la pantalla del correo y el DPA de Cloudflare. **No se editaron** los textos v0.3 ni `legal/*.html`. | P6, P7 | Política (§ terceros), pantalla de correo (junto al aviso de Brevo) |
 
 Después de redactar: actualizar `Schema.LEGAL_VERSIONS` (obliga a volver a aceptar), regenerar `legal/*.html` y volver a enviar al abogado la versión final antes de conectar la app a `plataforma`.

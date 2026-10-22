@@ -77,6 +77,10 @@
             <div class="auth-row"><label class="check"><input type="checkbox" name="a2" id="acc-a2"> <span id="acc-a2-text"></span></label><span class="auth-links" id="acc-a2-links"></span></div>
           </fieldset>
           <p id="acc-brevo" class="small muted"></p>
+          <div id="acc-captcha-email" class="acc-captcha hidden" role="group" aria-label="Verificación de seguridad">
+            <p class="small muted acc-captcha-status" aria-live="polite"></p>
+            <div class="acc-captcha-widget"></div>
+          </div>
           <p id="acc-email-error" class="acc-error hidden" role="alert"></p>
           <button type="submit" class="btn btn-tall acc-main">Enviarme el código</button>
         </form>
@@ -95,6 +99,10 @@
         <div class="row-actions acc-links">
           <button type="button" class="btn btn-ghost" id="btn-acc-resend" disabled>Reenviar código</button>
           <button type="button" class="btn-link small" id="btn-acc-change">Usar otro correo</button>
+        </div>
+        <div id="acc-captcha-code" class="acc-captcha hidden" role="group" aria-label="Verificación de seguridad">
+          <p class="small muted acc-captcha-status" aria-live="polite"></p>
+          <div class="acc-captcha-widget"></div>
         </div>
         <p id="acc-resend-hint" class="small muted" aria-live="polite"></p>
       </div>
@@ -869,6 +877,7 @@
   <script src="vendor/supabase-2.117.2.js"></script>
   <script src="invite.js"></script>
   <script src="qr.js"></script>
+  <script src="captcha.js"></script>
   <script src="remote.js"></script>
   <script src="account.js"></script>
   <script src="coach-panel.js"></script>

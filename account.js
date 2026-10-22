@@ -47,6 +47,37 @@
   }
   const clearInvite = () => ls.del(INVITE_KEY);
 
+  // Sprint 9: CAPTCHA (Cloudflare Turnstile). Solo existe si config trae captchaSiteKey; sin ella nada de esto se activa
+  // y no se carga ningún script externo.
+  const captcha = cfg.captchaSiteKey && window.Captcha ? Captcha.create({ siteKey: cfg.captchaSiteKey, onState: paintCaptchaState }) : null;
+  const captchaSlot = (name) => $(name === 'code' ? '#acc-captcha-code' : '#acc-captcha-email');
+  let captchaWhere = null; // 'email' | 'code': en qué paso está pintado el widget
+  function paintCaptchaState(state) {
+    const slot = captchaWhere && captchaSlot(captchaWhere);
+    if (!slot) return;
+    const st = slot.querySelector('.acc-captcha-status');
+    st.textContent = state === 'solved' ? Captcha.MESSAGES.ok
+      : state === 'error' || state === 'unavailable' ? Captcha.MESSAGES.failed
+      : state === 'idle' ? '' : Captcha.MESSAGES.checking;
+  }
+  function mountCaptcha(name) {
+    if (!captcha) return;
+    if (name !== 'email' && name !== 'code') { captchaWhere = null; captcha.destroy(); return; }
+    for (const n of ['email', 'code']) captchaSlot(n).classList.toggle('hidden', n !== name);
+    captchaWhere = name;
+    captcha.mount(captchaSlot(name).querySelector('.acc-captcha-widget'));
+  }
+  // Devuelve el token listo o '' (y deja el motivo en pantalla). Sin captcha configurado devuelve undefined: no hay nada que pedir.
+  function captchaToken(errSel) {
+    if (!captcha) return undefined;
+    const st = captcha.state();
+    if (st === 'solved' && captcha.token()) return captcha.token();
+    if (st === 'unavailable') { showError(errSel, Captcha.MESSAGES.failed); mountCaptcha(captchaWhere || 'email'); } // reintenta cargar el script
+    else if (st === 'error') { showError(errSel, Captcha.MESSAGES.failed); captcha.reset(); }
+    else showError(errSel, Captcha.MESSAGES.waiting);
+    return '';
+  }
+
   let remote = null;
   let email = '';
   let resendTimer = null;
@@ -68,6 +99,7 @@
       // Solo pruebas (localhost o ?remote=fake fuera de producción): servidor simulado guardado en localStorage.
       if (!window.RemoteFake) await loadScript('remote-fake.js');
       const backend = RemoteFake.persistentBackend(localStorage);
+      backend.captchaRequired = !!cfg.captchaSiteKey; // Sprint 9: el servidor falso exige el token del captcha si hay site key
       window.__pgFakeBackend = backend; // las pruebas leen aquí el código OTP (backend.lastCode)
       return Remote.createFake({ backend, storage: localStorage });
     }
@@ -93,6 +125,7 @@
       case 'invalid_code': return where === 'role'
         ? 'Ese código no existe o ya venció. Pídele a tu coach un enlace nuevo, o escríbelo aquí a mano.'
         : 'Ese código no es el correcto o ya venció. Mira el último correo que te llegó o pide uno nuevo.';
+      case 'captcha_failed': return Captcha.MESSAGES.failed;
       case 'rate_limited': return 'Demasiados intentos seguidos. Espera un poco y vuelve a intentarlo.';
       case 'invalid': return where === 'email' ? 'Escribe un correo válido, por ejemplo nombre@correo.com.' : (err.message || 'Revisa los datos.');
       case 'auth': return 'Tu sesión se cerró. Entra de nuevo con tu correo.';
@@ -117,6 +150,7 @@
   function step(name, focusSel) {
     for (const s of STEPS) $('#acc-step-' + s).classList.toggle('hidden', s !== name);
     $('#acc-invite-email').classList.toggle('hidden', !(name === 'email' && pendingInvite()));
+    mountCaptcha(name);
     const f = $(focusSel || `#acc-step-${name} h2`);
     if (f) f.focus();
   }
@@ -130,6 +164,7 @@
     document.body.classList.remove('account-open');
     $('#account').classList.add('hidden');
     stopResend();
+    mountCaptcha(null);
     renderCard();
     const tab = document.querySelector('.tabbar button.on') || $('#tab-panel');
     if (tab) tab.focus();
@@ -153,9 +188,11 @@
       return;
     }
     showError('#acc-email-error', '');
+    const captchaToken1 = captchaToken('#acc-email-error');
+    if (captchaToken1 === '') return;
     busy(form, true);
     try {
-      await remote.auth.sendCode(value);
+      await remote.auth.sendCode(value, { captchaToken: captchaToken1 });
       termsAt = nowISO();
       email = value.toLowerCase();
       $('#acc-code-email').textContent = email;
@@ -168,7 +205,10 @@
       // Si ya se pidió uno hace menos de un minuto, se puede escribir el que llegó.
       if (err && err.code === 'rate_limited' && email === value.toLowerCase()) { startResend(); step('code', '#acc-code'); }
       else { showError('#acc-email-error', errorText(err, 'email')); $('#acc-email').focus(); }
-    } finally { busy(form, false); }
+    } finally {
+      if (captcha && captchaWhere === 'email') captcha.reset(); // token de un solo uso: si seguimos en este paso, uno nuevo
+      busy(form, false);
+    }
   });
   // ---------- A1 + A2 (al crear la cuenta) ----------
   let termsAt = null; // cuándo las marcó la persona (se registran al entrar, ya con cuenta)
@@ -221,13 +261,16 @@
     resendTimer = setInterval(tick, 1000);
   }
   $('#btn-acc-resend').addEventListener('click', async () => {
+    const token = captchaToken('#acc-code-error');
+    if (token === '') return;
     try {
-      await remote.auth.sendCode(email);
+      await remote.auth.sendCode(email, { captchaToken: token });
       startResend();
       showError('#acc-code-error', '');
       $('#acc-resend-hint').textContent = 'Te enviamos un código nuevo. El anterior ya no sirve.';
       $('#acc-code').focus();
     } catch (err) { showError('#acc-code-error', errorText(err, 'code')); }
+    finally { if (captcha) captcha.reset(); } // token de un solo uso
   });
   $('#btn-acc-change').addEventListener('click', () => { stopResend(); step('email', '#acc-email'); });
   // A4: el código del correo (o el que sugiere el teclado) entra solo al completar los dígitos. `codeSent` evita enviarlo dos veces.

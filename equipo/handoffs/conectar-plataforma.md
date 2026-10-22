@@ -18,7 +18,7 @@ Quién: **SH** = Stakeholder (José), **EQ** = equipo (Dev). Regla: nada de clav
 ## 1. Archivos que se cambian (EQ, en una rama nueva)
 | Archivo | Cambio |
 |---|---|
-| `config.js` | `url` y `key` de `plataforma` (`env: ''`, `mode: 'real'`). **Hoy NO se toca.** |
+| `config.js` | `url` y `key` de `plataforma` (`env: ''`, `mode: 'real'`). **Hoy NO se toca.** Sprint 9: si se usa captcha, añadir también `captchaSiteKey: '0x4…'` (clave PÚBLICA del widget `plataforma`; `check:conexion` valida su forma y rechaza claves secretas y las de prueba de Cloudflare). **Orden:** primero esta PR publicada, después encender el captcha en Supabase `plataforma` (`equipo/handoffs/captcha-turnstile.md`). La raíz nunca lleva la site key de `pruebas`. |
 | `equipo/legal/terminos-y-condiciones.md` y `equipo/legal/politica-tratamiento-datos.md` | Texto aprobado v1.0: `**Versión:** 1.0`, rellenar fecha de vigencia y datos del responsable (`[FECHA DE VIGENCIA]`, `[NOMBRE COMPLETO DEL RESPONSABLE]`, `[CIUDAD]`, etc.), **quitar la palabra «borrador» de las 5 primeras líneas** (`scripts/build-legal.js → isDraft` mira ahí; si queda, la página sigue mostrando «Borrador pendiente de revisión legal»). Se parte de `equipo/legal/borradores/*-v0.3-cuentas.md` ajustados por el abogado. Los T&C deben seguir avisando que en el piloto **no hay copias de seguridad automáticas**. |
 | `legal/terminos.html`, `legal/privacidad.html` | **No se editan a mano**: se regeneran con `npm run legal`. |
 | `schema.js` | `LEGAL_VERSIONS = { terms: '1.0', privacy: '1.0' }` (obliga a todos a aceptar de nuevo). |
@@ -58,7 +58,7 @@ Además, a mano:
 
 ## 4. Reversa (si algo sale mal)
 Objetivo: la app vuelve a funcionar solo en cada teléfono, sin hablar con el servidor, en minutos y sin perder datos locales.
-1. EQ: PR que deja `config.js` **vacío** otra vez: `url: ''`, `key: ''` (`env: ''`, `mode: 'real'`). Comprobar con `node scripts/check-conexion.js --vacio` (debe decir «todo en orden (reversa)»).
+1. (Si el captcha estaba encendido: **primero** apagarlo en Supabase `plataforma`, Authentication → Attack Protection.) EQ: PR que deja `config.js` **vacío** otra vez: `url: ''`, `key: ''`, `captchaSiteKey` vacía (`env: ''`, `mode: 'real'`). Comprobar con `node scripts/check-conexion.js --vacio` (debe decir «todo en orden (reversa)»).
 2. Subir `CACHE` de `sw.js` en esa misma PR para que los teléfonos descarguen la versión vacía.
 3. Merge y esperar el despliegue. Los teléfonos con la cuenta guardada siguen con sus datos locales; la nube queda apagada.
 4. Si el problema es de seguridad: seguir `equipo/legal/plan-incidentes.md` en paralelo (pausar registros, rotar claves).

@@ -29,8 +29,10 @@ Estado al 2026-10-23 (Sprint 8). La conexión de la app oficial a `plataforma` q
 - [x] **EQ** `npm run smoke:remote` contra `plataforma` (con `NODE_USE_ENV_PROXY=1`) y repetir la matriz en vivo de QA (`scripts/qa-live-rls.js`, `scripts/qa-live-recheck.js`) con cuentas de prueba nuevas. **Hecho el 2026-10-22: 61/61 pruebas.**
 
 ## 3. Abuso del correo de códigos (también aplica en producción)
-- [ ] **SH+EQ** **Captcha** en Auth (*Attack Protection*, Cloudflare Turnstile, gratis) y que la app lo soporte.
-- [ ] **SH** Límite por hora de correos bajo (hoy 60).
+- [x] **EQ** La app soporta **Cloudflare Turnstile** (campo opcional `captchaSiteKey`; vacío = sin captcha) *(Sprint 9)*.
+- [ ] **SH+EQ** **Captcha** en Auth (*Attack Protection*, Cloudflare Turnstile, gratis): seguir `equipo/handoffs/captcha-turnstile.md` **en ese orden** (primero la app con la site key, después encender el captcha en Supabase; al revés el acceso se rompe). `pruebas` primero, `plataforma` al conectar.
+- [ ] **SH** Avisar al abogado de que **Cloudflare Turnstile es un tercero nuevo** (recibe señales del navegador y la IP al cargar el widget) para incluirlo en la política (`equipo/legal/borradores-pendientes.md` #10). No cambia los textos v0.3 hasta que él lo decida.
+- [ ] **SH** Límite por hora de correos bajo (hoy 60; sugerido 30 para el piloto: `equipo/handoffs/captcha-turnstile.md`, sección «Límite de correos»).
 - [ ] **SH** **Dominio propio** para el remitente (≈10–15 USD/año) autenticado en Brevo (SPF/DKIM); evita depender de un remitente @gmail.com.
 - [ ] **SH** Decidir si el cliente solo puede registrarse **con código de coach** (invitación obligatoria).
 - [ ] **SH** Decidir si pasar a un plan de pago de Brevo (más de 300 correos/día).

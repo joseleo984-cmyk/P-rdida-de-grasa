@@ -27,6 +27,20 @@ test('la raíz no incluye la URL ni la clave de pruebas y su config.js sigue vac
   assert.match(cfg, /key:\s*''/);
 });
 
+test('captcha: la raíz no lleva la captchaSiteKey de pruebas y ningún archivo lleva claves con forma de secreta', () => {
+  const m = fs.readFileSync(path.join(__dirname, '../config.pruebas.js'), 'utf8').match(/captchaSiteKey:\s*'([^']+)'/);
+  if (m) {
+    for (const f of walk(dir).filter((f) => !f.startsWith(path.join(dir, 'pruebas') + path.sep))) assert.ok(!fs.readFileSync(f, 'utf8').includes(m[1]), 'site key de pruebas en ' + f);
+    assert.ok(read('pruebas/config.js').includes(m[1]));
+  }
+  assert.ok(!/captchaSiteKey:\s*'[^']/.test(read('config.js')), 'la raíz sin captchaSiteKey');
+  for (const f of walk(dir)) {
+    if (f.includes(path.sep + 'vendor' + path.sep)) continue;
+    assert.ok(!/captcha[_-]?secret|turnstile[_-]?secret/i.test(fs.readFileSync(f, 'utf8')), 'clave secreta del captcha en ' + f);
+  }
+  assert.ok(fs.existsSync(path.join(dir, 'captcha.js')) && fs.existsSync(path.join(dir, 'pruebas', 'captcha.js')));
+});
+
 test('/pruebas/ lleva la URL correcta, la clave publicable, env pruebas, noindex y manifest propio', () => {
   const cfg = read('pruebas/config.js');
   assert.ok(cfg.includes(`https://${REF}.supabase.co`));
@@ -51,7 +65,7 @@ test('ninguna clave secreta ni service_role en todo _site', () => {
 
 test('el sitio incluye todos los archivos que carga index.html y precachea sw.js (raíz y pruebas)', () => {
   for (const base of ['', 'pruebas/']) {
-    for (const f of ['index.html', 'schema.js', 'consent-texts.js', 'coach.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'app.js', 'config.js', 'ns.js', 'remote.js', 'account.js', 'coach-panel.js', 'sync.js', 'cloud-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'calc.js', 'sw.js', 'manifest.webmanifest', 'icon.svg', 'styles.css', 'vendor/supabase-2.117.2.js', 'legal/terminos.html', 'legal/privacidad.html']) {
+    for (const f of ['index.html', 'schema.js', 'consent-texts.js', 'coach.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'app.js', 'config.js', 'ns.js', 'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'sync.js', 'cloud-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'calc.js', 'sw.js', 'manifest.webmanifest', 'icon.svg', 'styles.css', 'vendor/supabase-2.117.2.js', 'legal/terminos.html', 'legal/privacidad.html']) {
       assert.ok(fs.existsSync(path.join(dir, base, f)), base + f);
     }
   }

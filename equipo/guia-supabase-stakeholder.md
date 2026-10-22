@@ -159,7 +159,9 @@ de correo (SMTP).
    - **Username:** el login SMTP de Brevo · **Password:** la clave SMTP de Brevo
    - Guarde.
 5. **Authentication → Rate Limits:** con SMTP propio suele permitir unos 30 correos por hora. Póngalo en `60` por hora
-   (a verificar el valor por defecto).
+   (a verificar el valor por defecto). *(Sprint 9: valores sugeridos para el piloto y para abrir al público, y el captcha
+   Cloudflare Turnstile contra abuso: `equipo/handoffs/captcha-turnstile.md`. Si activa el captcha en Supabase antes de que la app lo
+   envíe, nadie podrá pedir códigos: siga el orden de esa guía.)*
 6. **Prueba:** pídanos que le enviemos un código desde la versión de prueba de la app, o use **Authentication → Users
    → Add user → Send invitation**. Compruebe que llega a **Gmail, Hotmail/Outlook e iCloud** y mire también la carpeta
    de **spam**.

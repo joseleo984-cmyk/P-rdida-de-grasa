@@ -20,6 +20,7 @@
   const PULL_OVERLAP_MS = 30 * 1000;
   const BATCH = 500;
   const SESSION_KEY = 'pg-fake-session';
+  const DUMMY_CAPTCHA_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX'; // lo que devuelve Turnstile con las site keys de prueba de Cloudflare
   const HASH_RE = /^[0-9a-f]{64}$/;
 
   class RemoteError extends Error {
@@ -83,6 +84,12 @@
       this.blobs = {};          // path → Blob (no se persiste)
       this.revoked = {};        // userId → ms desde el que las sesiones anteriores no valen
       this._online = true;
+      // Sprint 9 (solo pruebas, no se persiste): simula Supabase Auth con CAPTCHA activado. account.js lo enciende cuando
+      // config trae captchaSiteKey. Sin token → captcha_failed; el token es de un solo uso (el dummy de las claves de
+      // prueba de Cloudflare se acepta siempre); captchaFail(n) hace que los próximos n intentos fallen.
+      this.captchaRequired = false;
+      this.captchaTokens = [];  // tokens recibidos (para las pruebas)
+      this._captchaFail = 0;
       this._failNext = [];
       this._latency = 0;
       this._tick = 0;
@@ -92,6 +99,17 @@
     // --- Fallos inyectables ---
     setOnline(v) { this._online = !!v; }
     failNext(code, times = 1) { for (let i = 0; i < times; i++) this._failNext.push(code); }
+    captchaFail(times = 1) { this._captchaFail = Math.max(0, Number(times) || 0); }
+    _checkCaptcha(token) {
+      if (!this.captchaRequired) return;
+      const t = typeof token === 'string' ? token : '';
+      if (!t) fail('captcha_failed', 'no captcha response (captcha_token) found in request');
+      this.captchaTokens.push(t);
+      if (this._captchaFail > 0) { this._captchaFail--; fail('captcha_failed', 'captcha verification process failed'); }
+      if (t !== DUMMY_CAPTCHA_TOKEN) {
+        if (this.captchaTokens.slice(0, -1).includes(t)) fail('captcha_failed', 'captcha verification process failed'); // ya usado
+      }
+    }
     latency(ms) { this._latency = Math.max(0, Number(ms) || 0); }
     lastCode(email) { const o = this.otps[normEmail(email)]; return o ? o.code : null; }
     // Revoca las sesiones de un usuario (refresh token caducado/revocado): la siguiente llamada con red da `auth`.
@@ -202,10 +220,11 @@
     const clampMs = (v) => Math.min(Date.parse(v), be.clock.now() + MAX_SKEW_MS);
 
     const auth = {
-      async sendCode(email) {
+      async sendCode(email, { captchaToken } = {}) {
         await be._call();
         const e = normEmail(email);
         if (!EMAIL_RE.test(e)) fail('invalid', 'Correo no válido');
+        be._checkCaptcha(captchaToken);
         const now = be.clock.now();
         const prev = be.otps[e];
         if (prev && now - prev.sentAt < OTP_RESEND_MS) fail('rate_limited', 'Espera un minuto para pedir otro código');
