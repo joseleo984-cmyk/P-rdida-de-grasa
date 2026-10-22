@@ -71,6 +71,12 @@
           <label class="acc-label" for="acc-email">Tu correo</label>
           <input type="email" id="acc-email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" required maxlength="254" aria-describedby="acc-email-help acc-email-error">
           <p id="acc-email-help" class="small muted">Te enviamos un código de 6 números a tu correo. No necesitas contraseña.</p>
+          <fieldset class="acc-auth" id="acc-terms">
+            <legend class="small">Para crear tu cuenta (sin marcar; puedes usar la app sin cuenta):</legend>
+            <div class="auth-row"><label class="check"><input type="checkbox" name="a1" id="acc-a1"> <span id="acc-a1-text"></span></label></div>
+            <div class="auth-row"><label class="check"><input type="checkbox" name="a2" id="acc-a2"> <span id="acc-a2-text"></span></label><span class="auth-links" id="acc-a2-links"></span></div>
+          </fieldset>
+          <p id="acc-brevo" class="small muted"></p>
           <p id="acc-email-error" class="acc-error hidden" role="alert"></p>
           <button type="submit" class="btn btn-tall acc-main">Enviarme el código</button>
         </form>
@@ -93,6 +99,19 @@
         <p id="acc-resend-hint" class="small muted" aria-live="polite"></p>
       </div>
 
+      <!-- Sprint 6: A3 (datos de salud) + A4 (nube y transmisión internacional). Opcionales, sin marcar; no bloquean la cuenta. -->
+      <div id="acc-step-cloud" class="acc-step hidden">
+        <h2 id="acc-cloud-title" tabindex="-1">¿Guardar una copia en la nube?</h2>
+        <p id="acc-cloud-lead" class="small">Es opcional. Sin ella, tus datos de salud se quedan solo en tu teléfono y la app funciona igual.</p>
+        <form id="form-acc-cloud" novalidate>
+          <div class="auth-row"><label class="check"><input type="checkbox" name="a3" id="acc-a3"> <span id="acc-a3-text"></span></label><span class="auth-links" id="acc-a3-links"></span></div>
+          <div class="auth-row"><label class="check"><input type="checkbox" name="a4" id="acc-a4"> <span id="acc-a4-text"></span></label><span class="auth-links" id="acc-a4-links"></span></div>
+          <p id="acc-cloud-error" class="acc-error hidden" role="alert"></p>
+          <button type="submit" class="btn btn-tall acc-main" id="btn-acc-cloud-on">Activar la copia en la nube</button>
+          <button type="button" class="btn btn-ghost btn-tall acc-main" id="btn-acc-cloud-skip">Ahora no: solo en mi teléfono</button>
+        </form>
+      </div>
+
       <div id="acc-step-role" class="acc-step hidden">
         <h2 id="acc-role-title" tabindex="-1">¿Cómo vas a usar la app?</h2>
         <p id="acc-invite-note" class="small acc-note hidden"></p>
@@ -108,20 +127,18 @@
             <p id="acc-coach-help" class="small muted">Te lo da tu coach. Si no lo tienes, lo puedes poner después.</p>
             <div id="acc-share" class="acc-share hidden">
               <p id="acc-share-title"></p>
-              <fieldset>
-                <legend class="small">Esto podrá ver tu coach (lo cambias cuando quieras):</legend>
-                <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario para conectarte con tu coach)</em></span></label>
-                <label class="check"><input type="checkbox" name="share_nutrition"> <span>Comidas del diario</span></label>
-                <label class="check"><input type="checkbox" name="share_habits"> <span>Hábitos (pasos, agua, sueño, entrenamiento)</span></label>
-                <label class="check"><input type="checkbox" name="share_notes"> <span>Notas de tus registros</span></label>
-              </fieldset>
-              <p class="small muted">Tus fotos no las ve nadie, a menos que tú lo autorices (próximamente, foto por foto).</p>
+              <fieldset id="acc-share-fields"></fieldset>
+              <p class="small muted">Tus fotos no salen de tu teléfono: por ahora no se suben a la nube.</p>
             </div>
           </div>
           <div id="acc-coach-fields" class="hidden">
             <label class="acc-label" for="acc-business">Nombre comercial</label>
             <input type="text" id="acc-business" name="business" autocomplete="organization" maxlength="60" aria-describedby="acc-business-help">
             <p id="acc-business-help" class="small muted">Es el nombre que verán tus clientes cuando usen tu código (de 2 a 60 letras).</p>
+            <div class="acc-share" id="acc-a7-box">
+              <p class="small" id="acc-a7-intro"></p>
+              <div class="auth-row"><label class="check"><input type="checkbox" name="a7" id="acc-a7"> <span id="acc-a7-text"></span></label><span class="auth-links" id="acc-a7-links"></span></div>
+            </div>
           </div>
           <p id="acc-role-error" class="acc-error hidden" role="alert"></p>
           <button type="submit" class="btn btn-tall acc-main" id="btn-acc-role">Continuar</button>
@@ -408,6 +425,16 @@
 
     <!-- S3-4: PANEL DEL COACH (solo rol coach; datos de clientes solo en memoria) -->
     <section id="view-coach" class="view" aria-labelledby="tab-coach">
+      <div class="card a7-gate hidden" role="region" aria-label="Acuerdo del coach">
+        <h2 class="a7-title" tabindex="-1">Antes de ver a tus clientes</h2>
+        <p class="small a7-intro"></p>
+        <form class="a7-form" novalidate>
+          <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
+          <p class="acc-error a7-error hidden" role="alert"></p>
+          <button type="submit" class="btn btn-tall acc-main">Aceptar el acuerdo</button>
+        </form>
+        <p class="small muted">Tu uso personal de la app (tu propio peso, comidas y hábitos) no cambia.</p>
+      </div>
       <div id="coach-list-view">
         <div class="cli-panel">
           <div class="card-head cli-head">
@@ -417,6 +444,7 @@
             </div>
             <button type="button" class="btn btn-ghost btn-tall" id="btn-coach-refresh">Actualizar</button>
           </div>
+          <div id="coach-ended" class="hidden" role="status"></div>
           <p id="coach-limit" class="small warn hidden"></p>
           <p id="coach-list-status" class="small muted" aria-live="polite"></p>
           <ul id="coach-clients" class="coach-clients"></ul>
@@ -476,6 +504,16 @@
     <!-- Invitar (coach): mensaje de WhatsApp y código -->
     <section id="view-invitar" class="view" aria-labelledby="invitar-title">
       <h2 id="invitar-title" class="view-title" tabindex="-1">Invitar a un cliente</h2>
+      <div class="card a7-gate hidden" role="region" aria-label="Acuerdo del coach">
+        <h2 class="a7-title" tabindex="-1">Antes de ver a tus clientes</h2>
+        <p class="small a7-intro"></p>
+        <form class="a7-form" novalidate>
+          <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
+          <p class="acc-error a7-error hidden" role="alert"></p>
+          <button type="submit" class="btn btn-tall acc-main">Aceptar el acuerdo</button>
+        </form>
+        <p class="small muted">Tu uso personal de la app (tu propio peso, comidas y hábitos) no cambia.</p>
+      </div>
       <div class="card" id="invite-card">
         <h2>Invitar por WhatsApp</h2>
         <label class="acc-label" for="invite-name">Nombre del cliente <span class="muted">(opcional)</span></label>
@@ -525,6 +563,8 @@
           <button type="button" class="btn btn-ghost hidden" id="btn-account-coach">Ver mis clientes</button>
           <button type="button" class="btn btn-ghost hidden" id="btn-account-logout">Cerrar sesión</button>
           <button type="button" class="btn btn-ghost hidden" id="btn-sync-now">Guardar ahora</button>
+          <button type="button" class="btn btn-ghost hidden" id="btn-account-cloud">Activar la copia en la nube</button>
+          <button type="button" class="btn btn-danger hidden" id="btn-account-delete">Borrar mi cuenta</button>
         </div>
         <!-- Cerrar sesión: "No" por defecto (decisión del SM; el Analista afinará el texto). -->
         <form id="form-logout" class="acc-share hidden" novalidate>
@@ -540,18 +580,22 @@
         </form>
       </div>
 
+      <!-- Sprint 6: autorizaciones de la cuenta (A3, A4, A6a, A6b). Solo con servidor configurado y sesión iniciada. -->
+      <div class="card needs-account hidden" id="perms-card" data-pane="datos">
+        <h2>Tus autorizaciones de la cuenta</h2>
+        <p class="small muted">Todas son opcionales y puedes cambiarlas cuando quieras. Sin ellas la app funciona igual, solo en tu teléfono.</p>
+        <div id="perms-list"></div>
+        <p class="small muted">Tus fotos no salen de tu teléfono: por ahora no se suben a la nube. Estas dos autorizaciones solo dejan registrada tu decisión para cuando exista.</p>
+        <p id="perms-error" class="acc-error hidden" role="alert"></p>
+      </div>
+
       <!-- S3-4: el cliente ve y cambia qué comparte con su coach, o deja de compartir. -->
-      <form id="form-shares" class="card acc-share hidden" data-pane="coach" novalidate>
+      <form id="form-shares" class="card acc-share hidden" data-pane="datos coach" novalidate>
         <h2 id="shares-title" class="shares-title"></h2>
         <p id="shares-summary" class="small"></p>
-        <fieldset id="shares-fieldset">
-          <legend class="small">Lo que ve tu coach (se aplica al momento):</legend>
-          <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario mientras tengas coach)</em></span></label>
-          <label class="check"><input type="checkbox" name="share_nutrition"> <span>Comidas del diario</span></label>
-          <label class="check"><input type="checkbox" name="share_habits"> <span>Hábitos (pasos, agua, sueño, entrenamiento)</span></label>
-          <label class="check"><input type="checkbox" name="share_notes"> <span>Notas de tus registros</span></label>
-          <label class="check"><input type="checkbox" name="share_photos"> <span>Fotos que marques como compartidas</span></label>
-        </fieldset>
+        <p id="shares-migrate" class="acc-note small hidden" role="status">Actualizamos los textos para compartir con tu coach. Revisa lo que compartes y pulsa «Guardar lo que comparto» para confirmarlo. Mientras tanto no cambia nada.</p>
+        <fieldset id="shares-fieldset"></fieldset>
+        <p class="small muted">Tus fotos no salen de tu teléfono: por ahora no se suben a la nube.</p>
         <p id="shares-error" class="acc-error hidden" role="alert"></p>
         <div class="row-actions">
           <button type="submit" class="btn">Guardar lo que comparto</button>
@@ -570,7 +614,8 @@
               <option value="female">Mujer</option>
             </select>
           </label>
-          <label>Edad<input type="number" name="age" min="14" max="100" required inputmode="numeric"></label>
+          <label>Edad<input type="number" name="age" min="18" max="100" required inputmode="numeric" aria-describedby="age-note"></label>
+          <p id="age-note" class="span-2 warn small hidden" role="alert"></p>
           <label>Estatura (cm)<input type="number" name="height" min="120" max="230" step="0.1" required inputmode="decimal"></label>
           <label>Peso inicial (kg)<input type="number" name="startWeight" min="30" max="400" step="0.1" required inputmode="decimal"></label>
           <label>Peso meta (kg)<input type="number" name="goalWeight" min="30" max="400" step="0.1" required inputmode="decimal"></label>
@@ -718,6 +763,20 @@
     </div>
   </dialog>
 
+ <!-- Sprint 6 (A8): aviso al retirar una autorización, terminar un vínculo o borrar la cuenta -->
+  <dialog id="sheet-a8" class="sheet" aria-labelledby="a8-title">
+    <div class="sheet-head"><h2 id="a8-title" tabindex="-1">Antes de seguir</h2></div>
+    <div class="a8-body">
+      <p id="a8-text"></p>
+      <p id="a8-exported" class="small muted hidden" role="status">Listo: revisa que se haya descargado tu copia.</p>
+      <div class="row-actions a8-actions">
+        <button type="button" class="btn btn-ghost btn-tall" id="a8-export">Exportar mis datos</button>
+        <button type="button" class="btn btn-danger btn-tall" id="a8-ok">Continuar</button>
+        <button type="button" class="btn btn-tall" id="a8-cancel">Cancelar</button>
+      </div>
+    </div>
+  </dialog>
+
   <div id="backup-confirm" class="backup-confirm hidden" role="group" aria-labelledby="backup-confirm-q">
     <p id="backup-confirm-q">¿Se guardó el archivo de copia en tu dispositivo?</p>
     <div class="row-actions">
@@ -798,6 +857,7 @@
   <script src="ns.js"></script>
   <script src="calc.js"></script>
   <script src="schema.js"></script>
+  <script src="consent-texts.js"></script>
   <script src="sync.js"></script>
   <script src="cloud-view.js"></script>
   <script src="install-guide.js"></script>

@@ -484,3 +484,30 @@ body:not(.has-remote) .needs-account { display: none; }
 .qr-close { width: 100%; min-height: 56px; font-size: 1.05rem; }
 .qr-close:focus-visible, #btn-invite-qr:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
 #btn-invite-qr:disabled { opacity: .5; cursor: default; }
+
+/* Sprint 6: autorizaciones (A1–A8). Casillas grandes (toque de 48 px), texto que parte, nada se desborda a 390 px. */
+.acc-auth { border: 0; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+.acc-auth legend { padding: 0; margin-bottom: 6px; }
+.auth-row { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); min-height: 48px; overflow-wrap: anywhere; }
+.auth-row .check { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; min-height: 48px; }
+.auth-row .check input { flex: none; width: 24px; height: 24px; margin: 12px 0 0; accent-color: var(--accent); }
+.auth-row .check span { align-self: center; padding: 8px 0; }
+.auth-links { display: flex; flex-wrap: wrap; gap: 4px 16px; padding-left: 36px; }
+.auth-links a { display: inline-flex; align-items: center; min-height: 48px; padding: 0 4px; }
+.auth-row .auth-date { margin: 0 0 4px 36px; }
+.auth-row .check.is-disabled { cursor: default; opacity: .75; }
+.share-intro { margin: 0 0 4px; }
+.share-outro { margin: 6px 0 0; }
+.share-row { padding: 6px 4px; min-height: 48px; align-items: center !important; }
+.share-row input { margin: 0 !important; }
+#perms-list { display: grid; gap: 10px; margin: 8px 0; }
+.a8-body { padding: 8px 16px 20px; }
+.a8-body p { overflow-wrap: anywhere; }
+.a8-actions { flex-direction: column; align-items: stretch; }
+.a8-actions .btn { width: 100%; }
+.a7-gate .acc-main { width: 100%; }
+.a7-ended { margin: 0 0 12px; }
+#view-coach.a7-locked > :not(.a7-gate), #view-invitar.a7-locked > :not(.a7-gate):not(.view-title) { display: none !important; }
+.acc-main, .a8-actions .btn, .a7-gate .btn { min-height: 48px; }
+#acc-brevo a, .share-outro a, .a7-gate a { display: inline-flex; align-items: center; min-height: 48px; }
+#form-shares .row-actions .btn, #account-card .row-actions .btn { min-height: 48px; }
