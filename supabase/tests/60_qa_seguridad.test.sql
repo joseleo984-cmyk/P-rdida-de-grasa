@@ -49,7 +49,7 @@ select tests.ok(not exists (
   select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname in ('core', 'grasa') and p.prosecdef and has_function_privilege('authenticated', p.oid, 'execute')
     and n.nspname || '.' || p.proname not in (
-      'core.my_roles', 'core.join_app', 'core.my_consents', 'core.delete_my_account', 'core.has_role',
+      'core.my_roles', 'core.join_app', 'core.my_consents', 'core.delete_my_account', 'core.has_role', 'core.require_cloud_consent',
       'grasa.coach_can_see', 'grasa.coach_can_see_photo', 'grasa.become_coach', 'grasa.rotate_invite_code',
       'grasa.preview_invite_code', 'grasa.join_coach', 'grasa.update_shares', 'grasa.leave_coach', 'grasa.end_client',
       'grasa.coach_clients', 'grasa.coach_pull', 'grasa.add_comment', 'grasa.delete_comment', 'grasa.mark_comment_read',
@@ -80,6 +80,7 @@ rollback;
 -- ======================================================================================================
 create or replace function tests.qa_setup() returns void language plpgsql as $$
 begin
+  perform tests.agree('x'); perform tests.cloud('ana'); perform tests.cloud('bea');   -- Sprint 7: el servidor exige A7 y A3+A4
   perform tests.login('x');
   perform set_config('t.code_x', (select invite_code from grasa.become_coach('Coach X Fit')), true);
   perform set_config('role', 'postgres', true);
@@ -133,6 +134,7 @@ select tests.throws(format($$insert into core.consent_events (user_id, app_id, k
   values (%L, 'grasa', 'share_photos', true, '0.1', '%s', now())$$, tests.uid('ana'), tests.h('x')),
   'row-level security', 'B no registra consentimientos a nombre de A');
 select tests.throws($$select grasa.coach_pull(tests.uid('ana'))$$, 'forbidden', 'B (sin ser coach) no hace coach_pull de A');
+reset role; select tests.agree('bea'); select tests.login('bea');   -- Sprint 7: sin acuerdo ni become_coach funciona
 select grasa.become_coach('Coach Bea');
 select tests.throws($$select grasa.coach_pull(tests.uid('ana'))$$, 'forbidden', 'B convertida en coach tampoco ve a A sin vínculo');
 select tests.throws($$select grasa.add_comment(gen_random_uuid(), tests.uid('ana'), null, 'spam')$$, 'forbidden', 'B no comenta a A');
@@ -209,6 +211,7 @@ rollback;
 -- 4. Fuerza bruta del código de invitación (límite 20/hora)
 -- ======================================================================================================
 begin;
+select tests.agree('x'); select tests.cloud('bea');
 select tests.login('x');
 select set_config('t.code_x', (select invite_code from grasa.become_coach('Coach X Fit')), true);
 reset role; select tests.login('bea');
@@ -237,6 +240,7 @@ select tests.throws(format($$select grasa.join_coach(%L, jsonb_build_object('bod
 rollback;
 
 begin;
+select tests.cloud('bea');
 -- La vista previa sí cuenta (devuelve 0 filas en lugar de error): 20 y el 21.º se bloquea.
 select tests.login('bea');
 select count(*) from (select grasa.preview_invite_code('ZZZZZZ') from generate_series(1, 20)) s;

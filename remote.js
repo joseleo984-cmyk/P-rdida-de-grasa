@@ -67,7 +67,9 @@
   // 1.º por el TEXTO del mensaje (las RPC lanzan `raise exception '<código>'`; P0002 vale para not_found e invalid_code),
   // 2.º por SQLSTATE / código de PostgREST, 3.º red, HTTP y códigos de Auth. La UI nunca muestra el mensaje crudo:
   // va en `detail` solo para depurar.
-  const DB_CODES = ['auth', 'forbidden', 'not_found', 'invalid', 'invalid_code', 'rate_limited'];
+  // Sprint 7 (r1 v1.5): el servidor impone los consentimientos. `consent_required` (42501) = al cliente le faltan A3/A4 vigentes;
+  // `agreement_required` = forbidden con detail 'coach_agreement_required' (al coach le falta el acuerdo A7 vigente).
+  const DB_CODES = ['auth', 'forbidden', 'not_found', 'invalid', 'invalid_code', 'rate_limited', 'consent_required'];
   const SQLSTATE = {
     42501: 'forbidden',
     23514: 'invalid', 22023: 'invalid', '22P02': 'invalid', 23502: 'invalid', 22001: 'invalid', 23505: 'invalid',
@@ -78,6 +80,7 @@
     offline: 'Sin conexión', auth: 'Sesión no iniciada o caducada', invalid_code: 'Código incorrecto o caducado',
     rate_limited: 'Demasiados intentos: espera un poco', forbidden: 'Sin permiso', not_found: 'No encontrado',
     invalid: 'Datos no válidos', server: 'Error del servidor',
+    consent_required: 'Falta aceptar una autorización', agreement_required: 'Falta aceptar el Acuerdo del coach',
   };
   const NET_NAMES = ['TypeError', 'AbortError', 'TimeoutError', 'AuthRetryableFetchError', 'StorageUnknownError', 'FunctionsFetchError'];
   const NET_TEXT = /^(TypeError|AbortError|TimeoutError)\b|failed to fetch|networkerror|load failed|fetch failed|network request failed|aborted/i;
@@ -95,6 +98,7 @@
       if (st) r.status = st;
       return r;
     };
+    if (/coach_agreement_required/.test(String(e.details || e.detail || ''))) return mk('agreement_required');
     if (DB_CODES.includes(msg)) return mk(msg);
     // H3 (QA vivo): 42501 con HTTP 401 = petición sin sesión (rol anon) → `auth`; con sesión (403) sigue `forbidden`.
     if (code === '42501' && st === 401) return mk('auth');

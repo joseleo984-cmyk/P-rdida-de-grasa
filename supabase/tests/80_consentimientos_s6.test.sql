@@ -22,9 +22,9 @@ select tests.throws($$insert into core.consent_events (user_id, app_id, kind, gr
 
 select tests.login('x');
 select core.join_app('grasa');
-select grasa.become_coach('Coach X');
 insert into core.consent_events (user_id, app_id, kind, granted, version, text_hash, client_at)
 values (auth.uid(), 'grasa', 'coach_agreement', true, '0.2-A7', tests.h('A7'), '2026-10-22T11:00:00Z');
+select grasa.become_coach('Coach X');   -- Sprint 7: become_coach exige el acuerdo ya registrado
 select tests.ok((select granted and version = '0.2-A7' from core.my_consents('grasa') where kind = 'coach_agreement'),
   'coach_agreement se registra y se lee con versión y huella');
 select tests.throws($$insert into core.consent_events (user_id, app_id, kind, granted, version, text_hash, client_at)

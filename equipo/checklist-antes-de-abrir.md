@@ -1,13 +1,16 @@
 # Lista "antes de abrir la app" a coaches y clientes (piloto)
 
-Estado al 2026-10-22. La conexión de la app oficial a `plataforma` queda a la espera del abogado (`equipo/legal/paquete-abogado.md`). Marcar `[x]` al completar. Quién: **SH** = Stakeholder (José), **EQ** = equipo de agentes.
+Estado al 2026-10-23. La conexión de la app oficial a `plataforma` queda a la espera del abogado (`equipo/legal/paquete-abogado.md`). Marcar `[x]` al completar. Quién: **SH** = Stakeholder (José), **EQ** = equipo de agentes.
 
 ## 1. Legal (bloquea datos reales)
 - [ ] **SH** Leer `equipo/legal/preasesoria-legal.md` (preasesoría de apoyo, no es asesoría legal) y llevarla a la reunión con el abogado.
 - [ ] **SH** Revisión del abogado de `equipo/legal/*.md` con la lista `equipo/legal/preguntas-abogado.md` (P1–P5 bloquean el piloto; el art. 6 de la Ley 1581: no condicionar el servicio a datos sensibles).
 - [ ] **SH** Datos pendientes en los textos: fecha de vigencia y dónde se guardan los archivos recibidos (ya no aplica WhatsApp: se actualiza con la versión con cuentas).
 - [ ] **EQ** S3-5: textos legales y consentimiento de la **versión con cuentas** (Supabase en EE. UU., coach como encargado, registro de consentimientos) y subir la versión (0.1 → 1.0) cuando el abogado apruebe.
-- [ ] **EQ** Actualizar `equipo/piloto-r0.md`: el cliente ya **no envía archivos por WhatsApp**; usa cuenta propia y el coach ve su panel.
+- [ ] **EQ** Actualizar `equipo/piloto-r0.md`: el cliente ya **no envía archivos por WhatsApp**; usa cuenta propia y el coach ve su panel. *(Sprint 7: el Stakeholder lo dejó fuera de alcance; sigue pendiente.)*
+- [x] **EQ** Plan de incidentes de una página: `equipo/legal/plan-incidentes.md` (borrador; plazo y canal de la SIC «por confirmar con el abogado»). *(Sprint 7)*
+- [x] **EQ** El **servidor** impone el acuerdo del coach (A7) y A3 + A4 del cliente (r1 v1.5, migración `20261023120000`), no solo la app. *(Sprint 7)*
+- [ ] **SH** Pegar el `supabase/r1.sql` nuevo (r1 v1.5) en **`pruebas`** y en **`plataforma`** y ver `OK r1 v1`; después correr `scripts/qa-live-rls.js` y `scripts/qa-live-recheck.js`. *(Sprint 7)*
 
 ## 2. Supabase `plataforma` (replicar lo hecho en `pruebas`)
 - [x] **SH** Pegar `supabase/r1.sql` (el más reciente) y ver `OK r1 v1`. Solo cuando `pruebas` esté validada de punta a punta.
@@ -32,8 +35,8 @@ Estado al 2026-10-22. La conexión de la app oficial a `plataforma` queda a la e
 - [ ] **SH** Borrar las cuentas de prueba de `pruebas` (coach, cliente A, `+otp1`, invitados) en *Authentication → Users*.
 
 ## 5. Publicación
-- [ ] **EQ** Probar en **iPhone/Safari real** (el entorno no tiene WebKit): instalación, login con código, sincronización offline→online, fotos, panel del coach.
-- [ ] **EQ** `config.js` de producción con la URL y la clave publicable de `plataforma` (nunca claves secretas) y PR a `main`; CI en verde (unitarias, E2E, BD).
+- [ ] **SH** Probar en **iPhone/Safari real** (el entorno no tiene WebKit) con la guía `equipo/prueba-iphone.md` (instalación, código, sincronización offline→online, invitación por WhatsApp, QR, panel del coach). *(Guía escrita en el Sprint 7; falta hacer la prueba.)*
+- [ ] **EQ** `config.js` de producción con la URL y la clave publicable de `plataforma` (nunca claves secretas) y PR a `main`; CI en verde (unitarias, E2E, BD). *(Procedimiento exacto, pruebas y reversa: `equipo/handoffs/conectar-plataforma.md`; revisión sin red: `npm run check:conexion`. Solo cuando el abogado apruebe.)*
 - [ ] **SH** Proteger `main` exigiendo el check "CI" (Settings → Branches).
 - [ ] **EQ** Decidir con el Stakeholder si se publica una **copia de pruebas** pública (riesgo de la sección 3) o solo se prueba con 2–3 personas de confianza.
 - [ ] **SH** Piloto con los 2 coaches siguiendo `equipo/piloto-r0.md` (actualizado).

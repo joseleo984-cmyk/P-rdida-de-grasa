@@ -1,6 +1,6 @@
 # Contrato técnico de R1 — Cuentas, sincronización y panel del coach
 
-Autor: Agente Arquitecto / Tech Lead · Fecha: 2026-10-21 · Historia: **S3-0** · Estado: **v1.4 (Sprint 6), vinculante**
+Autor: Agente Arquitecto / Tech Lead · Fecha: 2026-10-21 · Historia: **S3-0** · Estado: **v1.5 (Sprint 7), vinculante**
 Base: `spike-servidor.md` (§3, §4, §11 SPIKE-02), `decisiones-negocio.md` (#6, #7, #10, #14), código en `main`
 (`schema.js` v4 con `stampChanges`/`mergeRecords`/`mergeState`/`toRecords`/`fromRecords`, `coach.js` con `summarize`,
 `photos.js`, consentimiento local de S2-1).
@@ -706,3 +706,26 @@ Una sola migración: `supabase/migrations/20261022120000_r1_consentimientos_s6.s
 - Los plazos de inactividad (aviso a los 12 meses, borrado a los 13–24) **no están automatizados**; quedan documentados en la decisión del Stakeholder (2026-10-22).
 - Hay que volver a pegar `supabase/r1.sql` en `pruebas` y en `plataforma` (es idempotente).
 
+
+
+## 14. Cambios v1.5 (Sprint 7: el servidor impone los consentimientos)
+
+Una sola migración: `supabase/migrations/20261023120000_r1_consentimientos_servidor.sql` (regenera `supabase/r1.sql`). Pruebas: `supabase/tests/90_consentimientos_servidor.test.sql` (nueva) y ajustes de `30`, `40`, `50`, `60`, `70`, `80` y `01_helpers` (`tests.consent/cloud/agree`). Antes del Sprint 7 el acuerdo del coach (A7) y la exigencia de A3 + A4 solo los aplicaba la app: quien llamaba directo a la API se los saltaba.
+
+**Regla de «vigente»:** el **último** evento de ese `kind` de la persona en `core.consent_events` tiene `granted = true` (orden `created_at`, `client_at`, `id`). **No se mira la versión del texto**: la app gestiona la re-aceptación por versión. Retirar la autorización (`granted = false`) bloquea al instante.
+
+| # | Cambio | Error | Efecto en el cliente |
+|---|---|---|---|
+| 14.1 | `become_coach`, `rotate_invite_code`, `coach_clients`, `coach_pull`, `add_comment` y `coach_photo_opened` exigen `coach_agreement` vigente. (`delete_comment` y `end_client` no: reducen acceso.) | `42501`, mensaje `forbidden`, **detail `coach_agreement_required`** | `remote.js → mapError` lo traduce a `RemoteError('agreement_required')` (si no hay detail, sigue siendo `forbidden`). `coach-panel.js` muestra «Para ver a tus clientes, acepta el Acuerdo del coach.» y vuelve a leer las autorizaciones de la cuenta. |
+| 14.2 | `grasa.valid_coach_for` exige que el coach del código tenga `coach_agreement` vigente: `preview_invite_code` devuelve 0 filas y `join_coach` devuelve `null` (como un código caducado). | ninguno | `invalid_code`, igual que un código vencido. |
+| 14.3 | `sync_push`, `sync_pull` y `join_coach` exigen `sensitive_health` **y** `cloud_transfer` vigentes. En `join_coach` la comprobación va tras validar `p_shares` y antes de contar el intento. | `42501`, mensaje **`consent_required`** | Nuevo `RemoteError('consent_required')` (no reintentable). `sync.js` lo trata como estado `consent` («Falta aceptar las autorizaciones de la copia en la nube…»), sin error técnico ni reintento; `account.js` envía la cola de autorizaciones pendientes, relee las del servidor y solo reintenta si había algo pendiente. El modo local no cambia. |
+| 14.4 | Funciones nuevas, todas `SECURITY DEFINER` con `search_path` fijo: `core.consent_is_granted(uuid, text, text)`, `grasa.coach_has_agreement(uuid)` y `grasa.require_coach_agreement()` (internas: **sin** permiso para `anon`, `authenticated` ni `service_role`) y `core.require_cloud_consent(text)` (solo `authenticated`: informa del propio estado). | | La lista blanca de `60_qa_seguridad` incluye `core.require_cloud_consent`. |
+| 14.6 | `grasa.coach_can_see(p_client, p_scope)` (que usan `coach_pull` y el acceso a fotos) exige además que el **cliente** tenga vigentes `sensitive_health` y `cloud_transfer`. `coach_clients` deja `last_activity` en null sin ellas. Misma firma y permisos. | `42501 forbidden` en `coach_pull` | `coach-panel.js` ya trata `forbidden` como «Este cliente ya no comparte sus datos contigo». El fake aplica lo mismo (`activeLinkCoach`). Pruebas: retirar A3, retirar A4 y volver a otorgar (`90_…`). |
+| 14.5 | `grasa.coach_clients()` pasa de SQL a plpgsql (misma firma y columnas) para poder exigir el acuerdo. | | Ninguno. |
+
+**Fake (`remote-fake.js`):** `be.hasConsent`, `requireCloudConsent`, `requireCoachAgreement`; los mismos códigos de error que el servidor real (`consent_required`, `agreement_required`) y `findCoachByCode` ignora a coaches sin acuerdo.
+
+**Riesgos y decisiones abiertas**
+- **Decidido (E3, 14.6):** retirar A3 o A4 corta al coach en la siguiente consulta, como promete la A8. Ver la fila 14.6.
+- Los eventos son solo-inserción: una cuenta que retira y vuelve a aceptar acumula eventos (es lo buscado).
+- Hay que volver a pegar `supabase/r1.sql` en `pruebas` y en `plataforma` (idempotente). Los scripts `qa-live-rls.js` y `qa-live-recheck.js` registran primero los consentimientos con el mismo método (INSERT en `core.consent_events` con la sesión de cada cuenta).

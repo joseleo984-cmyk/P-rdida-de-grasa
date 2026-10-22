@@ -96,6 +96,8 @@
       case 'rate_limited': return 'Demasiados intentos seguidos. Espera un poco y vuelve a intentarlo.';
       case 'invalid': return where === 'email' ? 'Escribe un correo válido, por ejemplo nombre@correo.com.' : (err.message || 'Revisa los datos.');
       case 'auth': return 'Tu sesión se cerró. Entra de nuevo con tu correo.';
+      case 'consent_required': return 'Falta aceptar la copia en la nube (datos de salud y servidor). Revísalo en Más → Mis datos y permisos.';
+      case 'agreement_required': return 'Para usar esto como coach primero acepta el Acuerdo del coach.';
       default: return 'No pudimos conectarnos. Inténtalo de nuevo en un momento.';
     }
   }
@@ -863,6 +865,20 @@
     await maybeOffer();
     refresh();
     document.addEventListener('pg:legal-accepted', () => { maybeOffer(); flushConsents(); });
+    // Sprint 7: el servidor respondió consent_required. Se envía lo pendiente y se aprende lo que dice la cuenta; solo si había
+    // algo pendiente y llegó, se reintenta la sincronización (así no hay bucle: sin cola, queda en "falta aceptar").
+    let fixing = false;
+    document.addEventListener('pg:consent-required', async () => {
+      if (fixing) return;
+      fixing = true;
+      try {
+        const had = ((readMeta() || {}).consentQueue || []).length > 0;
+        const sent = await flushConsents();
+        await learnServerConsents();
+        document.dispatchEvent(new CustomEvent('pg:consents-changed'));
+        if (had && sent) document.dispatchEvent(new CustomEvent('pg:cloud-changed'));
+      } finally { fixing = false; }
+    });
     window.addEventListener('online', refresh);
     document.dispatchEvent(new CustomEvent('pg:account-ready'));
   }).catch((err) => {

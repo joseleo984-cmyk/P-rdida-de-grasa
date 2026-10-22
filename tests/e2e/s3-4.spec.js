@@ -22,12 +22,13 @@ async function loginAs(page, email, { coach, displayName } = {}) {
     await r.auth.sendCode(email);
     const { user } = await r.auth.verifyCode(email, be.lastCode(email));
     await r.account.joinApp();
+    // Sprint 7: el servidor exige las autorizaciones (A3 + A4, y A7 si es coach): quedan registradas ANTES de usar la cuenta.
+    if (seed.consents && Object.keys(seed.consents).length) await r.account.recordConsents(Object.entries(seed.consents).map(([kind, v]) => ({ kind, granted: v.granted, version: v.version, textHash: v.textHash, clientAt: v.clientAt })));
     if (displayName) await r.account.setDisplayName(displayName);
     let c = null;
     if (coach) { await r.coach.becomeCoach(coach); c = await r.coach.myCoach(); }
     localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: await r.account.roles(), onboarded: true, coach: c, ...seed }));
     localStorage.setItem('perdida-grasa:owner', user.id); // los datos locales son de esta cuenta (S3-2 O1)
-    if (seed.consents.coach_agreement) await r.account.recordConsents([{ kind: 'coach_agreement', granted: true, version: seed.consents.coach_agreement.version, textHash: 'a'.repeat(64), clientAt: seed.consents.coach_agreement.clientAt }]);
   }, { email, coach, displayName, seed });
   await page.reload();
   await acceptLegalIfPresent(page);

@@ -36,6 +36,17 @@ const code = (r) => r.code;
   const C = await login(E.QA_COACH_EMAIL, E.QA_COACH_PW), A = await login(E.QA_A_EMAIL, E.QA_A_PW);
   rep(!!C.token && !!A.token, 'login coach y A', C.err || A.err || '');
   if (!C.token || !A.token) process.exit(1);
+  let r0;
+
+  // Sprint 7: el servidor exige A7 (coach) y A3 + A4 (cliente). Mismo método que el resto: INSERT directo en core.consent_events
+  // con la sesión de cada cuenta (los eventos no se borran; se añade uno vigente).
+  const cons = (uid, kind) => ({ user_id: uid, app_id: 'grasa', kind, granted: true, version: 'qa-1', text_hash: sha('qa ' + kind), coach_id: null, client_at: new Date().toISOString() });
+  const ins = (who, kinds_) => api('POST', '/rest/v1/consent_events', { token: who.token, body: kinds_.map((k) => cons(who.id, k)),
+    headers: { 'Content-Profile': 'core', Accept: 'application/json', Prefer: 'return=representation' } });
+  r0 = await ins(C, ['coach_agreement']);
+  rep(ok2(r0), 'coach registra coach_agreement', ok2(r0) ? '' : `HTTP ${r0.status}`);
+  r0 = await ins(A, ['sensitive_health', 'cloud_transfer']);
+  rep(ok2(r0), 'A registra sensitive_health y cloud_transfer', ok2(r0) ? '' : `HTTP ${r0.status}`);
 
   console.log('\n== 1) H6: note en los 4 kinds');
   const fid = crypto.randomUUID();

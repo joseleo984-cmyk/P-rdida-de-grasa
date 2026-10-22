@@ -17,6 +17,8 @@ async function login(page) {
     await r.auth.sendCode(e);
     await r.auth.verifyCode(e, window.__pgFakeBackend.lastCode(e));
     await r.account.joinApp();
+    // Sprint 7: el servidor exige las autorizaciones (A3 + A4, y A7 si es coach): quedan registradas ANTES de usar la cuenta.
+    if (seed.consents && Object.keys(seed.consents).length) await r.account.recordConsents(Object.entries(seed.consents).map(([kind, v]) => ({ kind, granted: v.granted, version: v.version, textHash: v.textHash, clientAt: v.clientAt })));
     const { user } = await r.auth.session();
     PGAccount.setMeta({ userId: user.id, roles: ['client'], ...seed }); // lo que deja la pantalla de cuenta al entrar (con A3 + A4)
     document.dispatchEvent(new Event('pg:signed-in'));

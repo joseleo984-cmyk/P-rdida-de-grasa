@@ -1543,7 +1543,7 @@
     el.classList.toggle('hidden', !stateName);
     el.dataset.state = stateName || '';
     if (el.textContent !== txt) el.textContent = txt; // la región viva solo cambia si cambia el texto
-    $('#btn-sync-now').classList.toggle('hidden', !stateName || stateName === 'running' || stateName === 'nocloud');
+    $('#btn-sync-now').classList.toggle('hidden', !stateName || stateName === 'running' || stateName === 'nocloud' || stateName === 'consent');
     renderBackup();
   }
 
@@ -1587,6 +1587,7 @@
     if (st.state === 'idle') return;
     syncSt = { state: st.state, lastOkAt: st.lastOkAt || null };
     showSync(CloudView.stateKey(st));
+    if (st.state === 'consent') document.dispatchEvent(new CustomEvent('pg:consent-required')); // account.js envía lo pendiente y reintenta
     if (st.nextRetryAt && (st.state === 'offline' || st.state === 'error')) scheduleSync(Math.max(1000, Date.parse(st.nextRetryAt) - Date.now()));
   }
 

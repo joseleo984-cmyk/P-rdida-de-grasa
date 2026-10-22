@@ -55,4 +55,19 @@ create function tests.h(p_text text) returns text language sql immutable as $$
   select encode(sha256(convert_to(p_text, 'UTF8')), 'hex')
 $$;
 
+-- Consentimientos de prueba (como superusuario; versión 't', sin atender al texto). Sprint 7: el servidor los exige.
+--   tests.consent('ana', 'sensitive_health', true)   → un evento
+--   tests.cloud('ana')  → A3 + A4 vigentes (para sincronizar y vincularse)   tests.agree('x') → acuerdo del coach (A7)
+create function tests.consent(p_name text, p_kind text, p_granted boolean default true) returns void
+language sql security definer set search_path = '' as $$
+  insert into core.consent_events (user_id, app_id, kind, granted, version, text_hash, client_at)
+  values (tests.uid(p_name), 'grasa', p_kind, p_granted, 't', tests.h(p_kind || p_granted::text), now())
+$$;
+create function tests.cloud(p_name text) returns void language sql as $$
+  select tests.consent(p_name, 'sensitive_health'), tests.consent(p_name, 'cloud_transfer')
+$$;
+create function tests.agree(p_name text) returns void language sql as $$
+  select tests.consent(p_name, 'coach_agreement')
+$$;
+
 grant execute on all functions in schema tests to authenticated, anon, service_role;

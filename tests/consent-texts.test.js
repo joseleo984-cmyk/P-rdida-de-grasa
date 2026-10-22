@@ -176,13 +176,30 @@ test('servidor falso: comidas y hábitos nacen apagados al vincularse', async ()
   const be = new RemoteFake.FakeBackend();
   const mk = async (email) => { const r = RemoteFake.createFake({ backend: be, storage: null }); await r.auth.sendCode(email); await r.auth.verifyCode(email, be.lastCode(email)); await r.account.joinApp(); return r; };
   const coach = await mk('coach@ejemplo.com');
+  const ok = (kind) => ({ kind, granted: true, version: 't', textHash: sha(kind), clientAt: new Date().toISOString() });
+  await coach.account.recordConsents([ok('coach_agreement')]);   // Sprint 7: el servidor lo exige
   await coach.coach.becomeCoach('Fit Ana');
   const code = (await coach.coach.myCoach()).inviteCode;
   const cli = await mk('cli@ejemplo.com');
+  await cli.account.recordConsents([ok('sensitive_health'), ok('cloud_transfer')]);
   const link = await cli.client.joinCoach(code, { body: true, version: CT.version('A5'), textHash: sha('a5') });
   assert.deepStrictEqual(link.shares, { body: true, notes: false, nutrition: false, habits: false, photos: false });
 });
 
 test('Remote.textHash coincide con SHA-256 del texto exacto de cada autorización', async () => {
   for (const id of ['A1', 'A3', 'A4', 'A6a', 'A7']) assert.strictEqual(await Remote.textHash(CT.fullText(id)), sha(CT.fullText(id)), id);
+});
+
+test('sync: consent_required del servidor es "falta aceptar", no un error técnico ni un reintento automático', async () => {
+  let n = 0, meta = { userId: 'u1', deviceId: 'd' };
+  const remote = { sync: { push: async () => ({}), pull: async () => { n++; const e = new Error('consent_required'); e.code = 'consent_required'; throw e; }, uploadPhoto: async () => {} } };
+  const store = { getState: () => Schema.emptyState(), saveMerged() {}, getMeta: () => meta, setMeta: (m) => { meta = m; }, healthAllowed: () => true, ownerId: () => 'u1', cloudAllowed: () => true, photosCloudAllowed: () => false };
+  const st = [];
+  const eng = Sync.createSync({ remote, store, onStatus: (s) => st.push(s.state) });
+  assert.deepStrictEqual(await eng.run(), { status: 'consent' });
+  assert.strictEqual(eng.status().state, 'consent');
+  assert.strictEqual(eng.status().nextRetryAt, null);
+  assert.ok(!meta.lastError, 'no se guarda como error');
+  assert.match(CloudView.syncText({ state: 'consent' }), /Falta aceptar las autorizaciones/);
+  assert.ok(!/error|servidor/i.test(CloudView.syncText({ state: 'consent' })));
 });

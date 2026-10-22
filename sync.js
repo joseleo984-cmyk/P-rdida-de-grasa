@@ -299,6 +299,9 @@
         return { status: 'ok', ...r };
       }, (err) => {
         const code = (err && err.code) || 'server';
+        // Sprint 7: el servidor dice que faltan A3/A4 vigentes (p. ej. la aceptación aún no había llegado o se retiró en otro
+        // teléfono). No es un error técnico: es "falta aceptar". Sin reintentos automáticos; la app envía lo pendiente y reintenta una vez.
+        if (code === 'consent_required') { setStatus({ state: 'consent', lastError: null, nextRetryAt: null }); return { status: 'consent' }; }
         const meta = store.getMeta() || {};
         store.setMeta({ ...meta, lastError: code });
         if (code === 'auth') { setStatus({ state: 'auth', lastError: code, nextRetryAt: null }); return { status: 'auth' }; }
