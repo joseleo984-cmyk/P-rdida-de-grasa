@@ -153,6 +153,15 @@
   </section>
 
   <main>
+    <section id="install-card" class="card install-card hidden" aria-labelledby="install-card-title">
+      <h2 id="install-card-title">Instala la app en tu iPhone</h2>
+      <p class="small">Así la abres con un toque, sin buscar la dirección.</p>
+      <div id="install-card-steps"></div>
+      <div class="row-actions">
+        <button type="button" class="btn btn-tall" id="btn-install-ok">Entendido</button>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-install-never">No mostrar más</button>
+      </div>
+    </section>
     <!-- PANEL -->
     <section id="view-panel" class="view active" aria-labelledby="tab-panel">
       <!-- S3-4 (HU-P07): notas del coach para el cliente. El texto lo escribe otra persona: siempre escapado. -->
@@ -561,6 +570,7 @@
           <button class="btn btn-ghost" id="btn-export">Exportar JSON</button>
           <button class="btn btn-ghost" id="btn-export-csv">Exportar CSV</button>
           <label class="btn btn-ghost file-btn">Importar JSON<input type="file" id="file-import" accept="application/json,.json"></label>
+          <button type="button" class="btn btn-ghost" id="btn-install-guide" data-install-guide>Cómo instalar la app</button>
           <button class="btn btn-danger" id="btn-reset">Borrar todo</button>
         </div>
       </div>
@@ -592,6 +602,25 @@
     </div>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- A3: guía para instalar la app en iPhone (se copia a la tarjeta y al cuadro "Cómo instalar la app"). -->
+  <template id="install-steps">
+    <ol class="install-steps">
+      <li><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg><span><strong>Toca Compartir</strong><br><span class="small muted">El cuadrito con una flecha hacia arriba, en la barra de abajo de Safari.</span></span></li>
+      <li><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8"/><path d="M8 12h8"/></svg><span><strong>Elige «Añadir a pantalla de inicio»</strong><br><span class="small muted">Si no la ves, desliza el menú hacia arriba.</span></span></li>
+      <li><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/></svg><span><strong>Toca «Añadir»</strong><br><span class="small muted">Arriba a la derecha. La app queda en tu pantalla, como cualquier otra.</span></span></li>
+    </ol>
+  </template>
+  <dialog id="install-dialog" class="legal-dialog" aria-labelledby="install-dialog-title">
+    <div class="legal-bar">
+      <h2 id="install-dialog-title">Cómo instalar la app</h2>
+      <button type="button" class="btn" id="install-dialog-close">Cerrar</button>
+    </div>
+    <div class="install-dialog-body">
+      <p id="install-dialog-note" class="small acc-note hidden">Estos pasos son para Safari en iPhone o iPad. En Android, abre el menú del navegador (los tres puntos) y elige «Instalar app» o «Añadir a la pantalla de inicio».</p>
+      <div id="install-dialog-steps"></div>
+    </div>
+  </dialog>
 
   <dialog id="legal-dialog" class="legal-dialog" aria-labelledby="legal-dialog-title">
     <div class="legal-bar">
@@ -647,6 +676,7 @@
   <script src="schema.js"></script>
   <script src="sync.js"></script>
   <script src="cloud-view.js"></script>
+  <script src="install-guide.js"></script>
   <script src="coach.js"></script>
   <script src="photos.js"></script>
   <script src="app.js"></script>

@@ -331,3 +331,10 @@ a.btn.disabled { opacity: .5; pointer-events: none; }
 #invite-copy-fallback { margin-top: 10px; }
 #invite-card .btn-tall { flex: 1 1 200px; }
 .acc-note { margin: 0 0 12px; padding: 8px 10px; border-left: 4px solid var(--accent); background: var(--bg); border-radius: 6px; }
+
+/* A3: guía para instalar en iPhone */
+.install-card { border-color: var(--accent); border-left-width: 4px; }
+.install-steps { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 10px; }
+.install-steps li { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; background: var(--bg); border-radius: 10px; }
+.install-steps svg { flex: none; color: var(--accent); margin-top: 2px; }
+.install-dialog-body { padding: 16px; overflow: auto; max-width: 760px; margin: 0 auto; width: 100%; }

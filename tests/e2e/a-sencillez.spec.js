@@ -50,3 +50,78 @@ test('A4: el botón Entrar sigue sirviendo si el teléfono no avisó del cambio'
   await answerOwnerIfAsked(page);
   await expect(page.locator('#acc-step-code')).toBeHidden();
 });
+
+// ---------- A3: guía para instalar en iPhone ----------
+const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+const CHROME_IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/126.0.6478.153 Mobile/15E148 Safari/604.1';
+const GUIDE_KEY = 'perdida-grasa:install-guide';
+
+test.describe('A3 en Safari de iPhone', () => {
+  test.use({ userAgent: IPHONE });
+
+  test('aparece una vez tras aceptar los textos legales, con 3 pasos; "Entendido" no vuelve a molestar', async ({ app, page }) => {
+    await app.open({ legal: false });
+    await expect(page.getByTestId('legal-gate')).toBeVisible();
+    await expect(page.locator('#install-card')).toBeHidden(); // antes de aceptar no
+    for (const n of ['terms', 'privacy', 'sensitiveHealth', 'adult']) await page.locator(`#form-consent [name=${n}]`).check();
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    const card = page.locator('#install-card');
+    await expect(card).toBeVisible();
+    await expect(card.getByRole('heading', { name: 'Instala la app en tu iPhone' })).toBeVisible();
+    await expect(card.locator('ol li')).toHaveCount(3);
+    await expect(card.locator('ol li svg')).toHaveCount(3);
+    await expect(card).toContainText('Toca Compartir');
+    await expect(card).toContainText('Elige «Añadir a pantalla de inicio»');
+    await expect(card).toContainText('Toca «Añadir»');
+    expect(await app.scrollWidth()).toBeLessThanOrEqual(390);
+    await card.getByRole('button', { name: 'Entendido' }).click();
+    await expect(card).toBeHidden();
+    expect(await app.pref(GUIDE_KEY)).toBe('ok');
+    await app.reload();
+    await expect(card).toBeHidden();
+  });
+
+  test('"No mostrar más" se recuerda, y "Cómo instalar la app" sigue disponible en Perfil', async ({ app, page }) => {
+    await app.open({ state: state({ consent: CONSENT }) });
+    await expect(page.locator('#install-card')).toBeVisible();
+    await page.getByRole('button', { name: 'No mostrar más' }).click();
+    expect(await app.pref(GUIDE_KEY)).toBe('never');
+    await app.reload();
+    await expect(page.locator('#install-card')).toBeHidden();
+    await app.tab('perfil');
+    const opener = page.getByRole('button', { name: 'Cómo instalar la app' });
+    await opener.click();
+    const dlg = page.locator('#install-dialog');
+    await expect(dlg).toBeVisible();
+    await expect(dlg.locator('ol li')).toHaveCount(3);
+    await expect(dlg.locator('#install-dialog-note')).toBeHidden(); // es Safari de iPhone: sin la nota para otros navegadores
+    await expect(page.locator('#install-dialog-close')).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dlg).toBeHidden();
+    await expect(opener).toBeFocused();
+  });
+
+  test('con la app ya instalada (pantalla de inicio) no aparece', async ({ app, page }) => {
+    await page.addInitScript(() => { Object.defineProperty(navigator, 'standalone', { value: true, configurable: true }); });
+    await app.open({ state: state({ consent: CONSENT }) });
+    await expect(page.locator('#install-card')).toBeHidden();
+  });
+});
+
+test.describe('A3 en otros navegadores', () => {
+  test.describe('Chrome en iPhone', () => {
+    test.use({ userAgent: CHROME_IOS });
+    test('no aparece, pero la guía permanente avisa que los pasos son de Safari', async ({ app, page }) => {
+      await app.open({ state: state({ consent: CONSENT }) });
+      await expect(page.locator('#install-card')).toBeHidden();
+      await app.tab('perfil');
+      await page.getByRole('button', { name: 'Cómo instalar la app' }).click();
+      await expect(page.locator('#install-dialog-note')).toBeVisible();
+    });
+  });
+  test('en el navegador de escritorio de las pruebas tampoco aparece', async ({ app, page }) => {
+    await app.open({ state: state({ consent: CONSENT }) });
+    await expect(page.locator('#install-card')).toBeHidden();
+    expect(await app.pref(GUIDE_KEY)).toBeNull();
+  });
+});
