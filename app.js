@@ -2,9 +2,9 @@
   'use strict';
 
   // La clave conserva el nombre histórico ":v1"; la versión real va dentro del dato (`schemaVersion`).
-  const STORAGE_KEY = 'perdida-grasa:v1';
-  const BACKUP_KEY = 'perdida-grasa:backup';      // copia del dato crudo antes de migrarlo o corregirlo
-  const CORRUPT_KEY = 'perdida-grasa:corrupto';   // dato ilegible que no se pudo cargar
+  const STORAGE_KEY = PGNS.key('v1');
+  const BACKUP_KEY = PGNS.key('backup');      // copia del dato crudo antes de migrarlo o corregirlo
+  const CORRUPT_KEY = PGNS.key('corrupto');   // dato ilegible que no se pudo cargar
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
   const fmt = (n, d = 1) => (n == null || Number.isNaN(n) ? '—' : Number(n).toLocaleString('es', { minimumFractionDigits: d, maximumFractionDigits: d }));
@@ -960,8 +960,8 @@
 
   // ---------- Respaldo y almacenamiento (HU-01) ----------
   // Claves propias, fuera de `state`, para no depender del esquema de datos.
-  const LAST_BACKUP_KEY = 'perdida-grasa:lastBackup';
-  const BACKUP_SNOOZE_KEY = 'perdida-grasa:backupSnooze';
+  const LAST_BACKUP_KEY = PGNS.key('lastBackup');
+  const BACKUP_SNOOZE_KEY = PGNS.key('backupSnooze');
   const SNOOZE_DAYS = 3;
   const getPref = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
   const setPref = (k, v) => {
@@ -1300,10 +1300,10 @@
   // Sin servidor configurado (config.js vacío) no se hace NADA: la app sigue idéntica, solo en este dispositivo.
   // Disparadores: al abrir, al volver a la app, 2 s después de guardar, al recuperar la conexión, cada 5 min visible y
   // el botón "Sincronizar ahora". Nunca sincroniza sin autorización de datos de salud ni con datos de otra cuenta.
-  const SYNC_META_KEY = 'perdida-grasa:sync';
-  const OWNER_KEY = 'perdida-grasa:owner';
-  const COMMENTS_KEY = 'perdida-grasa:comments';
-  const PRE_SYNC_KEY = 'perdida-grasa:backup-pre-sync';
+  const SYNC_META_KEY = PGNS.key('sync');
+  const OWNER_KEY = PGNS.key('owner');
+  const COMMENTS_KEY = PGNS.key('comments');
+  const PRE_SYNC_KEY = PGNS.key('backup-pre-sync');
   let syncCfg = null; // config.js y remote.js se cargan DESPUÉS de app.js: se lee en DOMContentLoaded
   let syncRemote = null;
   const readJSON = (k) => { try { return JSON.parse(getPref(k) || 'null'); } catch { return null; } };
@@ -1432,6 +1432,18 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSync);
   else initSync();
+
+  // Copia de pruebas (env 'pruebas'): banner fijo y visible; en producción no existe.
+  if (PGNS.isTest) {
+    const banner = document.createElement('div');
+    banner.id = 'env-banner';
+    banner.className = 'env-banner';
+    banner.setAttribute('role', 'note');
+    banner.setAttribute('data-testid', 'env-banner');
+    banner.textContent = 'VERSIÓN DE PRUEBAS — no uses datos reales';
+    document.body.prepend(banner);
+    document.body.classList.add('has-env-banner');
+  }
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});

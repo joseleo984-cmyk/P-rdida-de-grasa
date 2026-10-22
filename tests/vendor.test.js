@@ -36,9 +36,10 @@ test('vendor: se carga en index.html antes de remote.js, se precachea en sw.js y
   for (const s of srcs) assert.ok(!/^(https?:)?\/\//.test(s), 'script externo (CDN) en producción: ' + s);
   const sw = read('sw.js');
   for (const f of [`vendor/${V.file}`, 'sync.js', 'remote.js', 'config.js']) assert.ok(sw.includes(`'${f}'`), 'sw.js ASSETS sin ' + f);
-  const pages = read('.github/workflows/pages.yml');
-  assert.ok(pages.includes(`cp vendor/${V.file} _site/vendor/`), 'pages.yml no publica el vendor');
-  assert.ok(/cp [^\n]*\bsync\.js[^\n]*_site\//.test(pages), 'pages.yml no copia sync.js');
+  const pages = read('scripts/build-site.js'); // pages.yml ejecuta `npm run build:site`
+  assert.ok(read('.github/workflows/pages.yml').includes('npm run build:site'), 'pages.yml no usa build:site');
+  assert.ok(pages.includes(`vendor/${V.file}`), 'build-site.js no publica el vendor');
+  assert.ok(/'sync\.js'/.test(pages), 'build-site.js no copia sync.js');
   assert.ok(!/remote-fake\.js/.test(pages), 'el fake nunca se publica');
 });
 

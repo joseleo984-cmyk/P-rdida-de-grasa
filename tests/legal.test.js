@@ -24,9 +24,9 @@ test('LEGAL-01: versiones de los .md = LEGAL_VERSIONS y aviso de borrador visibl
 
 test('LEGAL-01: los HTML legales están en la caché del service worker y en el despliegue', () => {
   const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-  const pages = fs.readFileSync(path.join(ROOT, '.github/workflows/pages.yml'), 'utf8');
+  const pages = fs.readFileSync(path.join(ROOT, 'scripts/build-site.js'), 'utf8'); // el despliegue lo arma build-site.js (pages.yml lo invoca)
   for (const d of Legal.DOCS) assert.ok(sw.includes(`'${d.out}'`), 'sw.js ASSETS sin ' + d.out);
-  assert.ok(/cp -r legal _site\//.test(pages), 'pages.yml no copia legal/');
+  assert.ok(/\['legal', 'legal'\]/.test(pages), 'build-site.js no copia legal/');
 });
 
 test('LEGAL-01: el HTML no muestra notas internas ni la cabecera de trabajo (siguen en los .md)', () => {

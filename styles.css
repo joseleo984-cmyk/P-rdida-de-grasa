@@ -308,3 +308,11 @@ body.account-open { padding-bottom: 16px; }
 #form-shares, #form-logout { margin-top: 12px; }
 #form-shares fieldset, #form-logout fieldset { border: 0; padding: 0; margin: 0 0 10px; display: grid; gap: 8px; }
 #form-shares .check, #form-logout .check { display: flex; align-items: flex-start; gap: 10px; }
+
+/* Copia de pruebas: banner fijo arriba (solo existe cuando config.js define env 'pruebas'). */
+.env-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 30; height: 32px; display: flex; align-items: center; justify-content: center;
+  background: #b45309; color: #fff; font-weight: 700; font-size: .85rem; text-align: center; padding: 0 8px;
+}
+body.has-env-banner { padding-top: 32px; }
+body.has-env-banner .topbar { top: 32px; }

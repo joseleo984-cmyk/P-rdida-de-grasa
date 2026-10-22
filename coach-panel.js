@@ -14,7 +14,7 @@
   const today = () => toISO(new Date());
   const fmtDay = (iso) => (iso ? new Date(iso + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short' }) : '—');
   const fmtStamp = (iso) => (iso ? new Date(iso).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
-  const COMMENTS_KEY = 'perdida-grasa:comments'; // contrato §5.3: comentarios del cliente, aparte del estado
+  const COMMENTS_KEY = PGNS.key('comments'); // contrato §5.3: comentarios del cliente, aparte del estado
   const SHARE_NAMES = { body: 'peso, medidas y perfil', nutrition: 'comidas', habits: 'hábitos', notes: 'notas', photos: 'fotos' };
 
   let A = null;           // PGAccount (remote + metadatos)

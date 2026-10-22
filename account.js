@@ -9,9 +9,9 @@
   if (!cfg) return;
 
   const $ = (sel) => document.querySelector(sel);
-  const META_KEY = 'perdida-grasa:account';     // { userId, email, roles, onboarded, coach, link, consentsSent }
-  const SKIP_KEY = 'perdida-grasa:account-skip'; // "Ahora no": no volver a mostrar la pantalla al abrir
-  const STATE_KEY = 'perdida-grasa:v1';
+  const META_KEY = PGNS.key('account');     // { userId, email, roles, onboarded, coach, link, consentsSent }
+  const SKIP_KEY = PGNS.key('account-skip'); // "Ahora no": no volver a mostrar la pantalla al abrir
+  const STATE_KEY = PGNS.key('v1');
   const RESEND_S = 60;
   const ls = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -193,7 +193,7 @@
   // - Datos sin dueño (uso previo sin cuenta) → "¿Estos datos son tuyos?": guardarlos en la cuenta / empezar de cero.
   // - Datos de OTRA cuenta → nunca se mezclan: cerrar sesión o borrar los datos del teléfono.
   // sync.js (S3-3) solo debe subir datos si owner === cuenta actual.
-  const OWNER_KEY = 'perdida-grasa:owner';
+  const OWNER_KEY = PGNS.key('owner');
   let pendingOwner = null;
   function hasLocalData() {
     try {

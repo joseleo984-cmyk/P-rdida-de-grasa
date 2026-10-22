@@ -2,7 +2,7 @@
 (function (root) {
   'use strict';
 
-  const DB_NAME = 'perdida-grasa';
+  const DB_NAME = PGNS.dbName();
   const STORE = 'photos';
   const MAX_SIDE = 1280;
   const QUALITY = 0.82;

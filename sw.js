@@ -1,6 +1,9 @@
 // Cache simple para que la app funcione sin conexión.
-const CACHE = 'perdida-grasa-v19';
-const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'sync.js', 'coach.js', 'photos.js', 'app.js', 'config.js', 'vendor/supabase-2.117.2.js', 'remote.js', 'account.js', 'coach-panel.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
+// Cada entorno (raíz / pruebas) tiene su propia caché: config.js + ns.js deciden el nombre (ver ns.js).
+self.window = self;
+importScripts('config.js', 'ns.js');
+const CACHE = PGNS.cacheName(20);
+const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'sync.js', 'coach.js', 'photos.js', 'app.js', 'config.js', 'ns.js', 'vendor/supabase-2.117.2.js', 'remote.js', 'account.js', 'coach-panel.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -9,7 +12,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith(PGNS.cachePrefix()) && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
