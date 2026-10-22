@@ -168,7 +168,7 @@ test('"Ahora no": la app se usa sin cuenta y se puede entrar después desde Perf
   await app.reload();
   await expect(acc(page)).toBeHidden();
   await app.tab('perfil');
-  await expect(page.locator('#account-status')).toHaveText('Sin cuenta: tus datos solo están en este dispositivo.');
+  await expect(page.locator('#account-status')).toContainText('Sin cuenta: estás usando la app solo en este dispositivo');
   await page.getByRole('button', { name: 'Entrar o crear cuenta' }).click();
   await expect(acc(page)).toBeVisible();
 });

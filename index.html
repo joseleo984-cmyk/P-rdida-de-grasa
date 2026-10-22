@@ -434,6 +434,49 @@
 
     <!-- PERFIL -->
     <section id="view-perfil" class="view" aria-labelledby="tab-perfil">
+      <div class="card hidden" id="account-card">
+        <h2>Cuenta y copia en la nube</h2>
+        <p id="account-status" class="small"></p>
+        <p id="account-extra" class="small muted"></p>
+        <p id="sync-status" class="small muted hidden" role="status" aria-live="polite"></p>
+        <div class="row-actions">
+          <button type="button" class="btn btn-ghost hidden" id="btn-account-login">Entrar o crear cuenta</button>
+          <button type="button" class="btn btn-ghost hidden" id="btn-account-link">Vincularme con un coach</button>
+          <button type="button" class="btn btn-ghost hidden" id="btn-account-coach">Ver mis clientes</button>
+          <button type="button" class="btn btn-ghost hidden" id="btn-account-logout">Cerrar sesión</button>
+          <button type="button" class="btn btn-ghost hidden" id="btn-sync-now">Sincronizar ahora</button>
+        </div>
+        <!-- Cerrar sesión: "No" por defecto (decisión del SM; el Analista afinará el texto). -->
+        <form id="form-logout" class="acc-share hidden" novalidate>
+          <fieldset>
+            <legend>¿Borrar también los datos de este teléfono?</legend>
+            <label class="check"><input type="radio" name="wipe" value="no" checked> <span>No, conservarlos aquí</span></label>
+            <label class="check"><input type="radio" name="wipe" value="yes"> <span>Sí, borrarlos de este teléfono</span></label>
+          </fieldset>
+          <div class="row-actions">
+            <button type="submit" class="btn">Cerrar sesión</button>
+            <button type="button" class="btn btn-ghost" id="btn-logout-cancel">Cancelar</button>
+          </div>
+        </form>
+        <!-- S3-4: el cliente ve y cambia qué comparte con su coach, o termina el vínculo. -->
+        <form id="form-shares" class="acc-share hidden" novalidate>
+          <p id="shares-title"></p>
+          <fieldset id="shares-fieldset">
+            <legend class="small">Qué ve tu coach (efecto inmediato):</legend>
+            <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario mientras tengas coach)</em></span></label>
+            <label class="check"><input type="checkbox" name="share_nutrition"> <span>Comidas del diario</span></label>
+            <label class="check"><input type="checkbox" name="share_habits"> <span>Hábitos (pasos, agua, sueño, entrenamiento)</span></label>
+            <label class="check"><input type="checkbox" name="share_notes"> <span>Notas de tus registros</span></label>
+            <label class="check"><input type="checkbox" name="share_photos"> <span>Fotos que marques como compartidas</span></label>
+          </fieldset>
+          <p id="shares-error" class="acc-error hidden" role="alert"></p>
+          <div class="row-actions">
+            <button type="submit" class="btn">Guardar lo que comparto</button>
+            <button type="button" class="btn btn-danger" id="btn-leave-coach">Terminar el vínculo</button>
+          </div>
+        </form>
+      </div>
+
       <div class="card needs-health">
         <h2>Tu perfil</h2>
         <p id="profile-issue" class="warn small hidden" role="alert"></p>
@@ -477,49 +520,6 @@
         <p class="muted small">Gasto basal por Mifflin-St Jeor × factor de actividad. Proteína 2 g/kg, grasas ≥ 25 % de las calorías, el resto carbohidratos. Son estimaciones: ajústalas según tu tendencia real de peso cada 2–3 semanas.</p>
       </div>
 
-      <div class="card hidden" id="account-card">
-        <h2>Cuenta</h2>
-        <p id="account-status" class="small"></p>
-        <p id="account-extra" class="small muted"></p>
-        <p id="sync-status" class="small muted hidden" role="status" aria-live="polite"></p>
-        <div class="row-actions">
-          <button type="button" class="btn btn-ghost hidden" id="btn-account-login">Entrar o crear cuenta</button>
-          <button type="button" class="btn btn-ghost hidden" id="btn-account-link">Vincularme con un coach</button>
-          <button type="button" class="btn btn-ghost hidden" id="btn-account-coach">Ver mis clientes</button>
-          <button type="button" class="btn btn-ghost hidden" id="btn-account-logout">Cerrar sesión</button>
-          <button type="button" class="btn btn-ghost hidden" id="btn-sync-now">Sincronizar ahora</button>
-        </div>
-        <!-- Cerrar sesión: "No" por defecto (decisión del SM; el Analista afinará el texto). -->
-        <form id="form-logout" class="acc-share hidden" novalidate>
-          <fieldset>
-            <legend>¿Borrar también los datos de este teléfono?</legend>
-            <label class="check"><input type="radio" name="wipe" value="no" checked> <span>No, conservarlos aquí</span></label>
-            <label class="check"><input type="radio" name="wipe" value="yes"> <span>Sí, borrarlos de este teléfono</span></label>
-          </fieldset>
-          <div class="row-actions">
-            <button type="submit" class="btn">Cerrar sesión</button>
-            <button type="button" class="btn btn-ghost" id="btn-logout-cancel">Cancelar</button>
-          </div>
-        </form>
-        <!-- S3-4: el cliente ve y cambia qué comparte con su coach, o termina el vínculo. -->
-        <form id="form-shares" class="acc-share hidden" novalidate>
-          <p id="shares-title"></p>
-          <fieldset id="shares-fieldset">
-            <legend class="small">Qué ve tu coach (efecto inmediato):</legend>
-            <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario mientras tengas coach)</em></span></label>
-            <label class="check"><input type="checkbox" name="share_nutrition"> <span>Comidas del diario</span></label>
-            <label class="check"><input type="checkbox" name="share_habits"> <span>Hábitos (pasos, agua, sueño, entrenamiento)</span></label>
-            <label class="check"><input type="checkbox" name="share_notes"> <span>Notas de tus registros</span></label>
-            <label class="check"><input type="checkbox" name="share_photos"> <span>Fotos que marques como compartidas</span></label>
-          </fieldset>
-          <p id="shares-error" class="acc-error hidden" role="alert"></p>
-          <div class="row-actions">
-            <button type="submit" class="btn">Guardar lo que comparto</button>
-            <button type="button" class="btn btn-danger" id="btn-leave-coach">Terminar el vínculo</button>
-          </div>
-        </form>
-      </div>
-
       <div class="card" id="privacy-card">
         <h2>Privacidad</h2>
         <dl id="privacy-list" class="privacy-list"></dl>
@@ -534,11 +534,12 @@
 
       <div class="card">
         <h2>Datos</h2>
-        <p class="muted small">Todo se guarda solo en este dispositivo. Exporta una copia para respaldarla o pasarla a otro dispositivo.</p>
+        <p class="muted small" id="data-intro">Todo se guarda solo en este dispositivo. Exporta una copia para respaldarla o pasarla a otro dispositivo.</p>
         <ul class="data-status small">
           <li id="storage-status">Comprobando el almacenamiento…</li>
           <li id="backup-status" class="muted"></li>
         </ul>
+        <p class="small hidden" id="data-optional"><strong>Descargar copia (opcional)</strong></p>
         <div class="row-actions">
           <button class="btn btn-ghost" id="btn-export">Exportar JSON</button>
           <button class="btn btn-ghost" id="btn-export-csv">Exportar CSV</button>
@@ -547,7 +548,7 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="coach-copy-card">
         <h2>Ver copia de un cliente</h2>
         <p class="muted small">Para coaches: abre el respaldo JSON de un cliente y mira su resumen <strong>sin mezclarlo con tus datos</strong>. No se guarda nada en este dispositivo.</p>
         <div class="row-actions">
@@ -628,6 +629,7 @@
   <script src="calc.js"></script>
   <script src="schema.js"></script>
   <script src="sync.js"></script>
+  <script src="cloud-view.js"></script>
   <script src="coach.js"></script>
   <script src="photos.js"></script>
   <script src="app.js"></script>

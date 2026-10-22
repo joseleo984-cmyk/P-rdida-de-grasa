@@ -968,6 +968,12 @@
     try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* sin almacenamiento */ }
   };
 
+  let syncCfg = null; // config.js y remote.js se cargan DESPUÉS de app.js: se lee en DOMContentLoaded
+  let cloudSignedIn = false;
+  let syncSt = { state: 'idle', lastOkAt: null };
+  const cloudMode = () => window.CloudView
+    ? CloudView.dataMode({ remoteOn: !!syncCfg, signedIn: cloudSignedIn, st: syncSt, healthOk: can('sensitiveHealth') })
+    : { cloud: false, quietBackup: false };
   function renderBackup() {
     const last = getPref(LAST_BACKUP_KEY);
     const lastDate = last ? new Date(last) : null;
@@ -984,8 +990,19 @@
     setText($('#backup-banner-text'), validLast
       ? `Tu última copia de seguridad es de ${agoText}. Tus datos solo están en este dispositivo: exporta una copia para no perderlos.`
       : 'Aún no tienes copia de seguridad. Tus datos solo están en este dispositivo: exporta una copia para no perderlos.');
+    const mode = cloudMode();
     const body = $('#backup-banner-body');
-    if (body.classList.contains('hidden') === due) body.classList.toggle('hidden', !due);
+    const showBanner = due && !mode.quietBackup; // sync exitoso en las últimas 24 h con salud autorizada: el aviso no molesta
+    if (body.classList.contains('hidden') === showBanner) body.classList.toggle('hidden', !showBanner);
+    renderDataCard(mode);
+  }
+  // Perfil → Datos: con cuenta y sync funcionando se dice la verdad (nube + fotos solo aquí); si no, el texto de siempre.
+  const DATA_LOCAL = 'Todo se guarda solo en este dispositivo. Exporta una copia para respaldarla o pasarla a otro dispositivo.';
+  const DATA_CLOUD = 'Tus datos se guardan en este dispositivo y, con tu cuenta, también en la nube. Las fotos se guardan solo en este dispositivo por ahora.';
+  function renderDataCard(mode) {
+    setText($('#data-intro'), mode.cloud ? DATA_CLOUD : DATA_LOCAL);
+    for (const id of ['#storage-status', '#backup-status']) $(id).classList.toggle('hidden', mode.cloud);
+    $('#data-optional').classList.toggle('hidden', !mode.cloud);
   }
   function setText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
 
@@ -1304,7 +1321,6 @@
   const OWNER_KEY = PGNS.key('owner');
   const COMMENTS_KEY = PGNS.key('comments');
   const PRE_SYNC_KEY = PGNS.key('backup-pre-sync');
-  let syncCfg = null; // config.js y remote.js se cargan DESPUÉS de app.js: se lee en DOMContentLoaded
   let syncRemote = null;
   const readJSON = (k) => { try { return JSON.parse(getPref(k) || 'null'); } catch { return null; } };
   const hasLocalData = () => !!(state.profile || state.entries.length || [state.foods, state.habits, state.library].some((d) => d && Object.keys(d).length));
@@ -1332,22 +1348,15 @@
     },
   };
 
-  const SYNC_TEXT = {
-    running: 'Sincronizando…',
-    ok: 'Sincronizado',
-    offline: 'Sin conexión: se subirá luego',
-    error: 'No se pudo sincronizar: se reintentará',
-    auth: 'Tu sesión caducó: vuelve a entrar con tu correo para sincronizar (tus datos siguen aquí)',
-    blocked: 'Sincronización en pausa: falta tu autorización de datos de salud',
-    owner: 'Sincronización en pausa: confirma que los datos de este dispositivo son tuyos',
-  };
-  function showSync(stateName, extra = '') {
+  function showSync(stateName) {
     const el = $('#sync-status');
     if (!el) return;
+    const txt = stateName ? CloudView.syncText(syncSt) : '';
     el.classList.toggle('hidden', !stateName);
     el.dataset.state = stateName || '';
-    el.textContent = stateName ? SYNC_TEXT[stateName] + extra : '';
+    if (el.textContent !== txt) el.textContent = txt; // la región viva solo cambia si cambia el texto
     $('#btn-sync-now').classList.toggle('hidden', !stateName || stateName === 'running');
+    renderBackup();
   }
 
   function scheduleSync(delay = 2000) {
@@ -1368,10 +1377,12 @@
   async function syncNow() {
     if (!syncEngine || !syncRemote) return null;
     const s = await syncSession();
-    if (!s) { showSync(null); return null; }
+    cloudSignedIn = !!s;
+    if (!s) { syncSt = { state: 'idle', lastOkAt: null }; showSync(null); return null; }
     // §5.6: sin dueño y sin datos locales es seguro adoptar la cuenta; con datos, lo confirma el usuario (confirmOwner).
     if (!getPref(OWNER_KEY) && !hasLocalData()) setPref(OWNER_KEY, s.user.id);
     if (syncEngine.isRunning()) return null;
+    syncSt = { ...syncSt, state: 'syncing' };
     showSync('running');
     const go = () => syncEngine.run();
     let r = null;
@@ -1386,8 +1397,8 @@
 
   function onSyncStatus(st) {
     if (st.state === 'idle') return;
-    const at = st.state === 'ok' && st.lastOkAt ? ` (${new Date(st.lastOkAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })})` : '';
-    showSync(SYNC_TEXT[st.state] ? st.state : 'error', at);
+    syncSt = { state: st.state, lastOkAt: st.lastOkAt || null };
+    showSync(CloudView.stateKey(st));
     if (st.nextRetryAt && (st.state === 'offline' || st.state === 'error')) scheduleSync(Math.max(1000, Date.parse(st.nextRetryAt) - Date.now()));
   }
 
@@ -1418,16 +1429,18 @@
       : Remote.create({ url: syncCfg.url, key: syncCfg.key, app: 'grasa', storage: localStorage });
     syncEngine = Sync.createSync({ remote: syncRemote, store: syncStore, onStatus: onSyncStatus });
     window.PGSync = { run: syncNow, confirmOwner, status: () => syncEngine.status() };
-    if (syncRemote.auth.onChange) syncRemote.auth.onChange((e) => { if (e.event === 'signed_in') scheduleSync(0); if (e.event === 'signed_out') showSync(null); });
+    if (syncRemote.auth.onChange) syncRemote.auth.onChange((e) => { if (e.event === 'signed_in') scheduleSync(0); if (e.event === 'signed_out') { cloudSignedIn = false; syncSt = { state: 'idle', lastOkAt: null }; showSync(null); } });
     $('#btn-sync-now').addEventListener('click', () => syncNow());
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleSync(0); });
     window.addEventListener('online', () => scheduleSync(0));
     document.addEventListener('pg:signed-in', () => scheduleSync(0));
+    document.addEventListener('pg:account-changed', (ev) => { cloudSignedIn = !!(ev.detail && ev.detail.signedIn); if (!cloudSignedIn) syncSt = { state: 'idle', lastOkAt: null }; renderBackup(); });
     setInterval(() => { if (document.visibilityState === 'visible') scheduleSync(0); }, 5 * 60 * 1000);
     syncNow();
   }
   function initSync() {
     syncCfg = window.Remote && window.Sync ? Remote.config() : null;
+    if (syncCfg) $('#coach-copy-card').classList.add('hidden'); // con servidor, el coach usa la pestaña Clientes
     if (syncCfg) startSync().catch((err) => console.warn('Sincronización no disponible:', err && err.message));
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSync);
