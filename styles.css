@@ -473,3 +473,4 @@ body:not(.has-remote) .needs-account { display: none; }
 .chip-ok { background: var(--ok-bg); color: var(--ok-fg); } .chip-ok::before { background: var(--ok-dot); }
 .chip-late { background: var(--late-bg); color: var(--late-fg); } .chip-late::before { background: var(--late-dot); }
 .chip-none { background: var(--none-bg); color: var(--none-fg); } .chip-none::before { background: var(--none-dot); }
+#btn-coach-refresh { min-height: 48px; }

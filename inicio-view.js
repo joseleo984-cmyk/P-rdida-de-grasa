@@ -10,7 +10,7 @@
   const WEEK = 7, WEEK_MIN = 5, WEEK_MAX = 10; // "semana pasada": un peso de entre 5 y 10 días antes del último
   const SPARK_DAYS = 30, SPARK_MAX = 12;
 
-  const n0 = (n) => Math.round(n).toLocaleString('es');
+  const n0 = (n) => Math.round(n).toLocaleString('es', { useGrouping: 'always' }); // 1.480 también con 4 cifras
   const n1 = (n) => Math.abs(n).toLocaleString('es', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
   const dayTotals = (state, d) => (state.foods[d] || []).reduce((t, x) => ({ kcal: t.kcal + x.kcal, protein: t.protein + x.protein }), { kcal: 0, protein: 0 });

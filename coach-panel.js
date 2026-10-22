@@ -72,7 +72,7 @@
   function statusChip(st) { return `<span class="chip chip-${esc(st.key)}">${esc(st.label)}</span>`; }
   function renderList() {
     const ul = $('#coach-clients');
-    const items = [...cache.values()].sort((a, b) => ClientStatus.byUrgency(a.st, b.st));
+    const items = [...cache.values()].sort((a, b) => ClientStatus.byUrgency(a.st, b.st) || displayName(a).localeCompare(displayName(b), 'es'));
     $('#coach-subtitle').textContent = ClientStatus.subtitle(items.map((c) => c.st));
     if (!items.length) {
       const code = (A.meta() || {}).coach;

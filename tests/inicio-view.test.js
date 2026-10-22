@@ -17,7 +17,7 @@ test('hoy: kcal, meta, "Te quedan", proteína y vasos de agua', () => {
   const h = H.hoy(st, day(0));
   assert.strictEqual(h.kcal, 1000);
   assert.strictEqual(h.kcalGoal, goal.kcal);
-  assert.strictEqual(h.leftText, `Te quedan ${(goal.kcal - 1000).toLocaleString('es')} kcal`);
+  assert.strictEqual(h.leftText, `Te quedan ${(goal.kcal - 1000).toLocaleString('es', { useGrouping: 'always' })} kcal`);
   assert.strictEqual(h.over, false);
   assert.strictEqual(h.protein, 60);
   assert.strictEqual(h.proteinText, `60 de ${goal.protein} g`);
