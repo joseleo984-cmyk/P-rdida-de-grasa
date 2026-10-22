@@ -10,7 +10,7 @@ Estado al 2026-10-23 (Sprint 8). La conexión de la app oficial a `plataforma` q
 - [ ] **SH** Archivar el **DPA de Supabase** y el **DPA estándar de Brevo** (aceptados, con fecha). Bloquea conectar.
 - [x] ~~**SH** Firmar el acuerdo del coach con los 2 coaches~~ **Ya no aplica** (decisión del Stakeholder, 2026-10-23): el acuerdo es **solo digital** (aceptación A7 con SHA-256 + copia por correo y descarga en la app). **A validar por el abogado**, junto con la cláusula penal de 10 SMMLV. *(Sprint 10)*
 - [ ] **SH** *(opcional, recomendado)* Activar la **copia del acuerdo por correo**: seguir `equipo/handoffs/acuerdo-coach-correo.md` (clave de API de Brevo, desplegar la función, secretos). Sin esto la app funciona igual; «Mi acuerdo» y la descarga ya sirven. *(Sprint 10)*
-- [ ] **SH** Un **abogado colombiano** firma los borradores v0.3 (hasta entonces siguen vigentes los v0.1).
+- [ ] **SH** El abogado hace la **revisión final** de los textos v1.0 (ya dictó los ajustes de retención 12 meses, roles, cláusula penal y A3/A4; hasta su visto bueno siguen vigentes los v0.1).
 - [ ] **SH** Decidir el borrado de cuentas inactivas (365 días, avisos 335/358): `equipo/handoffs/diseno-borrado-inactivas.md`. No urgente hasta ~sept. de 2027.
 - [ ] **SH** Datos pendientes en los textos: fecha de vigencia y dónde se guardan los archivos recibidos (ya no aplica WhatsApp: se actualiza con la versión con cuentas).
 - [ ] **EQ** S3-5: textos legales y consentimiento de la **versión con cuentas** (Supabase en EE. UU., coach como encargado, registro de consentimientos) y subir la versión (0.1 → 1.0) cuando el abogado apruebe.

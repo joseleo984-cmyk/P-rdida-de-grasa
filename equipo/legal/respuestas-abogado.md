@@ -1,6 +1,6 @@
 # Respuestas jurídicas a las preguntas P1–P18
 
-> **Respuestas recibidas el 2026-10-22; si no las firmó un abogado colombiano, valen como segunda preasesoría.**
+> **Respuestas del abogado del Stakeholder, recibidas el 2026-10-22 (confirmado por el Stakeholder).**
 > El Stakeholder las adoptó como instrucciones de trabajo. Todo texto legal sigue siendo **BORRADOR** hasta que un abogado colombiano lo firme. Aquí solo se citan normas que ya aparecen en `preasesoria-legal.md` o en estas respuestas; lo no verificado va marcado **por confirmar**. Las preguntas están en `preguntas-abogado.md`.
 
 ## Decisiones adoptadas

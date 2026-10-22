@@ -123,7 +123,7 @@ Origen: decisión del Stakeholder (2026-10-23): el acuerdo con los coaches es **
 Handoff: `equipo/handoffs/2026-10-23-sprint10.md`.
 
 ## Sprint 8 — Respuestas jurídicas P1–P18 (Analista + Dev Frontend) ✅ listo para revisión de QA
-Origen: el Stakeholder recibió respuestas a las 18 preguntas y las adoptó como instrucciones (valen como segunda preasesoría hasta que firme un abogado colombiano). Nada de lo legal está vigente: siguen los v0.1 y `config.js` vacío.
+Origen: el Stakeholder recibió respuestas a las 18 preguntas y las adoptó como instrucciones (son las respuestas de su abogado; falta su revisión final de los textos v1.0). Nada de lo legal está vigente: siguen los v0.1 y `config.js` vacío.
 
 | Listo | En curso | En revisión | Hecho |
 |---|---|---|---|
