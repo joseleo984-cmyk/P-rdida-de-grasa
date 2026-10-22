@@ -401,3 +401,75 @@ body:not(.has-remote) .needs-account { display: none; }
 .sheet-opt span { color: var(--muted); font-size: .88rem; }
 .sheet-soon { background: transparent; border: 2px dashed var(--line); cursor: default; }
 .sheet-soon strong { color: var(--muted); }
+
+/* Sprint 4: Inicio del cliente (tarjetas) y panel del coach (filas con avatar y estado). Colores en variables: claro y oscuro con contraste AA. */
+:root {
+  --ok-bg: #ddf1e5; --ok-fg: #0b5f3a; --ok-dot: #2e9e5b;
+  --late-bg: #fbf0cc; --late-fg: #6b4a00; --late-dot: #d99a00;
+  --none-bg: #fbe4e1; --none-fg: #8e1c14; --none-dot: #c93b31;
+  --soft-bg: #ddf1ec; --soft-fg: #0b5f58;
+  --water: #2f7fb8; --prot-bar: #1f8a70;
+  --av0-bg: #f6d2ce; --av0-fg: #7a1d16; --av1-bg: #f6e6b5; --av1-fg: #5a3f00; --av2-bg: #cfe6f5; --av2-fg: #16486b;
+  --av3-bg: #e0d5f0; --av3-fg: #3e2766; --av4-bg: #d5ebd9; --av4-fg: #1d5a2c; --av5-bg: #f3d9c9; --av5-fg: #7a3b1a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ok-bg: #12402a; --ok-fg: #bbf7d0; --ok-dot: #4ade80;
+    --late-bg: #4a3a0a; --late-fg: #fde68a; --late-dot: #facc15;
+    --none-bg: #4a1d19; --none-fg: #fecaca; --none-dot: #f87171;
+    --soft-bg: #134e48; --soft-fg: #ccfbf1;
+    --water: #60a5fa; --prot-bar: #34d399;
+    --av0-bg: #5a2420; --av0-fg: #fecaca; --av1-bg: #4f3d0c; --av1-fg: #fde68a; --av2-bg: #1b3b52; --av2-fg: #bfe3fa;
+    --av3-bg: #3a2d57; --av3-fg: #e4d9fa; --av4-bg: #1f4a2b; --av4-fg: #c8f0d2; --av5-bg: #553120; --av5-fg: #fbd9c2;
+  }
+}
+.home-head { margin: 4px 0 12px; }
+.home-date { margin: 0; font-size: 1rem; font-weight: 600; color: var(--muted); }
+.home-greeting { margin: 2px 0 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -.5px; overflow-wrap: anywhere; }
+.home-greeting:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.home-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 16px 18px; margin-bottom: 14px; min-width: 0; }
+.home-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.home-label { margin: 0; font-size: 1rem; font-weight: 700; color: var(--muted); }
+.home-sub { font-size: .9rem; font-weight: 600; color: var(--muted); }
+.home-big { margin: 0; font-size: 2.6rem; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.home-big-md { font-size: 2rem; letter-spacing: -.5px; }
+.home-unit { font-size: 1.1rem; font-weight: 700; color: var(--muted); letter-spacing: 0; }
+.home-bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; margin-top: 4px; }
+.home-bar > div { height: 100%; width: 0; border-radius: 99px; background: var(--accent); }
+.home-bar-lg { height: 12px; margin-top: 6px; }
+.home-bar.prot > div { background: var(--prot-bar); }
+.home-bar.water > div { background: var(--water); }
+.home-left { margin: 10px 0 0; font-size: 1.1rem; font-weight: 800; }
+.home-left.over { color: var(--none-fg); }
+.home-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.home-duo > div { min-width: 0; }
+.home-mini-label { margin: 0; font-size: .85rem; font-weight: 700; color: var(--muted); }
+.home-mini { margin: 0; font-size: 1rem; font-weight: 800; overflow-wrap: anywhere; }
+.home-repeat { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 16px; margin-bottom: 14px; border: 0; border-radius: 16px;
+  background: var(--soft-bg); color: var(--soft-fg); font: inherit; font-size: 1.05rem; font-weight: 800; text-align: left; cursor: pointer; }
+.home-repeat svg { flex: none; }
+.home-repeat:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.home-weight { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.home-weight > div { min-width: 0; }
+.home-diff { margin: 0; font-size: .95rem; font-weight: 700; color: var(--soft-fg); }
+.home-diff[data-dir="up"], .home-diff[data-dir="same"], .home-diff[data-dir="none"] { color: var(--muted); }
+.home-spark { flex: none; color: var(--accent); }
+.home-more { margin: 18px 0 10px; font-size: 1.05rem; color: var(--muted); }
+
+.cli-head { margin-bottom: 10px; }
+.cli-sub { margin: 2px 0 0; font-size: 1rem; color: var(--text); }
+.cli-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; width: 100%; min-height: 76px; padding: 10px 14px; text-align: left; font: inherit; color: var(--text);
+  background: var(--card); border: 1px solid var(--line); border-radius: 18px; cursor: pointer; }
+.cli-row:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.cli-av { flex: none; width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.05rem; }
+.cli-av.av0 { background: var(--av0-bg); color: var(--av0-fg); } .cli-av.av1 { background: var(--av1-bg); color: var(--av1-fg); }
+.cli-av.av2 { background: var(--av2-bg); color: var(--av2-fg); } .cli-av.av3 { background: var(--av3-bg); color: var(--av3-fg); }
+.cli-av.av4 { background: var(--av4-bg); color: var(--av4-fg); } .cli-av.av5 { background: var(--av5-bg); color: var(--av5-fg); }
+.cli-text { flex: 1 1 130px; min-width: 0; }
+.cli-name { display: block; font-size: 1.1rem; font-weight: 800; overflow-wrap: anywhere; }
+.cli-line { display: block; font-size: .9rem; color: var(--muted); margin-top: 1px; overflow-wrap: anywhere; }
+.chip { flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; font-size: .82rem; font-weight: 800; white-space: nowrap; }
+.chip::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
+.chip-ok { background: var(--ok-bg); color: var(--ok-fg); } .chip-ok::before { background: var(--ok-dot); }
+.chip-late { background: var(--late-bg); color: var(--late-fg); } .chip-late::before { background: var(--late-dot); }
+.chip-none { background: var(--none-bg); color: var(--none-fg); } .chip-none::before { background: var(--none-dot); }

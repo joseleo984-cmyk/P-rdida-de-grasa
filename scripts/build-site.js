@@ -9,7 +9,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const arg = process.argv.indexOf('--out');
 const OUT = path.resolve(ROOT, arg > 0 ? process.argv[arg + 1] : '_site');
-const FILES = ['index.html', 'styles.css', 'ns.js', 'calc.js', 'schema.js', 'sync.js', 'cloud-view.js', 'invite.js', 'install-guide.js', 'coach.js', 'photos.js', 'app.js', 'config.js',
+const FILES = ['index.html', 'styles.css', 'ns.js', 'calc.js', 'schema.js', 'sync.js', 'cloud-view.js', 'invite.js', 'install-guide.js', 'coach.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'app.js', 'config.js',
   'remote.js', 'account.js', 'coach-panel.js', 'sw.js', 'manifest.webmanifest', 'icon.svg'];
 const DIRS = [['legal', 'legal'], ['vendor/supabase-2.117.2.js', 'vendor/supabase-2.117.2.js']];
 const SITE_PATH = '/P-rdida-de-grasa/';

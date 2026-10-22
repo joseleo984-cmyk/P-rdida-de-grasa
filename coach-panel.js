@@ -51,7 +51,7 @@
         try {
           const data = await A.remote.coach.clientData(info.clientId);
           const state = Coach.stateFromWire(data.records);
-          cache.set(info.clientId, { info, data, state, sem: Coach.semaforo(state, { today: ref }), sum: Coach.summarize(state, { today: ref }) });
+          cache.set(info.clientId, { info, data, state, st: ClientStatus.estado(state, { today: ref, shares: info.shares }), sum: Coach.summarize(state, { today: ref }) });
         } catch (err) {
           if (!(err && err.code === 'forbidden')) throw err; // revocado entre una llamada y otra: se omite
         }
@@ -61,32 +61,30 @@
       const limit = $('#coach-limit');
       limit.classList.toggle('hidden', !over);
       limit.textContent = over ? `Tienes ${list.length} clientes: pasas del límite gratuito de ${mine ? mine.freeClients : 5}. Te contactaremos para el plan fundador; nadie pierde el acceso.` : '';
-      status.textContent = list.length ? `${list.length} cliente${list.length === 1 ? '' : 's'}. Actualizado a las ${new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}.` : '';
+      status.textContent = list.length ? `Actualizado a las ${new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}.` : '';
     } catch (err) {
       status.textContent = errText(err);
     }
   }
 
+  // Sprint 4: filas con avatar de iniciales, nombre, última actividad y estado con TEXTO ("Al día", "Se atrasa", "Sin registrar").
+  // El estado y el peso salen de ClientStatus (puro) y solo de lo que coach_pull entrega y el cliente compartió.
+  function statusChip(st) { return `<span class="chip chip-${esc(st.key)}">${esc(st.label)}</span>`; }
   function renderList() {
     const ul = $('#coach-clients');
-    const items = [...cache.values()].sort((a, b) => Coach.byLight(a.sem, b.sem));
+    const items = [...cache.values()].sort((a, b) => ClientStatus.byUrgency(a.st, b.st));
+    $('#coach-subtitle').textContent = ClientStatus.subtitle(items.map((c) => c.st));
     if (!items.length) {
       const code = (A.meta() || {}).coach;
       ul.innerHTML = `<li class="small muted">Aún no tienes clientes. Comparte tu código${code ? ` <strong>${esc(code.inviteCode)}</strong>` : ''} para que se conecten contigo.</li>`;
       return;
     }
     ul.innerHTML = items.map((c) => {
-      const w = c.sum.weight;
-      const bits = [
-        w.current != null ? `Peso ${num(w.current)} kg` : 'Sin peso',
-        w.weeklyRate != null ? `${signed(w.weeklyRate, 2)} kg/sem` : null,
-        `${c.sem.daysLogged7}/7 días`,
-        `último: ${fmtDay(c.sem.lastDate)}`,
-      ].filter(Boolean).join(' · ');
-      return `<li><button type="button" class="client-btn" data-client="${esc(c.info.clientId)}" aria-label="${esc(displayName(c))}: semáforo ${esc(c.sem.label)}. ${esc(c.sem.reason)}. ${esc(bits)}">
-        <span class="light light-${esc(c.sem.color)}">${esc(c.sem.label)}</span>
-        <span class="who">${esc(displayName(c))}</span>
-        <span class="meta">${esc(bits)} — ${esc(c.sem.reason)}</span>
+      const name = displayName(c);
+      return `<li><button type="button" class="cli-row client-btn" data-client="${esc(c.info.clientId)}" aria-label="${esc(name)}: ${esc(c.st.label)}. ${esc(c.st.line)}">
+        <span class="cli-av av${ClientStatus.hue(name)}" aria-hidden="true">${esc(ClientStatus.initials(name))}</span>
+        <span class="cli-text"><span class="cli-name who">${esc(name)}</span><span class="cli-line meta">${esc(c.st.line)}</span></span>
+        ${statusChip(c.st)}
       </button></li>`;
     }).join('');
   }
@@ -165,7 +163,7 @@
   function renderDetail(c) {
     const sh = c.info.shares || {};
     $('#coach-detail-title').textContent = displayName(c);
-    $('#coach-detail-light').innerHTML = `<span class="light light-${esc(c.sem.color)}">${esc(c.sem.label)}</span> ${esc(c.sem.reason)}`;
+    $('#coach-detail-light').innerHTML = `${statusChip(c.st)} ${esc(c.st.line)}`;
     const yes = Object.keys(SHARE_NAMES).filter((k) => sh[k]).map((k) => SHARE_NAMES[k]);
     const no = Object.keys(SHARE_NAMES).filter((k) => !sh[k]).map((k) => SHARE_NAMES[k]);
     $('#coach-detail-shares').textContent = `Te muestra: ${yes.join(', ') || '—'}. No te muestra: ${no.join(', ') || '—'}. Es tu cliente desde el ${new Date(c.info.since).toLocaleDateString('es')}.`;
@@ -217,7 +215,7 @@
     try {
       c.data = await A.remote.coach.clientData(current);
       c.state = Coach.stateFromWire(c.data.records);
-      c.sem = Coach.semaforo(c.state, { today: today() });
+      c.st = ClientStatus.estado(c.state, { today: today(), shares: c.info.shares });
       c.sum = Coach.summarize(c.state, { today: today() });
       renderDetail(c);
     } catch (err) {

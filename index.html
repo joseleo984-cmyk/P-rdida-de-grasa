@@ -165,10 +165,10 @@
     </section>
     <!-- PANEL -->
     <section id="view-panel" class="view active" aria-labelledby="tab-panel">
-      <!-- S3-4 (HU-P07): notas del coach para el cliente. El texto lo escribe otra persona: siempre escapado. -->
-      <div id="coach-notes" class="card hidden" aria-labelledby="coach-notes-title">
-        <h2 id="coach-notes-title">Notas de tu coach <span id="coach-notes-unread" class="badge hidden"></span></h2>
-        <ul id="coach-notes-list" class="coach-notes"></ul>
+      <!-- Sprint 4: saludo y tarjetas de Inicio (se rellenan en app.js con HomeView; textContent siempre) -->
+      <div class="home-head">
+        <p id="home-date" class="home-date"></p>
+        <h2 id="home-greeting" class="home-greeting" tabindex="-1">Hola</h2>
       </div>
 
       <div id="onboarding" class="card hidden">
@@ -186,6 +186,47 @@
           </div>
         </div>
       </div>
+
+      <section class="home-card" id="home-today" aria-labelledby="home-today-title">
+        <div class="home-row"><h3 id="home-today-title" class="home-label">Hoy llevas</h3><span id="home-goal" class="home-sub"></span></div>
+        <p class="home-big"><span id="home-kcal">0</span> <span class="home-unit">kcal</span></p>
+        <div class="home-bar home-bar-lg" id="home-kcal-bar" role="progressbar" aria-label="Calorías de hoy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div></div></div>
+        <p id="home-left" class="home-left"></p>
+        <div class="home-duo">
+          <div>
+            <p class="home-mini-label">Proteína</p>
+            <p class="home-mini" id="home-protein">0 g</p>
+            <div class="home-bar prot" id="home-protein-bar" role="progressbar" aria-label="Proteína de hoy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div></div></div>
+          </div>
+          <div>
+            <p class="home-mini-label">Agua</p>
+            <p class="home-mini" id="home-water">0 de 8 vasos</p>
+            <div class="home-bar water" id="home-water-bar" role="progressbar" aria-label="Agua de hoy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <button type="button" class="home-repeat hidden" id="btn-repeat-breakfast">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></svg>
+        <span>Repetir el desayuno de ayer</span>
+      </button>
+
+      <section class="home-card home-weight" id="home-weight" aria-labelledby="home-weight-title">
+        <div>
+          <h3 id="home-weight-title" class="home-label">Tu peso</h3>
+          <p class="home-big home-big-md"><span id="home-weight-value">—</span> <span class="home-unit" id="home-weight-unit">kg</span></p>
+          <p id="home-weight-diff" class="home-diff"></p>
+        </div>
+        <svg id="home-spark" class="home-spark hidden" width="86" height="56" viewBox="0 0 86 56" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label=""><path d=""/><circle r="4" fill="currentColor" stroke="none"/></svg>
+      </section>
+
+      <!-- S3-4 (HU-P07): notas del coach para el cliente. El texto lo escribe otra persona: siempre escapado. -->
+      <div id="coach-notes" class="card hidden" aria-labelledby="coach-notes-title">
+        <h2 id="coach-notes-title">Notas de tu coach <span id="coach-notes-unread" class="badge hidden"></span></h2>
+        <ul id="coach-notes-list" class="coach-notes"></ul>
+      </div>
+
+      <h2 class="home-more">Más detalle</h2>
 
       <div class="stats" id="panel-summary" role="group" aria-label="Resumen" tabindex="-1">
         <div class="stat"><span class="stat-label">Peso actual</span><span class="stat-value" id="st-weight">—</span><span class="stat-sub" id="st-weight-sub"></span></div>
@@ -368,19 +409,23 @@
     <!-- S3-4: PANEL DEL COACH (solo rol coach; datos de clientes solo en memoria) -->
     <section id="view-coach" class="view" aria-labelledby="tab-coach">
       <div id="coach-list-view">
-        <div class="card">
-          <div class="card-head">
-            <h2 id="coach-title-list" tabindex="-1">Mis clientes</h2>
-            <button type="button" class="btn btn-ghost" id="btn-coach-refresh">Actualizar</button>
+        <div class="cli-panel">
+          <div class="card-head cli-head">
+            <div>
+              <h2 id="coach-title-list" class="home-greeting" tabindex="-1">Mis clientes</h2>
+              <p id="coach-subtitle" class="cli-sub"></p>
+            </div>
+            <button type="button" class="btn btn-ghost btn-tall" id="btn-coach-refresh">Actualizar</button>
           </div>
           <p id="coach-limit" class="small warn hidden"></p>
           <p id="coach-list-status" class="small muted" aria-live="polite"></p>
           <ul id="coach-clients" class="coach-clients"></ul>
-          <details class="small"><summary>Cómo se calcula el semáforo</summary>
+          <details class="small"><summary>Cómo se decide el estado de cada cliente</summary>
             <ul>
-              <li><strong>Rojo</strong>: sin ningún registro en los últimos 5 días o más.</li>
-              <li><strong>Verde</strong>: registró al menos 4 de los últimos 7 días y su peso baja (≥ 0,05 kg/semana) sin estancarse en 14 días.</li>
-              <li><strong>Amarillo</strong>: el resto (pocos días de registro o peso estancado).</li>
+              <li><strong>Al día</strong>: registró algo (peso, medidas, comidas o hábitos) hoy o ayer.</li>
+              <li><strong>Se atrasa</strong>: su último registro fue hace 2 a 4 días.</li>
+              <li><strong>Sin registrar</strong>: hace 5 días o más, o todavía no ha registrado nada.</li>
+              <li>Los que están en «Se atrasa» o «Sin registrar» cuentan como «necesitan un mensaje hoy».</li>
             </ul>
           </details>
         </div>
@@ -743,6 +788,8 @@
   <script src="cloud-view.js"></script>
   <script src="install-guide.js"></script>
   <script src="coach.js"></script>
+  <script src="estado-cliente.js"></script>
+  <script src="inicio-view.js"></script>
   <script src="photos.js"></script>
   <script src="app.js"></script>
   <script src="vendor/supabase-2.117.2.js"></script>
