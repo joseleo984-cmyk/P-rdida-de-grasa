@@ -33,17 +33,25 @@
     return !PRODUCTION_HOSTS.includes(host) && LOCAL_HOSTS.includes(host);
   }
 
+  // Forma de una site key PÚBLICA de Turnstile (0x4…) o de las claves de prueba oficiales de Cloudflare (1x…, 2x…, 3x…).
+  // Mismo patrón que scripts/check-conexion.js (una prueba comprueba que no se separen).
+  const CAPTCHA_SITEKEY_RE = /^(0x4[A-Za-z0-9_-]{17,27}|[123]x[0-9A-Za-z]{22})$/;
+  const captchaKey = (v) => (typeof v === 'string' && CAPTCHA_SITEKEY_RE.test(v.trim()) ? v.trim() : '');
+
   // Devuelve la configuración efectiva o null (sin servidor). `env` permite probarlo en Node.
   function config(env) {
     const w = env || (typeof window !== 'undefined' ? window : {});
     const loc = w.location;
     const cfg = w.PG_CONFIG || {};
     const wantsFake = cfg.mode === 'fake' || /[?&]remote=fake(&|$)/.test(String((loc && loc.search) || ''));
-    if (wantsFake) return fakeAllowed(loc) ? { url: '', key: '', mode: 'fake' } : null;
+    // Sprint 9: `captchaSiteKey` (clave PÚBLICA de Cloudflare Turnstile) es opcional; vacía o con otra forma = sin captcha.
+    const captchaSiteKey = captchaKey(cfg.captchaSiteKey);
+    const withCaptcha = (c) => (captchaSiteKey ? { ...c, captchaSiteKey } : c);
+    if (wantsFake) return fakeAllowed(loc) ? withCaptcha({ url: '', key: '', mode: 'fake' }) : null;
     const url = typeof cfg.url === 'string' ? cfg.url.trim() : '';
     const key = typeof cfg.key === 'string' ? cfg.key.trim() : '';
     if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) || !/^sb_publishable_/.test(key)) return null;
-    return { url, key, mode: 'real' };
+    return withCaptcha({ url, key, mode: 'real' });
   }
 
   // v1.1 §10.1: SHA-256 hex del texto EXACTO mostrado (saltos de línea normalizados a \n). Mismo resultado que el
@@ -80,6 +88,7 @@
     offline: 'Sin conexión', auth: 'Sesión no iniciada o caducada', invalid_code: 'Código incorrecto o caducado',
     rate_limited: 'Demasiados intentos: espera un poco', forbidden: 'Sin permiso', not_found: 'No encontrado',
     invalid: 'Datos no válidos', server: 'Error del servidor',
+    captcha_failed: 'No pudimos verificar que eres una persona',
     consent_required: 'Falta aceptar una autorización', agreement_required: 'Falta aceptar el Acuerdo del coach',
   };
   const NET_NAMES = ['TypeError', 'AbortError', 'TimeoutError', 'AuthRetryableFetchError', 'StorageUnknownError', 'FunctionsFetchError'];
@@ -100,6 +109,9 @@
     };
     if (/coach_agreement_required/.test(String(e.details || e.detail || ''))) return mk('agreement_required');
     if (DB_CODES.includes(msg)) return mk(msg);
+    // Sprint 9: el servidor (Supabase Auth con CAPTCHA activado) rechazó o no recibió el token: código `captcha_failed`
+    // ("captcha verification process failed", "no captcha response (captcha_token) found in request").
+    if (code === 'captcha_failed' || msg === 'captcha_failed' || /captcha/i.test(msg)) return mk('captcha_failed');
     // H3 (QA vivo): 42501 con HTTP 401 = petición sin sesión (rol anon) → `auth`; con sesión (403) sigue `forbidden`.
     if (code === '42501' && st === 401) return mk('auth');
     if (code && Object.prototype.hasOwnProperty.call(SQLSTATE, code)) return mk(SQLSTATE[code]);
@@ -231,10 +243,13 @@
     // ---------- auth ----------
     const AUTH_EVENTS = { SIGNED_IN: 'signed_in', SIGNED_OUT: 'signed_out', TOKEN_REFRESHED: 'refreshed' };
     const auth = {
-      async sendCode(email) {
+      // `captchaToken` (Turnstile, de un solo uso) solo se manda si existe: sin captcha la llamada es la de siempre.
+      async sendCode(email, { captchaToken } = {}) {
         const e = String(email || '').trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) || e.length > 254) throw new RemoteError('invalid', 'Correo no válido');
-        await call(() => sb.auth.signInWithOtp({ email: e, options: { shouldCreateUser: true } }), 'auth');
+        const options = { shouldCreateUser: true };
+        if (captchaToken) options.captchaToken = String(captchaToken);
+        await call(() => sb.auth.signInWithOtp({ email: e, options }), 'auth');
       },
       async verifyCode(email, code) {
         const e = String(email || '').trim().toLowerCase();
@@ -456,7 +471,7 @@
     return { kind: 'real', auth, account, sync, client, coach };
   }
 
-  const api = { config, create, createFake, fakeAllowed, textHash, mapError, RemoteError, PRODUCTION_HOSTS, BUCKET };
+  const api = { config, create, createFake, fakeAllowed, CAPTCHA_SITEKEY_RE, textHash, mapError, RemoteError, PRODUCTION_HOSTS, BUCKET };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Remote = api;
 })(typeof window !== 'undefined' ? window : globalThis);
