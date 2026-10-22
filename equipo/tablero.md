@@ -109,6 +109,19 @@ Alcance cerrado por el Stakeholder: solo el botón "Mostrar QR" en Invitar del c
 - Validado con jsQR (solo devDependency de pruebas) + vectores de la norma; E2E con letra ancha a 390 px; caché v27.
 - Handoff: `equipo/handoffs/2026-10-22-sprint5-qr.md`. Pendiente: probar con la cámara de un iPhone y un Android reales.
 
+## Sprint 7 — El servidor impone los consentimientos (Dev Full-stack) ✅ listo para revisión de QA
+Origen: tras el Sprint 6 el acuerdo del coach (A7) y A3 + A4 solo se exigían en la app. Contexto: piloto CERRADO (2 coaches, ~10 adultos) sobre `plataforma`, que sigue **sin conectarse** (`config.js` vacío) hasta que el abogado apruebe los textos.
+
+| Listo | En curso | En revisión | Hecho |
+|---|---|---|---|
+| | | | S7-1 BD r1 v1.5 (migración `20261023120000`): funciones de coach y código de invitación exigen `coach_agreement` vigente; `sync_push`, `sync_pull` y `join_coach` exigen `sensitive_health` + `cloud_transfer`. Errores `42501` (`forbidden` / `consent_required`). Pruebas SQL nuevas `90_consentimientos_servidor` |
+| | | | S7-2 App: `consent_required` = «falta aceptar» (sin error técnico, modo local intacto), `agreement_required`, servidor falso con las mismas reglas, E2E nueva `s7-servidor-consentimientos`, caché v29 |
+| | | | S7-3 `scripts/check-conexion.js` (`npm run check:conexion`, sin red, 11 pruebas; fuera del CI obligatorio) + `equipo/handoffs/conectar-plataforma.md` (procedimiento y reversa) |
+| | | | S7-4 `equipo/legal/plan-incidentes.md` y `equipo/prueba-iphone.md` |
+| ⏸ | | | `equipo/piloto-r0.md`: **fuera de alcance por decisión del Stakeholder** (sigue con el modelo antiguo) |
+
+Handoff: `equipo/handoffs/2026-10-23-sprint7.md`.
+
 ## Sprint 6 — Autorizaciones A1–A8 y bloqueos legales (Dev Full-stack) ✅ listo para revisión de QA
 Alcance cerrado por el Stakeholder el 2026-10-22 (decisiones #15 a #21 en `decisiones-negocio.md`). La app oficial **no se conecta a `plataforma`** (`config.js` vacío); lo nuevo solo existe con servidor configurado, salvo la edad mínima.
 
