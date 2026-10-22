@@ -25,6 +25,7 @@
     offline: 'Sin internet: se guardará en tu cuenta cuando vuelva.',
     error: 'No se pudo guardar en tu cuenta. Lo intentamos de nuevo solos.',
     auth: 'Tu sesión se cerró. Entra de nuevo con tu correo para seguir guardando en tu cuenta (tus datos siguen aquí).',
+    nocloud: 'La copia en la nube está apagada: tus datos están solo en este teléfono.',
     blocked: 'No se guarda en tu cuenta porque no autorizaste los datos de salud.',
     owner: 'Falta que confirmes que estos datos son tuyos.',
   };
