@@ -48,7 +48,7 @@ test('dos dispositivos: confirmar dueño → sube; guardar sube a los 2 s; el ot
   // Hay datos locales y aún no hay dueño: NO se sube nada hasta que el usuario lo confirme (§5.6 / §11.10).
   await page.evaluate(() => PGSync.run());
   await app.tab('perfil');
-  await expect(status(page)).toHaveText(/confirma que los datos de este dispositivo son tuyos/);
+  await expect(status(page)).toHaveText(/Falta confirmar que estos datos son tuyos/);
   await expect(status(page)).toHaveAttribute('role', 'status');
   expect(records(await backend(page), uid)).toHaveLength(0);
   await page.evaluate(() => PGSync.confirmOwner());
@@ -102,7 +102,7 @@ test('bloqueo de salud: sin autorización de datos de salud no se sube ni se baj
   await page.evaluate(() => PGSync.confirmOwner());
   await page.evaluate(() => PGSync.run());
   await app.tab('perfil');
-  await expect(status(page)).toHaveText(/falta tu autorización de datos de salud/);
+  await expect(status(page)).toHaveText(/no autorizaste datos de salud/);
   expect(records(await backend(page), uid)).toHaveLength(0);
 });
 
@@ -112,7 +112,7 @@ test('sin conexión: "se subirá luego"; al volver la conexión se sube solo', a
   await page.evaluate(() => window.__pgFakeBackend.setOnline(false));
   await page.evaluate(() => PGSync.confirmOwner());
   await app.tab('perfil');
-  await expect(status(page)).toHaveText('Sin conexión: se subirá luego');
+  await expect(status(page)).toHaveText('Sin conexión: se subirá al volver.');
   await expect(page.locator('#btn-sync-now')).toBeVisible();
   expect(records(await backend(page), uid)).toHaveLength(0);
   await page.evaluate(() => { window.__pgFakeBackend.setOnline(true); window.dispatchEvent(new Event('online')); });

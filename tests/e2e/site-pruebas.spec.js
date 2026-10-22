@@ -44,8 +44,8 @@ const entry = (w) => state({ profile: { ...PROFILE, startWeight: w }, entries: [
 
 test('(a) producción (env vacío): las claves y nombres NO cambian y un respaldo v1 se lee igual', async ({ page, site }) => {
   await open(page, site.base + '/');
-  expect(await page.evaluate(() => [PGNS.env, PGNS.key('v1'), PGNS.key('backup'), PGNS.key('owner'), PGNS.key('lastBackup'), PGNS.key('backupSnooze'), PGNS.dbName(), PGNS.cacheName(21)]))
-    .toEqual(['', 'perdida-grasa:v1', 'perdida-grasa:backup', 'perdida-grasa:owner', 'perdida-grasa:lastBackup', 'perdida-grasa:backupSnooze', 'perdida-grasa', 'perdida-grasa-v21']);
+  expect(await page.evaluate(() => [PGNS.env, PGNS.key('v1'), PGNS.key('backup'), PGNS.key('owner'), PGNS.key('lastBackup'), PGNS.key('backupSnooze'), PGNS.dbName(), PGNS.cacheName(22)]))
+    .toEqual(['', 'perdida-grasa:v1', 'perdida-grasa:backup', 'perdida-grasa:owner', 'perdida-grasa:lastBackup', 'perdida-grasa:backupSnooze', 'perdida-grasa', 'perdida-grasa-v22']);
   page.on('dialog', (d) => d.accept());
   await page.setInputFiles('#file-import', { name: 'r.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(FIXTURE_V1)) });
   await expect(page.locator('#toast')).toHaveText(/importa/i);
@@ -97,7 +97,7 @@ test('(d) los service workers de la raíz y de pruebas conviven sin borrarse las
   await open(page, site.base + '/');
   await page.waitForTimeout(500);
   const keys = await page.evaluate(() => caches.keys());
-  expect(keys.sort()).toEqual(['perdida-grasa-pruebas-v21', 'perdida-grasa-v21']);
+  expect(keys.sort()).toEqual(['perdida-grasa-pruebas-v22', 'perdida-grasa-v22']);
   for (const k of keys) expect(await page.evaluate(async (k) => (await (await caches.open(k)).keys()).length, k)).toBeGreaterThan(5);
-  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v21')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
+  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v22')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
 });

@@ -373,7 +373,7 @@
       extra.textContent = meta.coach ? `Tu código para clientes: ${meta.coach.inviteCode}` : meta.link ? `Coach: ${meta.link.businessName}` : '';
       if (meta.authExpired) extra.textContent = 'Tu sesión caducó: vuelve a entrar con tu correo (tus datos siguen aquí).';
     } else {
-      status.textContent = 'Sin cuenta: tus datos solo están en este dispositivo.';
+      status.textContent = 'Sin cuenta: estás usando la app solo en este dispositivo. Entra o crea una cuenta para guardar una copia en la nube.';
       extra.textContent = '';
     }
     const signedIn = !!(s && meta && meta.userId === s.user.id);
