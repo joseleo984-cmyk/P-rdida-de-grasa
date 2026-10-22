@@ -2,6 +2,7 @@
 -- food, habit) mientras el cliente no consienta `notes`; con `notes` la nota llega. `library` nunca llega.
 -- Falla sin la migración 20261021150000 (antes solo se quitaba en kind = 'entry').
 begin;
+select tests.agree('x'); select tests.cloud('ana');   -- Sprint 7
 
 select tests.login('x');
 select set_config('t.code_x', (select invite_code from grasa.become_coach('Coach X Notas')), true);

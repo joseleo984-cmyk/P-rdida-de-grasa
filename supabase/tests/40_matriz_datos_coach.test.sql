@@ -1,6 +1,8 @@
 -- Matriz del contrato §2.5.2: cliente A (con coach X), cliente B (sin coach), coach X, coach Y, anónimo, admin.
 -- Quién lee/escribe qué en records, photos, Storage, comentarios; revocar o terminar corta el acceso al instante.
 begin;
+-- Sprint 7: el servidor exige el acuerdo del coach (A7) y A3+A4 del cliente.
+select tests.agree('x'); select tests.agree('y'); select tests.cloud('ana'); select tests.cloud('bea');
 
 -- ---------- Preparación ----------
 select tests.login('x');

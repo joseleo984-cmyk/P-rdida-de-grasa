@@ -1,6 +1,7 @@
 -- sync_push / sync_pull (contrato §2.3 y §2.5.3): LWW, empate determinista, marca futura recortada, clave natural
 -- conserva el id del servidor, lápidas, cursor con solape y paginación.
 begin;
+select tests.cloud('ana'); select tests.cloud('bea');   -- Sprint 7: sync exige A3 + A4
 select tests.login('ana');
 
 -- 1. Alta y LWW por registro

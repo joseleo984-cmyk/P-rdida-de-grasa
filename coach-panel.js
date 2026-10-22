@@ -34,6 +34,10 @@
     toast.timer = setTimeout(() => t.classList.remove('show'), error ? 4000 : 2600);
   }
   const errText = (err) => {
+    if (err && err.code === 'agreement_required') { // el servidor no ve el acuerdo vigente: se vuelve a aprender qué dice la cuenta y se cierra la puerta
+      if (A && A.refresh) Promise.resolve(A.refresh()).then(renderGate, () => {});
+      return 'Para ver a tus clientes, acepta el Acuerdo del coach.';
+    }
     if (err && err.code === 'forbidden') return 'Este cliente ya no comparte sus datos contigo.';
     return A ? A.errorText(err, 'coach') : 'No se pudo conectar con el servidor.';
   };

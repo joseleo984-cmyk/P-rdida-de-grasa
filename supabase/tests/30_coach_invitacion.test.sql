@@ -1,5 +1,7 @@
 -- Coach, código de invitación (caducidad, usos, intentos) y vínculo coach ↔ cliente.
 begin;
+-- Sprint 7: el servidor exige el acuerdo del coach (A7) y A3+A4 del cliente.
+select tests.agree('x'); select tests.agree('y'); select tests.cloud('ana'); select tests.cloud('bea');
 
 -- Coach X se da de alta
 select tests.login('x');
@@ -46,6 +48,7 @@ rollback;
 
 -- Límites del código (usos y caducidad), rotación y un solo coach activo.
 begin;
+select tests.agree('x'); select tests.agree('y'); select tests.cloud('ana'); select tests.cloud('bea'); select tests.cloud('y');
 select tests.login('x');
 select grasa.become_coach('Coach X Fit');
 -- Código con límite de 1 uso y 7 días
@@ -98,7 +101,7 @@ select tests.ok((select count(*) from grasa.coach_clients()) = 1 and (select dis
 reset role; update grasa.coaches set free_clients = 0 where user_id = tests.uid('x'); select tests.login('x');
 select tests.ok((select over_free_limit from grasa.coach_clients()), 'over_free_limit avisa al pasar del límite gratis');
 reset role; select tests.login('bea');
-select tests.ok(not exists (select 1 from grasa.coach_clients()), 'un cliente no obtiene lista de clientes');
+select tests.throws($$select * from grasa.coach_clients()$$, 'forbidden', 'un cliente (sin acuerdo de coach) no obtiene lista de clientes');
 
 -- Terminar: el cliente se va / el coach termina
 reset role; select tests.login('ana');
@@ -112,6 +115,7 @@ rollback;
 
 -- Límite de intentos: 20 por hora por usuario (los fallidos cuentan)
 begin;
+select tests.cloud('bea');
 select tests.login('bea');
 do $$ begin for i in 1..20 loop perform grasa.preview_invite_code('ZZZZZZ'); end loop; end $$;
 select tests.throws($$select grasa.preview_invite_code('ZZZZZZ')$$, 'rate_limited', 'el intento 21 en una hora: rate_limited');

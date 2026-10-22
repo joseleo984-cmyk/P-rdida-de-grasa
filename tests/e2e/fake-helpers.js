@@ -34,12 +34,16 @@ async function loginAsCoach(page, email, biz, { agreement = true, cloud = true }
     await r.auth.sendCode(email);
     const { user } = await r.auth.verifyCode(email, be.lastCode(email));
     await r.account.joinApp();
+    // Sprint 7: el servidor exige las autorizaciones (A3 + A4, y A7 si es coach): quedan registradas ANTES de usar la cuenta.
+    if (seed.consents && Object.keys(seed.consents).length) await r.account.recordConsents(Object.entries(seed.consents).map(([kind, v]) => ({ kind, granted: v.granted, version: v.version, textHash: v.textHash, clientAt: v.clientAt })));
+    // Coach «de antes» (sin acuerdo): se da de alta con el acuerdo y se borra del servidor falso, como si existiera de antes de Sprint 7.
+    const legacy = !seed.consents.coach_agreement;
+    if (legacy) await r.account.recordConsents([{ kind: 'coach_agreement', granted: true, version: 'x', textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' }]);
     await r.coach.becomeCoach(biz);
+    if (legacy) { be.consentEvents = be.consentEvents.filter((e) => !(e.userId === user.id && e.kind === 'coach_agreement')); be._persist(); }
     const c = await r.coach.myCoach();
     localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: await r.account.roles(), onboarded: true, coach: c, ...seed }));
     localStorage.setItem('perdida-grasa:owner', user.id);
-    // El acuerdo del coach también queda en el servidor (como al aceptarlo en la app).
-    if (seed.consents.coach_agreement) await r.account.recordConsents([{ kind: 'coach_agreement', granted: true, version: seed.consents.coach_agreement.version, textHash: 'a'.repeat(64), clientAt: seed.consents.coach_agreement.clientAt }]);
   }, { email, biz, seed });
   await page.reload();
   await acceptLegalIfPresent(page);

@@ -38,6 +38,10 @@ function psqlAsync(dir, port, sql) {
   p.stderr.on('data', (d) => { out += d; });
   return new Promise((resolve) => p.on('close', (code) => resolve({ code, out })));
 }
+// Sprint 7: sync_push/join_coach exigen A3 + A4 vigentes; se siembran como superusuario (los tests locales no pasan por la app).
+async function seedConsents(dir, port) {
+  await psqlAsync(dir, port, `select tests.cloud('ana'); select tests.cloud('bea');`);
+}
 async function concurrency(dir, port) {
   const push = (id, nkey) => `select tests.login('ana'); select grasa.sync_push(jsonb_build_array(jsonb_build_object('id','${id}',` +
     `'kind','habit','nkey','${nkey}','date','${nkey}','data','{}'::jsonb,'updated_at',now())));`;
@@ -119,6 +123,7 @@ let failed = 0, oks = 0;
       && apply('ayudas de prueba', path.join(TESTS, '01_helpers.sql'));
     if (ok) {
       for (const f of fs.readdirSync(TESTS).filter((x) => x.endsWith('.test.sql')).sort()) apply(f, path.join(TESTS, f), { single: false });
+      await seedConsents(dir, port);
       await concurrency(dir, port);
       await attemptsRace(dir, port);
     }

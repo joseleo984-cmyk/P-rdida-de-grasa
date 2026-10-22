@@ -164,6 +164,10 @@ test('mapError: tabla del contrato §10.4 (mensaje primero, luego SQLSTATE, red,
     [{ message: 'Internal Server Error', status: 500 }, 'server'],
     [{ message: 'JSON object requested, multiple rows returned', code: 'PGRST116' }, 'server'],
     [{ message: '¿?' }, 'server'],
+    // Sprint 7 (r1 v1.5): el servidor impone los consentimientos
+    [{ message: 'consent_required', code: '42501', status: 403, details: 'faltan las autorizaciones de datos de salud (A3) y copia en la nube (A4)' }, 'consent_required'],
+    [{ message: 'forbidden', code: '42501', status: 403, details: 'coach_agreement_required' }, 'agreement_required'],
+    [{ message: 'forbidden', code: '42501', status: 403 }, 'forbidden'],
   ];
   for (const [e, code] of cases) assert.strictEqual(Remote.mapError(e).code, code, JSON.stringify(e));
   assert.strictEqual(Remote.mapError({ name: 'AuthApiError', code: 'otp_expired', status: 403 }, { ctx: 'verify' }).code, 'invalid_code');
@@ -368,6 +372,7 @@ test('createFake: adapta pull(since, { overlap }) a la firma del fake (§11.8)',
     const r = Remote.createFake({ backend, storage: memStorage() });
     await r.auth.sendCode('ana@x.co');
     await r.auth.verifyCode('ana@x.co', backend.lastCode('ana@x.co'));
+    await r.account.recordConsents(['sensitive_health', 'cloud_transfer'].map((kind) => ({ kind, granted: true, version: 't', textHash: 'a'.repeat(64), clientAt: new Date().toISOString() })));   // Sprint 7
     await r.sync.push({ records: [{ id: '33333333-3333-4333-8333-333333333333', kind: 'entry', nkey: '2026-10-01', date: '2026-10-01', data: { weight: 80 }, updatedAt: '2026-10-01T00:00:00.000Z', deletedAt: null }] });
     const out = await r.sync.pull(null, { overlap: true });
     assert.strictEqual(out.records.length, 1);

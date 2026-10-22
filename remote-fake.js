@@ -11,7 +11,7 @@
     'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos'];
   const RECORD_KINDS = ['profile', 'entry', 'food', 'habit', 'library'];
   const SHARE_KEYS = ['body', 'notes', 'nutrition', 'habits', 'photos'];
-  const RETRYABLE = { offline: true, server: true, rate_limited: true };
+  const RETRYABLE = { offline: true, server: true, rate_limited: true }; // consent_required y agreement_required: no se reintentan solos
   const MAX_SKEW_MS = 5 * 60 * 1000;
   const OTP_TTL_MS = 60 * 60 * 1000;
   const OTP_RESEND_MS = 60 * 1000;
@@ -109,6 +109,24 @@
       return iso(t);
     }
     _persist() { if (this.onPersist) this.onPersist(this); }
+
+    // Sprint 7 (r1 v1.5): ¿el ÚLTIMO evento de ese tipo de la persona tiene granted = true? (sin mirar la versión del texto)
+    hasConsent(userId, kind) {
+      for (let i = this.consentEvents.length - 1; i >= 0; i--) {
+        const e = this.consentEvents[i];
+        if (e.userId === userId && e.kind === kind) return e.granted === true;
+      }
+      return false;
+    }
+    // sync_push / sync_pull / join_coach: exigen A3 (sensitive_health) + A4 (cloud_transfer) vigentes → 'consent_required' (42501).
+    requireCloudConsent(userId) {
+      if (!(this.hasConsent(userId, 'sensitive_health') && this.hasConsent(userId, 'cloud_transfer'))) fail('consent_required', 'Falta aceptar una autorización');
+    }
+    // Funciones de coach: exigen el acuerdo (A7) vigente → forbidden con detail 'coach_agreement_required' (el cliente real lo
+    // traduce a 'agreement_required').
+    requireCoachAgreement(userId) {
+      if (!this.hasConsent(userId, 'coach_agreement')) fail('agreement_required', 'Falta aceptar el Acuerdo del coach');
+    }
 
     userById(id) { return Object.values(this.users).find((u) => u.id === id) || null; }
     roles(userId, app = APP) {
@@ -301,6 +319,7 @@
     const sync = {
       async push({ records = [], photos = [] } = {}) {
         const u = await authed();
+        be.requireCloudConsent(u.id);
         if (!Array.isArray(records) || !Array.isArray(photos)) fail('invalid', 'Formato no válido');
         const rejected = { records: [], photos: [] };
         // En lotes de 500, como la implementación real.
@@ -333,6 +352,7 @@
         const o = typeof opts === 'number' ? { limit: opts } : (opts || {});
         const limit = o.limit || 1000;
         const u = await authed();
+        be.requireCloudConsent(u.id);
         const from = (Date.parse(since) || 0) - (o.overlap === false ? 0 : PULL_OVERLAP_MS);
         const after = (x) => Date.parse(x.serverUpdatedAt) > from;
         const rows = [
@@ -386,7 +406,8 @@
     const findCoachByCode = (code) => {
       const c = String(code || '').trim().toUpperCase().replace(/[\s-]/g, '');
       if (!/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/.test(c)) return null;
-      const id = Object.keys(be.coaches).find((k) => be.coaches[k].inviteCode === c && be.coaches[k].active);
+      // Sprint 7: el código de un coach SIN acuerdo vigente no sirve (como uno caducado).
+      const id = Object.keys(be.coaches).find((k) => be.coaches[k].inviteCode === c && be.coaches[k].active && be.hasConsent(k, 'coach_agreement'));
       if (!id) return null;
       const co = be.coaches[id];
       if (co.inviteExpiresAt && Date.parse(co.inviteExpiresAt) <= be.clock.now()) return null;
@@ -405,6 +426,7 @@
       },
       async joinCoach(code, shares) {
         const u = await authed();
+        be.requireCloudConsent(u.id);
         be._inviteAttempt(u.id);
         const c = findCoachByCode(code);
         if (!c || c.id === u.id) { be._persist(); fail('invalid_code', 'Código de coach no válido'); }
@@ -458,9 +480,11 @@
     };
 
     // ---------- Coach ----------
-    async function asCoach() {
+    // `agreement: false` solo para lo que REDUCE acceso (terminar un vínculo, borrar un comentario propio).
+    async function asCoach({ agreement = true } = {}) {
       const u = await authed();
       if (!be.coaches[u.id] || !be.roles(u.id, app).includes('coach')) fail('forbidden', 'No eres coach');
+      if (agreement) be.requireCoachAgreement(u.id);
       return u;
     }
     // v1.1 §10.3 coach_can_see: vínculo activo + coach activo (+ categoría, que comprueba cada función).
@@ -473,6 +497,7 @@
     const coach = {
       async becomeCoach(businessName) {
         const u = await authed();
+        be.requireCoachAgreement(u.id);
         const name = String(businessName || '').trim();
         if (name.length < 2 || name.length > 60) fail('invalid', 'El nombre comercial debe tener entre 2 y 60 caracteres');
         if (!be.coaches[u.id]) be.coaches[u.id] = { businessName: name, inviteCode: be._newInviteCode(), freeClients: 5, active: true, codeRotatedAt: iso(be.clock.now()), createdAt: iso(be.clock.now()) };
@@ -540,7 +565,7 @@
         return done(commentOut(be.comments[cid]));
       },
       async deleteComment(commentId) {
-        const u = await asCoach();
+        const u = await asCoach({ agreement: false });
         const c = be.comments[commentId];
         if (!c || c.coachId !== u.id) fail('not_found', 'Comentario no encontrado');
         c.deletedAt = iso(be.clock.now());
@@ -548,7 +573,7 @@
         return done(undefined);
       },
       async endClient(clientId) {
-        const u = await asCoach();
+        const u = await asCoach({ agreement: false });
         const l = activeLinkCoach(u.id, clientId);
         l.status = 'ended';
         l.endedAt = iso(be.clock.now());

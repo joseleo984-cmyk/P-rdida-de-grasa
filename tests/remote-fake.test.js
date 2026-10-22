@@ -16,6 +16,9 @@ async function login(remote, backend, email) {
 }
 const H = 'a'.repeat(64);
 const SH = { version: 'compartir-1', textHash: H };
+const ev = (kind, granted = true) => ({ kind, granted, version: 't', textHash: H, clientAt: T0 });
+const agree = (r) => r.account.recordConsents([ev('coach_agreement')]);   // Sprint 7: A7 vigente
+const cloud = (r) => r.account.recordConsents([ev('sensitive_health'), ev('cloud_transfer')]);   // Sprint 7: A3 + A4 vigentes
 const rejects = (p, code) => assert.rejects(p, (e) => e instanceof Error && e.code === code);
 
 test('config: sin PG_CONFIG o vacío → null (la app sigue solo local)', () => {
@@ -81,6 +84,8 @@ test('account: joinApp da rol client; becomeCoach añade coach; consent_events s
   const a = dev();
   await login(a, backend, 'c@x.co');
   assert.deepStrictEqual(await a.account.joinApp(), ['client']);
+  await rejects(a.coach.becomeCoach('Coach Ana'), 'agreement_required');   // Sprint 7: sin acuerdo no hay coach
+  await agree(a);
   await rejects(a.coach.becomeCoach('X'), 'invalid');
   const { inviteCode } = await a.coach.becomeCoach('Coach Ana');
   assert.match(inviteCode, /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
@@ -90,16 +95,20 @@ test('account: joinApp da rol client; becomeCoach añade coach; consent_events s
   await rejects(a.account.recordConsents([{ kind: 'terms', granted: true, version: '0.2', clientAt: T0 }]), 'invalid'); // v1.1: sin textHash
   await a.account.recordConsents([{ kind: 'terms', granted: true, version: '0.2', textHash: H, clientAt: T0 }, { kind: 'terms', granted: false, version: '0.2', textHash: H, clientAt: T0 }]);
   assert.deepStrictEqual((await a.account.consents()).terms, { granted: false, version: '0.2', textHash: H, clientAt: T0 });
-  assert.strictEqual(backend.consentEvents.length, 2);
+  assert.strictEqual(backend.consentEvents.length, 3);
 });
 
 test('cliente ↔ coach: código, vínculo único, filtros del coach (sin note, sin library) y fin del vínculo', async () => {
   const { backend, dev } = setup();
   const coach = dev(), cli = dev(), otro = dev();
-  await login(coach, backend, 'coach@x.co'); await coach.account.joinApp();
+  await login(coach, backend, 'coach@x.co'); await coach.account.joinApp(); await agree(coach);
   const { inviteCode } = await coach.coach.becomeCoach('Fit Ana');
   await login(cli, backend, 'cli@x.co'); await cli.account.joinApp();
-  await login(otro, backend, 'otro@x.co'); await otro.account.joinApp(); await otro.coach.becomeCoach('Otro');
+  await login(otro, backend, 'otro@x.co'); await otro.account.joinApp(); await agree(otro); await otro.coach.becomeCoach('Otro');
+  await rejects(cli.client.joinCoach(inviteCode, { body: true, ...SH }), 'consent_required');   // Sprint 7: sin A3 + A4
+  await rejects(cli.sync.push({ records: [] }), 'consent_required');
+  await rejects(cli.sync.pull('1970-01-01T00:00:00Z'), 'consent_required');
+  await cloud(cli);
   await rejects(cli.client.previewCode('ZZZZZZ'), 'invalid_code');
   assert.deepStrictEqual(await cli.client.previewCode(inviteCode.toLowerCase()), { businessName: 'Fit Ana' });
   await rejects(cli.client.joinCoach(inviteCode, { body: false, ...SH }), 'invalid');
@@ -136,7 +145,7 @@ test('códigos de coach: máximo 20 intentos por hora', async () => {
 test('sync: LWW con recorte +5 min, clave natural conserva id, pull con solape y dos dispositivos', async () => {
   const { backend, clock, dev } = setup();
   const m1 = dev(), m2 = dev();
-  await login(m1, backend, 'd@x.co');
+  await login(m1, backend, 'd@x.co'); await cloud(m1);
   await m2.auth.sendCode('d@x.co').catch(() => {}); // mismo usuario en otro móvil (1 código/min)
   clock.advance(61 * 1000);
   await login(m2, backend, 'd@x.co');
@@ -176,7 +185,7 @@ test('Remote.create (real) sin supabase-js cargado: error claro (server)', () =>
 test('v1.1: rotateCode con caducidad y usos; código caducado o agotado = invalid_code; coach inactivo pierde acceso', async () => {
   const { backend, clock, dev } = setup();
   const coach = dev(), c1 = dev(), c2 = dev();
-  await login(coach, backend, 'k@x.co'); await coach.account.joinApp(); await coach.coach.becomeCoach('Coach K');
+  await login(coach, backend, 'k@x.co'); await coach.account.joinApp(); await agree(coach); await coach.coach.becomeCoach('Coach K');
   await rejects(coach.coach.rotateCode({ validDays: 0 }), 'invalid');
   const code = await coach.coach.rotateCode({ validDays: 7, maxUses: 1 });
   const me = await coach.coach.myCoach();
@@ -184,7 +193,7 @@ test('v1.1: rotateCode con caducidad y usos; código caducado o agotado = invali
   assert.strictEqual(me.maxUses, 1);
   assert.strictEqual(me.uses, 0);
   assert.strictEqual(Date.parse(me.expiresAt), clock.now() + 7 * 86400000);
-  await login(c1, backend, 'c1@x.co'); await c1.account.joinApp();
+  await login(c1, backend, 'c1@x.co'); await c1.account.joinApp(); await cloud(c1);
   await c1.client.joinCoach(code, { body: true, ...SH });
   assert.strictEqual((await coach.coach.myCoach()).uses, 1);
   await login(c2, backend, 'c2@x.co'); await c2.account.joinApp();
@@ -205,4 +214,33 @@ test('v1.1: textHash = SHA-256 hex con saltos de línea normalizados (mismo valo
   assert.strictEqual(await Remote.textHash('Acepto\r\n'), h);
   assert.strictEqual(await Remote.textHash('Acepto\r'), h);
   assert.strictEqual(await Remote.textHash('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+});
+
+test('Sprint 7: el acuerdo del coach manda (revocarlo bloquea), el código de un coach sin acuerdo no sirve y retirar A3/A4 corta la sincronización', async () => {
+  const { backend, dev } = setup();
+  const coach = dev(), cli = dev();
+  await login(coach, backend, 'ca@x.co'); await coach.account.joinApp(); await agree(coach);
+  const { inviteCode } = await coach.coach.becomeCoach('Coach A');
+  await login(cli, backend, 'cl@x.co'); await cli.account.joinApp(); await cloud(cli);
+  const uid = (await cli.auth.session()).user.id;
+  await cli.client.joinCoach(inviteCode, { body: true, ...SH });
+  await cli.sync.push({ records: [{ id: 'r1', kind: 'entry', nkey: '2026-10-20', date: '2026-10-20', data: { weight: 70 }, updatedAt: T0 }] });
+  assert.strictEqual((await coach.coach.clientData(uid)).records.length, 1);
+  await coach.account.recordConsents([ev('coach_agreement', false)]);   // revoca
+  await rejects(coach.coach.clients(), 'agreement_required');
+  await rejects(coach.coach.clientData(uid), 'agreement_required');
+  await rejects(coach.coach.addComment(uid, { body: 'hola' }), 'agreement_required');
+  await rejects(coach.coach.rotateCode(), 'agreement_required');
+  await rejects(coach.coach.becomeCoach('Coach A'), 'agreement_required');
+  await coach.coach.endClient(uid);   // reducir acceso sigue permitido
+  const nuevo = dev();
+  await login(nuevo, backend, 'nu@x.co'); await nuevo.account.joinApp(); await cloud(nuevo);
+  await rejects(nuevo.client.previewCode(inviteCode), 'invalid_code');   // el código de un coach sin acuerdo no sirve
+  await rejects(nuevo.client.joinCoach(inviteCode, { body: true, ...SH }), 'invalid_code');
+  await agree(coach);
+  assert.deepStrictEqual(await nuevo.client.previewCode(inviteCode), { businessName: 'Coach A' });
+  await cli.account.recordConsents([ev('cloud_transfer', false)]);   // el último evento manda
+  await rejects(cli.sync.push({ records: [] }), 'consent_required');
+  await cli.account.recordConsents([ev('cloud_transfer')]);
+  await cli.sync.pull('1970-01-01T00:00:00Z');
 });

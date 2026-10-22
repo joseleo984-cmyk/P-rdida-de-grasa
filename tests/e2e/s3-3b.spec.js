@@ -20,6 +20,8 @@ async function login(page, email = EMAIL) {
     await r.auth.sendCode(e);
     const { user } = await r.auth.verifyCode(e, window.__pgFakeBackend.lastCode(e));
     await r.account.joinApp();
+    // Sprint 7: el servidor exige las autorizaciones (A3 + A4, y A7 si es coach): quedan registradas ANTES de usar la cuenta.
+    if (seed.consents && Object.keys(seed.consents).length) await r.account.recordConsents(Object.entries(seed.consents).map(([kind, v]) => ({ kind, granted: v.granted, version: v.version, textHash: v.textHash, clientAt: v.clientAt })));
     // Sprint 6: la copia en la nube exige A3 + A4; aquí ya están aceptadas (la pantalla de cuenta las guarda en esta clave).
     const prev = JSON.parse(localStorage.getItem('perdida-grasa:account') || 'null') || {};
     localStorage.setItem('perdida-grasa:account', JSON.stringify({ ...prev, ...seed }));

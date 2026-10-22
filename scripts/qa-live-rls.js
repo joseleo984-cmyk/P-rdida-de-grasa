@@ -109,6 +109,34 @@ async function main() {
   let r = await rpc('core', 'join_app', { p_app: 'grasa' }, A.token);
   rep(ok2(r), 'A join_app', ok2(r) ? '' : errTxt(r));
   if (bOk) { r = await rpc('core', 'join_app', { p_app: 'grasa' }, B.token); rep(ok2(r), 'B join_app', ok2(r) ? '' : errTxt(r)); }
+  // ---------- a2) Sprint 7: el SERVIDOR exige los consentimientos (no solo la app) ----------
+  // Los consent_events no se pueden borrar: para que el script se repita, primero se RETIRAN (granted=false) y se comprueba
+  // el bloqueo; después se otorgan (mismo método que ya usamos: INSERT directo en core.consent_events con la sesión de cada cuenta).
+  sec('a2) El servidor exige A7 (coach) y A3 + A4 (cliente)');
+  const grant = async (who, kinds_, granted) => {
+    const x = await mut('POST', 'core', 'consent_events', '', kinds_.map((k) => consent(who.id, k, granted)), who.token);
+    return x;
+  };
+  const isErr = (x, msg) => !ok2(x) && x.status === 403 && x.json && x.json.code === '42501' && x.json.message === msg;
+  r = await grant(coach, ['coach_agreement'], false);
+  rep(ok2(r), 'coach registra coach_agreement retirado (granted=false)', ok2(r) ? '' : errTxt(r));
+  r = await rpc('grasa', 'become_coach', { p_business_name: 'QA Coach Pruebas' }, coach.token);
+  rep(isErr(r, 'forbidden'), 'become_coach sin acuerdo vigente: 403 / 42501 forbidden', errTxt(r));
+  r = await rpc('grasa', 'coach_clients', {}, coach.token);
+  rep(isErr(r, 'forbidden'), 'coach_clients sin acuerdo vigente: 403 / 42501 forbidden', errTxt(r));
+  r = await grant(A, ['sensitive_health', 'cloud_transfer'], false);
+  rep(ok2(r), 'A registra sensitive_health y cloud_transfer retirados', ok2(r) ? '' : errTxt(r));
+  r = await rpc('grasa', 'sync_push', { p_records: [mkRec('entry', day, day, { weight: 1 })], p_photos: [] }, A.token);
+  rep(isErr(r, 'consent_required'), 'A sync_push sin A3+A4 vigentes: 403 / 42501 consent_required', errTxt(r));
+  r = await rpc('grasa', 'sync_pull', { p_since: '1970-01-01T00:00:00Z', p_limit: 10 }, A.token);
+  rep(isErr(r, 'consent_required'), 'A sync_pull sin A3+A4 vigentes: 403 / 42501 consent_required', errTxt(r));
+  r = await rpc('grasa', 'join_coach', { p_code: 'AAAAAA', p_shares: { body: true, ...SH } }, A.token);
+  rep(isErr(r, 'consent_required'), 'A join_coach sin A3+A4 vigentes: 403 / 42501 consent_required', errTxt(r));
+  r = await grant(coach, ['coach_agreement'], true);
+  rep(ok2(r), 'coach acepta el acuerdo (coach_agreement granted=true)', ok2(r) ? '' : errTxt(r));
+  r = await grant(A, ['sensitive_health', 'cloud_transfer'], true);
+  rep(ok2(r), 'A acepta sensitive_health y cloud_transfer', ok2(r) ? '' : errTxt(r));
+  if (bOk) { r = await grant(B, ['sensitive_health', 'cloud_transfer'], true); rep(ok2(r), 'B acepta sensitive_health y cloud_transfer', ok2(r) ? '' : errTxt(r)); }
   r = await rpc('grasa', 'become_coach', { p_business_name: 'QA Coach Pruebas' }, coach.token);
   const code = rows(r)[0] && rows(r)[0].invite_code;
   rep(ok2(r) && /^[A-Z2-9]{6}$/.test(code || ''), 'coach become_coach devuelve código de 6 símbolos (no se imprime)', ok2(r) ? '' : errTxt(r));
@@ -248,7 +276,19 @@ async function main() {
   rep(!ok2(r), 'A no puede insertar consentimientos a nombre de otro user_id', errTxt(r));
 
   // ---------- f) Códigos de invitación ----------
-  sec('f) Código inválido (máx. 3 intentos en total con el válido de antes)');
+  sec('f) Código inválido y código de un coach sin acuerdo (máx. 5 intentos en total con el válido de antes)');
+  r = await grant(coach, ['coach_agreement'], false);
+  rep(ok2(r), 'coach retira el acuerdo (granted=false)', ok2(r) ? '' : errTxt(r));
+  r = await rpc('grasa', 'preview_invite_code', { p_code: code }, A.token);
+  rep(ok2(r) && Array.isArray(r.json) && r.json.length === 0, 'el código de un coach SIN acuerdo no sirve: vista previa vacía (cuenta como intento)', errTxt(r));
+  r = await rpc('grasa', 'join_coach', { p_code: code, p_shares: { body: true, ...SH } }, A.token);
+  rep(ok2(r) && (r.json === null || r.json.id === null), 'el código de un coach SIN acuerdo no sirve: join_coach devuelve null (cuenta como intento)', `HTTP ${r.status} cuerpo=${flat(r.json)}`);
+  r = await rpc('grasa', 'coach_pull', { p_client: A.id, p_since: '1970-01-01T00:00:00Z' }, coach.token);
+  rep(isErr(r, 'forbidden'), 'coach sin acuerdo: coach_pull 403 forbidden', errTxt(r));
+  r = await rpc('grasa', 'add_comment', { p_id: crypto.randomUUID(), p_client: A.id, p_ref_date: null, p_body: 'hola' }, coach.token);
+  rep(isErr(r, 'forbidden'), 'coach sin acuerdo: add_comment 403 forbidden', errTxt(r));
+  r = await grant(coach, ['coach_agreement'], true);
+  rep(ok2(r), 'coach vuelve a aceptar el acuerdo', ok2(r) ? '' : errTxt(r));
   r = await rpc('grasa', 'preview_invite_code', { p_code: 'AAAAAA' }, A.token);
   rep(ok2(r) && Array.isArray(r.json) && r.json.length === 0, 'preview_invite_code inválido -> 0 filas (cuenta como intento)', errTxt(r));
   r = await rpc('grasa', 'join_coach', { p_code: 'AAAAAA', p_shares: { body: true, ...SH } }, A.token);
