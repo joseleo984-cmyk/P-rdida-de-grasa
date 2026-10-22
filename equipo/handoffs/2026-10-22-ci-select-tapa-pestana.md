@@ -1,0 +1,8 @@
+# Handoff: CI falla en s3-4 ("select name=rate intercepts pointer events")
+
+**Causa (defecto real de la app, no de la prueba).** `#acc-share-title` muestra el nombre de negocio del coach (en la prueba, sin espacios: `<script>…`). Con las fuentes más anchas del runner de GitHub el texto no partía y desbordaba la pantalla de cuenta (390 -> 427 px). En móvil eso ensancha el viewport de maquetación; al volver a la app, la `.tabbar` (columnas `1fr` = min-content) medía 427 px y «Perfil» quedaba fuera del viewport visual (y bajo el área donde el scroll dejaba el `<select name="rate">`, que es lo que Playwright citaba). En local no pasaba porque la fuente estrecha cabía.
+Reproducido forzando `DejaVu Sans` + `letter-spacing:.02em` en el cliente (innerWidth 427, innerHeight 925 frente a 844).
+
+**Corrección (styles.css).** (1) `overflow-wrap:anywhere` en `main`, `.consent` y textos de la cuenta: el texto del usuario parte en vez de ensanchar. (2) `.tabbar`: columnas `minmax(0,1fr)`, botones `min-width:0; overflow:hidden`, fuente .72rem: la barra no puede ensancharse nunca. (3) `body` padding-bottom 76 -> 84 px (+safe-area) para que el contenido quede visible sobre la barra. sw.js CACHE 20 -> 21 (y expectativas en site-pruebas.spec.js).
+
+**Prueba.** `tests/e2e/layout.spec.js`: (a) fuente ancha, 6 pestañas, scroll abajo en cada vista: `elementFromPoint` en el centro de cada botón pertenece a `.tabbar`, sin scroll horizontal, barra dentro de la pantalla, contenido no tapado; (b) nombre largo sin espacios en la cuenta no ensancha la página. (b) falla sin la corrección (980 px) y pasa con ella. s3-4 pasa también con la fuente ancha.

@@ -39,7 +39,7 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.45;
-  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
 }
 h1 { font-size: 1.15rem; margin: 0; }
 h2 { font-size: 1rem; margin: 0 0 12px; }
@@ -159,13 +159,14 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
 
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; /* 5 pestañas, 6 con «Clientes» (coach) */
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); /* 5 pestañas, 6 con «Clientes» (coach) */
   background: var(--card); border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom);
 }
 .tabbar button {
-  border: 0; background: transparent; color: var(--muted); font: inherit; font-size: .75rem;
+  border: 0; background: transparent; color: var(--muted); font: inherit; font-size: .72rem;
   display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 0 10px; cursor: pointer;
+  min-width: 0; overflow: hidden; letter-spacing: 0; /* nunca ensanchar la barra: con fuentes anchas desbordaba y sacaba «Perfil» de la pantalla */
 }
 .tabbar button span { font-size: 1.25rem; line-height: 1; }
 .tabbar button.on { color: var(--accent); font-weight: 700; }
@@ -316,3 +317,7 @@ body.account-open { padding-bottom: 16px; }
 }
 body.has-env-banner { padding-top: 32px; }
 body.has-env-banner .topbar { top: 32px; }
+
+/* Texto del usuario sin espacios (nombre de negocio, etc.): que parta en vez de ensanchar la página.
+   Un desborde horizontal agranda el viewport de maquetación en móvil y empuja la barra de pestañas fuera de pantalla. */
+main, .consent, .acc-share p, .acc-step p { overflow-wrap: anywhere; }
