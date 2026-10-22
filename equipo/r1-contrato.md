@@ -1,6 +1,6 @@
 # Contrato técnico de R1 — Cuentas, sincronización y panel del coach
 
-Autor: Agente Arquitecto / Tech Lead · Fecha: 2026-10-21 · Historia: **S3-0** · Estado: **v1, vinculante para S3-1…S3-5**
+Autor: Agente Arquitecto / Tech Lead · Fecha: 2026-10-21 · Historia: **S3-0** · Estado: **v1.4 (Sprint 6), vinculante**
 Base: `spike-servidor.md` (§3, §4, §11 SPIKE-02), `decisiones-negocio.md` (#6, #7, #10, #14), código en `main`
 (`schema.js` v4 con `stampChanges`/`mergeRecords`/`mergeState`/`toRecords`/`fromRecords`, `coach.js` con `summarize`,
 `photos.js`, consentimiento local de S2-1).
@@ -685,4 +685,24 @@ Migración: `supabase/migrations/20261021130000_r1_fix_seguridad.sql`. **Lo de e
 | 12.3 | **H2**: error de Auth `400 validation_failed` cuyo mensaje contiene «refresh token» → `auth` (no `invalid`). | `mapError`, regla añadida antes de la de `ctx 'auth'`. |
 | 12.4 | **H3**: SQLSTATE `42501` con **HTTP 401** (sin sesión, rol `anon`) → `auth`; `42501` con sesión (HTTP 403, RLS o permiso) sigue siendo `forbidden`. Precede a la fila `42501` de la tabla de §10.4. | `mapError`. |
 | 12.5 | **H8 (riesgo aceptado)**: tras `core.delete_my_account()` el JWT antiguo sigue aceptado hasta que caduca. No hay fuga: el usuario ya no tiene datos ni vínculos y las RPC devuelven vacío. Mitigación: el cliente cierra la sesión local al borrar, y la **duración del JWT se fija en ≤ 1 h** (guía del Stakeholder §7.1). | Ninguno. |
+
+---
+
+## 13. Cambios v1.4 (Sprint 6: autorizaciones A1–A8 y archivo mínimo del consentimiento)
+
+Una sola migración: `supabase/migrations/20261022120000_r1_consentimientos_s6.sql` (regenera `supabase/r1.sql`). Pruebas: `supabase/tests/80_consentimientos_s6.test.sql` (28 comprobaciones) y `10_estructura` (13 tablas).
+
+| # | Cambio | Efecto en el cliente |
+|---|---|---|
+| 13.1 | `core.consent_events.kind` admite además `cloud_transfer` (A4), `photo_view_coach` (A6b) y `coach_agreement` (A7). **A6a se llama `photos_cloud`** (ya existía; no se crea `photo_cloud`). Un tipo con otro nombre falla por CHECK. | `remote-fake.js` y `account.js` usan los mismos nombres. `photo_view_coach` lleva `coach_id`. |
+| 13.2 | `grasa.coach_links.share_nutrition` y `share_habits` nacen en `false` (antes `true`). `join_coach` ya los fijaba con `coalesce(..., false)`: el cambio solo cierra el default de la tabla. | Ninguno. La app ya manda cada categoría explícita. |
+| 13.3 | **`core.consent_archive`** (nueva): prueba mínima y seudonimizada. Columnas: `user_pseudo_id` (SHA-256 de sal del servidor + uuid), `coach_pseudo_id`, `app_id`, `kind`, `action` (`grant`/`revoke`), `version`, `text_hash`, `client_at`, `event_at`, `archived_at` (fecha de baja), `purge_after` (+5 años por defecto). **Sin FK a `auth.users`, sin correo ni nombre.** RLS activada **sin políticas** y `REVOKE ALL` a `anon`, `authenticated` y `service_role`: solo la lee el dueño de la base (SQL Editor). Solo inserción (UPDATE/DELETE/TRUNCATE bloqueados; DELETE solo de filas con `purge_after` vencido, para cuando el abogado fije el plazo). `core.archive_secret` guarda la sal (una fila, mismos permisos). | Ninguno: ninguna llamada de la API la toca. |
+| 13.4 | `core.delete_my_account()` copia todos los `consent_events` del usuario al archivo, **en la misma transacción** que el borrado en cascada. Misma firma, mismos grants, mismo `search_path`. | `remote.account.deleteAccount()` igual. El aviso A8 de borrado ya dice que se guarda una prueba mínima sin nombre. |
+
+**Riesgos y decisiones abiertas**
+- El plazo de la prueba (3 a 5 años) lo fija el abogado; `purge_after` usa 5 años y **no se borra solo** (la depuración es manual hasta decidirlo).
+- Un usuario que vuelva a registrarse con el mismo correo recibe otro uuid: el archivo no se enlaza con la cuenta nueva (es lo buscado).
+- La sal se genera al aplicar la migración. Si alguien borra `core.archive_secret` y se vuelve a generar, los seudónimos antiguos y nuevos de una misma persona dejan de coincidir (no afecta a la prueba, solo a agruparlos).
+- Los plazos de inactividad (aviso a los 12 meses, borrado a los 13–24) **no están automatizados**; quedan documentados en la decisión del Stakeholder (2026-10-22).
+- Hay que volver a pegar `supabase/r1.sql` en `pruebas` y en `plataforma` (es idempotente).
 
