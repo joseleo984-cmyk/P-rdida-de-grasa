@@ -1,6 +1,6 @@
 # Lista "antes de abrir la app" a coaches y clientes (piloto)
 
-Estado al 2026-10-22. Marcar `[x]` al completar. Quién: **SH** = Stakeholder (José), **EQ** = equipo de agentes.
+Estado al 2026-10-22. La conexión de la app oficial a `plataforma` queda a la espera del abogado (`equipo/legal/paquete-abogado.md`). Marcar `[x]` al completar. Quién: **SH** = Stakeholder (José), **EQ** = equipo de agentes.
 
 ## 1. Legal (bloquea datos reales)
 - [ ] **SH** Revisión del abogado de `equipo/legal/*.md` con la lista `equipo/legal/preguntas-abogado.md` (P1–P5 bloquean el piloto; el art. 6 de la Ley 1581: no condicionar el servicio a datos sensibles).
@@ -9,14 +9,14 @@ Estado al 2026-10-22. Marcar `[x]` al completar. Quién: **SH** = Stakeholder (J
 - [ ] **EQ** Actualizar `equipo/piloto-r0.md`: el cliente ya **no envía archivos por WhatsApp**; usa cuenta propia y el coach ve su panel.
 
 ## 2. Supabase `plataforma` (replicar lo hecho en `pruebas`)
-- [ ] **SH** Pegar `supabase/r1.sql` (el más reciente) y ver `OK r1 v1`. Solo cuando `pruebas` esté validada de punta a punta.
-- [ ] **SH** *Project Settings → Data API → Exposed schemas*: `core` y `grasa`, **y pulsar Save**.
-- [ ] **SH** Consulta de comprobación (5 filas): `politicas_fotos=5`, `fotos_publicas=false`, `puede_borrar_cuentas=true`, `esquemas_creados=2`, `my_link=1`.
-- [ ] **SH** Auth → Email: *OTP Length* = **6**, *Expiration* = 600; plantillas **Confirm sign up** y **Magic link or OTP** con asunto `Tu código para entrar: {{ .Token }}` y cuerpo con `{{ .Token }}` (sin enlace).
-- [ ] **SH** SMTP propio (Brevo) y *Rate Limits* de correo.
+- [x] **SH** Pegar `supabase/r1.sql` (el más reciente) y ver `OK r1 v1`. Solo cuando `pruebas` esté validada de punta a punta.
+- [x] **SH** *Project Settings → Data API → Exposed schemas*: `core` y `grasa`, **y pulsar Save**.
+- [x] **SH** Consulta de comprobación (5 filas): `politicas_fotos=5`, `fotos_publicas=false`, `puede_borrar_cuentas=true`, `esquemas_creados=2`, `my_link=1`.
+- [x] **SH** Auth → Email: *OTP Length* = **6**, *Expiration* = 600; plantillas **Confirm sign up** y **Magic link or OTP** con asunto `Tu código para entrar: {{ .Token }}` y cuerpo con `{{ .Token }}` (sin enlace).
+- [x] **SH** SMTP propio (Brevo). *(Los «Rate Limits» de correo y el límite por hora siguen en la sección 3.)*
 - [ ] **SH** Duración de la sesión (JWT) en **3600 s o menos**.
 - [ ] **SH** Brevo → Seguridad: autorizar la IP que mande `plataforma` (otra región que `pruebas`) y **decidir** mantener el bloqueo (A) o desactivarlo para SMTP (B): si la IP cambia y no se autoriza, el código no llega y la app parece rota.
-- [ ] **EQ** `npm run smoke:remote` contra `plataforma` (con `NODE_USE_ENV_PROXY=1`) y repetir la matriz en vivo de QA (`scripts/qa-live-rls.js`, `scripts/qa-live-recheck.js`) con cuentas de prueba nuevas.
+- [x] **EQ** `npm run smoke:remote` contra `plataforma` (con `NODE_USE_ENV_PROXY=1`) y repetir la matriz en vivo de QA (`scripts/qa-live-rls.js`, `scripts/qa-live-recheck.js`) con cuentas de prueba nuevas. **Hecho el 2026-10-22: 61/61 pruebas.**
 
 ## 3. Abuso del correo de códigos (también aplica en producción)
 - [ ] **SH+EQ** **Captcha** en Auth (*Attack Protection*, Cloudflare Turnstile, gratis) y que la app lo soporte.

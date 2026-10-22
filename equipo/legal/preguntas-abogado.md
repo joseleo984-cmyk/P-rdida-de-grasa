@@ -1,93 +1,114 @@
 > ⚠️ **Borrador de trabajo para la consulta legal; no es asesoría legal.**
-> Autor: Agente Analista de Producto · 2026-10-21 · Para: Stakeholder (llevar a la consulta con el abogado).
-> Documentos a entregar al abogado: `terminos-y-condiciones.md`, `politica-tratamiento-datos.md` (en esta carpeta) y el §8 de `../piloto-r0.md` (condiciones del piloto).
+> Rev. 3 · 2026-10-22 · Autor: Analista de Producto · Para: José Granados (llevar a la consulta con el abogado).
+> Se lee junto con `paquete-abogado.md` (hechos reales: mapa de datos, proveedores, controles y lo que falta).
+> Documentos a entregar: `paquete-abogado.md`, `terminos-y-condiciones.md` y `politica-tratamiento-datos.md` (esta carpeta; describen aún la fase sin cuentas).
 
-# Preguntas para el abogado — consolidadas y priorizadas
+**Qué cambió desde la rev. 2:** ya no hay piloto con WhatsApp. El servidor (Supabase, EE. UU.) está montado y probado, con cuentas por correo y código, copia en la nube, panel del coach con permisos por categoría y borrado de cuenta. **La aplicación oficial no se conectará a ese servidor hasta que el abogado responda lo que sigue.** Lo que antes bloqueaba el piloto ahora bloquea esa conexión.
 
-**Contexto en 5 líneas:** app web (PWA) de seguimiento de pérdida de grasa. **Responsable: persona natural en Colombia.** Los coaches la usan gratis con hasta 5 clientes y luego pagan USD 5 por cliente activo al mes, fuera de la app. En una fase 2, los clientes pagarán al coach dentro de la app. Trata **datos de salud, medidas y fotos corporales** (datos sensibles). **Piloto:** 2 coaches × 5 clientes; los datos viven en el teléfono y el cliente envía archivos al coach por WhatsApp. **R1:** servidor en **Supabase (EE. UU.)**, y el coach ve en un panel los datos que el cliente comparte (fotos incluidas).
+**Prioridad:** 🔴 = bloquea conectar la app al servidor (datos reales) · 🟠 = debe resolverse antes de abrir a más de unos pocos usuarios · 🟡 = fase de pagos o posterior.
 
-**Prioridad:** 🔴 = bloquea el piloto · 🟠 = bloquea R1 (servidor) · 🟡 = bloquea R2 (pagos) o es posterior.
+## Decisiones que necesitamos del abogado, en orden
+
+| # | Decisión | Preguntas | Por qué primero |
+|---|---|---|---|
+| 1 | ¿Se puede pedir datos de salud sin «condicionar» el servicio (art. 6)? ¿Qué modo mínimo hace falta? | P1 | Define el diseño de las pantallas de consentimiento |
+| 2 | Texto y forma del consentimiento de la versión con cuentas, incluida la «copia en la nube» | P2, P3 | Sin texto aprobado no se conecta la app |
+| 3 | Papel del coach (encargado / responsable) y contenido del acuerdo con coaches | P4, P5 | Define quién responde ante el titular |
+| 4 | Transmisión internacional a Supabase (EE. UU.) y a Brevo | P6, P7 | Condiciona la región y los contratos |
+| 5 | Fotos corporales en la nube: ¿bastan las medidas actuales? | P8 | Hoy las fotos NO suben; se activan según esta respuesta |
+| 6 | Menores de edad y verificación de mayoría de edad | P9 | Hoy solo hay una casilla |
+| 7 | Conservación, retención y borrado (baja, vínculo terminado, cuentas inactivas, prueba de consentimiento) | P10, P11 | Cambia la base de datos si hay que conservar algo |
+| 8 | Incidentes, RNBD y rol del coach como profesional de salud | P12, P13, P14 | Necesarios antes de crecer |
 
 ---
 
-## 🔴 Bloquean el piloto
+## 🔴 Bloquean conectar la app al servidor
 
 ### P1. Art. 6 de la Ley 1581: no condicionar el servicio a datos sensibles
-**Riesgo:** el art. 6 (y el art. 2.2.2.25.2.3 del Decreto 1074) dice que ninguna actividad puede condicionarse a que el titular entregue datos sensibles. Pero la **función central** de la app es registrar peso, medidas, comidas y fotos. Si para usar la app hay que autorizar datos de salud, ¿estamos condicionando el servicio?
-**Propuestas (¿cuál es válida o mejor?):**
-- **A. Modo mínimo sin datos sensibles:** si el titular no autoriza los datos de salud, igual puede usar algo útil (p. ej. la calculadora del plan o contenidos generales) sin que se guarde ni comparta nada de salud. Fotos y compartir con el coach son siempre opcionales y por separado.
-- **B. Los datos de salud nunca salen del dispositivo sin autorización:** en el piloto la app funciona sin enviar nada; compartir con el coach es un acto voluntario del titular (enviar el archivo) y requiere autorización. Argumento: el tratamiento por el responsable solo ocurre si el titular decide compartir.
-- **C. El dato sensible es el objeto del servicio pedido por el titular:** argumentar que el titular contrata precisamente el seguimiento de su salud (como en una app de ejercicio) y que la autorización expresa e informada, más la facultad de retirarla, es suficiente.
-- **D. Granularidad:** autorizaciones separadas por categoría (peso/medidas, comidas/hábitos, fotos, compartir con el coach), cada una revocable, y el servicio se adapta a lo autorizado.
-*Recomendación del equipo:* **A + B + D** en el piloto; validar si C es defendible para R1.
+**Riesgo:** la función central de la app es registrar peso, medidas y fotos. Si para usar la app hay que autorizar datos de salud, ¿se condiciona el servicio?
+**Qué decidimos hoy:** el cliente puede crear cuenta sin autorizar datos de salud; el peso y las medidas solo se envían al coach con vínculo, y notas, comidas, hábitos y fotos son opcionales y separados (hecho en el servidor). La casilla de datos sensibles se guarda como consentimiento aparte.
+**Propuestas a validar:** (A) modo mínimo útil sin datos de salud; (B) los datos nunca salen del teléfono sin autorización; (C) el dato sensible es el objeto del servicio que el titular pide; (D) autorizaciones separadas y revocables. Recomendación del equipo: A + B + D; validar si C es defendible.
+**Qué necesito de ti:** cuál combinación es válida y qué debe poder hacer la app si el titular no autoriza.
 
-### P2. Rol del coach: ¿encargado, responsable o corresponsable?
-**Propuesta del equipo (la más simple):** la plataforma (persona natural) es la **única responsable** y cada coach es **encargado** que trata los datos por cuenta de ella, con un acuerdo de encargado firmado.
-- ¿Es válido si el coach ya tiene una relación previa con su cliente y además recibe datos por WhatsApp, fuera de la app?
-- Si no, ¿qué implica "responsables independientes" o "corresponsables" (políticas, canales de reclamos, autorizaciones)?
-- ¿Qué debe contener el **acuerdo de encargado** (finalidad, confidencialidad, seguridad, borrado, no subencargar)?
+### P2. Consentimiento de la versión con cuentas
+**Hechos:** al crear la cuenta se registran, con fecha, versión y huella del texto exacto: términos, política, mayoría de edad, datos sensibles de salud y, aparte, cada permiso de compartir con el coach (`paquete-abogado.md` B y D).
+**Qué decidimos hoy:** mantener casillas separadas y el registro solo-inserción.
+**Qué necesito de ti:** (i) si la separación de casillas es correcta (T&C · política · datos de salud · mayoría de edad · cada categoría de compartir); (ii) si ese registro es prueba suficiente (Ley 527 de 1999; art. 2.2.2.25.2.4 del Decreto 1074); (iii) si el aviso de «volver a aceptar» al cambiar una versión es correcto.
 
-### P3. Forma y prueba de la autorización
-- En el piloto: casillas en la app (guardadas en el teléfono, con versión y fecha, incluidas en el archivo exportado) + confirmación por WhatsApp. ¿Es prueba suficiente (Ley 527 de 1999; art. 2.2.2.25.2.4 del Decreto 1074)?
-- ¿Es correcto separar las casillas así: T&C · Política · datos sensibles de salud · fotos (aparte) · mayoría de edad?
-- ¿Basta la **declaración de mayoría de edad** o hay que verificarla?
+### P3. Texto de «copia en la nube»
+**Hechos:** los datos se guardan primero en el teléfono y, con cuenta, se copian a Supabase (EE. UU.). Las fotos aún no suben.
+**Qué decidimos hoy:** la copia en la nube de datos de texto es parte de tener cuenta; **las fotos en la nube requieren una autorización propia** que aún no existe.
+**Qué necesito de ti:** si la copia en la nube necesita autorización separada de la de «tener cuenta», y qué debe decir el aviso (dónde se guardan, quién los ve, cómo borrarlos, que están fuera de Colombia).
 
-### P4. WhatsApp como canal de envío en el piloto
-Los archivos con datos de salud y fotos pasan por WhatsApp (Meta). ¿Hay que informarlo como transmisión a un tercero o en el exterior? ¿Es aceptable si es el **titular** quien envía el archivo? ¿Recomiendas otro canal? La Política (§6.2) lo presenta como **canal elegido por el titular**, con aviso de que Meta tiene sus propias condiciones y puede tratar información fuera de Colombia. ¿Es suficiente? ¿Y es correcto tratar la carpeta privada en la nube donde el responsable guarda los archivos recibidos (p. ej. Google Drive) como transmisión a un encargado?
+### P4. Rol del coach: ¿encargado, responsable o corresponsable?
+**Propuesta del equipo:** José es el **único responsable**; cada coach es **encargado** y trata los datos del cliente por cuenta suya.
+**Qué decidimos hoy:** nada firmado; el coach aceptaría sus propios términos al registrarse como coach.
+**Qué necesito de ti:** si la figura es válida cuando el coach ya tiene relación previa con su cliente y puede hablar con él por otros medios; si no, qué implica «responsables independientes» o «corresponsables» (políticas, canal de reclamos, autorizaciones).
 
-### P5. Revisión general de los textos
-**Actualizado (rev. 2):** los textos vigentes describen **solo la fase piloto** (sin servidor, datos en el teléfono, envío por WhatsApp). Lo de Supabase, el panel del coach y los pagos pasó a una sección "Cambios previstos para la versión con cuentas (R1)", que exigirá aceptar de nuevo. ¿Es correcto tener una **versión piloto** y otra para R1, o conviene un solo texto que cubra ambas? ¿Debe quedar en los textos vigentes la sección de cambios previstos, o solo se informa cuando llegue R1?
-Revisar y ajustar `terminos-y-condiciones.md`, `politica-tratamiento-datos.md` y el §8 del piloto: estructura exigida (art. 2.2.2.25.3.1 del Decreto 1074: identificación, tratamiento y finalidad, derechos, área de atención, procedimiento, vigencia), plazos de consultas y reclamos, y lenguaje claro.
-
----
-
-## 🟠 Bloquean R1 (servidor)
+### P5. Acuerdo de encargado con los coaches
+**Qué decidimos hoy:** el coach acepta dentro de la app; no hay contrato aparte.
+**Qué necesito de ti:** forma (aceptación en la app o firma), contenido mínimo (finalidad, confidencialidad, seguridad, no copiar ni reenviar datos, borrado al terminar, no subencargar, auditoría), y qué pasa si el coach usa los datos para otra cosa.
 
 ### P6. Transmisión internacional a Supabase (EE. UU.)
-*(Ya no figura en los textos vigentes del piloto: está en la sección de cambios previstos para R1 y exigirá aceptar de nuevo.)*
-- Supabase actúa como encargado → ¿**transmisión** (arts. 2.2.2.25.5.1–2)? ¿Sirve su **DPA estándar** como contrato de transmisión, o hay que añadir cláusulas?
-- ¿Sigue vigente que EE. UU. tenga nivel adecuado según la SIC (Circular Externa 005 de 2017)? ¿Hace falta una **declaración de conformidad** ante la SIC o basta con la autorización expresa del titular?
-- ¿Cambia algo si elegimos la región de **São Paulo** en vez de Virginia?
+**Hechos:** Supabase aloja la base de datos y las fotos (región East US).
+**Qué necesito de ti:** si Supabase es encargado y hay **transmisión** (arts. 2.2.2.25.5.1–2); si su DPA estándar sirve como contrato; si EE. UU. sigue considerándose con nivel adecuado según la SIC (Circular Externa 005 de 2017) o basta la autorización expresa; si cambia algo con la región de São Paulo. *(El DPA y la sede exacta de Supabase están por confirmar.)*
 
-### P7. Fotos corporales en el servidor y acceso del coach
-¿Qué medidas mínimas exige o recomienda la ley para fotos corporales (datos sensibles e imagen)? Hoy proponemos: almacenamiento privado, enlaces temporales, opt-in por pose, registro de cada vista del coach y prohibición de descarga en lote. ¿Es suficiente?
+### P7. Correo de códigos con Brevo
+**Hechos:** Brevo recibe el correo de cada persona y el código de 6 dígitos para enviarlo; no recibe datos de salud. Dónde están sus servidores **no consta en el repositorio (por confirmar)**. Hoy el remitente es un correo personal; falta dominio propio.
+**Qué necesito de ti:** si Brevo debe declararse como encargado o tercero en la política; si el correo que se envía exige algo (autorización para mensajes, identificación del remitente, opción de no recibir más); si necesitamos contrato o DPA aparte; y cómo informar el tratamiento del correo.
 
-### P8. Registro de consentimientos y borrado
-- Registro de consentimientos de **solo inserción** (sin modificar ni borrar). Al eliminar la cuenta, ¿cuánto tiempo y qué mínimo podemos conservar como prueba de la autorización y del borrado?
-- Plazos de conservación de cuentas inactivas.
+### P8. Fotos corporales en la nube y acceso del coach
+**Hechos:** las fotos **hoy no se suben**. Cuando se active: bucket privado, solo JPEG de máx. 2 MB, enlaces de 60 segundos, solo las fotos marcadas una a una y con permiso de «fotos», registro de cada vista del coach visible para el cliente, sin descarga en lote.
+**Qué necesito de ti:** si esas medidas bastan para datos sensibles e imagen; si hace falta una autorización específica de «fotos en la nube» y otra de «ver con el coach»; qué hacer si el coach captura pantalla.
 
-### P9. Incidentes de seguridad
-Plazo y forma de reportar incidentes a la SIC y a los titulares.
-
-### P10. Registro Nacional de Bases de Datos (RNBD)
-Entendemos que una **persona natural** no está obligada a inscribir bases en el RNBD (Decreto 090 de 2018). ¿Es así? ¿Cambia al crecer los ingresos o al tratar datos sensibles a gran escala?
-
-### P11. Coaches y profesiones de salud
-Algunos coaches no son nutricionistas. ¿Hay riesgo para la plataforma si dan planes de alimentación (Ley 73 de 1979)? ¿Qué debemos exigirles o advertir en los T&C? ¿Conviene un documento aparte, "Términos para coaches"?
-
-### P12. Relación plataforma-coach-cliente y consumidor
-- ¿Aplica el régimen de **portales de contacto** (art. 53 Ley 1480 de 2011) y sus obligaciones?
-- ¿Qué cláusulas de **limitación de responsabilidad** pueden ser **abusivas** (arts. 42–43) y quedar sin efecto?
+### P9. Menores de edad
+**Hechos:** hay casilla «soy mayor de 18»; el perfil acepta edades desde 14; no hay verificación.
+**Qué necesito de ti:** si basta la declaración o hay que verificar; si conviene bloquear edades menores de 18 en el perfil; y qué pasa si un menor usa la app con autorización de sus padres (régimen especial de datos de menores).
 
 ---
 
-## 🟡 Bloquean R2 (pagos) o posteriores
+## 🟠 Antes de abrir a más usuarios
 
-### P13. Cobro al coach como persona natural (fase 1)
-RUT, régimen tributario, ¿obligación de **facturación electrónica** (DIAN) y desde qué ingresos? ¿Conviene fijar el precio en **COP** en lugar de USD 5?
+### P10. Retención y borrado cuando termina la relación o la cuenta
+**Hechos:** al terminar el vínculo el coach pierde el acceso y los datos siguen en la cuenta del cliente. Al borrar la cuenta se borra todo en cascada. No hay plazo para cuentas inactivas ni para cuentas de coaches sin clientes. La decisión del 2026-10-21 fijaba «mientras el cliente siga y máx. 30 días después» (pensada para archivos por WhatsApp).
+**Qué decidimos hoy:** nada automático.
+**Qué necesito de ti:** plazos recomendados para (a) cliente que deja al coach, (b) cuenta inactiva, (c) coach que deja de tener clientes o cierra cuenta, y (d) copias de seguridad cuando existan (hoy no hay).
 
-### P14. Pagos de clientes dentro de la app con reparto al coach (fase 2)
-¿Qué figura usar (mandato, recaudo a terceros, marketplace)? Implicaciones tributarias y cambiarias, **derecho de retracto** (art. 47 Ley 1480, 5 días hábiles) y **reversión del pago** (art. 51). ¿En qué momento conviene **constituir una SAS**?
+### P11. Prueba del consentimiento tras la baja
+**Hechos:** los consentimientos son solo-inserción pero se borran con la cuenta (cascada). Cambiarlo a «conservar sin identificar» es posible.
+**Qué necesito de ti:** qué mínimo y por cuánto tiempo conviene conservar como prueba de la autorización y del borrado.
 
-### P15. Comunidad y retos
-Responsabilidad por el contenido de los usuarios, moderación, uso de imagen, y **premios** en retos (¿requieren permisos de Coljuegos?).
+### P12. Incidentes de seguridad
+**Qué necesito de ti:** a quién, en cuánto tiempo y con qué contenido avisar a la SIC y a los titulares; qué registro mantener. *(Hoy no hay plan escrito de respuesta.)*
 
-### P16. Mensajes de recordatorio y comerciales
-Canales y horarios permitidos (Ley 2300 de 2023) y autorización aparte para mensajes comerciales.
+### P13. Registro Nacional de Bases de Datos (RNBD)
+Entendemos que una persona natural no está obligada (Decreto 090 de 2018). **Qué necesito de ti:** confirmar y señalar qué cambia con el crecimiento o con datos sensibles de muchas personas.
+
+### P14. Coaches y profesiones de salud
+Algunos coaches no son nutricionistas. **Qué necesito de ti:** riesgo para la plataforma si dan planes de alimentación (Ley 73 de 1979); qué advertir o exigir a los coaches; si conviene un documento aparte, «Términos para coaches».
+
+### P15. Relación plataforma-coach-cliente y consumidor
+**Qué necesito de ti:** si aplica el régimen de portales de contacto (art. 53 Ley 1480 de 2011); qué cláusulas de limitación de responsabilidad serían abusivas (arts. 42–43).
+
+---
+
+## 🟡 Pagos y posterior
+
+### P16. Canal de invitación y de comunicación coach-cliente
+**Hechos:** la invitación se comparte por enlace, QR o WhatsApp (solo el enlace, sin datos). Ningún dato de salud viaja por WhatsApp. Los coaches pueden hablar con sus clientes por cualquier canal fuera de la app; la app tiene comentarios del coach.
+**Qué decidimos hoy:** WhatsApp solo para el enlace.
+**Qué necesito de ti:** si hay que informar algo por usar WhatsApp para el enlace; si los recordatorios o mensajes del coach necesitan autorización aparte (Ley 2300 de 2023, mensajes comerciales).
+
+### P17. Cobro al coach como persona natural (fase 1) y pagos dentro de la app (fase 2)
+**Qué necesito de ti:** RUT, régimen, facturación electrónica y desde qué ingresos; si conviene fijar el precio en COP; para fase 2, la figura (mandato, recaudo, marketplace), retracto y reversión del pago (arts. 47 y 51 Ley 1480) y cuándo conviene constituir una SAS.
+
+### P18. Comunidad, retos y premios
+**Qué necesito de ti:** responsabilidad por contenido de usuarios, uso de imagen, y si los premios en retos requieren permisos de Coljuegos. *(No existe aún en la app.)*
 
 ---
 
 ## Qué necesitamos llevarnos de la consulta
-1. Respuesta a **P1–P5** (sin esto no arranca el piloto) y textos corregidos con versión 1.0.
-2. Recomendación sobre **P6–P8** para que el Arquitecto diseñe R1 sin retrabajo.
-3. Una opinión preliminar sobre **P13–P14** para decidir si conviene constituir empresa antes de R2.
+1. Respuesta a **P1–P9**: sin esto no se conecta la app al servidor.
+2. Los textos legales corregidos (versión con cuentas, copia en la nube, acuerdo con coaches): ver `borradores-pendientes.md`.
+3. Plazos de **P10–P11** para ajustar la base de datos si hay que conservar algo.
+4. Una opinión preliminar de **P17** para decidir si conviene constituir empresa antes de cobrar dentro de la app.
