@@ -492,6 +492,8 @@
       if (!be.coaches[coachId] || !be.coaches[coachId].active) fail('forbidden', 'Coach desactivado');
       const l = be.links.find((x) => x.coachId === coachId && x.clientId === clientId && x.status === 'active');
       if (!l) fail('forbidden', 'Sin vínculo activo con ese cliente');
+      // Sprint 7 (E3): si el cliente retira A3 o A4, el coach deja de ver sus datos (como coach_can_see en el servidor).
+      if (!(be.hasConsent(clientId, 'sensitive_health') && be.hasConsent(clientId, 'cloud_transfer'))) fail('forbidden', 'El cliente no tiene vigentes las autorizaciones de la copia en la nube');
       return l;
     }
     const coach = {
@@ -529,7 +531,7 @@
         return act.map((l, i) => {
           const stamps = Object.values(be.records).filter((r) => r.userId === l.clientId).map((r) => r.serverUpdatedAt).sort();
           return { clientId: l.clientId, displayName: (be.profiles[l.clientId] || {}).displayName || '', linkId: l.id, since: l.createdAt,
-            shares: { ...l.shares }, lastActivity: stamps.length ? stamps[stamps.length - 1] : null, overFreeLimit: i >= be.coaches[u.id].freeClients };
+            shares: { ...l.shares }, lastActivity: stamps.length && be.hasConsent(l.clientId, 'sensitive_health') && be.hasConsent(l.clientId, 'cloud_transfer') ? stamps[stamps.length - 1] : null, overFreeLimit: i >= be.coaches[u.id].freeClients };
         });
       },
       async clientData(clientId, since) {

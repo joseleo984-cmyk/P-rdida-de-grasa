@@ -62,6 +62,25 @@ select tests.ok(jsonb_array_length(grasa.coach_pull(tests.uid('ana'), null) -> '
 select tests.ok((select count(*) from grasa.coach_clients()) = 1, 'coach con acuerdo: coach_clients lista a Ana');
 select tests.ok((grasa.add_comment('91000000-0000-4000-8000-000000000001', tests.uid('ana'), null, 'Hola')).body = 'Hola', 'coach con acuerdo: add_comment funciona');
 
+
+-- ---------- El coach deja de ver al cliente que retira A3 o A4 (E3) ----------
+-- (Ana: A3 + A4 vigentes y vinculada con X, que tiene acuerdo)
+reset role; select tests.agree('x'); select tests.login('x');
+select tests.ok(jsonb_array_length(grasa.coach_pull(tests.uid('ana'), null) -> 'records') = 1 and grasa.coach_can_see(tests.uid('ana'), 'body'),
+  'con A3 + A4 del cliente vigentes el coach ve sus datos');
+select tests.ok((select last_activity is not null from grasa.coach_clients() where client_id = tests.uid('ana')), 'y coach_clients da su última actividad');
+reset role; select tests.consent('ana', 'sensitive_health', false); select tests.login('x');
+select tests.throws($$select grasa.coach_pull(tests.uid('ana'), null)$$, 'forbidden', 'el cliente retira A3: el coach deja de ver sus datos en la siguiente consulta');
+select tests.ok(not grasa.coach_can_see(tests.uid('ana'), 'body'), 'coach_can_see es falso sin A3');
+select tests.ok((select last_activity is null from grasa.coach_clients() where client_id = tests.uid('ana')), 'sin A3 coach_clients no filtra la última actividad');
+reset role; select tests.consent('ana', 'sensitive_health'); select tests.login('x');
+select tests.ok(jsonb_array_length(grasa.coach_pull(tests.uid('ana'), null) -> 'records') = 1, 'el cliente vuelve a otorgar A3: el coach vuelve a ver');
+reset role; select tests.consent('ana', 'cloud_transfer', false); select tests.login('x');
+select tests.throws($$select grasa.coach_pull(tests.uid('ana'), null)$$, 'forbidden', 'el cliente retira A4: el coach deja de ver sus datos');
+reset role; select tests.consent('ana', 'cloud_transfer'); select tests.login('x');
+select tests.ok(jsonb_array_length(grasa.coach_pull(tests.uid('ana'), null) -> 'records') = 1, 'el cliente vuelve a otorgar A4: el coach vuelve a ver');
+reset role; select tests.login('ana');
+
 -- ---------- Revocar el acuerdo bloquea de nuevo (al instante) ----------
 reset role; select tests.consent('x', 'coach_agreement', false); select tests.login('x');
 select tests.throws($$select * from grasa.coach_clients()$$, 'forbidden', 'acuerdo retirado: coach_clients bloqueado');

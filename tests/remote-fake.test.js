@@ -232,6 +232,13 @@ test('Sprint 7: el acuerdo del coach manda (revocarlo bloquea), el código de un
   await rejects(coach.coach.addComment(uid, { body: 'hola' }), 'agreement_required');
   await rejects(coach.coach.rotateCode(), 'agreement_required');
   await rejects(coach.coach.becomeCoach('Coach A'), 'agreement_required');
+  await agree(coach);
+  await cli.account.recordConsents([ev('sensitive_health', false)]);   // E3: el cliente retira A3 → el coach deja de ver
+  await rejects(coach.coach.clientData(uid), 'forbidden');
+  assert.strictEqual((await coach.coach.clients())[0].lastActivity, null);
+  await cli.account.recordConsents([ev('sensitive_health')]);
+  assert.strictEqual((await coach.coach.clientData(uid)).records.length, 1);
+  await coach.account.recordConsents([ev('coach_agreement', false)]);
   await coach.coach.endClient(uid);   // reducir acceso sigue permitido
   const nuevo = dev();
   await login(nuevo, backend, 'nu@x.co'); await nuevo.account.joinApp(); await cloud(nuevo);

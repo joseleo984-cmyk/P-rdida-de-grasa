@@ -4,6 +4,8 @@
 --       42501 'forbidden' (detail 'coach_agreement_required') si el coach NO tiene vigente el acuerdo (A7).
 --       Un código de invitación solo sirve si su coach tiene el acuerdo vigente (valid_coach_for): preview_invite_code
 --       lo trata como inexistente y join_coach devuelve null (invalid_code), igual que un código caducado.
+--   E3  Lectura del coach: coach_can_see (que usan coach_pull y las fotos) exige además que el CLIENTE tenga vigentes
+--       sensitive_health y cloud_transfer. Si retira A3 o A4, el coach deja de ver sus datos en la siguiente consulta (A8).
 --   E2  Cliente: sync_push, sync_pull y join_coach fallan con 42501 'consent_required' si NO tiene vigentes
 --       sensitive_health (A3) y cloud_transfer (A4).
 -- "Vigente" = el ÚLTIMO evento de ese tipo de la persona tiene granted = true. No se mira la versión del texto: la app
@@ -49,6 +51,21 @@ begin
     raise exception 'forbidden' using errcode = '42501', detail = 'coach_agreement_required';
   end if;
 end $$;
+
+-- ============ E3: el coach solo ve a clientes que mantienen A3 + A4 ============
+-- Misma firma y mismos permisos que en r1_grasa; se añade la condición sobre el consentimiento del cliente.
+create or replace function grasa.coach_can_see(p_client uuid, p_scope text) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from grasa.coach_links l
+    join grasa.coaches c on c.user_id = l.coach_id and c.active
+    where l.client_id = p_client and l.coach_id = auth.uid() and l.status = 'active'
+      and core.consent_is_granted(p_client, 'grasa', 'sensitive_health')
+      and core.consent_is_granted(p_client, 'grasa', 'cloud_transfer')
+      and case p_scope when 'body' then l.share_body when 'notes' then l.share_notes
+                       when 'nutrition' then l.share_nutrition when 'habits' then l.share_habits
+                       when 'photos' then l.share_photos else false end);
+$$;
 
 -- ============ E1: coach ============
 -- Un código solo sirve si su coach tiene el acuerdo vigente (además de activo, no caducado y con usos).
@@ -112,6 +129,8 @@ begin
                             'habits', l.share_habits, 'photos', l.share_photos),
          (select max(r.server_updated_at) from grasa.records r
           where r.user_id = l.client_id
+            and core.consent_is_granted(l.client_id, 'grasa', 'sensitive_health')
+            and core.consent_is_granted(l.client_id, 'grasa', 'cloud_transfer')
             and (r.kind in ('profile','entry') or (r.kind = 'food' and l.share_nutrition) or (r.kind = 'habit' and l.share_habits))),
          row_number() over (order by l.created_at, l.id) > c.free_clients
   from grasa.coach_links l
