@@ -1,10 +1,10 @@
-> **BORRADOR v0.2 — NO VIGENTE — pendiente de revisión del abogado.**
-> No es asesoría legal. Autor: Analista de Producto · 2026-10-22 · Parte de `equipo/legal/preasesoria-legal.md`. Reemplazaría a `politica-tratamiento-datos.md` (v0.1, piloto sin servidor), que no se modifica.
+> **BORRADOR v0.3 — NO VIGENTE — pendiente de revisión del abogado.**
+> No es asesoría legal. Autor: Analista de Producto · 2026-10-22 · Parte de `equipo/legal/preasesoria-legal.md` y de `equipo/legal/respuestas-abogado.md` (decisiones P1–P18 del 2026-10-22). Reemplazaría a `politica-tratamiento-datos.md` (v0.1, piloto sin servidor), que no se modifica.
 > **(a validar)** = propuesta del equipo que el abogado debe confirmar. **(por confirmar)** = hecho o norma que no pudo verificarse. Las notas "NOTA" son internas. `[FECHA DE VIGENCIA]` se completa al publicar.
 
 # Política de Tratamiento de Datos Personales — "Pérdida de Grasa" (versión con cuentas)
 
-**Versión:** 0.2 (borrador) · **Edición:** con cuentas y copia en la nube · **Vigente desde:** [FECHA DE VIGENCIA]
+**Versión:** 0.3 (borrador) · **Edición:** con cuentas y copia en la nube · **Vigente desde:** [FECHA DE VIGENCIA]
 
 **Normas:** Ley Estatutaria 1581 de 2012 y Decreto 1377 de 2013, compilado en el Decreto Único 1074 de 2015 (Libro 2, Parte 2, Título 2, Capítulo 25), y demás normas que los modifiquen o complementen. *(numeración por confirmar por el abogado)*
 
@@ -20,7 +20,7 @@
 
 "Nosotros" es el responsable; "la app" es "Pérdida de Grasa"; "tú" o "titular" es la persona a la que se refieren los datos; "coach" es el profesional que te acompaña.
 
-**Dos responsables distintos (a validar, P4):** nosotros somos responsables de la **plataforma** (cuenta, nube, panel y registro de autorizaciones). **Tu coach es responsable independiente** del uso que hace de los datos que tú le compartes, y se compromete por contrato con nosotros a límites mínimos (§7). Si tienes un reclamo sobre lo que hizo tu coach, también puedes presentárnoslo y lo trasladaremos.
+**Dos responsables distintos (P4):** nosotros somos responsables de la **plataforma** (infraestructura, cuentas, seguridad y registro de autorizaciones). **Tu coach es responsable independiente** de su relación de asesoría contigo y de los datos que tú le compartes, y se compromete por contrato con nosotros a límites mínimos (§7). Si tu reclamo es sobre lo que hizo tu coach, también puedes presentárnoslo: **lo trasladamos al coach en máximo 2 días hábiles** y te avisamos. Los reclamos sobre la plataforma los resolvemos nosotros.
 
 ## 2. Cómo funciona la app
 
@@ -58,12 +58,14 @@ La app **no** recoge tu ubicación, **no** usa cookies de publicidad y **no** us
 
 ## 5. Datos sensibles: salud, medidas y fotos
 
-Según los artículos 5 y 6 de la Ley 1581 de 2012, los datos de salud son **sensibles**; las imágenes corporales las tratamos con el mismo cuidado *(a validar si son sensibles por sí mismas; P8)*. Por eso:
+Según los artículos 5 y 6 de la Ley 1581 de 2012, los datos de salud son **sensibles**; las **fotos corporales también son datos sensibles** (P8). Por eso:
 
 - **No estás obligado/a** a autorizar su tratamiento ni a responder sobre ellos. Es **facultativo**.
-- **Puedes usar la app sin cuenta, solo en tu teléfono**, sin entregarnos ningún dato de salud.
+- **Puedes usar la app sin cuenta, solo en tu teléfono** (calcular tu plan, estimar calorías y registrar tu progreso), sin entregarnos ningún dato de salud: así el servicio no se condiciona a datos sensibles (P1).
+- Si te vinculas a un coach, el **peso y las medidas** son el dato mínimo del servicio que solicitas; el resto (notas, comidas, hábitos, fotos) es aparte y viene apagado.
+- Nuestras pruebas de que autorizaste (usuario, tipo, versión, fecha y huella SHA-256 del texto exacto que viste) quedan en un registro que no se puede modificar (Ley 527 de 1999). *(P2)*
 - Para una cuenta pedimos **casillas separadas, sin marcar**: datos de salud · copia en la nube y transmisión internacional · compartir con el coach (por categoría) · fotos (autorización propia).
-- Puedes **retirar** cada autorización cuando quieras en Perfil → Privacidad. Retirar una no afecta a las demás.
+- Puedes **retirar** cada autorización cuando quieras en Más → Mis datos y permisos. Retirar una no afecta a las demás.
 - *NOTA: la frase "ninguna actividad podrá condicionarse a que el titular suministre datos sensibles" proviene del Decreto 1377 de 2013, art. 6 (por confirmar numeración en el Decreto 1074), no de la Ley 1581.*
 
 ## 6. Fotos y tratamiento de imágenes
@@ -73,19 +75,19 @@ Según los artículos 5 y 6 de la Ley 1581 de 2012, los datos de salud son **sen
 - Finalidad única: tu seguimiento visual con tu coach. No las usamos para publicidad, estudios, reconocimiento facial ni las publicamos.
 - Tu coach las abre con un **enlace que vence en 60 segundos**; **queda registro** de cada vista y tú lo ves.
 - Al coach le **está prohibido** descargar, capturar, reenviar o publicar tus fotos. *Aviso honesto: técnicamente no se pueden impedir las capturas de pantalla; por eso existe el acuerdo del coach y la consecuencia de suspensión.*
-- Si retiras la autorización, las fotos dejan de verse para el coach **de inmediato**. Si borras una foto, se borra del servidor.
+- Si retiras la autorización, las fotos dejan de verse para el coach **de inmediato**; el coach tiene hasta **30 días para destruir** cualquier copia que hubiera hecho fuera de la app, sin usarla ni compartirla (P17). Si borras una foto, se borra del servidor.
 - No condiciona el servicio: sin fotos, la app funciona igual. *(Mientras esta autorización y su pantalla no existan, las fotos permanecen solo en el teléfono.)*
 
 ## 7. ¿Con quién compartimos tus datos?
 
 ### 7.1 Tu coach
-Solo ve lo que activaste por categoría. **Tu coach es responsable independiente del uso que hace** de esos datos (a validar, P4). Antes de ver datos acepta un **acuerdo** con nosotros: usar los datos solo para acompañarte, confidencialidad, no descargar ni compartir fotos, no dar planes de alimentación si no es profesional habilitado, borrar al terminar el vínculo, avisar incidentes. No ve tu correo. Pierde el acceso al instante cuando terminas el vínculo o retiras el permiso. Lo que el coach ya tenga por **fuera** de la app se rige por su propia política.
+Solo ve lo que activaste por categoría. **Tu coach es responsable independiente del uso que hace** de esos datos (a validar, P4). Antes de ver datos acepta un **acuerdo** con nosotros: usar los datos solo para acompañarte, confidencialidad, no descargar ni compartir fotos, no dar planes de alimentación si no es profesional habilitado, borrar al terminar el vínculo, avisar incidentes. No ve tu correo. Pierde el acceso al instante (el panel deja de mostrar tus datos) cuando terminas el vínculo o retiras el permiso, y tiene hasta **30 días para destruir** lo que hubiera copiado por fuera de la app, sin usarlo ni compartirlo (P17). Lo que el coach ya tenga por **fuera** de la app se rige además por su propia política.
 
 ### 7.2 Supabase Inc. (nube) — transmisión internacional
-Supabase guarda tu cuenta, tus datos y fotos en servidores en **Estados Unidos (región East US, Virginia)**. Actúa **por cuenta nuestra** (encargado). Es una **transmisión internacional**: la hacemos con un contrato con el proveedor *(DPA y anexo con el contenido mínimo del Decreto 1074: por confirmar y firmar)* **y con tu autorización expresa** (casilla propia), porque son datos sensibles. El nivel de protección en el exterior puede ser distinto al de Colombia. *(a validar: si EE. UU. sigue en la lista de países adecuados de la SIC; P6.)*
+Supabase guarda tu cuenta, tus datos y fotos en servidores en **Estados Unidos (región East US, Virginia)**. Actúa **por cuenta nuestra** (encargado). Es una **transmisión internacional**: la hacemos con un contrato (**DPA**) archivado con el proveedor **y con tu autorización expresa** (casilla A4, propia), porque son datos sensibles. El nivel de protección en el exterior puede ser distinto al de Colombia. *(P6. Por confirmar: dos fuentes difieren sobre si EE. UU. figura en la lista de países adecuados de la SIC; la conducta de A4 + DPA cubre ambos casos.)*
 
 ### 7.3 Brevo (correo)
-Brevo envía el código de acceso. Recibe tu **correo y el código**, nada de salud. Su ubicación y subencargados están **por confirmar** (sede francesa; se presume UE). Actúa por cuenta nuestra *(DPA por guardar; P7)*. Es un correo de servicio, no publicidad.
+**Brevo** (sede en Francia, Unión Europea) envía el código de acceso. Recibe solo tu **correo y el código de un solo uso**, nada de salud. Actúa por cuenta nuestra con un **DPA estándar aceptado y archivado** (P7); subencargados **por confirmar**. Es un correo de servicio, no publicidad.
 
 ### 7.4 GitHub Pages y WhatsApp
 La app se descarga desde GitHub Pages (EE. UU.); no recibe tus datos de salud. WhatsApp solo se usa para compartir el enlace de invitación, sin datos de salud.
@@ -109,31 +111,31 @@ Si el reclamo está incompleto te pedimos completarlo dentro de 5 días; pasados
 
 ## 9. Menores de edad
 
-La app es **solo para mayores de 18 años**. Declaras serlo al crear la cuenta y la app no acepta perfiles con edad menor. No tratamos datos de niños, niñas ni adolescentes. Si sabemos que una cuenta es de un menor, la **cerramos y borramos sus datos**. *(a validar, P9: si basta declaración + bloqueo.)*
+La app es **solo para mayores de 18 años** (edad mínima estricta). Declaras serlo al crear la cuenta y la app no acepta perfiles con edad menor. No tratamos datos de niños, niñas ni adolescentes. Si detectamos que una cuenta es de un menor: **suspendemos su acceso, rechazamos la sincronización y borramos todo lo que haya en la nube en un máximo de 48 horas**, avisando por correo. *(P9)*
 
 ## 10. Seguridad e incidentes
 
 - **Controles:** cada persona solo accede a sus propios datos (seguridad por filas); el coach nunca consulta las tablas directamente, solo recibe lo que la plataforma entrega según el vínculo y las categorías; las notas se retiran si no hay permiso; fotos en almacenamiento privado con enlaces de 60 s; registro de autorizaciones que no se puede modificar; código de acceso de 6 dígitos que vence en 10 minutos; sesión de 1 hora.
-- **Incidentes:** si ocurre una violación de seguridad que afecte tus datos, **te avisaremos** y, cuando la ley lo exija, la **reportaremos a la SIC** *(a validar: plazo y canal para una persona natural no inscrita en el RNBD; la preasesoría cita 15 días hábiles para inscritos, sin confirmar; P12)*. Llevamos un registro interno de cada incidente. Los coaches deben avisarnos de cualquier incidente en 24–48 horas *(a validar)*.
-- **Copias de seguridad:** el plan actual del servidor no las incluye; si se activan, lo diremos aquí y los datos borrados desaparecerán de ellas dentro de su ciclo (p. ej., 30–35 días, a validar).
+- **Incidentes:** los coaches deben avisarnos de cualquier incidente en **máximo 24 horas**. Si ocurre una violación de seguridad que afecte tus datos, **informaremos a la SIC** (informe circunstanciado) en máximo **15 días hábiles desde que la constatemos**, y **a los titulares afectados**. *(P12. Por confirmar: el plazo exacto y si aplica a una persona natural no inscrita en el RNBD.)* Llevamos un registro interno de cada incidente.
+- **Copias de seguridad:** **en la fase piloto el servidor NO hace copias de seguridad automáticas** y puedes exportar tus datos desde la app (P16). Al pasar a producción abierta usaremos un plan con copias y lo diremos aquí; los datos borrados desaparecerán de ellas dentro de su ciclo (p. ej., 30–35 días, a validar).
 
-## 11. Conservación y borrado *(todos los plazos: a validar, P10–P11)*
+## 11. Conservación y borrado *(P10–P11; el abogado confirma)*
 
 | Qué | Cuánto se conserva |
 |---|---|
 | **Datos en tu teléfono** | Hasta que los borres |
 | **Datos en la nube** | Mientras tengas la cuenta; se borran al borrarla |
-| **Cuenta inactiva** | Aviso por correo a los **12 meses** sin entrar; borrado a los **13–24 meses** si no respondes |
-| **Coach sin clientes** | Aviso y cierre a los **12 meses** |
-| **Vínculo terminado** | El coach pierde el acceso al instante; debe borrar lo que tenga (máx. 30 días); tus datos siguen en tu cuenta |
+| **Cuenta inactiva** | Se borra a los **365 días sin iniciar sesión**. Aviso por correo el **día 335** (puedes reactivarla entrando o descargar tus métricas), recordatorio el **día 358**, borrado en cascada el **día 365** |
+| **Coach sin clientes** | Misma regla de los 365 días sin iniciar sesión |
+| **Vínculo terminado** | El coach pierde el acceso al instante; debe destruir lo que haya copiado fuera de la app (máx. 30 días); tus datos siguen en tu cuenta |
 | **Intentos de código de invitación** | 1 día |
-| **Copias de seguridad (si existen)** | Hasta 30–35 días tras el borrado |
-| **Prueba mínima de tus autorizaciones, después de la baja** | **3 a 5 años**, solo de forma **seudonimizada**: identificador irreversible (no tu correo ni nombre), tipo de autorización, versión, huella del texto y fechas de aceptación y de baja. Finalidad: demostrar que pediste permiso y defendernos ante reclamos. *(plazo por validar; el equipo se apoya en caducidad de 3 años de la facultad sancionatoria y 5 de prescripción civil, ambas por verificar)* |
+| **Copias de seguridad** | En el piloto no hay copias automáticas; si se activan, hasta 30–35 días tras el borrado (a validar) |
+| **Prueba mínima de tus autorizaciones, después de la baja** | **3 años desde la cancelación**, **disociada**: un UUID anónimo (no tu correo ni tu nombre), tipo de autorización, versión, huella del texto y marcas de tiempo. Finalidad: demostrar que pediste permiso y defendernos ante reclamos. *(P11)* |
 | **Resultados agregados sin nombre** | Pueden conservarse (no te identifican) |
 
 ## 12. Registro Nacional de Bases de Datos (RNBD)
 
-Según lo que pudo verificarse (Decreto 090 de 2018), la inscripción obliga a sociedades y entidades sin ánimo de lucro con activos superiores a 100.000 UVT, y a personas jurídicas públicas; **una persona natural no figura**. Hoy el responsable es persona natural y **no se inscribe** *(a validar por escrito; cambia si se constituye una sociedad)*. Eso **no** nos exime de esta política, de la autorización, los reclamos y la seguridad, que cumplimos igual.
+Según el Decreto 090 de 2018, la inscripción obliga a personas jurídicas con activos superiores a 100.000 UVT, entre otras; **una persona natural no figura**. Hoy el responsable es persona natural y **no está obligado a inscribirse** (P13) *(cambia si se constituye una sociedad)*. Eso **no** nos exime de esta política, de la autorización, los reclamos y la seguridad, que cumplimos igual.
 
 ## 13. Vigencia, versiones y cambios
 
@@ -143,4 +145,5 @@ Esta política rige desde [FECHA DE VIGENCIA] hasta que publiquemos una nueva. S
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 0.3 (borrador) | 2026-10-23 | Adopta las respuestas P1–P18: roles, retención de 365 días con avisos a los días 335 y 358, prueba del consentimiento 3 años disociada, Brevo nombrado, incidentes 24 h / 15 días hábiles, menores con borrado en 48 h, sin copias automáticas en el piloto, destrucción por el coach en 30 días. No vigente. |
 | 0.2 (borrador) | 2026-10-22 | Primer borrador con cuentas, Supabase, Brevo, coach como responsable independiente, fotos con autorización propia, retención, prueba del consentimiento, incidentes, RNBD. No vigente. |

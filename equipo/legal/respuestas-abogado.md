@@ -1,0 +1,41 @@
+# Respuestas jurídicas a las preguntas P1–P18
+
+> **Respuestas recibidas el 2026-10-22; si no las firmó un abogado colombiano, valen como segunda preasesoría.**
+> El Stakeholder las adoptó como instrucciones de trabajo. Todo texto legal sigue siendo **BORRADOR** hasta que un abogado colombiano lo firme. Aquí solo se citan normas que ya aparecen en `preasesoria-legal.md` o en estas respuestas; lo no verificado va marcado **por confirmar**. Las preguntas están en `preguntas-abogado.md`.
+
+## Decisiones adoptadas
+
+| # | Decisión | Dónde se refleja | Por confirmar |
+|---|---|---|---|
+| P1 | El **modo local sin cuenta** (cálculo del plan, estimación calórica, registro solo en el dispositivo) evita condicionar el servicio a datos sensibles. Pedir peso y medidas para vincularse a un coach es el **dato mínimo del servicio solicitado**. | T&C §3, Política §5, A3 | Que un abogado lo confirme por escrito. |
+| P2 | El registro de `core.consent_events` (usuario, tipo, versión, marca de tiempo, huella SHA-256 del texto) **basta como prueba** (Ley 527 de 1999; accountability). | Política §5 y §11, `consent-texts.js` | — |
+| P3 | Casillas **independientes, desmarcadas**, con la facultatividad advertida. `share_nutrition` y `share_habits` nacen **apagados** (ya hecho en el Sprint 6). | A3–A6, S6 | — |
+| P4 | **José = responsable de la plataforma** (infraestructura, cuentas, seguridad, libro de consentimientos). **El coach = responsable independiente** de su relación de asesoría y de lo que se le comparte. Quejas sobre un coach: **traslado al coach en máximo 2 días hábiles** e informar al titular. Quejas sobre la plataforma: las resuelve José. | T&C §5, Política §1 y §8, acuerdo del coach §6 | — |
+| P5 | La aceptación **in-app (click-wrap con SHA-256)** vale. Para el **PILOTO con 2 coaches** además **acuerdo firmado por escrito o con firma electrónica**. **Cláusula penal de 10 SMMLV por evento** de descarga, extracción o difusión no autorizada de datos de salud o fotos, **exigible sin requerimiento previo**, sin perjuicio de acciones penales (art. 269F C.P.) e indemnización mayor; el coach mantiene **indemne** a José. | Acuerdo del coach §9 | **A validar por el abogado: la cuantía (cifra alta) y la exigibilidad sin requerimiento.** Numeración y vigencia del art. 269F C.P. por confirmar. |
+| P6 | Transmisión internacional a **Supabase (EE. UU., Virginia)**: **autorización A4 + DPA de Supabase archivado**. | A4, Política §7.2 | **CONFLICTO por confirmar:** esta respuesta dice que EE. UU. **NO** está en la lista de países adecuados de la SIC; la preasesoría anterior (P6) encontró que la Circular Externa 005 de 2017 **sí** lo incluía. La conducta (A4 + DPA) cubre ambos casos. |
+| P7 | **Brevo (Francia/UE)** se nombra explícitamente. Recibe **solo correo y código OTP**. Basta un **DPA estándar aceptado y archivado**. | A4, Política §7.3 | Subencargados de Brevo. |
+| P8 | Las **fotos son datos sensibles**. **Dos autorizaciones:** A6a (nube) y A6b (ver cada foto con URL de 60 s). | Política §5 y §6, A6a/A6b | — |
+| P9 | **Edad mínima 18 estricta** (ya implementada en S6). Si se detecta un menor: **suspender el acceso, rechazar la sincronización y borrar todo en Supabase en 48 horas**, avisando por correo. | T&C §6, Política §9 | Procedimiento operativo (quién ejecuta el borrado y cómo se detecta). |
+| P10 | Cuentas con **365 días sin iniciar sesión** se borran. Aviso por correo el **día 335** (11 meses, 30 días antes) con opción de reactivar o descargar métricas; recordatorio el **día 358** (7 días antes); **borrado en cascada el día 365**. **Sustituye «13 a 24 meses»** en todos los textos. | T&C §12, Política §11, `diseno-borrado-inactivas.md` | — |
+| P11 | Prueba del consentimiento tras la baja: **3 años desde la cancelación**, **disociada** (UUID anónimo, tipo, versión, huella, marcas de tiempo; **sin correo ni nombre**). Sustituye «3 a 5 años». | Política §11, A8 | Fundamento del plazo de 3 años. |
+| P12 | El **coach avisa incidentes en máximo 24 h**. La plataforma informa a la **SIC** (informe circunstanciado) en máximo **15 días hábiles desde la constatación** y a los **titulares afectados**. | `plan-incidentes.md`, acuerdo §7, Política §10 | **Plazo exacto (15 días hábiles) y si aplica a una persona natural no inscrita: por confirmar.** |
+| P13 | Responsable **persona natural**, **sin obligación de RNBD** según el Decreto 090 de 2018 (umbral de 100.000 UVT en personas jurídicas). **No exime** de los demás deberes. | Política §12 | Cambia si se constituye una sociedad. |
+| P14 | **Nutrición clínica / dietoterapia = acto reservado a nutricionistas con tarjeta profesional** (Ley 73 de 1979; Decreto 2270 de 1980). El coach no titulado: **solo hábitos y balances generales para personas sanas**. El acuerdo del coach lo prohíbe. | Acuerdo §5, T&C §5 | Contenido exacto de ambas normas: por confirmar (la preasesoría ya marcaba la Ley 73 como no verificada). |
+| P15 | La plataforma es **portal de contacto** (art. 53 de la Ley 1480 de 2011). **No se puede excluir responsabilidad por dolo o culpa grave ni por fallas directas de seguridad** (art. 43). | T&C §5 y §11 | Numeración del art. 43: por confirmar. |
+| P16 | Para el **piloto cerrado** vale el **plan gratis de Supabase** si los T&C avisan que **NO hay copias de seguridad automáticas** y que el usuario puede **exportar sus datos**. Para producción abierta, **plan Pro**. | T&C §10, Política §10 | — |
+| P17 | Tras retirar un permiso o terminar el vínculo, el panel **deja de mostrar al instante**; el coach tiene **hasta 30 días para destruir** lo que haya copiado fuera de la app, sin usarlo ni compartirlo. | Acuerdo §8, A8 | — |
+| P18 | **Bloqueantes del piloto:** edad 18 (**hecho**), `share_*` apagados (**hecho**), **DPA de Supabase y Brevo archivados** (tarea del Stakeholder), **acuerdo firmado con los 2 coaches** (tarea del Stakeholder), pantallas **A1–A5 sin premarcado** con los textos aprobados (A3 y A4 hechas en el Sprint 8). | `checklist-antes-de-abrir.md` | — |
+
+## Redacciones aprobadas (se usan exactamente así en pantalla, sin la casilla ☐)
+
+- **A3 (v0.3-A3):** «Autorizo a José Granados a tratar mis datos sensibles de salud (peso, medidas, comidas, hábitos) para calcular mi plan y registrar mi progreso. Reconozco que autorizar es completamente facultativo y que puedo utilizar la aplicación en modo local sin cuenta.» + enlace a la Política de datos.
+- **A4 (v0.3-A4):** «Autorizo almacenar una copia de mis datos en la nube (Supabase, servidores en EE. UU.) y procesar mi correo con Brevo. Conozco que es una transmisión internacional a proveedores encargados donde las medidas de protección pueden diferir de las de Colombia. Es facultativo; sin esta casilla la app funciona únicamente en tu teléfono.»
+
+Al subir la versión, quien aceptó A3/A4 en la v0.2 vuelve a ver el paso **una sola vez**.
+
+## Pendientes del Stakeholder (no los puede hacer el equipo)
+
+1. **Archivar el DPA de Supabase** (aceptado, con fecha) y **el DPA estándar de Brevo**. Guardar copia en la carpeta de documentos del proyecto.
+2. **Firmar el acuerdo con los 2 coaches del piloto**, por escrito o con firma electrónica (versión v0.3 del acuerdo, ya con la cláusula penal; **la cuantía y exigibilidad las valida un abogado antes de firmar**).
+3. Que un **abogado colombiano revise y firme** los borradores v0.3 antes de publicarlos (hasta entonces siguen vigentes los v0.1 y la app oficial no se conecta a `plataforma`).
+4. Decidir lo marcado en `equipo/handoffs/diseno-borrado-inactivas.md` (cómo enviar los avisos del día 335 y 358).

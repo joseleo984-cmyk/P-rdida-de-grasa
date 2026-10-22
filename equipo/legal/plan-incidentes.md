@@ -1,12 +1,12 @@
 # Plan de incidentes de seguridad (una página)
 
-> **Para quién:** José Granados, persona natural responsable del tratamiento. **No es asesoría legal.** Lo que no se pudo verificar en el repositorio está marcado **«por confirmar»**; los plazos y el canal con la SIC los fija el abogado (`preguntas-abogado.md`, P12). Versión 0.1 · 2026-10-23.
+> **Para quién:** José Granados, persona natural responsable del tratamiento. **No es asesoría legal.** Lo que no se pudo verificar en el repositorio está marcado **«por confirmar»**; el plazo exacto y el canal con la SIC los confirma el abogado (`preguntas-abogado.md`, P12). Versión 0.2 · 2026-10-23 (ajustada a `respuestas-abogado.md`: coach 24 h; SIC 15 días hábiles, **por confirmar**).
 
 ## 1. Qué cuenta como incidente
 Cualquier hecho que **pueda** haber dejado ver, cambiar, perder o borrar datos de personas sin autorización. Ejemplos: una clave secreta (`sb_secret_…`, `service_role`, clave SMTP de Brevo) publicada o enviada por error; un teléfono o computador de un coach o del responsable perdido o robado con la sesión abierta; un coach que reenvía o publica datos o fotos de un cliente; alguien que ve datos que no le corresponden (error de permisos); un correo de códigos que llega a otra persona; un aviso de Supabase o Brevo sobre acceso indebido. **En duda, se trata como incidente** y se descarta después.
 
 ## 2. Quién decide
-**José Granados** decide todo (contener, avisar, cerrar). Si no está localizable, no hay suplente definido: **por confirmar** (conviene nombrar uno). Cualquier coach, cliente o persona del equipo que detecte algo avisa a **joseleo984@gmail.com** o al **+57 312 887 6135** (datos ya públicos en la política). El Acuerdo del coach (borrador) pide a los coaches avisar en 24 a 48 horas, plazo **a validar** con el abogado.
+**José Granados** decide todo (contener, avisar, cerrar). Si no está localizable, no hay suplente definido: **por confirmar** (conviene nombrar uno). Cualquier coach, cliente o persona del equipo que detecte algo avisa a **joseleo984@gmail.com** o al **+57 312 887 6135** (datos ya públicos en la política). El Acuerdo del coach (borrador v0.3) obliga a los coaches a avisar **en máximo 24 horas** desde que lo sepan (P12).
 
 ## 3. Primeras 2 horas: contener
 Anota la hora a la que te enteraste (la necesitarás en el registro, sección 7). Haz solo lo que aplique.
@@ -30,9 +30,9 @@ En el SQL Editor (solo lectura): ¿qué cuentas están involucradas? `select use
 ## 5. A quién avisar
 | A quién | Cuándo | Cómo |
 |---|---|---|
-| **Titulares afectados** (clientes) | En cuanto sepas qué datos y de quién; práctica recomendada por la preasesoría | Mensaje por el medio que ya usas con ellos (WhatsApp o correo); **sin datos de salud en el mensaje**. Plantilla en la sección 6. |
-| **Coaches** involucrados | De inmediato, para que dejen de usar y borren copias | Mensaje directo; recuérdales el Acuerdo del coach. |
-| **SIC** (Superintendencia de Industria y Comercio) | **Plazo: por confirmar con el abogado** (la preasesoría menciona 15 días hábiles para inscritos en el RNBD, sin verificar el texto original, y no se sabe si aplica a una persona natural no inscrita) | **Canal: por confirmar con el abogado.** |
+| **Titulares afectados** (clientes) | En cuanto sepas qué datos y de quién (P12: la plataforma informa a los titulares afectados) | Mensaje por el medio que ya usas con ellos (WhatsApp o correo); **sin datos de salud en el mensaje**. Plantilla en la sección 6. |
+| **Coaches** involucrados | De inmediato, para que dejen de usar y destruyan copias; ellos te avisan a ti en **máx. 24 h** si el incidente nace de su lado | Mensaje directo; recuérdales el Acuerdo del coach. |
+| **SIC** (Superintendencia de Industria y Comercio) | **Informe circunstanciado en máximo 15 días hábiles desde que constatas el incidente** (P12). **Por confirmar con el abogado:** que ese sea el plazo exacto y si aplica a una persona natural no inscrita en el RNBD. **Cuenta el plazo desde la hora anotada en la sección 7.** | **Canal: por confirmar con el abogado.** |
 | **Supabase / Brevo** | Si el incidente viene de su plataforma o necesitas sus registros | Soporte de cada proveedor (canal: por confirmar). |
 | **Abogado** | Desde el primer día, antes de avisar a la SIC | Llámalo con el registro de la sección 7 en la mano. |
 

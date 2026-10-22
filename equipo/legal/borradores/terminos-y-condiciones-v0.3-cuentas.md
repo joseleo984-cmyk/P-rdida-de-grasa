@@ -1,10 +1,10 @@
-> **BORRADOR v0.2 — NO VIGENTE — pendiente de revisión del abogado.**
-> No es asesoría legal. Autor: Analista de Producto · 2026-10-22 · Parte de `equipo/legal/preasesoria-legal.md` (posiciones P1–P18). Reemplazaría a `terminos-y-condiciones.md` (v0.1, edición piloto sin servidor), que no se modifica.
+> **BORRADOR v0.3 — NO VIGENTE — pendiente de revisión del abogado.**
+> No es asesoría legal. Autor: Analista de Producto · 2026-10-22 · Parte de `equipo/legal/preasesoria-legal.md` y de `equipo/legal/respuestas-abogado.md` (decisiones P1–P18 del 2026-10-22). Reemplazaría a `terminos-y-condiciones.md` (v0.1, edición piloto sin servidor), que no se modifica.
 > Lo marcado **(a validar)** es una propuesta del equipo que el abogado debe confirmar o cambiar. Las notas "NOTA" son internas y no se publican. El marcador `[FECHA DE VIGENCIA]` se completa al publicar.
 
 # Términos y Condiciones de Uso — "Pérdida de Grasa" (versión con cuentas)
 
-**Versión:** 0.2 (borrador) · **Edición:** con cuentas y copia en la nube · **Vigentes desde:** [FECHA DE VIGENCIA]
+**Versión:** 0.3 (borrador) · **Edición:** con cuentas y copia en la nube · **Vigentes desde:** [FECHA DE VIGENCIA]
 
 ## 1. Quiénes somos y qué aceptas
 
@@ -23,6 +23,7 @@ Al crear una cuenta o usar las funciones en línea aceptas estos Términos y la 
 
 - **Modo local, sin cuenta (siempre disponible).** Tus datos se guardan **solo en tu teléfono**. No recibimos nada. Puedes calcular tu plan, registrar tu progreso y exportar tus datos sin crear cuenta y sin entregarnos datos de salud. *(a validar: es la alternativa que evita condicionar el servicio a datos sensibles; ver P1 de la preasesoría.)*
 - **Cuenta (opcional).** Con tu correo recibes un código de 6 dígitos para entrar (no hay contraseñas). La cuenta permite: sincronizar entre dispositivos, tener una **copia en la nube** y **vincularte con un coach**. Cada autorización (nube, compartir con el coach, fotos) se pide **por separado**, no viene marcada y puedes retirarla cuando quieras.
+- Para vincularte con un coach, el peso y las medidas son **el dato mínimo del servicio que pides**; sin vínculo no se te pide nada de eso. *(a validar, P1)*
 - Crear la cuenta **no te obliga** a activar la copia en la nube ni a compartir datos con un coach.
 
 ## 4. Cuenta y acceso
@@ -39,17 +40,18 @@ Al crear una cuenta o usar las funciones en línea aceptas estos Términos y la 
 | **Coach** | Profesional **independiente** que te acompaña. Fija su precio, su plan y su forma de trabajar. Acepta un **acuerdo con la plataforma** antes de ver datos. **Es responsable independiente del uso que él hace** de lo que tú le compartes. | No es empleado, agente ni socio nuestro. No puede usar tus datos para otros fines, ni descargarlos, reenviarlos, publicarlos ni capturar tus fotos. |
 | **Tú (cliente)** | Registras tus datos, decides qué compartes con tu coach (por categoría) y contratas el coaching directamente con él. | — |
 
-- **El contrato de coaching es entre tú y tu coach**, fuera de la app. Ahí se pactan precio y servicio. *(a validar: la plataforma actúa como portal de contacto y no es parte de ese contrato; ver P15. Si más adelante cobramos al cliente, esto cambia.)*
+- **El contrato de coaching es entre tú y tu coach**, fuera de la app. Ahí se pactan precio y servicio. **Somos un portal de contacto** (art. 53 de la Ley 1480 de 2011) y no somos parte de ese contrato. *(a validar, P15. Si más adelante cobramos al cliente, esto cambia.)*
+- **Quejas:** si tu queja es sobre tu coach, la **trasladamos al coach en máximo 2 días hábiles** y te avisamos; si es sobre la plataforma (cuenta, nube, seguridad, tus autorizaciones), la resolvemos nosotros.
 - Mostramos el nombre comercial del coach para que sepas con quién te vinculas.
 - **El coach ve únicamente** lo que tú decidas compartir: peso y medidas (necesarios mientras haya vínculo) y, aparte, notas, comidas, hábitos y fotos, si las activas. **No ve tu correo.**
 - Puedes **terminar el vínculo** cuando quieras. El coach pierde el acceso al instante; tus datos siguen en tu cuenta.
-- **Límites de salud del coach:** el coach declara su formación; **no hace diagnósticos ni plantea tratamientos de enfermedades** y, cuando la ley lo reserve a profesionales habilitados (por ejemplo, planes de alimentación terapéuticos), solo los da quien lo esté. *(a validar: qué actos están reservados a nutricionistas-dietistas; P14.)*
+- **Límites de salud del coach:** el coach declara su formación; **no hace diagnósticos ni plantea tratamientos de enfermedades**. La **nutrición clínica y la dietoterapia** están reservadas a nutricionistas con tarjeta profesional (Ley 73 de 1979; Decreto 2270 de 1980, *contenido por confirmar*). Un coach sin ese título solo da **hábitos y balances generales para personas sanas**, y su acuerdo con nosotros se lo exige. Si tienes una enfermedad, consulta a un profesional de salud. *(a validar, P14.)*
 
-*NOTA: el modelo de roles (plataforma responsable + coach responsable independiente) es la posición de la preasesoría (P4), distinta de la del v0.1 (coach "encargado"). El abogado decide.*
+*NOTA: el modelo de roles (plataforma responsable + coach responsable independiente) está adoptado en las respuestas del 2026-10-22 (P4), distinta de la del v0.1 (coach "encargado"). El abogado decide.*
 
 ## 6. Requisitos de uso
 
-- La app es solo para **mayores de 18 años**. Al crear tu cuenta declaras serlo; la app no permite perfiles con edad menor. Si sabemos que una cuenta es de un menor, la **cerramos y borramos sus datos**. *(a validar: basta la declaración más el bloqueo, o se exige verificar; P9.)*
+- La app es solo para **mayores de 18 años**. Al crear tu cuenta declaras serlo; la app no permite perfiles con edad menor. Si sabemos que una cuenta es de un menor, **suspendemos el acceso, no aceptamos más sincronización y borramos todos sus datos de la nube en 48 horas**, avisando por correo. *(P9)*
 - Usa la app para tu propio seguimiento. No registres datos ni fotos de otras personas sin su permiso.
 - Protege tu teléfono con clave o biometría.
 
@@ -72,7 +74,8 @@ No puedes: usar la app para fines ilegales; intentar vulnerar su seguridad; copi
 
 ## 10. Disponibilidad y cambios
 
-- La app puede tener errores, interrupciones o cambios. El plan de servidor actual **no incluye copias de seguridad automáticas** *(se informa mientras sea así; decidir si pasa a un plan con copias)*: por eso conviene **exportar tus datos de vez en cuando**; tu teléfono conserva además una copia.
+- La app puede tener errores, interrupciones o cambios.
+- **Aviso importante (fase piloto): en esta fase NO hay copias de seguridad automáticas de la nube.** Si el servidor falla, podrías perder lo que está solo allí. Por eso **puedes y debes exportar tus datos** de vez en cuando desde la app; tu teléfono conserva además su propia copia. Cuando la app se abra al público pasaremos a un plan con copias y lo avisaremos. *(P16)*
 - Podemos cambiar, agregar o retirar funciones. Si dejamos de ofrecer la app, te avisaremos con tiempo para que exportes tus datos *(plazo a validar: p. ej., 30 días)*.
 
 ## 11. Limitación de responsabilidad
@@ -81,12 +84,12 @@ En la medida en que la ley colombiana lo permita:
 - No respondemos por resultados de salud, estéticos o de peso, ni por decisiones que tomes con base en las estimaciones de la app.
 - No respondemos por el servicio, los consejos, planes o precios de los coaches, que son profesionales independientes (sin perjuicio de lo que la ley nos exija como plataforma).
 - No respondemos por pérdida de datos que dependa de ti (borrar la app, no exportar) ni por fallas de terceros fuera de nuestro control.
-- **Nada de lo anterior limita** los derechos que te reconoce el **Estatuto del Consumidor (Ley 1480 de 2011)** ni nuestra responsabilidad por dolo o culpa grave, ni nuestras obligaciones de protección de datos. *(a validar: que ninguna cláusula sea abusiva; P15. Numeración de arts. por confirmar.)*
+- **Nada de lo anterior limita** los derechos que te reconoce el **Estatuto del Consumidor (Ley 1480 de 2011)**. En particular, **no excluimos** nuestra responsabilidad por **dolo o culpa grave**, ni por **fallas directas de seguridad** de la plataforma (art. 43, numeración por confirmar), ni nuestras obligaciones de protección de datos. *(a validar, P15.)*
 
 ## 12. Terminación y borrado de cuenta
 
-- **Tú** puedes borrar tu cuenta cuando quieras desde la app (Perfil → Cuenta). Se borran tu cuenta y, en cascada, tus datos, fotos, comentarios y vínculos, salvo la **prueba mínima de tus autorizaciones** que se conserva seudonimizada por un plazo limitado (ver Política §11). Antes de borrar, la app te ofrece exportar.
-- **Cuentas inactivas:** si no entras en 12 meses te avisamos por correo; si no respondes, la borramos a los 13–24 meses *(plazos a validar, P10)*.
+- **Tú** puedes borrar tu cuenta cuando quieras desde la app (Más → Mis datos y permisos). Se borran tu cuenta y, en cascada, tus datos, fotos, comentarios y vínculos, salvo la **prueba mínima de tus autorizaciones**, que se conserva **3 años** sin tu nombre ni tu correo (ver Política §11). Antes de borrar, la app te ofrece exportar.
+- **Cuentas inactivas:** si pasan **365 días sin que inicies sesión**, la cuenta se borra. Te avisamos por correo el **día 335** (30 días antes; puedes reactivarla entrando o descargar tus métricas) y te recordamos el **día 358** (7 días antes). El **día 365** se borran tu cuenta y, en cascada, tus datos, fotos y vínculos. *(P10)*
 - Podemos suspender o cerrar una cuenta que incumpla estos Términos, o la de un coach que incumpla su acuerdo, avisando el motivo.
 - Si cierras la cuenta, tu coach pierde el acceso en ese momento.
 
@@ -106,4 +109,5 @@ José Granados · joseleo984@gmail.com · +57 312 887 6135 · Barranquilla, Colo
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 0.3 (borrador) | 2026-10-23 | Adopta las respuestas P1–P18: inactividad a 365 días con avisos, portal de contacto y límites del art. 43, límites de nutrición (Ley 73/1979), traslado de quejas en 2 días hábiles, aviso de que no hay copias automáticas en el piloto, menores con borrado en 48 h. No vigente. |
 | 0.2 (borrador) | 2026-10-22 | Primer borrador con cuentas, nube, coach como responsable independiente, modo local, retención, edad 18+. No vigente. |

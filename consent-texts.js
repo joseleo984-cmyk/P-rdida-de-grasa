@@ -2,10 +2,10 @@
 // versión y tipos de consentimiento que registran. Sin DOM (se prueba en tests/consent-texts.test.js).
 // Regla: la versión SUBE cuando cambia una sola palabra; el servidor guarda la huella SHA-256 del texto exacto mostrado
 // (account.js calcula Remote.textHash(fullText(...)) y guarda esa misma cadena en pantalla, así que huella = lo que se vio).
-// ESTADO: BORRADOR v0.2, pendiente del abogado. Mientras no se aprueben, la app oficial no se conecta a `plataforma`.
+// ESTADO: BORRADOR v0.3 (Sprint 8: A3 y A4 con la redacción aprobada por el Stakeholder el 2026-10-22; A7 y A8 ajustados a 24 h / 3 años), pendiente del abogado. Mientras no se aprueben, la app oficial no se conecta a `plataforma`.
 // Cambios respecto al borrador (a confirmar por el abogado), todos para no prometer lo que la app no hace:
 //   · Dónde se retira: «Perfil → Privacidad / Cuenta» pasa a «Más → Mis datos y permisos» (así se llama la pantalla real).
-//   · A4: la última frase dice que al retirarla la copia deja de actualizarse y se borra al borrar la cuenta (no hay aún
+//   · (v0.2, ya superado por la redacción de v0.3) A4: la última frase dice que al retirarla la copia deja de actualizarse y se borra al borrar la cuenta (no hay aún
 //     borrado de la copia sin borrar la cuenta).
 //   · A2 muestra la versión VIGENTE de los textos legales enlazados (hoy 0.1) en vez de «0.2», porque los enlaces siguen
 //     apuntando a legal/*.html v0.1 hasta que el abogado apruebe los v1.0.
@@ -29,14 +29,14 @@
       links: [{ label: 'Ver Términos', href: TERMS }, { label: 'Ver Política', href: POLICY }],
     },
     A3: {
-      version: '0.2-A3', kinds: ['sensitive_health'],
-      body: 'Autorizo a José Granados (responsable) a tratar mis datos de salud (peso, medidas, comidas, hábitos, notas) para calcular mi plan y mostrar mi progreso. Son datos sensibles; autorizar es voluntario: puedes usar la app sin cuenta, solo en tu teléfono. Puedes retirarla cuando quieras en Más → Mis datos y permisos.',
-      links: [{ label: 'Texto completo: Política §5', href: POLICY }],
+      version: '0.3-A3', kinds: ['sensitive_health'],
+      body: 'Autorizo a José Granados a tratar mis datos sensibles de salud (peso, medidas, comidas, hábitos) para calcular mi plan y registrar mi progreso. Reconozco que autorizar es completamente facultativo y que puedo utilizar la aplicación en modo local sin cuenta.',
+      links: [{ label: 'Política de datos', href: POLICY }],
     },
     A4: {
-      version: '0.2-A4', kinds: ['cloud_transfer'],
-      body: 'Autorizo guardar una copia de mis datos de salud en la nube (Supabase, servidores en EE. UU.) y que mi correo se envíe a Brevo para el código de acceso. Es una transmisión internacional a proveedores que trabajan por cuenta del responsable, donde la protección puede ser distinta a la de Colombia. Es opcional: sin ella, tus datos quedan solo en tu teléfono. La retiras en Más → Mis datos y permisos: la copia deja de actualizarse y se borra al borrar tu cuenta.',
-      links: [{ label: 'Texto completo: Política §7', href: POLICY }],
+      version: '0.3-A4', kinds: ['cloud_transfer'],
+      body: 'Autorizo almacenar una copia de mis datos en la nube (Supabase, servidores en EE. UU.) y procesar mi correo con Brevo. Conozco que es una transmisión internacional a proveedores encargados donde las medidas de protección pueden diferir de las de Colombia. Es facultativo; sin esta casilla la app funciona únicamente en tu teléfono.',
+      links: [{ label: 'Política de datos', href: POLICY }],
     },
     // Aviso del envío del código (A4, nota): se muestra al pedir el código. No es una casilla.
     A4code: {
@@ -68,8 +68,8 @@
       links: [{ label: 'Texto completo: Política §6', href: POLICY }],
     },
     A7: {
-      version: '0.2-A7', kinds: ['coach_agreement'],
-      intro: 'Para ver datos de clientes, acepta el Acuerdo del coach. En resumen: usas los datos solo para acompañar a ese cliente; no descargas, capturas ni compartes fotos; guardas confidencialidad; no das planes de alimentación terapéuticos si no eres profesional habilitado; avisas incidentes en 24–48 h; borras al terminar el vínculo; y respondes por tu propio uso.',
+      version: '0.3-A7', kinds: ['coach_agreement'],
+      intro: 'Para ver datos de clientes, acepta el Acuerdo del coach. En resumen: usas los datos solo para acompañar a ese cliente; no descargas, capturas ni compartes fotos; guardas confidencialidad; no das planes de alimentación terapéuticos si no eres profesional habilitado; avisas incidentes en máximo 24 horas; borras al terminar el vínculo; y respondes por tu propio uso.',
       body: 'Acepto el Acuerdo del coach.',
       links: [{ label: 'Leer acuerdo completo', href: AGREEMENT }],
     },
@@ -77,11 +77,11 @@
 
   // A8: avisos informativos (no se registran como consentimiento; el cliente confirma la acción).
   const A8 = {
-    version: '0.2-A8',
+    version: '0.3-A8',
     withdraw: 'Retirarás {que}. Tu coach deja de verlo ya. Lo ya guardado en la nube {destino}. Guardaremos solo una prueba mínima de tu autorización anterior, sin tu nombre. ¿Exportar antes?',
     destinoQuedaCuenta: 'se queda en tu cuenta hasta que la borres',
     destinoBorra: 'se borrará',
-    delete: 'Se borrarán tu cuenta, tus datos, fotos y vínculos de la nube; no se puede deshacer. Tu teléfono conserva su copia hasta que la borres. Guardamos 3 a 5 años una prueba mínima y sin tu nombre de lo que autorizaste.',
+    delete: 'Se borrarán tu cuenta, tus datos, fotos y vínculos de la nube; no se puede deshacer. Tu teléfono conserva su copia hasta que la borres. Guardamos 3 años una prueba mínima y sin tu nombre de lo que autorizaste.',
     coachEnded: 'Perdiste el acceso a los datos de {cliente}. Borra cualquier copia que tengas en un máximo de 30 días.',
   };
 
