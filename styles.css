@@ -518,3 +518,14 @@ body:not(.has-remote) .needs-account { display: none; }
 .acc-main, .a8-actions .btn, .a7-gate .btn { min-height: 48px; }
 #acc-brevo a, .share-outro a, .a7-gate a { display: inline-flex; align-items: center; min-height: 48px; }
 #form-shares .row-actions .btn, #account-card .row-actions .btn { min-height: 48px; }
+
+/* Sprint 10: Mi acuerdo (coach) */
+.acuerdo-meta { display: grid; gap: 8px; margin: 0 0 8px; }
+.acuerdo-meta div { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.acuerdo-meta dt { font-weight: 600; min-width: 7.5rem; }
+.acuerdo-meta dd { margin: 0; overflow-wrap: anywhere; }
+.acuerdo-meta .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .9em; }
+.acuerdo-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; margin: 8px 0 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); max-height: 50vh; overflow: auto; }
+#view-acuerdo .btn, #view-acuerdo .acc-main { min-height: 48px; }
+#view-acuerdo .acc-main { width: 100%; }
+#view-acuerdo .row-actions .btn { flex: 1 1 160px; }

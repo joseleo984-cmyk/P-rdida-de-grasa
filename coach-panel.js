@@ -81,6 +81,60 @@
     document.addEventListener('pg:consents-changed', renderGate);
   }
 
+  // ---------- Sprint 10: Mi acuerdo (Más → Mi acuerdo): texto exacto aceptado, fecha, versión, huella y copia ----------
+  let agreementRes = null;
+  async function renderAgreement() {
+    if (!A) return;
+    const r = await AcuerdoView.resolve(A.meta(), ConsentTexts, Remote.textHash);
+    agreementRes = r;
+    const none = r.state === 'none';
+    $('#acuerdo-none').classList.toggle('hidden', !none);
+    $('#acuerdo-new').classList.toggle('hidden', r.state !== 'outdated');
+    $('#acuerdo-card').classList.toggle('hidden', none);
+    if (none) return;
+    $('#acuerdo-when').textContent = AcuerdoView.when(r.at);
+    $('#acuerdo-version').textContent = r.version;
+    $('#acuerdo-hash').textContent = r.hashShort;
+    $('#acuerdo-hash').title = r.hash;
+    $('#acuerdo-text').textContent = r.text || '';
+    $('#acuerdo-text').classList.toggle('hidden', !r.text);
+    $('#acuerdo-lead').classList.toggle('hidden', !r.text);
+    $('#acuerdo-mismatch').classList.toggle('hidden', !!r.text);
+    $('#btn-acuerdo-download').disabled = !r.text;
+    if (r.state === 'outdated') $('#acuerdo-new-text').textContent = `Hay una versión nueva del acuerdo (${r.currentVersion}). Para seguir viendo a tus clientes debes aceptarla. Abajo ves el texto que aceptaste antes (versión ${r.version}).`;
+  }
+  function downloadAgreement() {
+    const r = agreementRes;
+    if (!r || !r.text) return;
+    const who = (A.meta() || {}).email || '';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([AcuerdoView.fileHtml(r, who)], { type: 'text/html;charset=utf-8' }));
+    a.download = AcuerdoView.fileName(r, 'html');
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    $('#acuerdo-copy-status').textContent = 'Listo: guardamos el archivo con el acuerdo. Puedes abrirlo o imprimirlo.';
+  }
+  function wireAgreement() {
+    $('#row-c-acuerdo').addEventListener('click', () => { $('#acuerdo-copy-status').textContent = ''; renderAgreement(); });
+    $('#btn-acuerdo-download').addEventListener('click', downloadAgreement);
+    $('#btn-acuerdo-mail').addEventListener('click', async () => {
+      const b = $('#btn-acuerdo-mail');
+      const st = $('#acuerdo-copy-status');
+      b.disabled = true;
+      st.textContent = 'Enviando la copia a tu correo…';
+      const res = await A.sendAgreementCopy(); // nunca lanza: devuelve el estado
+      st.textContent = AcuerdoView.COPY_TEXT[res.status] || AcuerdoView.COPY_TEXT.unavailable;
+      b.disabled = false;
+    });
+    for (const id of ['#btn-acuerdo-ir', '#btn-acuerdo-nuevo']) $(id).addEventListener('click', () => $('#tab-coach').click());
+    document.addEventListener('pg:consents-changed', () => { if ($('#view-acuerdo').classList.contains('active')) renderAgreement(); });
+    // Justo tras aceptar: si la copia salió, se avisa; si no (función no desplegada, sin internet…), no se molesta: queda el botón de Mi acuerdo.
+    document.addEventListener('pg:agreement-copy', (ev) => {
+      const d = ev.detail || {};
+      if (d.status === 'sent') toast('Te enviamos una copia a tu correo');
+    });
+  }
+
   // ---------- Coach: lista ----------
   async function loadClients() {
     if (!agreementOK()) { renderGate(); return; } // sin acuerdo no se pide ni un dato de clientes
@@ -460,6 +514,7 @@
     A = window.PGAccount;
     wireGate();
     renderGate();
+    wireAgreement();
     wireCoach();
     wireClient();
     refreshNotes();

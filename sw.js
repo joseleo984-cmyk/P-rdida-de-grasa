@@ -2,8 +2,8 @@
 // Cada entorno (raíz / pruebas) tiene su propia caché: config.js + ns.js deciden el nombre (ver ns.js).
 self.window = self;
 importScripts('config.js', 'ns.js');
-const CACHE = PGNS.cacheName(31);
-const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'consent-texts.js', 'sync.js', 'cloud-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'app.js', 'config.js', 'ns.js', 'vendor/supabase-2.117.2.js', 'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
+const CACHE = PGNS.cacheName(32);
+const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'consent-texts.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'app.js', 'config.js', 'ns.js', 'vendor/supabase-2.117.2.js', 'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'manifest.webmanifest', 'icon.svg', 'legal/terminos.html', 'legal/privacidad.html'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

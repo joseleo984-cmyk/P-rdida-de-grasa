@@ -81,6 +81,8 @@
       this.consentEvents = [];
       this.consentArchive = []; // Sprint 6: prueba mínima seudonimizada que sobrevive a la baja (solo pruebas; el real es core.consent_archive)
       this.photoViews = [];
+      this.agreementCopies = []; // Sprint 10: copias del acuerdo "enviadas" por correo (solo pruebas): { userId, to, version, textHash, at }
+      this.copyMode = 'ok';       // Sprint 10: 'ok' | 'unavailable' (la función de borde no está desplegada/configurada) | 'rate_limited'
       this.blobs = {};          // path → Blob (no se persiste)
       this.revoked = {};        // userId → ms desde el que las sesiones anteriores no valen
       this._online = true;
@@ -174,13 +176,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, revoked, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, revoked, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'revoked']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -296,6 +298,20 @@
           out[ev.kind] = { granted: ev.granted, version: ev.version, textHash: ev.textHash, clientAt: ev.clientAt };
         }
         return out;
+      },
+      // Sprint 10: doble de la función de borde `acuerdo-coach-copia`. Mismas reglas: solo con el último evento del acuerdo concedido,
+      // 1 envío por persona y versión por hora, el correo es el de la sesión. `be.copyMode = 'unavailable'` simula que no está desplegada.
+      async sendAgreementCopy() {
+        const u = await authed();
+        if (be.copyMode === 'unavailable') fail('unavailable', 'La copia por correo no está disponible');
+        if (!be.hasConsent(u.id, 'coach_agreement')) fail('agreement_required', 'Falta aceptar el Acuerdo del coach');
+        const ev = [...be.consentEvents].reverse().find((e) => e.userId === u.id && e.kind === 'coach_agreement');
+        const now = be.clock.now();
+        const recent = be.agreementCopies.find((c) => c.userId === u.id && c.version === ev.version && now - Date.parse(c.at) < 3600000 && now >= Date.parse(c.at));
+        if (be.copyMode === 'rate_limited' || recent) fail('rate_limited', 'Demasiados envíos: espera un poco');
+        be.agreementCopies.push({ userId: u.id, to: u.email, version: ev.version, textHash: ev.textHash, at: iso(now) });
+        be._persist();
+        return done({ sent: true });
       },
       async deleteAccount() {
         const u = await authed();

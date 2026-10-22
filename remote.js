@@ -133,6 +133,19 @@
     return mk('server');
   }
 
+  // Sprint 10: errores de la función de borde `acuerdo-coach-copia` → códigos de la app. `unavailable` = no desplegada (404),
+  // sin secretos (503), con fallos del servidor o del correo (5xx): nada de eso debe asustar a nadie.
+  const AGREEMENT_FN = 'acuerdo-coach-copia';
+  function copyError(e, status, code) {
+    const st = Number(status || (e && e.status)) || 0;
+    const name = e && e.name;
+    if (name === 'FunctionsFetchError' || (!st && (NET_TEXT.test(String((e && e.message) || '')) || NET_NAMES.includes(name)))) return new RemoteError('offline', MESSAGES.offline);
+    if (st === 429 || code === 'rate_limited') return new RemoteError('rate_limited', MESSAGES.rate_limited);
+    if (st === 401 || code === 'unauthorized') return new RemoteError('auth', MESSAGES.auth);
+    if (code === 'agreement_not_granted') return new RemoteError('agreement_required', MESSAGES.agreement_required);
+    return new RemoteError('unavailable', 'La copia por correo no está disponible');
+  }
+
   // ---------- Implementación real ----------
   const clients = new Map(); // un solo cliente supabase-js por (url, key): account.js y la sincronización lo comparten
 
@@ -320,6 +333,23 @@
           out[r.kind] = { granted: r.granted, version: r.version, clientAt: isoOrNull(r.client_at), textHash: r.text_hash };
         }
         return out;
+      },
+      // Sprint 10: pide a la función de borde `acuerdo-coach-copia` que mande al correo de la persona la copia del acuerdo aceptado.
+      // No manda nada de datos: el servidor lee el último evento, resuelve el texto y toma el correo del JWT. Es COMPLEMENTARIO: si la
+      // función no está desplegada/configurada responde `unavailable` y la app sigue como si nada (el acuerdo ya quedó registrado).
+      async sendAgreementCopy() {
+        await me();
+        if (offlineNow()) throw new RemoteError('offline', MESSAGES.offline);
+        let res;
+        try { res = await sb.functions.invoke(AGREEMENT_FN, { body: {} }); }
+        catch (e) { throw copyError(e, null); }
+        if (res && res.error) {
+          let code = '';
+          const c = res.error.context;
+          try { if (c && typeof c.json === 'function') code = String((await c.json()).error || ''); } catch { /* sin cuerpo */ }
+          throw copyError(res.error, c && c.status, code);
+        }
+        return { sent: true };
       },
       // §11.2: primero las fotos de Storage; si la BD aún ve archivos (`invalid`), se reintenta el borrado una vez.
       async deleteAccount() {
