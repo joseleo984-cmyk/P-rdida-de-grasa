@@ -48,6 +48,7 @@ Notas de hecho: el cliente solo puede declarar que es **mayor de 18 años** con 
 | **Brevo** (correo de códigos) | Enviar el código de 6 dígitos | Correo del usuario y el código | **No consta en el repositorio dónde están sus servidores** (se asume UE por su sede; **por confirmar**). Plan gratuito, 300 correos al día. **La IP desde la que envía `plataforma` quedó autorizada en Brevo (confirmado 2026-10-22).** El remitente hoy es una dirección genérica de Brevo (brevosend.com), sin dominio propio | Montado |
 | **GitHub Pages** | Alojar la aplicación (archivos estáticos) | Ninguno de los datos de salud; solo recibe la visita como cualquier sitio web | EE. UU. (por confirmar) | En uso |
 | **WhatsApp (Meta)** | Solo para que el coach **comparta el enlace de invitación** | **Ningún dato de salud**: el código dice que solo va el enlace | Meta, fuera de Colombia | Ya no se usa para datos |
+| **Cloudflare Turnstile** (captcha del código por correo) *(nuevo, Sprint 9; solo si se activa)* | Comprobar que quien pide el código es una persona y no un programa | Al cargar el widget, **señales del navegador y la dirección IP** (no recibe el correo ni datos de salud; Supabase recibe el resultado de la verificación). Solo se carga en la pantalla de entrada y solo si `captchaSiteKey` tiene valor | EE. UU. y red global de Cloudflare (por confirmar). Plan gratuito. **DPA y país exacto de la empresa: por confirmar** | **Pendiente para el abogado** (`borradores-pendientes.md` #10). Hoy no está activo: `config.js` y `config.pruebas.js` sin clave |
 | Google Drive u otras carpetas | Ya **no se usan** para archivos de clientes (eran del piloto con WhatsApp) | — | — | Descartado |
 
 ---
@@ -73,7 +74,7 @@ Notas de hecho: el cliente solo puede declarar que es **mayor de 18 años** con 
 
 - **Copias de seguridad:** el plan gratuito de Supabase no tiene; se pausa tras ~7 días sin uso. Mitigación actual: cada celular conserva su copia y se puede exportar. Pasar a plan Pro está **pendiente de decisión**.
 - **Dominio propio para el remitente** del correo (hoy un correo personal), y autenticación de ese dominio en Brevo.
-- **Captcha** en el inicio de sesión (protege contra abuso del envío de códigos).
+- **Captcha** en el inicio de sesión (protege contra abuso del envío de códigos): la app ya lo soporta (Cloudflare Turnstile, Sprint 9, apagado por defecto); falta encenderlo en `pruebas`/`plataforma` y que el abogado valore a Cloudflare como tercero nuevo (sección C).
 - **Texto de consentimiento de la versión con cuentas** y el de «copia en la nube»: los textos vigentes (`terminos-y-condiciones.md`, `politica-tratamiento-datos.md`) describen aún la fase sin cuentas.
 - **Autorización «copia de fotos en la nube»:** no existe; por eso las fotos no suben.
 - **Retención de cuentas inactivas:** no hay plazo ni proceso automático.
