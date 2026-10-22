@@ -105,6 +105,7 @@
     wa.setAttribute('aria-disabled', p ? 'false' : 'true');
     wa.classList.toggle('disabled', !p);
     $('#invite-link-input').value = p ? p.link : '';
+    $('#btn-invite-qr').disabled = !p || !window.QR; // mismos requisitos que WhatsApp: servidor configurado y coach con código
   }
   async function copyInviteLink() {
     const p = inviteParts();
@@ -121,6 +122,21 @@
       try { box.setSelectionRange(0, box.value.length); document.execCommand('copy'); } catch { /* queda seleccionado para copiar a mano */ }
     }
   }
+
+  // Sprint 5: hoja con el QR del MISMO enlace de invitación. Se dibuja aquí, en el teléfono; no se envía a ningún servicio.
+  let qrOpener = null;
+  function openQr() {
+    const p = inviteParts();
+    if (!p || !window.QR) return;
+    let svg;
+    try { svg = QR.svg(p.link, { label: 'Código QR de tu invitación a Pérdida de Grasa. Tu cliente lo escanea con la cámara del teléfono.' }); } catch { toast('No se pudo crear el QR', true); return; }
+    $('#qr-box').innerHTML = svg; // SVG generado por qr.js: solo números y una etiqueta escapada, nada que escribió una persona
+    $('#qr-code').textContent = Invite.normalizeCode((A.meta().coach || {}).inviteCode);
+    qrOpener = document.activeElement;
+    $('#sheet-qr').showModal();
+    $('#qr-title').focus();
+  }
+  function closeQr() { const d = $('#sheet-qr'); if (d.open) d.close(); }
 
   function renderInvite(mine) {
     if (!mine) return;
@@ -236,6 +252,14 @@
     $('#btn-coach-refresh').addEventListener('click', loadClients);
     $('#invite-name').addEventListener('input', renderInvitePreview);
     $('#btn-invite-copy').addEventListener('click', copyInviteLink);
+    $('#btn-invite-qr').addEventListener('click', openQr);
+    $('#qr-close').addEventListener('click', closeQr);
+    $('#sheet-qr').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) closeQr(); }); // toque en el fondo
+    $('#sheet-qr').addEventListener('close', () => {
+      $('#qr-box').innerHTML = ''; $('#qr-code').textContent = '';
+      const o = qrOpener; qrOpener = null;
+      if (o && o.isConnected && !o.disabled) o.focus(); else $('#invitar-title').focus();
+    });
     $('#btn-invite-wa').addEventListener('click', (ev) => { if (!inviteParts()) ev.preventDefault(); });
     renderInvitePreview();
     $('#coach-clients').addEventListener('click', (ev) => {
