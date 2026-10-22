@@ -14,14 +14,14 @@ test('when: hoy / ayer / fecha, con hora', () => {
 });
 
 test('syncText: un texto claro por estado', () => {
-  assert.match(V.syncText({ state: 'ok', lastOkAt: at('2026-10-22T09:41:00-05:00') }, NOW, TZ), /^Sincronizado hoy 9:41/);
-  assert.equal(V.syncText({ state: 'ok', lastOkAt: null }, NOW, TZ), 'Sincronizado');
-  assert.equal(V.syncText({ state: 'offline' }), 'Sin conexión: se subirá al volver.');
-  assert.match(V.syncText({ state: 'error' }), /^No se pudo sincronizar/);
-  assert.equal(V.syncText({ state: 'owner' }), 'Falta confirmar que estos datos son tuyos.');
-  assert.equal(V.syncText({ state: 'blocked' }), 'No sincroniza: no autorizaste datos de salud.');
-  assert.match(V.syncText({ state: 'auth' }), /sesión caducó/);
-  assert.equal(V.syncText({ state: 'syncing' }), 'Sincronizando…');
+  assert.match(V.syncText({ state: 'ok', lastOkAt: at('2026-10-22T09:41:00-05:00') }, NOW, TZ), /^Se guardó en tu cuenta hoy 9:41/);
+  assert.equal(V.syncText({ state: 'ok', lastOkAt: null }, NOW, TZ), 'Se guardó en tu cuenta');
+  assert.equal(V.syncText({ state: 'offline' }), 'Sin internet: se guardará en tu cuenta cuando vuelva.');
+  assert.match(V.syncText({ state: 'error' }), /^No se pudo guardar en tu cuenta/);
+  assert.equal(V.syncText({ state: 'owner' }), 'Falta que confirmes que estos datos son tuyos.');
+  assert.equal(V.syncText({ state: 'blocked' }), 'No se guarda en tu cuenta porque no autorizaste los datos de salud.');
+  assert.match(V.syncText({ state: 'auth' }), /sesión se cerró/);
+  assert.equal(V.syncText({ state: 'syncing' }), 'Guardando en tu cuenta…');
   assert.equal(V.syncText({ state: 'idle' }), '');
   assert.equal(V.stateKey({ state: 'syncing' }), 'running');
 });
@@ -45,4 +45,16 @@ test('dataMode: el aviso de copia se calla solo si el último sync fue hace meno
   assert.equal(m.quietBackup, false);
   const off = V.dataMode({ remoteOn: true, signedIn: true, healthOk: true, st: { state: 'offline', lastOkAt: at('2026-10-22T09:00:00-05:00') }, now: NOW });
   assert.deepEqual(off, { cloud: false, quietBackup: true });
+});
+
+test('ago y savedLine: texto de la cabecera de Más', () => {
+  const ok = (iso) => ({ state: 'ok', lastOkAt: at(iso) });
+  assert.equal(V.ago(at('2026-10-22T13:59:50-05:00'), NOW, TZ), 'hace un momento');
+  assert.equal(V.ago(at('2026-10-22T13:55:00-05:00'), NOW, TZ), 'hace 5 min');
+  assert.equal(V.ago(at('2026-10-22T11:00:00-05:00'), NOW, TZ), 'hace 3 h');
+  assert.match(V.ago(at('2026-10-20T11:00:00-05:00'), NOW, TZ), /^el 20 oct/);
+  assert.equal(V.ago('basura', NOW, TZ), '');
+  assert.equal(V.savedLine(ok('2026-10-22T13:55:00-05:00'), NOW, TZ), 'Guardado en tu cuenta · hace 5 min');
+  assert.equal(V.savedLine({ state: 'idle' }, NOW, TZ), 'Tu cuenta está activa');
+  assert.equal(V.savedLine({ state: 'offline', lastOkAt: at('2026-10-22T13:55:00-05:00') }, NOW, TZ), 'Sin internet: se guardará en tu cuenta cuando vuelva.');
 });

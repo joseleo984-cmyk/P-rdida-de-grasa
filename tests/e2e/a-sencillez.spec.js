@@ -32,7 +32,7 @@ test('A4: al completar los 6 dígitos entra sola, una sola vez; con un código m
   expect(await page.evaluate(() => window.__submits)).toBe(0);
   // Seis dígitos malos: se envía solo y avisa
   await field.fill(bad);
-  await expect(page.locator('#acc-code-error')).toContainText(/incorrecto|caducado/);
+  await expect(page.locator('#acc-code-error')).toContainText(/no es el correcto|ya venció/);
   expect(await page.evaluate(() => window.__submits)).toBe(1);
   // Se corrige y entra sola, con un único envío más
   await field.fill(code);

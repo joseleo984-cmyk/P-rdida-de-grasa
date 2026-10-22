@@ -45,7 +45,7 @@ test('un nombre largo sin espacios en la pantalla de cuenta no ensancha la pági
     acc.classList.remove('hidden');
     document.body.classList.add('account-open');
     for (let n = document.querySelector('#acc-share'); n && n !== acc; n = n.parentElement) n.classList.remove('hidden');
-    document.querySelector('#acc-share-title').textContent = `Te vas a vincular con «${t}».`;
+    document.querySelector('#acc-share-title').textContent = `Te vas a conectar con «${t}».`;
   }, long);
   expect(await app.scrollWidth(), 'scroll horizontal en la cuenta').toBeLessThanOrEqual(390);
   await page.evaluate(() => { document.querySelector('#account').classList.add('hidden'); document.body.classList.remove('account-open'); });

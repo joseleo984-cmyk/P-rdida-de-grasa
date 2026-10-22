@@ -72,7 +72,7 @@
     const items = [...cache.values()].sort((a, b) => Coach.byLight(a.sem, b.sem));
     if (!items.length) {
       const code = (A.meta() || {}).coach;
-      ul.innerHTML = `<li class="small muted">Aún no tienes clientes. Comparte tu código${code ? ` <strong>${esc(code.inviteCode)}</strong>` : ''} para que se vinculen.</li>`;
+      ul.innerHTML = `<li class="small muted">Aún no tienes clientes. Comparte tu código${code ? ` <strong>${esc(code.inviteCode)}</strong>` : ''} para que se conecten contigo.</li>`;
       return;
     }
     ul.innerHTML = items.map((c) => {
@@ -168,7 +168,7 @@
     $('#coach-detail-light').innerHTML = `<span class="light light-${esc(c.sem.color)}">${esc(c.sem.label)}</span> ${esc(c.sem.reason)}`;
     const yes = Object.keys(SHARE_NAMES).filter((k) => sh[k]).map((k) => SHARE_NAMES[k]);
     const no = Object.keys(SHARE_NAMES).filter((k) => !sh[k]).map((k) => SHARE_NAMES[k]);
-    $('#coach-detail-shares').textContent = `Comparte contigo: ${yes.join(', ') || '—'}. No comparte: ${no.join(', ') || '—'}. Vinculado desde el ${new Date(c.info.since).toLocaleDateString('es')}.`;
+    $('#coach-detail-shares').textContent = `Te muestra: ${yes.join(', ') || '—'}. No te muestra: ${no.join(', ') || '—'}. Es tu cliente desde el ${new Date(c.info.since).toLocaleDateString('es')}.`;
 
     // Progreso (categoría body, obligatoria). Nunca notas ni biblioteca.
     const s = c.sum, w = s.weight;
@@ -242,7 +242,7 @@
     $('#form-rotate').addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const f = ev.currentTarget;
-      if (!confirm('¿Generar un código nuevo? El actual dejará de servir para nuevos clientes (los ya vinculados siguen igual).')) return;
+      if (!confirm('¿Crear un código nuevo? El de ahora ya no servirá para clientes nuevos (los que ya tienes siguen igual).')) return;
       const opt = {};
       if (f.elements.validDays.value) opt.validDays = Number(f.elements.validDays.value);
       if (f.elements.maxUses.value) opt.maxUses = Number(f.elements.maxUses.value);
@@ -297,8 +297,8 @@
     });
     $('#btn-end-client').addEventListener('click', async () => {
       const c = cache.get(current);
-      if (!c || !confirm(`¿Terminar el vínculo con «${displayName(c)}»? Dejarás de ver sus datos.`)) return;
-      try { await A.remote.coach.endClient(current); toast('Vínculo terminado'); await loadClients(); showList(); }
+      if (!c || !confirm(`¿Dejar de acompañar a «${displayName(c)}»? Ya no verás sus datos.`)) return;
+      try { await A.remote.coach.endClient(current); toast('Listo: ya no ves sus datos'); await loadClients(); showList(); }
       catch (err) { toast(errText(err), true); }
     });
   }

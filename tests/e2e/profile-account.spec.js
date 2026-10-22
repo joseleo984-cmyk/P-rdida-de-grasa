@@ -7,7 +7,7 @@ const FAKE = 'index.html?remote=fake';
 const SKIP = { 'perdida-grasa:account-skip': '1' };
 const EMAIL = 'ana@ejemplo.com';
 const LOCAL = 'Todo se guarda solo en este dispositivo. Exporta una copia para respaldarla o pasarla a otro dispositivo.';
-const CLOUD = 'Tus datos se guardan en este dispositivo y, con tu cuenta, también en la nube. Las fotos se guardan solo en este dispositivo por ahora.';
+const CLOUD = 'Tus datos se guardan en este teléfono y también en tu cuenta. Las fotos, por ahora, solo se guardan en este teléfono.';
 const ready = (page) => page.waitForFunction(() => window.__pgFakeBackend && window.PGSync);
 async function login(page) {
   await ready(page);
@@ -47,12 +47,12 @@ test('con sesión y sync correcto: tarjeta al inicio, estado con hora, Datos hab
   await login(page);
   await page.evaluate(() => PGSync.confirmOwner());
   await app.tab('perfil');
-  await expect(sync(page)).toHaveText(/^Sincronizado (hoy|ayer) \d{1,2}:\d{2}/);
+  await expect(sync(page)).toHaveText(/^Se guardó en tu cuenta (hoy|ayer) \d{1,2}:\d{2}/);
   await expect(sync(page)).toHaveAttribute('role', 'status');
   expect(await page.locator('[role=status]:visible, [aria-live]:visible').evaluateAll((els) => els.filter((e) => e.closest('#view-perfil')).length)).toBe(1); // sin anuncios duplicados
-  await expect(page.locator('#account-status')).toContainText(`Sesión iniciada: ${EMAIL} (cliente)`);
+  await expect(page.locator('#account-status')).toContainText(`Entraste con ${EMAIL}.`);
   await expect(page.locator('#view-perfil > .card').first()).toHaveAttribute('id', 'account-card');
-  await expect(page.locator('#account-card h2')).toHaveText('Cuenta y copia en la nube');
+  await expect(page.locator('#account-card h2')).toHaveText('Tu cuenta');
   await expect(page.locator('#btn-sync-now')).toBeVisible();
   await expect(page.locator('#data-intro')).toHaveText(CLOUD);
   await expect(page.locator('#data-optional')).toBeVisible();
@@ -72,7 +72,7 @@ test('sin sesión (con servidor): invita a crear cuenta y Datos conserva el text
   await app.open({ path: FAKE, state: state({ consent: CONSENT }), prefs: SKIP });
   await ready(page);
   await app.tab('perfil');
-  await expect(page.locator('#account-status')).toContainText('estás usando la app solo en este dispositivo. Entra o crea una cuenta para guardar una copia en la nube');
+  await expect(page.locator('#account-status')).toContainText('tus datos están solo en este teléfono. Crea una cuenta o entra para que queden guardados también en tu cuenta');
   await expect(page.locator('#btn-account-login')).toBeVisible();
   await expect(sync(page)).toBeHidden();
   await expect(page.locator('#data-intro')).toHaveText(LOCAL);
@@ -88,7 +88,7 @@ test('sin conexión: "se subirá al volver", Datos no promete la nube y el aviso
   await page.evaluate(() => window.__pgFakeBackend.setOnline(false));
   await page.evaluate(() => PGSync.confirmOwner());
   await app.tab('perfil');
-  await expect(sync(page)).toHaveText('Sin conexión: se subirá al volver.');
+  await expect(sync(page)).toHaveText('Sin internet: se guardará en tu cuenta cuando vuelva.');
   await expect(page.locator('#data-intro')).toHaveText(LOCAL);
   await app.tab('panel');
   await expect(page.locator('#backup-banner-body')).toBeVisible();
@@ -100,7 +100,7 @@ test('error del servidor: "No se pudo sincronizar" y Datos conserva el texto act
   await page.evaluate(() => { window.__pgFakeBackend.failNext('server', 10); });
   await page.evaluate(() => PGSync.confirmOwner());
   await app.tab('perfil');
-  await expect(sync(page)).toHaveText(/^No se pudo sincronizar/);
+  await expect(sync(page)).toHaveText(/^No se pudo guardar en tu cuenta/);
   await expect(page.locator('#data-intro')).toHaveText(LOCAL);
   await expect(page.locator('#btn-sync-now')).toBeVisible();
 });
@@ -111,7 +111,7 @@ test('salud no autorizada: "No sincroniza" y Datos no habla de la nube', async (
   await page.evaluate(() => PGSync.confirmOwner());
   await page.evaluate(() => PGSync.run());
   await app.tab('perfil');
-  await expect(sync(page)).toHaveText('No sincroniza: no autorizaste datos de salud.');
+  await expect(sync(page)).toHaveText('No se guarda en tu cuenta porque no autorizaste los datos de salud.');
   await expect(page.locator('#data-intro')).toHaveText(LOCAL);
 });
 
@@ -120,7 +120,7 @@ test('falta confirmar dueño: mensaje claro y Datos no habla de la nube', async 
   await login(page);
   await page.evaluate(() => PGSync.run());
   await app.tab('perfil');
-  await expect(sync(page)).toHaveText('Falta confirmar que estos datos son tuyos.');
+  await expect(sync(page)).toHaveText('Falta que confirmes que estos datos son tuyos.');
   await expect(page.locator('#data-intro')).toHaveText(LOCAL);
 });
 
@@ -130,7 +130,7 @@ test('maquetación: Perfil con cuenta, fuente ancha, 390 px, sin desbordes', asy
   await page.evaluate(() => PGSync.confirmOwner());
   await app.tab('perfil');
   await page.addStyleTag({ content: WIDE });
-  await expect(sync(page)).toHaveText(/^Sincronizado/);
+  await expect(sync(page)).toHaveText(/^Se guardó en tu cuenta/);
   expect(await app.scrollWidth()).toBeLessThanOrEqual(390);
   const over = await page.evaluate(() => [...document.querySelectorAll('#view-perfil .card')].filter((c) => c.scrollWidth > c.clientWidth + 1).map((c) => c.id || c.querySelector('h2').textContent));
   expect(over).toEqual([]);
@@ -142,7 +142,7 @@ test('modo oscuro: la tarjeta de cuenta es legible', async ({ app, page }) => {
   await login(page);
   await page.evaluate(() => PGSync.confirmOwner());
   await app.tab('perfil');
-  await expect(sync(page)).toHaveText(/^Sincronizado/);
+  await expect(sync(page)).toHaveText(/^Se guardó en tu cuenta/);
   const [fg, bg] = await page.evaluate(() => { const c = getComputedStyle(document.querySelector('#account-status')); return [c.color, getComputedStyle(document.querySelector('#account-card')).backgroundColor]; });
   expect(fg).not.toBe(bg);
 });

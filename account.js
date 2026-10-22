@@ -84,15 +84,15 @@
   function errorText(err, where) {
     switch (err && err.code) {
       case 'offline': return where === 'email' || where === 'code'
-        ? 'Sin conexión. Para entrar la primera vez en este dispositivo necesitas internet.'
-        : 'Sin conexión. Inténtalo cuando vuelvas a tener internet.';
+        ? 'No hay internet. Para entrar por primera vez en este teléfono necesitas conexión.'
+        : 'No hay internet. Inténtalo cuando vuelva la conexión.';
       case 'invalid_code': return where === 'role'
         ? 'Ese código no existe o ya venció. Pídele a tu coach un enlace nuevo, o escríbelo aquí a mano.'
-        : 'Código incorrecto o caducado. Revisa el último correo que te llegó o pide otro.';
+        : 'Ese código no es el correcto o ya venció. Mira el último correo que te llegó o pide uno nuevo.';
       case 'rate_limited': return 'Demasiados intentos seguidos. Espera un poco y vuelve a intentarlo.';
       case 'invalid': return where === 'email' ? 'Escribe un correo válido, por ejemplo nombre@correo.com.' : (err.message || 'Revisa los datos.');
-      case 'auth': return 'Tu sesión caducó: vuelve a entrar con tu correo.';
-      default: return 'No se pudo conectar con el servidor. Inténtalo de nuevo en un momento.';
+      case 'auth': return 'Tu sesión se cerró. Entra de nuevo con tu correo.';
+      default: return 'No pudimos conectarnos. Inténtalo de nuevo en un momento.';
     }
   }
   function showError(id, msg) {
@@ -158,7 +158,7 @@
   $('#btn-acc-skip').addEventListener('click', () => {
     ls.set(SKIP_KEY, '1');
     closeScreen();
-    toast('Puedes crear tu cuenta cuando quieras en Perfil → Cuenta');
+    toast('Cuando quieras, crea tu cuenta en Perfil');
   });
 
   // ---------- Paso 2: código ----------
@@ -314,7 +314,7 @@
     await remote.auth.signOut({ local: true });
     writeMeta(null);
     closeScreen();
-    toast('Sesión cerrada: los datos de este teléfono siguen intactos');
+    toast('Cerraste sesión. Tus datos siguen en este teléfono');
   });
 
   // ---------- Paso 3: rol ----------
@@ -324,7 +324,7 @@
     $('#acc-coach-fields').classList.toggle('hidden', role !== 'coach');
     const code = $('#acc-coach-code').value.trim();
     if (!previewed || previewed.code !== normCode(code)) { previewed = null; $('#acc-share').classList.add('hidden'); }
-    $('#btn-acc-role').textContent = role === 'client' && code && !previewed ? 'Comprobar código' : role === 'client' && previewed ? 'Vincularme y continuar' : 'Continuar';
+    $('#btn-acc-role').textContent = role === 'client' && code && !previewed ? 'Comprobar código' : role === 'client' && previewed ? 'Conectarme y continuar' : 'Continuar';
   }
   const normCode = (c) => String(c || '').toUpperCase().replace(/[\s-]/g, '');
   $('#form-acc-role').addEventListener('change', updateRoleFields);
@@ -341,7 +341,7 @@
       const meta = readMeta() || {};
       if (role === 'coach') {
         const name = String(f.get('business') || '').trim();
-        if (name.length < 2 || name.length > 60) { showError('#acc-role-error', 'Escribe tu nombre comercial (2 a 60 caracteres).'); busy(form, false); $('#acc-business').focus(); return; }
+        if (name.length < 2 || name.length > 60) { showError('#acc-role-error', 'Escribe el nombre de tu negocio (de 2 a 60 letras).'); busy(form, false); $('#acc-business').focus(); return; }
         await remote.coach.becomeCoach(name);
         meta.coach = await remote.coach.myCoach();
         meta.roles = await remote.account.roles();
@@ -350,7 +350,7 @@
         if (code && !previewed) {
           const { businessName } = await remote.client.previewCode(code);
           previewed = { code, businessName };
-          $('#acc-share-title').textContent = `Te vas a vincular con «${businessName}».`;
+          $('#acc-share-title').textContent = `Te vas a conectar con «${businessName}».`;
           $('#acc-share').classList.remove('hidden');
           updateRoleFields();
           busy(form, false);
@@ -380,17 +380,17 @@
     const meta = readMeta() || {};
     const code = $('#acc-done-code');
     if (role === 'coach' && meta.coach) {
-      $('#acc-done-text').textContent = `Tu cuenta de coach «${meta.coach.businessName}» está lista. Comparte este código con tus clientes para que se vinculen:`;
+      $('#acc-done-text').textContent = `Tu cuenta de coach «${meta.coach.businessName}» está lista. Comparte este código con tus clientes para que se conecten contigo:`;
       code.textContent = meta.coach.inviteCode;
       code.classList.remove('hidden');
     } else {
-      $('#acc-done-text').textContent = meta.link ? `Sesión iniciada como ${meta.email}. Ya estás vinculado con «${meta.link.businessName}».` : `Sesión iniciada como ${meta.email}.`;
+      $('#acc-done-text').textContent = meta.link ? `Entraste como ${meta.email}. Ya estás con tu coach «${meta.link.businessName}».` : `Entraste como ${meta.email}.`;
       code.classList.add('hidden');
     }
     if (note) $('#acc-done-text').textContent += ' ' + note;
     step('done');
   }
-  $('#btn-acc-done').addEventListener('click', () => { closeScreen(); toast('Sesión iniciada'); });
+  $('#btn-acc-done').addEventListener('click', () => { closeScreen(); toast('Listo, ya entraste'); });
 
   // ---------- Consentimiento → servidor ----------
   // PUNTO DE INTEGRACIÓN LEGAL (S3-5, Analista): la aceptación local (state.consent, pantalla legal de S2-1) se registra
@@ -436,12 +436,12 @@
     const meta = readMeta();
     const status = $('#account-status'), extra = $('#account-extra');
     if (s && meta && meta.userId === s.user.id) {
-      const roles = (meta.roles || []).includes('coach') ? 'coach' : 'cliente';
-      status.textContent = `Sesión iniciada: ${s.user.email} (${roles}).` + (navigator.onLine === false ? ' Sin conexión: sigues usando la app con normalidad.' : '');
-      extra.textContent = meta.coach ? `Tu código para clientes: ${meta.coach.inviteCode}` : meta.link ? `Coach: ${meta.link.businessName}` : '';
-      if (meta.authExpired) extra.textContent = 'Tu sesión caducó: vuelve a entrar con tu correo (tus datos siguen aquí).';
+      const roles = (meta.roles || []).includes('coach') ? ' Tienes cuenta de coach.' : '';
+      status.textContent = `Entraste con ${s.user.email}.${roles}` + (navigator.onLine === false ? ' No hay internet: puedes seguir usando la app con normalidad.' : '');
+      extra.textContent = meta.coach ? `Tu código para invitar clientes: ${meta.coach.inviteCode}` : meta.link ? `Tu coach: ${meta.link.businessName}` : '';
+      if (meta.authExpired) extra.textContent = 'Tu sesión se cerró. Entra de nuevo con tu correo (tus datos siguen aquí).';
     } else {
-      status.textContent = 'Sin cuenta: estás usando la app solo en este dispositivo. Entra o crea una cuenta para guardar una copia en la nube.';
+      status.textContent = 'Sin cuenta: tus datos están solo en este teléfono. Crea una cuenta o entra para que queden guardados también en tu cuenta.';
       extra.textContent = '';
     }
     const signedIn = !!(s && meta && meta.userId === s.user.id);
@@ -457,6 +457,9 @@
     if (signedIn && meta.link) {
       $('#shares-title').textContent = `Tu coach: «${meta.link.businessName}», desde el ${new Date(meta.link.since).toLocaleDateString('es')}.`;
       for (const k of ['nutrition', 'habits', 'notes', 'photos']) sf.elements['share_' + k].checked = !!(meta.link.shares && meta.link.shares[k]);
+      const SEE = { nutrition: 'tus comidas', habits: 'tus hábitos', notes: 'tus notas', photos: 'las fotos que marques' };
+      const sees = ['tu peso y tus medidas', ...Object.keys(SEE).filter((k) => meta.link.shares && meta.link.shares[k]).map((k) => SEE[k])];
+      $('#shares-summary').textContent = `Tu coach puede ver ${sees.length > 1 ? sees.slice(0, -1).join(', ') + ' y ' + sees[sees.length - 1] : sees[0]}.`;
     }
     if (!signedIn) $('#form-logout').classList.add('hidden');
     document.dispatchEvent(new CustomEvent('pg:account-changed', { detail: { signedIn, isCoach } }));
@@ -481,18 +484,18 @@
     try {
       const link = await remote.client.updateShares(shares);
       writeMeta({ ...readMeta(), link });
-      toast('Guardado: tu coach ya ve solo lo que marcaste');
+      toast('Listo: tu coach verá solo lo que marcaste');
     } catch (err) { showError('#shares-error', errorText(err, 'shares')); }
     finally { busy(f, false); renderCard(); }
   });
   $('#btn-leave-coach').addEventListener('click', async () => {
     const meta = readMeta();
     if (!meta || !meta.link) return;
-    if (!confirm(`¿Terminar el vínculo con «${meta.link.businessName}»?\n\nDesde ese momento tu coach deja de ver tus datos. Tus datos siguen en tu cuenta y en este teléfono.`)) return;
+    if (!confirm(`¿Dejar de compartir con «${meta.link.businessName}»?\n\nTu coach ya no verá tus datos. Tus datos siguen en tu cuenta y en este teléfono.`)) return;
     try {
       await remote.client.leaveCoach();
       writeMeta({ ...readMeta(), link: null });
-      toast('Vínculo terminado');
+      toast('Dejaste de compartir con tu coach');
       renderCard();
       $('#btn-account-link').focus();
     } catch (err) { showError('#shares-error', errorText(err, 'shares')); }

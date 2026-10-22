@@ -65,21 +65,21 @@
     <div class="card">
       <div id="acc-step-email" class="acc-step">
         <h2 id="account-title" tabindex="-1">Crear cuenta o entrar</h2>
-        <p class="small">Con una cuenta tus datos se guardan también en el servidor y, si quieres, tu coach puede ver tu progreso sin que le envíes archivos.</p>
+        <p class="small">Con una cuenta tus datos quedan guardados y no los pierdes si cambias de teléfono. Si tienes coach, podrá ver tu progreso sin que le mandes nada.</p>
         <p id="acc-invite-email" class="small acc-note hidden">Tu coach te invitó. Entra con tu correo y quedas conectado con él.</p>
         <form id="form-acc-email" novalidate>
           <label class="acc-label" for="acc-email">Tu correo</label>
           <input type="email" id="acc-email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" required maxlength="254" aria-describedby="acc-email-help acc-email-error">
-          <p id="acc-email-help" class="small muted">Te enviaremos un código de 6 dígitos. No usamos contraseña.</p>
+          <p id="acc-email-help" class="small muted">Te enviamos un código de 6 números a tu correo. No necesitas contraseña.</p>
           <p id="acc-email-error" class="acc-error hidden" role="alert"></p>
           <button type="submit" class="btn btn-tall acc-main">Enviarme el código</button>
         </form>
-        <button type="button" class="btn-link small" id="btn-acc-skip">Ahora no: usar solo en este dispositivo</button>
+        <button type="button" class="btn-link small" id="btn-acc-skip">Ahora no: usar solo en este teléfono</button>
       </div>
 
       <div id="acc-step-code" class="acc-step hidden">
         <h2 id="acc-code-title" tabindex="-1">Escribe el código</h2>
-        <p class="small">Lo enviamos a <strong id="acc-code-email"></strong>. Puede tardar un minuto; revisa también el correo no deseado.</p>
+        <p class="small">Te lo enviamos a <strong id="acc-code-email"></strong>. Puede tardar un minuto; mira también en spam o correo no deseado.</p>
         <form id="form-acc-code" novalidate>
           <label class="acc-label" for="acc-code">Código</label>
           <input type="text" id="acc-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" autocapitalize="off" autocorrect="off" spellcheck="false" required aria-describedby="acc-code-error">
@@ -98,30 +98,30 @@
         <p id="acc-invite-note" class="small acc-note hidden"></p>
         <form id="form-acc-role" novalidate>
           <fieldset class="acc-roles">
-            <legend class="sr-only">Elige tu rol</legend>
-            <label class="check acc-role"><input type="radio" name="role" value="client"> <span><strong>Soy cliente</strong><br><span class="small muted">Registro mi progreso; puedo tener un coach.</span></span></label>
+            <legend class="sr-only">Elige una opción</legend>
+            <label class="check acc-role"><input type="radio" name="role" value="client"> <span><strong>Soy cliente</strong><br><span class="small muted">Llevo mi progreso; puedo tener un coach.</span></span></label>
             <label class="check acc-role"><input type="radio" name="role" value="coach"> <span><strong>Soy coach</strong><br><span class="small muted">Acompaño a mis clientes y veo su progreso.</span></span></label>
           </fieldset>
           <div id="acc-client-fields" class="hidden">
             <label class="acc-label" for="acc-coach-code">Código de mi coach <span class="muted">(opcional)</span></label>
             <input type="text" id="acc-coach-code" name="coachCode" autocomplete="off" autocapitalize="characters" maxlength="8" aria-describedby="acc-coach-help">
-            <p id="acc-coach-help" class="small muted">Te lo da tu coach. Puedes añadirlo después.</p>
+            <p id="acc-coach-help" class="small muted">Te lo da tu coach. Si no lo tienes, lo puedes poner después.</p>
             <div id="acc-share" class="acc-share hidden">
               <p id="acc-share-title"></p>
               <fieldset>
-                <legend class="small">Qué podrá ver tu coach (lo puedes cambiar cuando quieras):</legend>
-                <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario para vincularte)</em></span></label>
+                <legend class="small">Esto podrá ver tu coach (lo cambias cuando quieras):</legend>
+                <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario para conectarte con tu coach)</em></span></label>
                 <label class="check"><input type="checkbox" name="share_nutrition"> <span>Comidas del diario</span></label>
                 <label class="check"><input type="checkbox" name="share_habits"> <span>Hábitos (pasos, agua, sueño, entrenamiento)</span></label>
                 <label class="check"><input type="checkbox" name="share_notes"> <span>Notas de tus registros</span></label>
               </fieldset>
-              <p class="small muted">Las fotos nunca se comparten salvo que lo autorices foto a foto (próximamente).</p>
+              <p class="small muted">Tus fotos no las ve nadie, a menos que tú lo autorices (próximamente, foto por foto).</p>
             </div>
           </div>
           <div id="acc-coach-fields" class="hidden">
             <label class="acc-label" for="acc-business">Nombre comercial</label>
             <input type="text" id="acc-business" name="business" autocomplete="organization" maxlength="60" aria-describedby="acc-business-help">
-            <p id="acc-business-help" class="small muted">Es lo que verán tus clientes al usar tu código (2 a 60 caracteres).</p>
+            <p id="acc-business-help" class="small muted">Es el nombre que verán tus clientes cuando usen tu código (de 2 a 60 letras).</p>
           </div>
           <p id="acc-role-error" class="acc-error hidden" role="alert"></p>
           <button type="submit" class="btn btn-tall acc-main" id="btn-acc-role">Continuar</button>
@@ -131,14 +131,15 @@
       <!-- S3-2 O1: los datos de este teléfono tienen dueño. Nunca se mezclan los de dos cuentas. -->
       <div id="acc-step-owner" class="acc-step hidden">
         <h2 id="acc-owner-title" tabindex="-1">¿Estos datos son tuyos?</h2>
-        <p>Este teléfono ya tiene registros que se hicieron sin cuenta. Si son tuyos, se guardarán en tu cuenta. Si no, empieza de cero: se borrarán de este teléfono (exporta antes una copia si alguien los necesita).</p>
+        <p>Estos datos se guardaron en este teléfono antes de crear tu cuenta. ¿Son tuyos?</p>
+        <p class="small muted">Si son tuyos, quedan guardados en tu cuenta. Si no, empiezas de cero y se borran de este teléfono (antes puedes descargar una copia).</p>
         <button type="button" class="btn btn-tall acc-main" id="btn-owner-mine">Sí, son míos: guardarlos en mi cuenta</button>
         <button type="button" class="btn btn-ghost btn-tall acc-main" id="btn-owner-fresh">No: empezar de cero en esta cuenta</button>
       </div>
 
       <div id="acc-step-other" class="acc-step hidden">
         <h2 id="acc-other-title" tabindex="-1">Este teléfono tiene datos de otra cuenta</h2>
-        <p>Para proteger esos datos no se mezclan con los tuyos. Cierra sesión para que la otra persona siga usando este teléfono, o borra sus datos de aquí para usar tu cuenta.</p>
+        <p>Para cuidar esos datos, no los mezclamos con los tuyos. Cierra sesión para que la otra persona siga usando este teléfono, o borra sus datos de aquí para usar tu cuenta.</p>
         <button type="button" class="btn btn-tall acc-main" id="btn-other-logout">Cerrar sesión</button>
         <button type="button" class="btn btn-danger btn-tall acc-main" id="btn-other-wipe">Borrar los datos de este teléfono y continuar</button>
       </div>
@@ -402,10 +403,10 @@
           <p class="coach-invite" id="coach-invite-code"></p>
           <p id="coach-invite-info" class="small muted"></p>
           <form id="form-rotate" class="grid-form" novalidate>
-            <label>Validez
+            <label>Cuánto dura
               <select name="validDays"><option value="">Sin caducidad</option><option value="7">7 días</option><option value="30">30 días</option></select>
             </label>
-            <label>Usos
+            <label>A cuántos clientes sirve
               <select name="maxUses"><option value="">Sin límite</option><option value="1">1 cliente</option><option value="5">5 clientes</option><option value="20">20 clientes</option></select>
             </label>
             <div class="span-2 form-actions">
@@ -430,7 +431,7 @@
           <dl id="coach-detail-summary" class="privacy-list"></dl>
         </div>
         <div class="card">
-          <h2>Adherencia</h2>
+          <h2>Constancia</h2>
           <div class="table-wrap"><table class="table" id="coach-detail-adherence"></table></div>
         </div>
         <div class="card hidden" id="coach-detail-photos-card">
@@ -453,7 +454,7 @@
           </form>
         </div>
         <div class="card">
-          <button type="button" class="btn btn-danger" id="btn-end-client">Terminar el vínculo con este cliente</button>
+          <button type="button" class="btn btn-danger" id="btn-end-client">Dejar de acompañar a este cliente</button>
         </div>
       </div>
     </section>
@@ -461,16 +462,16 @@
     <!-- PERFIL -->
     <section id="view-perfil" class="view" aria-labelledby="tab-perfil">
       <div class="card hidden" id="account-card">
-        <h2>Cuenta y copia en la nube</h2>
+        <h2>Tu cuenta</h2>
         <p id="account-status" class="small"></p>
         <p id="account-extra" class="small muted"></p>
         <p id="sync-status" class="small muted hidden" role="status" aria-live="polite"></p>
         <div class="row-actions">
           <button type="button" class="btn btn-ghost hidden" id="btn-account-login">Entrar o crear cuenta</button>
-          <button type="button" class="btn btn-ghost hidden" id="btn-account-link">Vincularme con un coach</button>
+          <button type="button" class="btn btn-ghost hidden" id="btn-account-link">Conectarme con mi coach</button>
           <button type="button" class="btn btn-ghost hidden" id="btn-account-coach">Ver mis clientes</button>
           <button type="button" class="btn btn-ghost hidden" id="btn-account-logout">Cerrar sesión</button>
-          <button type="button" class="btn btn-ghost hidden" id="btn-sync-now">Sincronizar ahora</button>
+          <button type="button" class="btn btn-ghost hidden" id="btn-sync-now">Guardar ahora</button>
         </div>
         <!-- Cerrar sesión: "No" por defecto (decisión del SM; el Analista afinará el texto). -->
         <form id="form-logout" class="acc-share hidden" novalidate>
@@ -484,11 +485,12 @@
             <button type="button" class="btn btn-ghost" id="btn-logout-cancel">Cancelar</button>
           </div>
         </form>
-        <!-- S3-4: el cliente ve y cambia qué comparte con su coach, o termina el vínculo. -->
+        <!-- S3-4: el cliente ve y cambia qué comparte con su coach, o deja de compartir. -->
         <form id="form-shares" class="acc-share hidden" novalidate>
           <p id="shares-title"></p>
+          <p id="shares-summary" class="small"></p>
           <fieldset id="shares-fieldset">
-            <legend class="small">Qué ve tu coach (efecto inmediato):</legend>
+            <legend class="small">Lo que ve tu coach (se aplica al momento):</legend>
             <label class="check"><input type="checkbox" name="share_body" checked disabled> <span>Peso, medidas y perfil <em class="req">(necesario mientras tengas coach)</em></span></label>
             <label class="check"><input type="checkbox" name="share_nutrition"> <span>Comidas del diario</span></label>
             <label class="check"><input type="checkbox" name="share_habits"> <span>Hábitos (pasos, agua, sueño, entrenamiento)</span></label>
@@ -498,7 +500,7 @@
           <p id="shares-error" class="acc-error hidden" role="alert"></p>
           <div class="row-actions">
             <button type="submit" class="btn">Guardar lo que comparto</button>
-            <button type="button" class="btn btn-danger" id="btn-leave-coach">Terminar el vínculo</button>
+            <button type="button" class="btn btn-danger" id="btn-leave-coach">Dejar de compartir con mi coach</button>
           </div>
         </form>
       </div>

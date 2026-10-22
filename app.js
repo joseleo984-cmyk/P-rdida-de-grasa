@@ -998,7 +998,7 @@
   }
   // Perfil → Datos: con cuenta y sync funcionando se dice la verdad (nube + fotos solo aquí); si no, el texto de siempre.
   const DATA_LOCAL = 'Todo se guarda solo en este dispositivo. Exporta una copia para respaldarla o pasarla a otro dispositivo.';
-  const DATA_CLOUD = 'Tus datos se guardan en este dispositivo y, con tu cuenta, también en la nube. Las fotos se guardan solo en este dispositivo por ahora.';
+  const DATA_CLOUD = 'Tus datos se guardan en este teléfono y también en tu cuenta. Las fotos, por ahora, solo se guardan en este teléfono.';
   function renderDataCard(mode) {
     setText($('#data-intro'), mode.cloud ? DATA_CLOUD : DATA_LOCAL);
     for (const id of ['#storage-status', '#backup-status']) $(id).classList.toggle('hidden', mode.cloud);
