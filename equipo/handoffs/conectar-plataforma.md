@@ -5,10 +5,10 @@
 Quién: **SH** = Stakeholder (José), **EQ** = equipo (Dev). Regla: nada de claves secretas en el repositorio; solo la URL y la clave **publicable** (`sb_publishable_…`).
 
 ## 0. Antes de tocar el código (SH)
-0. **(Sprint 8, bloqueante P18) Documentos archivados y firmados ANTES de conectar:**
+0. **(Sprint 8, bloqueante P18) Documentos archivados ANTES de conectar:**
    - **DPA de Supabase** aceptado y archivado (copia con fecha).
    - **DPA estándar de Brevo** aceptado y archivado.
-   - **Acuerdo del coach firmado** (por escrito o con firma electrónica) **con los 2 coaches del piloto**, en su versión v0.3 (con cláusula penal; el abogado valida antes la cuantía y la exigibilidad).
+   - **Acuerdo del coach: SOLO DIGITAL** (decisión del Stakeholder, 2026-10-23): ya **no** se firma en papel ni con firma electrónica aparte. Lo acepta cada coach dentro de la plataforma (A7, con huella SHA-256) y recibe una copia por correo (`equipo/handoffs/acuerdo-coach-correo.md`, opcional pero recomendado). **A validar por el abogado:** que basta para el piloto, la cuantía y la exigibilidad de la cláusula penal (v0.3).
    - Ver `equipo/legal/respuestas-abogado.md`. Mientras falte uno, **no se conecta**.
 1. El abogado aprobó por escrito: Términos y Condiciones, Política de Tratamiento de Datos, autorizaciones A1–A8 y Acuerdo del coach, y fijó los «por confirmar» de `legal/plan-incidentes.md` (canal de la SIC y confirmación de los 15 días hábiles). Quien firme debe ser un abogado colombiano: las respuestas del 2026-10-22 valen como segunda preasesoría hasta entonces.
 2. En `plataforma`: aplicado el **`supabase/r1.sql` más reciente (r1 v1.5, migración `20261023120000`)** y visto `OK r1 v1`. Si `plataforma` ya tenía r1.sql anterior, se vuelve a pegar entero (es idempotente). Repetir la consulta de comprobación (5 filas) de `checklist-antes-de-abrir.md` §2.

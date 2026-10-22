@@ -8,7 +8,8 @@ Estado al 2026-10-23 (Sprint 8). La conexión de la app oficial a `plataforma` q
 - [x] **EQ** Respuestas P1–P18 registradas en `equipo/legal/respuestas-abogado.md` y borradores **v0.3** (T&C, Política, acuerdo del coach, autorizaciones, resumen). Valen como segunda preasesoría hasta que firme un abogado colombiano. *(Sprint 8)*
 - [x] **EQ** Pantallas **A3 y A4** con la redacción aprobada (v0.3-A3 / v0.3-A4), sin premarcado. Edad 18 y `share_*` apagados ya estaban hechos. *(Sprint 8)*
 - [ ] **SH** Archivar el **DPA de Supabase** y el **DPA estándar de Brevo** (aceptados, con fecha). Bloquea conectar.
-- [ ] **SH** Firmar el **acuerdo del coach v0.3** con los **2 coaches** del piloto (por escrito o firma electrónica). El abogado valida antes la cláusula penal de 10 SMMLV. Bloquea conectar.
+- [x] ~~**SH** Firmar el acuerdo del coach con los 2 coaches~~ **Ya no aplica** (decisión del Stakeholder, 2026-10-23): el acuerdo es **solo digital** (aceptación A7 con SHA-256 + copia por correo y descarga en la app). **A validar por el abogado**, junto con la cláusula penal de 10 SMMLV. *(Sprint 10)*
+- [ ] **SH** *(opcional, recomendado)* Activar la **copia del acuerdo por correo**: seguir `equipo/handoffs/acuerdo-coach-correo.md` (clave de API de Brevo, desplegar la función, secretos). Sin esto la app funciona igual; «Mi acuerdo» y la descarga ya sirven. *(Sprint 10)*
 - [ ] **SH** Un **abogado colombiano** firma los borradores v0.3 (hasta entonces siguen vigentes los v0.1).
 - [ ] **SH** Decidir el borrado de cuentas inactivas (365 días, avisos 335/358): `equipo/handoffs/diseno-borrado-inactivas.md`. No urgente hasta ~sept. de 2027.
 - [ ] **SH** Datos pendientes en los textos: fecha de vigencia y dónde se guardan los archivos recibidos (ya no aplica WhatsApp: se actualiza con la versión con cuentas).
