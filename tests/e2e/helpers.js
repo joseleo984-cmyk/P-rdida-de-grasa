@@ -119,12 +119,25 @@ const test = base.extend({
   },
 });
 
+// Sprint 6: tras entrar, la app ofrece la copia en la nube (A3 + A4, sin marcar). Los flujos que no la prueban la activan
+// para seguir como antes (con sincronización); los que quieren verla apagada responden a mano.
+async function activateCloudIfAsked(page) {
+  const next = page.locator('#acc-step-cloud, #acc-step-owner, #acc-step-other, #acc-step-role, #acc-step-done').filter({ visible: true }).first();
+  await expect(next).toBeVisible();
+  if (await page.locator('#acc-step-cloud').isVisible()) {
+    await page.locator('#acc-a3').check();
+    await page.locator('#acc-a4').check();
+    await page.getByRole('button', { name: 'Activar la copia en la nube' }).click();
+  }
+}
+
 // S3-2 O1: tras entrar con el código, si el teléfono tiene datos sin dueño la app pregunta "¿Estos datos son tuyos?".
 // Este helper responde "Sí, son míos" (los flujos que prueban otra respuesta lo hacen a mano).
-async function answerOwnerIfAsked(page) {
-  const next = page.locator('#acc-step-owner, #acc-step-other, #acc-step-role, #acc-step-done').filter({ visible: true }).first();
+async function answerOwnerIfAsked(page, { cloud = true } = {}) {
+  const next = page.locator('#acc-step-owner, #acc-step-other, #acc-step-cloud, #acc-step-role, #acc-step-done').filter({ visible: true }).first();
   await expect(next).toBeVisible();
   if (await page.locator('#acc-step-owner').isVisible()) await page.getByRole('button', { name: /Sí, son míos/ }).click();
+  if (cloud) await activateCloudIfAsked(page);
 }
 
 // S3-2 O1: si entra OTRA cuenta en un teléfono con datos de la anterior, no se mezclan. Para seguir probando con la
@@ -133,7 +146,9 @@ async function wipeOtherAndContinue(page) {
   await expect(page.locator('#acc-step-other')).toBeVisible();
   await page.getByRole('button', { name: 'Borrar los datos de este teléfono y continuar' }).click();
   await acceptLegalIfPresent(page);
+  await expect(page.locator('#acc-step-cloud, #acc-step-role, #acc-step-done').filter({ visible: true }).first()).toBeVisible();
+  await activateCloudIfAsked(page);
   await expect(page.locator('#acc-step-role, #acc-step-done').filter({ visible: true }).first()).toBeVisible();
 }
 
-module.exports = { test, expect, acceptLegalIfPresent, answerOwnerIfAsked, wipeOtherAndContinue, CONSENT, KEY, FIXTURE_V1, NOW, D, PROFILE, state };
+module.exports = { test, expect, acceptLegalIfPresent, answerOwnerIfAsked, activateCloudIfAsked, wipeOtherAndContinue, CONSENT, KEY, FIXTURE_V1, NOW, D, PROFILE, state };

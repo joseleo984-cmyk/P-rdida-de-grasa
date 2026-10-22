@@ -7,6 +7,8 @@ const lastCode = (page, email) => page.evaluate((e) => window.__pgFakeBackend.la
 
 async function toCodeStep(page, email) {
   await page.getByLabel('Tu correo').fill(email);
+  await page.locator('#acc-a1').check();
+  await page.locator('#acc-a2').check();
   await page.getByRole('button', { name: /Enviarme el código/ }).click();
   await expect(page.locator('#acc-step-code')).toBeVisible();
 }

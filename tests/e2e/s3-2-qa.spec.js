@@ -8,6 +8,8 @@ const acc = (page) => page.getByTestId('account-gate');
 const lastCode = (page, email) => page.evaluate((e) => window.__pgFakeBackend.lastCode(e), email);
 async function enterEmail(page, email) {
   await page.getByLabel('Tu correo').fill(email);
+  await page.locator('#acc-a1').check();
+  await page.locator('#acc-a2').check();
   await page.getByRole('button', { name: 'Enviarme el código' }).click();
   await expect(page.locator('#acc-step-code')).toBeVisible();
 }
@@ -67,6 +69,7 @@ test('XSS: nombre comercial y correo con HTML se muestran como texto en todas la
   await enterCode(page, '<svg/onload=window.__x=2>@x.co');
   await page.getByLabel(/Soy coach/).check();
   await page.getByLabel('Nombre comercial').fill(XSS);
+  await page.locator('#acc-a7').check(); // A7: acuerdo del coach
   await page.getByRole('button', { name: 'Continuar' }).click();
   await expect(page.locator('#acc-done-text')).toContainText(XSS);
   const invite = (await page.locator('#acc-done-code').textContent()).trim();
@@ -110,7 +113,7 @@ const spyConsents = () => {
   });
 };
 
-test('al entrar se registra la aceptación local UNA sola vez (sin duplicar al recargar)', async ({ app, page }) => {
+test('al entrar se registran las autorizaciones UNA sola vez (sin duplicar al recargar)', async ({ app, page }) => {
   await page.addInitScript(spyConsents);
   await app.open({ path: FAKE, state: state({ consent: CONSENT }) });
   await enterEmail(page, 'ana@x.co');
@@ -123,7 +126,7 @@ test('al entrar se registra la aceptación local UNA sola vez (sin duplicar al r
   const calls = await page.evaluate(() => window.__consentCalls || []);
   const be = await page.evaluate(() => JSON.parse(localStorage.getItem('pg-fake-backend')));
   const uid = be.users['ana@x.co'].id;
-  expect(be.consentEvents.filter((e) => e.userId === uid)).toHaveLength(4);
+  expect(be.consentEvents.filter((e) => e.userId === uid)).toHaveLength(5); // A1, A2 (terms + privacy), A3 y A4
   test.info().annotations.push({ type: 'eventos', description: JSON.stringify(calls[0] || []) });
 });
 

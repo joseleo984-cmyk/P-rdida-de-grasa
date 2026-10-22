@@ -1,11 +1,34 @@
 // Ayudantes compartidos de las pruebas con el servidor FALSO: coach ya registrado, otro "teléfono" (contexto) y entrada con correo.
-const { expect, state, CONSENT, acceptLegalIfPresent } = require('./helpers');
+const { expect, state, CONSENT, acceptLegalIfPresent, activateCloudIfAsked } = require('./helpers');
 
 const EMPTY = () => state({ profile: null, entries: [], consent: CONSENT });
 const INVITE_KEY = 'perdida-grasa:invite';
+const CT = require('../../consent-texts.js');
 
-async function loginAsCoach(page, email, biz) {
-  await page.evaluate(async ({ email, biz }) => {
+// Sprint 6: autorizaciones ya dadas (como si la persona las hubiera aceptado antes) para sembrar cuentas sin pasar por las pantallas.
+// Por defecto: A3 + A4 (copia en la nube) y A7 (acuerdo del coach, solo si es coach). Con `cloud:false` no hay copia en la nube.
+function consentsSeed({ cloud = true, coach = false } = {}) {
+  const ev = (id, kind) => ({ granted: true, version: CT.version(id), textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' });
+  const consents = {};
+  if (cloud) { consents.sensitive_health = ev('A3'); consents.cloud_transfer = ev('A4'); }
+  if (coach) consents.coach_agreement = ev('A7');
+  return { consents, cloudAsked: true };
+}
+// Marca A1 y A2 en el paso del correo (la pantalla las deja sin marcar).
+async function acceptTerms(p) {
+  await p.locator('#acc-a1').check();
+  await p.locator('#acc-a2').check();
+}
+// En el paso «¿Guardar una copia en la nube?»: activa la copia (A3 + A4) o la deja para después.
+async function answerCloud(p, on = true) {
+  await expect(p.locator('#acc-step-cloud')).toBeVisible();
+  if (on) { await p.locator('#acc-a3').check(); await p.locator('#acc-a4').check(); await p.getByRole('button', { name: 'Activar la copia en la nube' }).click(); }
+  else await p.getByRole('button', { name: /Ahora no: solo en mi teléfono/ }).click();
+}
+
+async function loginAsCoach(page, email, biz, { agreement = true, cloud = true } = {}) {
+  const seed = consentsSeed({ cloud, coach: agreement });
+  await page.evaluate(async ({ email, biz, seed }) => {
     const be = window.__pgFakeBackend;
     const r = RemoteFake.createFake({ backend: be, storage: localStorage });
     await r.auth.sendCode(email);
@@ -13,9 +36,11 @@ async function loginAsCoach(page, email, biz) {
     await r.account.joinApp();
     await r.coach.becomeCoach(biz);
     const c = await r.coach.myCoach();
-    localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: await r.account.roles(), onboarded: true, coach: c }));
+    localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: await r.account.roles(), onboarded: true, coach: c, ...seed }));
     localStorage.setItem('perdida-grasa:owner', user.id);
-  }, { email, biz });
+    // El acuerdo del coach también queda en el servidor (como al aceptarlo en la app).
+    if (seed.consents.coach_agreement) await r.account.recordConsents([{ kind: 'coach_agreement', granted: true, version: seed.consents.coach_agreement.version, textHash: 'a'.repeat(64), clientAt: seed.consents.coach_agreement.clientAt }]);
+  }, { email, biz, seed });
   await page.reload();
   await acceptLegalIfPresent(page);
 }
@@ -35,11 +60,13 @@ async function newPhone(browser, testInfo, { backend, path, prefs = {} }) {
   await acceptLegalIfPresent(p);
   return { ctx, p };
 }
-async function loginWithEmail(p, email) {
+async function loginWithEmail(p, email, { cloud = true } = {}) {
   await p.getByLabel('Tu correo').fill(email);
+  await acceptTerms(p);
   await p.getByRole('button', { name: /Enviarme el código/ }).click();
   await expect(p.locator('#acc-step-code')).toBeVisible();
   await p.getByLabel('Código', { exact: true }).fill(await p.evaluate((e) => window.__pgFakeBackend.lastCode(e), email));
+  if (cloud) await activateCloudIfAsked(p); // Sprint 6: A3 + A4 (la copia en la nube se ofrece antes de elegir rol)
 }
 
-module.exports = { EMPTY, INVITE_KEY, loginAsCoach, newPhone, loginWithEmail };
+module.exports = { EMPTY, INVITE_KEY, loginAsCoach, newPhone, loginWithEmail, consentsSeed, acceptTerms, answerCloud };

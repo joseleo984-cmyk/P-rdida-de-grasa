@@ -4,6 +4,7 @@
 // los dos hablen con el mismo servidor. Los blobs de fotos no se serializan: se colocan en el "Storage" del teléfono
 // del coach (lo haría la subida a Storage de S3-3).
 const { test, expect, state, CONSENT, acceptLegalIfPresent } = require('./helpers');
+const { consentsSeed } = require('./fake-helpers');
 
 const FAKE = 'index.html?remote=fake';
 const SKIP = { 'perdida-grasa:account-skip': '1' };
@@ -14,7 +15,8 @@ const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const day = (n) => new Date(Date.UTC(2026, 9, 21 - n)).toISOString().slice(0, 10);
 
 async function loginAs(page, email, { coach, displayName } = {}) {
-  await page.evaluate(async ({ email, coach, displayName }) => {
+  const seed = consentsSeed({ coach: !!coach }); // Sprint 6: A3 + A4 (y A7 si es coach) ya aceptadas
+  await page.evaluate(async ({ email, coach, displayName, seed }) => {
     const be = window.__pgFakeBackend;
     const r = RemoteFake.createFake({ backend: be, storage: localStorage });
     await r.auth.sendCode(email);
@@ -23,9 +25,10 @@ async function loginAs(page, email, { coach, displayName } = {}) {
     if (displayName) await r.account.setDisplayName(displayName);
     let c = null;
     if (coach) { await r.coach.becomeCoach(coach); c = await r.coach.myCoach(); }
-    localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: await r.account.roles(), onboarded: true, coach: c }));
+    localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: await r.account.roles(), onboarded: true, coach: c, ...seed }));
     localStorage.setItem('perdida-grasa:owner', user.id); // los datos locales son de esta cuenta (S3-2 O1)
-  }, { email, coach, displayName });
+    if (seed.consents.coach_agreement) await r.account.recordConsents([{ kind: 'coach_agreement', granted: true, version: seed.consents.coach_agreement.version, textHash: 'a'.repeat(64), clientAt: seed.consents.coach_agreement.clientAt }]);
+  }, { email, coach, displayName, seed });
   await page.reload();
   await acceptLegalIfPresent(page);
 }
@@ -91,7 +94,7 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
     await client.getByLabel(/Código de mi coach/).fill(invite);
     await client.getByRole('button', { name: 'Comprobar código' }).click();
     await expect(client.locator('#acc-share-title')).toHaveText(`Te vas a conectar con «${XSS_BIZ}».`); // texto literal, escapado
-    await client.locator('#acc-share').getByLabel(/Comidas del diario/).check();
+    await client.locator('#acc-share [name=share_nutrition]').check();
     await client.getByRole('button', { name: 'Conectarme y continuar' }).click();
     await client.getByRole('button', { name: 'Ir a la app' }).click();
     await client.evaluate(() => PGNav.show('perfil', 'all'));
@@ -99,7 +102,7 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
     await expect(client.locator('#form-shares [name=share_nutrition]')).toBeChecked();
     await expect(client.locator('#form-shares [name=share_habits]')).not.toBeChecked();
     const be = await backend(client);
-    expect(be.consentEvents.filter((e) => e.kind.startsWith('share_')).every((e) => /^[0-9a-f]{64}$/.test(e.textHash) && e.version === 'compartir-1')).toBe(true);
+    expect(be.consentEvents.filter((e) => e.kind.startsWith('share_')).every((e) => /^[0-9a-f]{64}$/.test(e.textHash) && e.version === 'compartir-2')).toBe(true);
   });
 
   await test.step('el coach ve al cliente con semáforo; la ficha solo muestra lo consentido (sin notas ni biblioteca)', async () => {
@@ -154,9 +157,13 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
       await r.client.setPhotoShared(id, true);
     });
     await client.evaluate(() => PGNav.show('perfil', 'all'));
-    await client.locator('#form-shares [name=share_photos]').check();
-    await client.getByRole('button', { name: 'Guardar lo que comparto' }).click();
-    await expect(client.locator('#toast')).toContainText('tu coach verá solo lo que marcaste');
+    // Sprint 6: la casilla de fotos va aparte (A6) y está apagada mientras la subida a la nube no exista; el permiso del
+    // servidor sigue funcionando y aquí se activa por la API para probar la visita del coach con registro.
+    await expect(client.locator('#form-shares [name=share_photos]')).toBeDisabled();
+    await client.evaluate(async () => {
+      const r = RemoteFake.createFake({ backend: window.__pgFakeBackend, storage: localStorage });
+      await r.client.updateShares({ photos: true, version: 'compartir-2', textHash: 'a'.repeat(64) });
+    });
     await transfer(client, coach);
     await coach.evaluate(async () => { // el archivo en Storage (lo subiría S3-3)
       const be = window.__pgFakeBackend;
@@ -180,6 +187,7 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
     await client.evaluate(() => PGNav.show('perfil', 'all'));
     await client.locator('#form-shares [name=share_nutrition]').uncheck();
     await client.getByRole('button', { name: 'Guardar lo que comparto' }).click();
+    await client.locator('#a8-ok').click(); // A8: aviso al retirar una categoría
     await expect(client.locator('#toast')).toContainText('tu coach verá solo lo que marcaste');
     await transfer(client, coach);
     await coach.locator('#tab-coach').click();
@@ -201,6 +209,7 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
     await transfer(coach, client);
     await client.evaluate(() => PGNav.show('perfil', 'all'));
     await client.getByRole('button', { name: 'Dejar de compartir con mi coach' }).click();
+    await client.locator('#a8-ok').click(); // A8: aviso al terminar el vínculo
     await expect(client.getByRole('button', { name: 'Conectarme con mi coach' })).toBeVisible();
     await transfer(client, coach);
     await coach.locator('#tab-coach').click();
