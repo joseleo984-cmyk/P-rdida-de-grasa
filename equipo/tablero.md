@@ -109,6 +109,20 @@ Alcance cerrado por el Stakeholder: solo el botón "Mostrar QR" en Invitar del c
 - Validado con jsQR (solo devDependency de pruebas) + vectores de la norma; E2E con letra ancha a 390 px; caché v27.
 - Handoff: `equipo/handoffs/2026-10-22-sprint5-qr.md`. Pendiente: probar con la cámara de un iPhone y un Android reales.
 
+## Sprint 8 — Respuestas jurídicas P1–P18 (Analista + Dev Frontend) ✅ listo para revisión de QA
+Origen: el Stakeholder recibió respuestas a las 18 preguntas y las adoptó como instrucciones (valen como segunda preasesoría hasta que firme un abogado colombiano). Nada de lo legal está vigente: siguen los v0.1 y `config.js` vacío.
+
+| Listo | En curso | En revisión | Hecho |
+|---|---|---|---|
+| | | | S8-1 `equipo/legal/respuestas-abogado.md`: P1–P18 con «por confirmar» (conflicto sobre EE. UU. como país adecuado) y pendientes del Stakeholder |
+| | | | S8-2 Borradores **v0.3**: T&C, Política, acuerdo del coach (cláusula penal 10 SMMLV, a validar), autorizaciones, resumen para el abogado: retención 365 días (avisos 335/358), prueba 3 años, roles, límites de nutrición, portal de contacto, sin copias automáticas en el piloto, incidentes 24 h / 15 días hábiles, menores 48 h, Brevo nombrado |
+| | | | S8-3 App: A3 y A4 con la redacción aprobada (`0.3-A3`, `0.3-A4`; quien tenía la v0.2 re-acepta una vez), A7 (24 h) y A8 (3 años) ajustados, caché v30. Sin cambios de base de datos |
+| | | | S8-4 `plan-incidentes.md` (24 h / 15 días hábiles), `conectar-plataforma.md` (DPA y acuerdo firmado antes de conectar), checklist |
+| | | | S8-5 Diseño sin implementar: `equipo/handoffs/diseno-borrado-inactivas.md` |
+| ⏳ | | | **SH:** archivar DPA Supabase + Brevo, firmar acuerdo con los 2 coaches, decidir el borrado de inactivas |
+
+Handoff: `equipo/handoffs/2026-10-23-sprint8.md`.
+
 ## Sprint 7 — El servidor impone los consentimientos (Dev Full-stack) ✅ listo para revisión de QA
 Origen: tras el Sprint 6 el acuerdo del coach (A7) y A3 + A4 solo se exigían en la app. Contexto: piloto CERRADO (2 coaches, ~10 adultos) sobre `plataforma`, que sigue **sin conectarse** (`config.js` vacío) hasta que el abogado apruebe los textos.
 

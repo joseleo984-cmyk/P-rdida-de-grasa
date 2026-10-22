@@ -1,10 +1,16 @@
 # Lista "antes de abrir la app" a coaches y clientes (piloto)
 
-Estado al 2026-10-23. La conexión de la app oficial a `plataforma` queda a la espera del abogado (`equipo/legal/paquete-abogado.md`). Marcar `[x]` al completar. Quién: **SH** = Stakeholder (José), **EQ** = equipo de agentes.
+Estado al 2026-10-23 (Sprint 8). La conexión de la app oficial a `plataforma` queda a la espera del abogado (`equipo/legal/paquete-abogado.md`). Marcar `[x]` al completar. Quién: **SH** = Stakeholder (José), **EQ** = equipo de agentes.
 
 ## 1. Legal (bloquea datos reales)
 - [ ] **SH** Leer `equipo/legal/preasesoria-legal.md` (preasesoría de apoyo, no es asesoría legal) y llevarla a la reunión con el abogado.
 - [ ] **SH** Revisión del abogado de `equipo/legal/*.md` con la lista `equipo/legal/preguntas-abogado.md` (P1–P5 bloquean el piloto; el art. 6 de la Ley 1581: no condicionar el servicio a datos sensibles).
+- [x] **EQ** Respuestas P1–P18 registradas en `equipo/legal/respuestas-abogado.md` y borradores **v0.3** (T&C, Política, acuerdo del coach, autorizaciones, resumen). Valen como segunda preasesoría hasta que firme un abogado colombiano. *(Sprint 8)*
+- [x] **EQ** Pantallas **A3 y A4** con la redacción aprobada (v0.3-A3 / v0.3-A4), sin premarcado. Edad 18 y `share_*` apagados ya estaban hechos. *(Sprint 8)*
+- [ ] **SH** Archivar el **DPA de Supabase** y el **DPA estándar de Brevo** (aceptados, con fecha). Bloquea conectar.
+- [ ] **SH** Firmar el **acuerdo del coach v0.3** con los **2 coaches** del piloto (por escrito o firma electrónica). El abogado valida antes la cláusula penal de 10 SMMLV. Bloquea conectar.
+- [ ] **SH** Un **abogado colombiano** firma los borradores v0.3 (hasta entonces siguen vigentes los v0.1).
+- [ ] **SH** Decidir el borrado de cuentas inactivas (365 días, avisos 335/358): `equipo/handoffs/diseno-borrado-inactivas.md`. No urgente hasta ~sept. de 2027.
 - [ ] **SH** Datos pendientes en los textos: fecha de vigencia y dónde se guardan los archivos recibidos (ya no aplica WhatsApp: se actualiza con la versión con cuentas).
 - [ ] **EQ** S3-5: textos legales y consentimiento de la **versión con cuentas** (Supabase en EE. UU., coach como encargado, registro de consentimientos) y subir la versión (0.1 → 1.0) cuando el abogado apruebe.
 - [ ] **EQ** Actualizar `equipo/piloto-r0.md`: el cliente ya **no envía archivos por WhatsApp**; usa cuenta propia y el coach ve su panel. *(Sprint 7: el Stakeholder lo dejó fuera de alcance; sigue pendiente.)*
@@ -31,7 +37,7 @@ Estado al 2026-10-23. La conexión de la app oficial a `plataforma` queda a la e
 
 ## 4. Datos y respaldo
 - [ ] **SH** Ejecutar `supabase/tools/sweep-orphan-photos.js` cuando haya bajas por fuera de la app (con la clave `service_role`, en su computador, nunca en el repo) y la consulta H9 de huérfanos tras una baja.
-- [ ] **SH** El plan gratis **no tiene copias de seguridad** y se pausa tras ~7 días sin uso: decidir pasar a Pro (≈25 USD/mes) antes de tener clientes reales.
+- [ ] **SH** El plan gratis **no tiene copias de seguridad** y se pausa tras ~7 días sin uso. **P16:** para el piloto cerrado vale el plan gratis **si los T&C avisan que no hay copias y que el usuario puede exportar** (v0.3 lo dice); pasar a **Pro** (≈25 USD/mes) antes de abrir a público general.
 - [ ] **SH** Borrar las cuentas de prueba de `pruebas` (coach, cliente A, `+otp1`, invitados) en *Authentication → Users*.
 
 ## 5. Publicación

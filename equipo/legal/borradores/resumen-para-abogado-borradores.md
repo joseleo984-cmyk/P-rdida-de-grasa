@@ -1,8 +1,10 @@
-> **BORRADOR v0.2 — NO VIGENTE — pendiente de revisión del abogado.** Una página para quien revise. No es asesoría legal. 2026-10-22.
+> **BORRADOR v0.3 — NO VIGENTE — pendiente de revisión del abogado.** Una página para quien revise. No es asesoría legal. 2026-10-22.
 
-# Resumen para el abogado: borradores v0.2
+# Resumen para el abogado: borradores v0.3
 
-**Contenido:** `terminos-y-condiciones-v0.2-cuentas.md`, `politica-tratamiento-datos-v0.2-cuentas.md`, `acuerdo-coach.md`, `autorizaciones-en-app.md` (A1–A8). Los v0.1 vigentes no se tocaron. Base: `preasesoria-legal.md` y `paquete-abogado.md`. Decisión del responsable: avanzar con los 4 bloqueos (textos con cuentas, rol del coach y acuerdo, transmisión internacional) y con autorización propia de fotos. La edad mínima 18 la implementa código.
+**Contenido:** `terminos-y-condiciones-v0.3-cuentas.md`, `politica-tratamiento-datos-v0.3-cuentas.md`, `acuerdo-coach.md`, `autorizaciones-en-app.md` (A1–A8). Los v0.1 vigentes no se tocaron. Base: `preasesoria-legal.md`, `paquete-abogado.md` y `respuestas-abogado.md` (respuestas a P1–P18 recibidas el 2026-10-22; **si no las firmó un abogado colombiano, valen como segunda preasesoría**).
+
+**Qué cambió de v0.2 a v0.3:** retención de cuentas a 365 días con avisos los días 335 y 358; prueba del consentimiento 3 años y disociada; plataforma = portal de contacto (art. 53 Ley 1480) con límites del art. 43; nutrición clínica reservada a nutricionistas (Ley 73/1979); cláusula penal de 10 SMMLV en el acuerdo del coach; aviso de que el piloto NO tiene copias automáticas; incidentes 24 h (coach) y 15 días hábiles (SIC); quejas trasladadas en 2 días hábiles; coach destruye copias en 30 días; menores: borrado en 48 h; Brevo nombrado; textos A3 y A4 con redacción aprobada. Decisión del responsable: avanzar con los 4 bloqueos (textos con cuentas, rol del coach y acuerdo, transmisión internacional) y con autorización propia de fotos. La edad mínima 18 la implementa código.
 
 ## Qué cambió respecto a v0.1
 - Se eliminan las frases "sin servidor, sin cuentas, sin nube". Entran cuentas (correo + código), nube (Supabase, EE. UU., Virginia) y Brevo (correo).
@@ -26,20 +28,22 @@
 ## Puntos "a validar" (propuestas con cifras)
 | Tema | Propuesta |
 |---|---|
-| Cuenta inactiva | Aviso a 12 meses; borrado a 13–24 meses |
-| Coach sin clientes | Aviso y cierre a 12 meses |
-| Copias de seguridad (si se activan) | Borrado dentro de 30–35 días |
-| Prueba del consentimiento tras la baja | 3 a 5 años, seudonimizada (identificador irreversible, tipo, versión, huella, fechas) |
-| Incidentes | Coach avisa en 24–48 h; reporte a la SIC: plazo/canal para persona natural no inscrita |
-| Coach borra tras fin del vínculo | 30 días; trasladar reclamos en 2 días hábiles |
+| Cuenta inactiva | 365 días sin iniciar sesión; aviso día 335, recordatorio día 358, borrado día 365 (adoptado, P10) |
+| Coach sin clientes | Misma regla de 365 días |
+| Copias de seguridad | Piloto: sin copias automáticas (avisado en T&C); producción: plan Pro; borrado en copias 30–35 días (a validar) |
+| Prueba del consentimiento tras la baja | 3 años, disociada (UUID anónimo, tipo, versión, huella, marcas de tiempo; P11) |
+| Incidentes | Coach avisa en 24 h; SIC en 15 días hábiles desde la constatación y titulares afectados (**por confirmar** plazo y aplicación a persona natural; P12) |
+| Cláusula penal del coach | 10 SMMLV por evento, exigible sin requerimiento (**a validar la cuantía**; P5) |
+| Coach destruye tras fin del vínculo | 30 días; trasladar reclamos en 2 días hábiles |
+| Menores | Suspender, rechazar sincronización y borrar en 48 h (P9) |
 | Aviso de cierre del servicio | 30 días |
 | RNBD | Hoy no se inscribe (persona natural); confirmar |
 
 ## Normas citadas (solo las de la preasesoría; por confirmar las marcadas)
-Ley 1581 de 2012 (arts. 5, 6, 8, 14, 15 y las ya citadas); Decreto 1377 de 2013 / Decreto 1074 de 2015 (numeración **por confirmar**); Decreto 090 de 2018 (RNBD); Ley 1480 de 2011 (arts. por verificar). Lista de países adecuados de la SIC: **no confirmada**.
+Ley 1581 de 2012 (arts. 5, 6, 8, 14, 15 y las ya citadas); Decreto 1377 de 2013 / Decreto 1074 de 2015 (numeración **por confirmar**); Decreto 090 de 2018 (RNBD); Ley 1480 de 2011 (arts. por verificar). Lista de países adecuados de la SIC: **conflicto sin resolver** (la preasesoría halló a EE. UU. en la Circular 005/2017; la respuesta recibida el 2026-10-22 dice que no está); A4 + DPA cubren ambos casos. Además: Ley 527 de 1999, Ley 73 de 1979 y Decreto 2270 de 1980 (contenido por confirmar), art. 269F del Código Penal (por confirmar).
 
 ## Implicaciones técnicas para Dev (no hechas aquí)
 Nuevos `kind` de consentimiento (`cloud_transfer`, `photo_view_coach`, `coach_agreement`); `share_nutrition` y `share_habits` hoy nacen en `true` (deben nacer apagadas si A5 va sin marcar); conservar la prueba mínima tras `delete_my_account` (hoy se borra todo); versión `compartir-2`; regenerar `legal/*.html` y subir `LEGAL_VERSIONS`.
 
 ## Pendiente fuera de los textos
-DPA de Supabase y Brevo firmados/guardados; dominio y correo propios; plan de incidentes de una página; copias de seguridad (plan Pro).
+DPA de Supabase y Brevo archivados y acuerdo firmado con los 2 coaches del piloto (tareas del Stakeholder); dominio y correo propios; plan de incidentes de una página; copias de seguridad (plan Pro).

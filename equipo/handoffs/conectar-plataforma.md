@@ -5,7 +5,12 @@
 Quién: **SH** = Stakeholder (José), **EQ** = equipo (Dev). Regla: nada de claves secretas en el repositorio; solo la URL y la clave **publicable** (`sb_publishable_…`).
 
 ## 0. Antes de tocar el código (SH)
-1. El abogado aprobó por escrito: Términos y Condiciones, Política de Tratamiento de Datos, autorizaciones A1–A8 y Acuerdo del coach, y fijó los «por confirmar» de `legal/plan-incidentes.md` (plazo y canal de la SIC).
+0. **(Sprint 8, bloqueante P18) Documentos archivados y firmados ANTES de conectar:**
+   - **DPA de Supabase** aceptado y archivado (copia con fecha).
+   - **DPA estándar de Brevo** aceptado y archivado.
+   - **Acuerdo del coach firmado** (por escrito o con firma electrónica) **con los 2 coaches del piloto**, en su versión v0.3 (con cláusula penal; el abogado valida antes la cuantía y la exigibilidad).
+   - Ver `equipo/legal/respuestas-abogado.md`. Mientras falte uno, **no se conecta**.
+1. El abogado aprobó por escrito: Términos y Condiciones, Política de Tratamiento de Datos, autorizaciones A1–A8 y Acuerdo del coach, y fijó los «por confirmar» de `legal/plan-incidentes.md` (canal de la SIC y confirmación de los 15 días hábiles). Quien firme debe ser un abogado colombiano: las respuestas del 2026-10-22 valen como segunda preasesoría hasta entonces.
 2. En `plataforma`: aplicado el **`supabase/r1.sql` más reciente (r1 v1.5, migración `20261023120000`)** y visto `OK r1 v1`. Si `plataforma` ya tenía r1.sql anterior, se vuelve a pegar entero (es idempotente). Repetir la consulta de comprobación (5 filas) de `checklist-antes-de-abrir.md` §2.
 3. SH da al EQ la **URL** (`https://<ref>.supabase.co`) y la **clave publicable** de `plataforma`. La clave secreta NO se comparte.
 4. SH tiene a mano la URL de `pruebas` solo para NO confundirlas: `check:conexion` rechaza la de pruebas.
@@ -14,11 +19,11 @@ Quién: **SH** = Stakeholder (José), **EQ** = equipo (Dev). Regla: nada de clav
 | Archivo | Cambio |
 |---|---|
 | `config.js` | `url` y `key` de `plataforma` (`env: ''`, `mode: 'real'`). **Hoy NO se toca.** |
-| `equipo/legal/terminos-y-condiciones.md` y `equipo/legal/politica-tratamiento-datos.md` | Texto aprobado v1.0: `**Versión:** 1.0`, rellenar fecha de vigencia y datos del responsable (`[FECHA DE VIGENCIA]`, `[NOMBRE COMPLETO DEL RESPONSABLE]`, `[CIUDAD]`, etc.), **quitar la palabra «borrador» de las 5 primeras líneas** (`scripts/build-legal.js → isDraft` mira ahí; si queda, la página sigue mostrando «Borrador pendiente de revisión legal»). Se parte de `equipo/legal/borradores/*-v0.2-cuentas.md` ajustados por el abogado. |
+| `equipo/legal/terminos-y-condiciones.md` y `equipo/legal/politica-tratamiento-datos.md` | Texto aprobado v1.0: `**Versión:** 1.0`, rellenar fecha de vigencia y datos del responsable (`[FECHA DE VIGENCIA]`, `[NOMBRE COMPLETO DEL RESPONSABLE]`, `[CIUDAD]`, etc.), **quitar la palabra «borrador» de las 5 primeras líneas** (`scripts/build-legal.js → isDraft` mira ahí; si queda, la página sigue mostrando «Borrador pendiente de revisión legal»). Se parte de `equipo/legal/borradores/*-v0.3-cuentas.md` ajustados por el abogado. Los T&C deben seguir avisando que en el piloto **no hay copias de seguridad automáticas**. |
 | `legal/terminos.html`, `legal/privacidad.html` | **No se editan a mano**: se regeneran con `npm run legal`. |
 | `schema.js` | `LEGAL_VERSIONS = { terms: '1.0', privacy: '1.0' }` (obliga a todos a aceptar de nuevo). |
 | `app.js` | `LEGAL_CHANGES` con el resumen del cambio de la versión 1.0 (lo que ve quien re-acepta). |
-| `consent-texts.js` | Ajustar los textos A1–A8 con lo que diga el abogado y **subir la versión de cada texto que cambie** (`0.2-A1` → `1.0-A1`, etc.; A5 `compartir-2` → `compartir-3` si cambia). `AGREEMENT` hoy apunta a `legal/privacidad.html`: apuntarlo a la página del Acuerdo del coach cuando exista. Cambia la huella (SHA-256 del texto exacto): es lo esperado. |
+| `consent-texts.js` | Ajustar los textos A1–A8 con lo que diga el abogado y **subir la versión de cada texto que cambie** (`0.2-A1` → `1.0-A1`, `0.3-A3` → `1.0-A3`, etc.; A5 `compartir-2` → `compartir-3` si cambia). Las redacciones de A3 y A4 ya son las aprobadas el 2026-10-22 (v0.3). `AGREEMENT` hoy apunta a `legal/privacidad.html`: apuntarlo a la página del Acuerdo del coach cuando exista. Cambia la huella (SHA-256 del texto exacto): es lo esperado. |
 | `sw.js` | Subir `CACHE` (`PGNS.cacheName(N)` → `N+1`) para que los teléfonos se actualicen. Si se crea una página legal nueva, añadirla a `ASSETS` y a `scripts/build-site.js` (`DIRS` ya copia `legal/`). |
 | `tests/consent-texts.test.js` | La prueba «no se suben hasta que el abogado apruebe» (`assert.strictEqual(Schema.LEGAL_VERSIONS.terms, '0.1')`) y los `legalVersion: '0.1'` se actualizan a 1.0. |
 | `tests/e2e/s2-1-qa.spec.js` | Quitar `test.fail(true, …)` de «textos legales sin marcadores por rellenar»: al estar los textos completos ese test pasa y Playwright lo reportaría como fallo. |
