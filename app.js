@@ -772,9 +772,56 @@
     }
 
     $('#today-macros').innerHTML = macroBars(today());
+    renderHome();
     drawChart(entries);
     renderTips(rate, w);
   }
+
+  // Sprint 4: saludo y tarjetas de Inicio. Todo texto va con textContent; los números salen de HomeView (puro).
+  function renderHome() {
+    const d = today();
+    $('#home-date').textContent = HomeView.fecha(new Date());
+    $('#home-greeting').textContent = HomeView.saludo(state);
+    const h = HomeView.hoy(state, d);
+    $('#home-kcal').textContent = h.kcalText;
+    $('#home-goal').textContent = h.goalText;
+    $('#home-left').textContent = h.leftText;
+    $('#home-left').classList.toggle('over', h.over);
+    $('#home-protein').textContent = h.proteinText;
+    $('#home-water').textContent = h.glassesText;
+    for (const [id, pct] of [['kcal', h.kcalPct], ['protein', h.proteinPct], ['water', h.glassesPct]]) {
+      const bar = $(`#home-${id}-bar`);
+      bar.setAttribute('aria-valuenow', String(Math.round(pct)));
+      bar.firstElementChild.style.width = pct + '%';
+    }
+    $('#home-kcal-bar').setAttribute('aria-valuetext', h.kcalGoal != null ? `${h.kcalText} de ${h.kcalGoal} kcal` : `${h.kcalText} kcal`);
+    $('#home-protein-bar').setAttribute('aria-valuetext', h.proteinText);
+    $('#home-water-bar').setAttribute('aria-valuetext', h.glassesText);
+    const b = HomeView.desayunoAyer(state, d);
+    const btn = $('#btn-repeat-breakfast');
+    btn.classList.toggle('hidden', !b.show);
+    btn.setAttribute('aria-label', `Repetir el desayuno de ayer (${b.count} alimento${b.count === 1 ? '' : 's'}, ${b.kcal} kcal)`);
+    const p = HomeView.peso(state, d);
+    $('#home-weight-value').textContent = p.valueText;
+    $('#home-weight-unit').classList.toggle('hidden', !p.has);
+    $('#home-weight-diff').textContent = p.diffText;
+    $('#home-weight-diff').dataset.dir = p.dir || 'none';
+    const sp = $('#home-spark');
+    sp.classList.toggle('hidden', !p.spark);
+    if (p.spark) {
+      sp.setAttribute('aria-label', p.spark.label);
+      sp.firstElementChild.setAttribute('d', p.spark.d);
+      sp.lastElementChild.setAttribute('cx', p.spark.last[0]);
+      sp.lastElementChild.setAttribute('cy', p.spark.last[1]);
+    }
+  }
+  // Repetir el desayuno de ayer: la misma función que ya usan "Repetir <bloque> de ayer" y la hoja ＋ Registrar.
+  $('#btn-repeat-breakfast').addEventListener('click', () => {
+    if (!repeatMeals(Schema.addDays(today(), -1), today(), 'Desayuno')) return;
+    const t = $('#home-today-title');
+    t.setAttribute('tabindex', '-1');
+    t.focus();
+  });
 
   function renderTips(rate, w) {
     const p = state.profile;

@@ -49,6 +49,14 @@ Un agente a la vez; Frontend y QA de rutina con Sonnet; modelo potente solo para
 **Pendiente QA (un solo lote):** S3-1 my_link + re-verificación; S3-3/3b sync y remote.js; S3-2 correcciones; S3-4 panel del coach.
 **Pendiente Stakeholder:** habilitar `*.supabase.co` en la red del entorno (para `npm run smoke:remote`), activar OTP por correo + Brevo (guía §7), textos legales (fecha de vigencia, dónde guarda archivos, abogado).
 
+## Sprint 4 — Inicio del cliente y panel del coach (2026-10-22, alcance cerrado por el Stakeholder: solo apariencia)
+| Historia | Estado |
+|---|---|
+| S4-1 Inicio con tarjetas (Hoy llevas, repetir el desayuno de ayer, Tu peso, saludo) | ✅ Dev + pruebas propias, pendiente de QA y revisión del Stakeholder |
+| S4-2 Panel del coach "Mis clientes" (estado Al día / Se atrasa / Sin registrar) | ✅ Dev + pruebas propias, pendiente de QA y revisión del Stakeholder |
+
+Detalle, umbrales y riesgos: `handoffs/2026-10-22-sprint4-inicio-panel.md`. Pruebas: 152 unitarias, 145 E2E, 8 suites de QA, build del sitio sin claves.
+
 ## Sprint 3 — EN CURSO: R1 "Cuentas y panel del coach" (decisión del Stakeholder 2026-10-21: opción B)
 **Objetivo:** "El cliente registra en la app y el coach ve su progreso en su panel, sin enviar archivos."
 Motivo: el Stakeholder considera que enviar datos por WhatsApp no da confianza → se adelanta R1 al piloto.

@@ -108,8 +108,8 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
     const item = coach.locator('#coach-clients .client-btn');
     await expect(item).toHaveCount(1);
     await expect(item.locator('.who')).toHaveText(XSS_NAME);
-    await expect(item.locator('.light')).toHaveText(/Verde|Amarillo|Rojo/);
-    await expect(item.locator('.light')).toHaveText('Verde'); // 5/7 días y peso bajando
+    await expect(item.locator('.chip')).toHaveText(/Al día|Se atrasa|Sin registrar/);
+    await expect(item.locator('.chip')).toHaveText('Al día'); // registró hoy (Sprint 4: el estado depende de los días desde el último registro)
     await item.click();
     await expect(coach.locator('#coach-detail-title')).toBeFocused();
     await expect(coach.locator('#coach-detail-title')).toHaveText(XSS_NAME);
