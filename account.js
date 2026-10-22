@@ -2,6 +2,8 @@
 // Habla con el servidor SOLO a través de Remote (remote.js); en pruebas, con la implementación falsa (remote-fake.js).
 // Sin servidor configurado (config.js vacío) este archivo no hace nada: la app funciona como antes, solo local.
 // No sincroniza datos (S3-3) ni muestra el panel del coach (S3-4).
+// Sprint 6: autorizaciones A1–A8 (textos en consent-texts.js). Todo lo nuevo vive aquí dentro, así que sin servidor
+// configurado no existe nada de esto (el modo local sin cuenta queda intacto).
 (function () {
   'use strict';
 
@@ -9,6 +11,8 @@
   if (!cfg) return;
 
   const $ = (sel) => document.querySelector(sel);
+  const CT = window.ConsentTexts;
+  const nowISO = () => new Date().toISOString();
   const META_KEY = PGNS.key('account');     // { userId, email, roles, onboarded, coach, link, consentsSent }
   const SKIP_KEY = PGNS.key('account-skip'); // "Ahora no": no volver a mostrar la pantalla al abrir
   const STATE_KEY = PGNS.key('v1');
@@ -103,11 +107,11 @@
   function busy(form, on) {
     for (const el of form.querySelectorAll('button, input')) {
       if (on) { el.dataset.wasDisabled = el.disabled ? '1' : ''; el.disabled = true; }
-      else el.disabled = el.dataset.wasDisabled === '1';
+      else if (el.dataset.wasDisabled !== undefined) el.disabled = el.dataset.wasDisabled === '1'; // los campos nuevos (A5) conservan lo que traen
     }
     form.setAttribute('aria-busy', on ? 'true' : 'false');
   }
-  const STEPS = ['email', 'code', 'owner', 'other', 'role', 'done'];
+  const STEPS = ['email', 'code', 'owner', 'other', 'cloud', 'role', 'done'];
   function step(name, focusSel) {
     for (const s of STEPS) $('#acc-step-' + s).classList.toggle('hidden', s !== name);
     $('#acc-invite-email').classList.toggle('hidden', !(name === 'email' && pendingInvite()));
@@ -117,6 +121,7 @@
   function openScreen(name = 'email') {
     document.body.classList.add('account-open');
     $('#account').classList.remove('hidden');
+    if (name === 'email') renderTermsStep();
     step(name);
   }
   function closeScreen() {
@@ -138,10 +143,18 @@
     const form = ev.currentTarget;
     const value = $('#acc-email').value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) { showError('#acc-email-error', errorText({ code: 'invalid' }, 'email')); $('#acc-email').focus(); return; }
+    // A1 + A2 (sin marcar): sin ellas no se pide el código, porque el correo viaja a Brevo para enviarlo.
+    const a1 = $('#acc-a1'), a2 = $('#acc-a2');
+    if (!a1.checked || !a2.checked) {
+      showError('#acc-email-error', 'Para crear tu cuenta marca las dos casillas. Si prefieres no hacerlo, usa la app sin cuenta: tus datos se quedan solo en tu teléfono.');
+      (a1.checked ? a2 : a1).focus();
+      return;
+    }
     showError('#acc-email-error', '');
     busy(form, true);
     try {
       await remote.auth.sendCode(value);
+      termsAt = nowISO();
       email = value.toLowerCase();
       $('#acc-code-email').textContent = email;
       $('#acc-code').value = '';
@@ -155,6 +168,34 @@
       else { showError('#acc-email-error', errorText(err, 'email')); $('#acc-email').focus(); }
     } finally { busy(form, false); }
   });
+  // ---------- A1 + A2 (al crear la cuenta) ----------
+  let termsAt = null; // cuándo las marcó la persona (se registran al entrar, ya con cuenta)
+  const legalVars = () => { const V = Schema.LEGAL_VERSIONS; return { legalVersion: V.terms === V.privacy ? V.terms : `${V.terms} / ${V.privacy}` }; };
+  function fillLinks(el, links) {
+    el.replaceChildren(...links.map((l) => {
+      const a = document.createElement('a');
+      a.className = 'legal-link'; a.href = l.href; a.setAttribute('data-legal', ''); a.textContent = l.label;
+      return a;
+    }));
+  }
+  function renderTermsStep() {
+    $('#acc-a1-text').textContent = CT.fill(CT.get('A1').body, {});
+    $('#acc-a2-text').textContent = CT.fill(CT.get('A2').body, legalVars());
+    fillLinks($('#acc-a2-links'), CT.get('A2').links);
+    const n = CT.get('A4code'), brevo = $('#acc-brevo');
+    const a = document.createElement('a');
+    a.className = 'legal-link'; a.href = n.links[0].href; a.setAttribute('data-legal', ''); a.textContent = n.links[0].label;
+    brevo.replaceChildren(n.body + ' ', a);
+    for (const id of ['#acc-a1', '#acc-a2']) $(id).checked = false;
+  }
+  async function queueTermsEvents() {
+    if (!termsAt) return;
+    const at = termsAt;
+    termsAt = null;
+    await logConsent('A1', 'adult', true, {}, { clientAt: at });
+    await logConsent('A2', 'terms', true, legalVars(), { clientAt: at });
+    await logConsent('A2', 'privacy', true, legalVars(), { clientAt: at });
+  }
   $('#btn-acc-skip').addEventListener('click', () => {
     ls.set(SKIP_KEY, '1');
     closeScreen();
@@ -213,6 +254,7 @@
       if (roles.includes('coach')) { meta.onboarded = true; meta.coach = await remote.coach.myCoach().catch(() => meta.coach || null); }
       writeMeta(meta);
       ls.del(SKIP_KEY);
+      await queueTermsEvents();
       await afterLogin(user.id);
     } catch (err) {
       showError('#acc-code-error', errorText(err, 'code'));
@@ -250,9 +292,16 @@
     if (own === 'other') { step('other'); return; }
     await continueOnboarding();
   }
-  async function continueOnboarding() {
+  // Lo que la cuenta ya autorizó en otro teléfono (A3, A4, A7…): no se vuelve a pedir lo que sigue vigente.
+  async function learnServerConsents() {
+    try { const server = await remote.account.consents(); writeMeta(CT.mergeServer(readMeta(), server)); } catch (e) { /* sin conexión: se usa lo local */ }
+  }
+  async function continueOnboarding(afterCloud = false) {
+    await flushConsents();
+    await learnServerConsents();
     const meta = readMeta() || {};
-    await sendConsents();
+    // A3 + A4: la copia en la nube es opcional; se ofrece una vez (después, desde Mis datos y permisos).
+    if (!afterCloud && !meta.cloudAsked && !CT.cloudAllowed(meta)) { showCloudStep(); return; }
     if (meta.onboarded) {
       if (handleInvite(meta)) return;
       finish((meta.roles || []).includes('coach') ? 'coach' : 'client');
@@ -318,6 +367,12 @@
   });
 
   // ---------- Paso 3: rol ----------
+  function renderA7Box() {
+    const t = CT.get('A7');
+    $('#acc-a7-intro').textContent = CT.fill(t.intro, {});
+    $('#acc-a7-text').textContent = CT.fill(t.body, {});
+    fillLinks($('#acc-a7-links'), t.links);
+  }
   function updateRoleFields() {
     const role = $('#form-acc-role').elements.role.value; // RadioNodeList: vale aunque el formulario esté ocupado (disabled)
     $('#acc-client-fields').classList.toggle('hidden', role !== 'client');
@@ -342,6 +397,9 @@
       if (role === 'coach') {
         const name = String(f.get('business') || '').trim();
         if (name.length < 2 || name.length > 60) { showError('#acc-role-error', 'Escribe el nombre de tu negocio (de 2 a 60 letras).'); busy(form, false); $('#acc-business').focus(); return; }
+        // A7: el acuerdo se acepta ANTES de crear el código de invitación y de ver datos de clientes.
+        if (!$('#acc-a7').checked) { showError('#acc-role-error', 'Para ser coach acepta el Acuerdo del coach: marca la casilla.'); busy(form, false); $('#acc-a7').focus(); return; }
+        if (!(await acceptStrict('A7', 'coach_agreement'))) { showError('#acc-role-error', 'No pudimos guardar tu aceptación. Revisa tu conexión e inténtalo de nuevo.'); busy(form, false); return; }
         await remote.coach.becomeCoach(name);
         meta.coach = await remote.coach.myCoach();
         meta.roles = await remote.account.roles();
@@ -351,6 +409,7 @@
           const { businessName } = await remote.client.previewCode(code);
           previewed = { code, businessName };
           $('#acc-share-title').textContent = `Te vas a conectar con «${businessName}».`;
+          renderShareFields($('#acc-share-fields'), businessName, {});
           $('#acc-share').classList.remove('hidden');
           updateRoleFields();
           busy(form, false);
@@ -359,13 +418,25 @@
           return;
         }
         if (code && previewed) {
+          // Para que el coach vea algo, los datos tienen que estar en la nube: hace falta A3 + A4.
+          if (!CT.cloudAllowed(readMeta())) {
+            busy(form, false);
+            showCloudStep({
+              lead: 'Para conectarte con tu coach hace falta la copia en la nube: así puede ver lo que tú decidas compartir.',
+              then: () => { step('role', '#acc-share-title'); if (!CT.cloudAllowed(readMeta())) showError('#acc-role-error', 'Sin la copia en la nube no podemos conectarte con tu coach. Puedes activarla cuando quieras en Más → Mis datos y permisos.'); },
+            });
+            return;
+          }
           const shares = { body: true, nutrition: form.elements.share_nutrition.checked, habits: form.elements.share_habits.checked, notes: form.elements.share_notes.checked, photos: false,
-            ...(await shareText($('#acc-share'))) };
+            ...(await shareMeta(previewed.businessName)) };
           meta.link = await remote.client.joinCoach(code, shares);
+          meta.shareVersion = CT.version('A5');
         }
       }
       meta.onboarded = true;
-      writeMeta(meta);
+      // Las autorizaciones se guardaron aparte durante el envío (A7): no se pisan con la copia vieja de meta.
+      const now = readMeta() || {};
+      writeMeta({ ...now, ...meta, consents: now.consents, consentQueue: now.consentQueue });
       clearInvite();
       finish(role);
     } catch (err) {
@@ -379,7 +450,10 @@
     $('#account').classList.remove('hidden');
     const meta = readMeta() || {};
     const code = $('#acc-done-code');
-    if (role === 'coach' && meta.coach) {
+    if (role === 'coach' && meta.coach && !CT.coachAgreementOK(meta)) {
+      $('#acc-done-text').textContent = `Tu cuenta de coach «${meta.coach.businessName}» está lista. Para ver a tus clientes y usar tu código de invitación, primero acepta el Acuerdo del coach en la pestaña Clientes.`;
+      code.classList.add('hidden');
+    } else if (role === 'coach' && meta.coach) {
       $('#acc-done-text').textContent = `Tu cuenta de coach «${meta.coach.businessName}» está lista. Comparte este código con tus clientes para que se conecten contigo:`;
       code.textContent = meta.coach.inviteCode;
       code.classList.remove('hidden');
@@ -392,41 +466,146 @@
   }
   $('#btn-acc-done').addEventListener('click', () => { closeScreen(); toast('Listo, ya entraste'); });
 
-  // ---------- Consentimiento → servidor ----------
-  // PUNTO DE INTEGRACIÓN LEGAL (S3-5, Analista): la aceptación local (state.consent, pantalla legal de S2-1) se registra
-  // en core.consent_events al iniciar sesión, una vez por usuario y versión de los textos. Cuando S3-5 publique los
-  // textos "con cuentas" bastará con subir Schema.LEGAL_VERSIONS: la pantalla legal pide re-aceptar y aquí se envían
-  // los nuevos eventos. Para no volver a pedirla en un dispositivo nuevo se usará remote.account.consents() (pendiente).
-  async function sendConsents() {
-    const meta = readMeta();
-    let c = null;
-    try { c = (JSON.parse(ls.get(STATE_KEY) || 'null') || {}).consent; } catch { c = null; }
-    if (!meta || Schema.consentStatus(c) !== 'ok') return;
-    // Solo la aceptación de la persona dueña de los datos de este teléfono (QA S3-2 O1-c).
-    if (ls.get(OWNER_KEY) !== meta.userId) return;
-    const tag = `${c.termsVersion}|${c.privacyVersion}|${c.sensitiveHealth}|${c.updatedAt}`;
-    if (meta.consentsSent === tag) return;
-    const at = c.acceptedAt;
+  // ---------- Autorizaciones (A1–A8) → servidor ----------
+  // Cada decisión se guarda primero en el teléfono (meta.consents + cola) y se envía a core.consent_events cuando hay
+  // conexión. `textHash` = SHA-256 del texto EXACTO de consent-texts.js (CT.fullText), que es el que se muestra.
+  let flushing = null;
+  function flushConsents() {
+    if (flushing) return flushing;
+    flushing = (async () => {
+      const m0 = readMeta() || {};
+      const q = m0.consentQueue || [];
+      if (!q.length || !remote) return true;
+      // Como antes: nada se registra mientras no se sepa de quién son los datos de este teléfono (QA S3-2 O1).
+      if (m0.userId && ls.get(OWNER_KEY) !== m0.userId) return false;
+      try {
+        await remote.account.recordConsents(q.map((e) => ({ ...e })));
+        writeMeta(CT.dropSent(readMeta(), q.length));
+        return true;
+      } catch (err) {
+        // Un evento que el servidor rechaza por no válido no debe bloquear la cola para siempre.
+        if (err && err.code === 'invalid') { writeMeta(CT.dropSent(readMeta(), q.length)); console.warn('Autorización descartada por el servidor'); }
+        return false;
+      }
+    })().finally(() => { flushing = null; });
+    return flushing;
+  }
+  async function logConsent(id, kind, granted, vars = {}, { coachId, clientAt } = {}) {
+    const ev = { kind, granted: granted === true, version: CT.version(id), textHash: await Remote.textHash(CT.fullText(id, vars)), clientAt: clientAt || nowISO(), ...(coachId ? { coachId } : {}) };
+    writeMeta(CT.applyEvent(readMeta() || {}, ev));
+    return ev;
+  }
+  // Para lo que NO puede quedar "pendiente" (A7): se registra y se envía ahora; si no llega, se deshace y devuelve false.
+  async function acceptStrict(id, kind) {
+    const prev = readMeta();
+    await logConsent(id, kind, true);
+    if (await flushConsents()) { document.dispatchEvent(new CustomEvent('pg:consents-changed')); return true; }
+    writeMeta(prev);
+    return false;
+  }
+  const shareMeta = async (coach) => ({ version: CT.version('A5'), textHash: await Remote.textHash(CT.fullText('A5', { coach })) });
+
+  // ---------- A3 + A4: copia en la nube ----------
+  let cloudThen = null;
+  function renderCloudTexts() {
+    for (const [id, n] of [['A3', 'a3'], ['A4', 'a4']]) {
+      $(`#acc-${n}-text`).textContent = CT.fill(CT.get(id).body, {});
+      fillLinks($(`#acc-${n}-links`), CT.get(id).links);
+    }
+  }
+  function showCloudStep({ lead, then } = {}) {
+    cloudThen = then || null;
+    $('#acc-cloud-lead').textContent = lead || 'Es opcional. Sin ella, tus datos de salud se quedan solo en tu teléfono y la app funciona igual.';
+    renderCloudTexts();
+    $('#form-acc-cloud').reset();
+    showError('#acc-cloud-error', '');
+    openScreen('cloud');
+  }
+  function cloudDone() {
+    const t = cloudThen;
+    cloudThen = null;
+    if (t) t(); else continueOnboarding(true);
+  }
+  $('#form-acc-cloud').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const form = ev.currentTarget;
+    if (!$('#acc-a3').checked || !$('#acc-a4').checked) {
+      showError('#acc-cloud-error', 'Para guardar la copia en la nube marca las dos autorizaciones. Si no quieres, pulsa «Ahora no»: la app funciona igual en tu teléfono.');
+      ($('#acc-a3').checked ? $('#acc-a4') : $('#acc-a3')).focus();
+      return;
+    }
+    showError('#acc-cloud-error', '');
+    busy(form, true);
     try {
-      // v1.1 §10.1: textHash = SHA-256 del texto exacto mostrado (las páginas legales y la etiqueta de cada casilla).
-      const page = async (url) => Remote.textHash(await (await fetch(url, { cache: 'no-cache' })).text());
-      const label = (name) => Remote.textHash(shown(document.querySelector(`#form-consent [name=${name}]`).closest('label')));
-      const [hTerms, hPrivacy, hAdult, hHealth] = await Promise.all([page('legal/terminos.html'), page('legal/privacidad.html'), label('adult'), label('sensitiveHealth')]);
-      const events = [
-        { kind: 'terms', granted: true, version: c.termsVersion, textHash: hTerms, clientAt: at },
-        { kind: 'privacy', granted: true, version: c.privacyVersion, textHash: hPrivacy, clientAt: at },
-        { kind: 'adult', granted: true, version: c.termsVersion, textHash: hAdult, clientAt: at },
-        { kind: 'sensitive_health', granted: c.sensitiveHealth === true, version: c.privacyVersion, textHash: hHealth, clientAt: c.sensitiveHealthAt || at },
-      ];
-      await remote.account.recordConsents(events);
-      writeMeta({ ...readMeta(), consentsSent: tag });
-    } catch { /* sin conexión: se reintenta al abrir la app con sesión */ }
+      await logConsent('A3', 'sensitive_health', true);
+      await logConsent('A4', 'cloud_transfer', true);
+      writeMeta({ ...readMeta(), cloudAsked: true });
+      await flushConsents();
+      document.dispatchEvent(new CustomEvent('pg:cloud-changed'));
+    } finally { busy(form, false); }
+    cloudDone();
+  });
+  $('#btn-acc-cloud-skip').addEventListener('click', () => {
+    writeMeta({ ...readMeta(), cloudAsked: true });
+    cloudDone();
+  });
+
+  // ---------- A8: aviso antes de retirar, terminar un vínculo o borrar la cuenta ----------
+  let a8Opener = null;
+  function a8Confirm({ text, okLabel }) {
+    const dlg = $('#sheet-a8');
+    return new Promise((resolve) => {
+      a8Opener = document.activeElement;
+      $('#a8-text').textContent = text;
+      $('#a8-ok').textContent = okLabel;
+      $('#a8-exported').classList.add('hidden');
+      let result = false;
+      const done = (v) => { result = v; dlg.close(); };
+      const onOk = () => done(true), onCancel = () => done(false);
+      const onExport = () => { $('#btn-export').click(); $('#a8-exported').classList.remove('hidden'); };
+      const onClose = () => {
+        $('#a8-ok').removeEventListener('click', onOk); $('#a8-cancel').removeEventListener('click', onCancel);
+        $('#a8-export').removeEventListener('click', onExport); dlg.removeEventListener('close', onClose);
+        if (a8Opener && a8Opener.focus) a8Opener.focus();
+        a8Opener = null;
+        resolve(result);
+      };
+      $('#a8-ok').addEventListener('click', onOk); $('#a8-cancel').addEventListener('click', onCancel);
+      $('#a8-export').addEventListener('click', onExport); dlg.addEventListener('close', onClose);
+      dlg.showModal();
+      $('#a8-title').focus();
+    });
   }
 
-  // Texto tal como se ve (para el hash de lo aceptado) y versión de la pantalla de compartir con el coach.
-  const SHARE_VERSION = 'compartir-1';
-  const shown = (el) => (el ? (el.innerText || el.textContent || '').replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim() : '');
-  async function shareText(el) { return { version: SHARE_VERSION, textHash: await Remote.textHash(shown(el)) }; }
+  // ---------- A5: compartir con el coach, por categoría (sin casillas premarcadas) ----------
+  function renderShareFields(fs, coach, shares) {
+    const t = CT.get('A5'), vars = { coach };
+    const legend = document.createElement('legend');
+    legend.className = 'small share-intro';
+    legend.textContent = CT.fill(t.intro, vars);
+    const rows = ['body', 'notes', 'nutrition', 'habits', 'photos'].map((k) => {
+      const label = document.createElement('label');
+      label.className = 'check share-row';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = 'share_' + k;
+      if (k === 'body') { input.checked = true; input.disabled = true; }
+      else if (k === 'photos') input.disabled = true; // las fotos se piden aparte (A6) y hoy no se suben a la nube
+      else input.checked = !!(shares && shares[k]);
+      const span = document.createElement('span');
+      span.textContent = t.categories[k];
+      label.append(input, span);
+      return label;
+    });
+    const out = document.createElement('p');
+    out.className = 'small share-outro';
+    out.append(CT.fill(t.outro, vars) + ' ');
+    const links = document.createElement('span');
+    links.className = 'auth-links';
+    fillLinks(links, t.links);
+    out.append(links);
+    fs.replaceChildren(legend, ...rows, out);
+  }
 
   // ---------- Perfil → Cuenta ----------
   async function renderCard() {
@@ -438,7 +617,7 @@
     if (s && meta && meta.userId === s.user.id) {
       const roles = (meta.roles || []).includes('coach') ? ' Tienes cuenta de coach.' : '';
       status.textContent = `Entraste con ${s.user.email}.${roles}` + (navigator.onLine === false ? ' No hay internet: puedes seguir usando la app con normalidad.' : '');
-      extra.textContent = meta.coach ? `Tu código para invitar clientes: ${meta.coach.inviteCode}` : meta.link ? `Tu coach: ${meta.link.businessName}` : '';
+      extra.textContent = meta.coach ? (CT.coachAgreementOK(meta) ? `Tu código para invitar clientes: ${meta.coach.inviteCode}` : 'Para ver a tus clientes y usar tu código de invitación, acepta el Acuerdo del coach en la pestaña Clientes.') : meta.link ? `Tu coach: ${meta.link.businessName}` : '';
       if (meta.authExpired) extra.textContent = 'Tu sesión se cerró. Entra de nuevo con tu correo (tus datos siguen aquí).';
     } else {
       status.textContent = 'Sin cuenta: tus datos están solo en este teléfono. Crea una cuenta o entra para que queden guardados también en tu cuenta.';
@@ -450,13 +629,19 @@
     $('#btn-account-logout').classList.toggle('hidden', !signedIn);
     $('#btn-account-link').classList.toggle('hidden', !signedIn || isCoach || !!meta.link);
     $('#btn-account-coach').classList.toggle('hidden', !isCoach);
+    $('#btn-account-cloud').classList.toggle('hidden', !signedIn || CT.cloudAllowed(meta));
+    $('#btn-account-delete').classList.toggle('hidden', !signedIn);
+    $('#perms-card').classList.toggle('hidden', !signedIn);
+    if (signedIn) renderPerms(meta);
     $('#tab-coach').classList.toggle('hidden', !isCoach);
     // Cliente vinculado: qué comparte (lo escribe el propio cliente; el nombre del coach lo escribe otra persona → textContent).
     const sf = $('#form-shares');
     sf.classList.toggle('hidden', !signedIn || !meta.link);
     if (signedIn && meta.link) {
       $('#shares-title').textContent = `Tu coach: «${meta.link.businessName}», desde el ${new Date(meta.link.since).toLocaleDateString('es')}.`;
-      for (const k of ['nutrition', 'habits', 'notes', 'photos']) sf.elements['share_' + k].checked = !!(meta.link.shares && meta.link.shares[k]);
+      // No se vuelve a dibujar mientras la persona está tocando las casillas (se perdería lo que acaba de marcar).
+      if (!sf.contains(document.activeElement) || !sf.elements.share_nutrition) renderShareFields($('#shares-fieldset'), meta.link.businessName, meta.link.shares);
+      $('#shares-migrate').classList.toggle('hidden', !CT.shareMigrationNeeded(meta));
       const SEE = { nutrition: 'tus comidas', habits: 'tus hábitos', notes: 'tus notas', photos: 'las fotos que marques' };
       const sees = ['tu peso y tus medidas', ...Object.keys(SEE).filter((k) => meta.link.shares && meta.link.shares[k]).map((k) => SEE[k])];
       $('#shares-summary').textContent = `Tu coach puede ver ${sees.length > 1 ? sees.slice(0, -1).join(', ') + ' y ' + sees[sees.length - 1] : sees[0]}.`;
@@ -474,16 +659,35 @@
     $('#acc-coach-code').focus();
   });
   $('#btn-account-coach').addEventListener('click', () => $('#tab-coach').click());
+  const SHARE_LABEL = { notes: 'tus notas', nutrition: 'tus comidas', habits: 'tus hábitos', photos: 'tus fotos' };
   $('#form-shares').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const f = ev.currentTarget;
+    const meta = readMeta();
+    if (!meta || !meta.link) return;
+    const old = meta.link.shares || {};
     const shares = { body: true, nutrition: f.elements.share_nutrition.checked, habits: f.elements.share_habits.checked,
-      notes: f.elements.share_notes.checked, photos: f.elements.share_photos.checked, ...(await shareText($('#shares-fieldset'))) };
+      notes: f.elements.share_notes.checked, photos: false, ...(await shareMeta(meta.link.businessName)) };
     showError('#shares-error', '');
+    // A8: quitar una categoría es retirar una autorización.
+    const removed = Object.keys(SHARE_LABEL).filter((k) => old[k] && !shares[k]);
+    if (removed.length && !(await a8Confirm({ text: CT.A8text.withdraw(`que tu coach vea ${removed.map((k) => SHARE_LABEL[k]).join(', ')}`), okLabel: 'Retirar' }))) { renderCard(); return; }
     busy(f, true);
     try {
       const link = await remote.client.updateShares(shares);
-      writeMeta({ ...readMeta(), link });
+      let next = { ...readMeta(), link };
+      // Vínculo creado con textos anteriores (compartir-1): lo que no cambió no genera evento en el servidor, así que la
+      // confirmación con los textos nuevos se registra aquí, categoría por categoría.
+      if (CT.shareMigrationNeeded(meta)) {
+        writeMeta(next);
+        const was = (k) => !!old[k], now = (k) => !!(link.shares || {})[k];
+        for (const k of ['body', 'notes', 'nutrition', 'habits']) {
+          if (k === 'body' || was(k) === now(k)) await logConsent('A5', 'share_' + k, k === 'body' ? true : now(k), { coach: meta.link.businessName }, { coachId: link.coachId });
+        }
+        next = { ...readMeta(), link };
+        await flushConsents();
+      }
+      writeMeta({ ...next, shareVersion: CT.version('A5') });
       toast('Listo: tu coach verá solo lo que marcaste');
     } catch (err) { showError('#shares-error', errorText(err, 'shares')); }
     finally { busy(f, false); renderCard(); }
@@ -491,7 +695,7 @@
   $('#btn-leave-coach').addEventListener('click', async () => {
     const meta = readMeta();
     if (!meta || !meta.link) return;
-    if (!confirm(`¿Dejar de compartir con «${meta.link.businessName}»?\n\nTu coach ya no verá tus datos. Tus datos siguen en tu cuenta y en este teléfono.`)) return;
+    if (!(await a8Confirm({ text: CT.A8text.withdraw(`compartir con «${meta.link.businessName}»`), okLabel: 'Dejar de compartir' }))) return;
     try {
       await remote.client.leaveCoach();
       writeMeta({ ...readMeta(), link: null });
@@ -499,6 +703,89 @@
       renderCard();
       $('#btn-account-link').focus();
     } catch (err) { showError('#shares-error', errorText(err, 'shares')); }
+  });
+  // ---------- Mis datos y permisos: A3, A4, A6a, A6b (interruptores; opcionales y revocables) ----------
+  const AUTH_ROWS = [
+    { id: 'A3', kind: 'sensitive_health', que: 'tu autorización de datos de salud en la cuenta', cloud: true },
+    { id: 'A4', kind: 'cloud_transfer', que: 'la copia en la nube', cloud: true },
+    { id: 'A6a', kind: 'photos_cloud', que: 'la copia de tus fotos en la nube' },
+    { id: 'A6b', kind: 'photo_view_coach', que: 'que tu coach vea tus fotos', coach: true },
+  ];
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
+  function renderPerms(meta) {
+    const list = $('#perms-list');
+    const coachName = meta.link ? meta.link.businessName : 'tu coach';
+    const sig = JSON.stringify([coachName, AUTH_ROWS.map((r) => { const c = (meta.consents || {})[r.kind]; return [CT.version(r.id), c && c.granted, c && c.version, c && c.clientAt]; })]);
+    if (list.dataset.sig === sig) return;
+    if (list.contains(document.activeElement) && list.dataset.sig) return; // no se redibuja mientras la persona toca un interruptor
+    list.dataset.sig = sig;
+    list.replaceChildren(...AUTH_ROWS.map((r) => {
+      const c = (meta.consents || {})[r.kind];
+      const on = !!(c && c.granted === true && c.version === CT.version(r.id));
+      const row = document.createElement('div');
+      row.className = 'auth-row';
+      const label = document.createElement('label');
+      label.className = 'check';
+      const input = document.createElement('input');
+      input.type = 'checkbox'; input.checked = on; input.dataset.auth = r.id;
+      const span = document.createElement('span');
+      span.textContent = CT.fill(CT.get(r.id).body, { coach: coachName });
+      label.append(input, span);
+      const links = document.createElement('span');
+      links.className = 'auth-links';
+      fillLinks(links, CT.get(r.id).links);
+      const date = document.createElement('p');
+      date.className = 'small muted auth-date';
+      date.textContent = c && c.clientAt ? (c.granted ? `Autorizada el ${fmtDate(c.clientAt)}.` : `Retirada el ${fmtDate(c.clientAt)}.`) : 'Sin autorizar.';
+      row.append(label, links, date);
+      return row;
+    }));
+  }
+  $('#perms-list').addEventListener('change', async (ev) => {
+    const input = ev.target.closest('input[data-auth]');
+    if (!input) return;
+    const row = AUTH_ROWS.find((r) => r.id === input.dataset.auth);
+    const meta = readMeta() || {};
+    const vars = { coach: meta.link ? meta.link.businessName : 'tu coach' };
+    const coachId = row.coach && meta.link ? meta.link.coachId : undefined;
+    showError('#perms-error', '');
+    if (input.checked) {
+      await logConsent(row.id, row.kind, true, vars, { coachId });
+      if (row.cloud) writeMeta({ ...readMeta(), cloudAsked: true });
+      toast('Autorización guardada');
+    } else {
+      input.checked = true; // vuelve a su sitio hasta que la persona confirme el aviso A8
+      if (!(await a8Confirm({ text: CT.A8text.withdraw(row.que), okLabel: 'Retirar' }))) return;
+      await logConsent(row.id, row.kind, false, vars, { coachId });
+      // Sin la copia en la nube el coach no puede ver nada: el vínculo se termina (A8: «Tu coach deja de verlo ya»).
+      if (row.cloud && meta.link) {
+        try { await remote.client.leaveCoach(); writeMeta({ ...readMeta(), link: null }); }
+        catch (err) { showError('#perms-error', errorText(err, 'shares')); }
+      }
+      toast('Autorización retirada');
+    }
+    await flushConsents();
+    if (row.cloud) document.dispatchEvent(new CustomEvent('pg:cloud-changed'));
+    document.dispatchEvent(new CustomEvent('pg:consents-changed'));
+    $('#perms-list').dataset.sig = '';
+    renderCard();
+    const again = document.querySelector(`#perms-list input[data-auth="${row.id}"]`);
+    if (again) again.focus();
+  });
+  $('#btn-account-cloud').addEventListener('click', () => {
+    showCloudStep({ then: () => { closeScreen(); if (CT.cloudAllowed(readMeta())) toast('Copia en la nube activada'); } });
+  });
+  // A8 al borrar la cuenta: se borra TODO lo de la nube; el teléfono conserva su copia. El servidor guarda solo la prueba mínima y sin nombre.
+  $('#btn-account-delete').addEventListener('click', async () => {
+    if (!(await a8Confirm({ text: CT.A8text.delete(), okLabel: 'Borrar mi cuenta' }))) return;
+    try {
+      await remote.account.deleteAccount();
+      writeMeta(null);
+      ls.del(OWNER_KEY); // los datos del teléfono quedan sin dueño: si entra otra cuenta, se le pregunta como siempre
+      await renderCard();
+      toast('Cuenta borrada. Tus datos siguen en este teléfono');
+      $('#btn-account-login').focus();
+    } catch (err) { toast(errorText(err, 'delete')); }
   });
   $('#btn-account-login').addEventListener('click', () => {
     const meta = readMeta();
@@ -537,7 +824,10 @@
       if (roles.includes('coach')) next.coach = await remote.coach.myCoach();
       else next.link = await remote.client.myLink();
       writeMeta(next);
-      await sendConsents();
+      // Autorizaciones: lo pendiente sube y se aprende lo que ya se aceptó en otro teléfono (A7, A3, A4…).
+      await flushConsents();
+      try { const server = await remote.account.consents(); writeMeta(CT.mergeServer(readMeta(), server)); } catch (e) { if (e && e.code === 'auth') throw e; }
+      document.dispatchEvent(new CustomEvent('pg:consents-changed'));
     } catch (err) {
       if (err && err.code === 'auth') writeMeta({ ...readMeta(), authExpired: true });
     }
@@ -551,6 +841,7 @@
     if (s && meta && meta.userId === s.user.id) {
       const own = ownership(s.user.id);
       if (own !== 'ok') { openScreen(own === 'other' ? 'other' : 'owner'); return; }
+      if (!meta.cloudAsked && !CT.cloudAllowed(meta)) { showCloudStep(); return; } // también cuentas de antes del Sprint 6: se pregunta una vez
       if (!meta.onboarded) { const inv = pendingInvite(); if (inv) showInviteRole(inv); else { openScreen('role'); updateRoleFields(); } return; }
       if (inviteFresh) handleInvite(meta);
       return;
@@ -563,11 +854,15 @@
   connect().then(async (r) => {
     remote = r;
     // Puente para coach-panel.js (S3-4): el mismo Remote y los metadatos de la cuenta. Sin servidor no existe.
-    window.PGAccount = { remote, meta: readMeta, setMeta: (m) => writeMeta({ ...readMeta(), ...m }), refresh, errorText };
+    window.PGAccount = { remote, meta: readMeta, setMeta: (m) => writeMeta({ ...readMeta(), ...m }), refresh, errorText,
+      // Sprint 6: A7 (acuerdo del coach) y A8 los usa coach-panel.js; ConsentTexts decide si el acuerdo está vigente.
+      acceptCoachAgreement: () => acceptStrict('A7', 'coach_agreement'), a8Confirm, fillLinks };
+    renderTermsStep();
+    renderA7Box();
     await renderCard();
     await maybeOffer();
     refresh();
-    document.addEventListener('pg:legal-accepted', () => { maybeOffer(); sendConsents(); });
+    document.addEventListener('pg:legal-accepted', () => { maybeOffer(); flushConsents(); });
     window.addEventListener('online', refresh);
     document.dispatchEvent(new CustomEvent('pg:account-ready'));
   }).catch((err) => {

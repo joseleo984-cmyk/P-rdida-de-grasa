@@ -20,6 +20,8 @@
   let A = null;           // PGAccount (remote + metadatos)
   const cache = new Map(); // clientId → { info, data, state, sem, sum }
   let current = null;      // clientId abierto en la ficha
+  const ended = [];        // A8: clientes que dejaron de compartir contigo desde la última vez que lo viste
+  const endedByMe = new Set(); // los que terminaste tú: no hace falta avisarte dos veces
   let photoURL = null;     // object URL de la foto abierta (se libera al cambiar)
 
   function toast(msg, error) {
@@ -37,14 +39,57 @@
   };
   const displayName = (c) => (c.info.displayName || (c.state.profile && c.state.profile.name) || 'Cliente sin nombre');
 
+  // ---------- A7: acuerdo del coach (bloquea Clientes e Invitar hasta aceptarlo; su uso personal no se bloquea) ----------
+  const agreementOK = () => !!(A && window.ConsentTexts && ConsentTexts.coachAgreementOK(A.meta()));
+  function renderGate() {
+    if (!A) return;
+    const locked = !agreementOK();
+    const t = ConsentTexts.get('A7');
+    for (const sec of [$('#view-coach'), $('#view-invitar')]) {
+      sec.classList.toggle('a7-locked', locked);
+      const gate = sec.querySelector('.a7-gate');
+      gate.classList.toggle('hidden', !locked);
+      if (!locked) continue;
+      gate.querySelector('.a7-intro').textContent = ConsentTexts.fill(t.intro, {});
+      gate.querySelector('.a7-text').textContent = ConsentTexts.fill(t.body, {});
+      A.fillLinks(gate.querySelector('.a7-links'), t.links);
+    }
+    if (locked) { cache.clear(); freePhoto(); $('#coach-invite-code').textContent = ''; } // nada de clientes en memoria sin acuerdo
+  }
+  function wireGate() {
+    for (const form of document.querySelectorAll('.a7-form')) {
+      form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const err = form.querySelector('.a7-error');
+        if (!form.elements.a7.checked) { err.textContent = 'Marca la casilla para continuar.'; err.classList.remove('hidden'); form.elements.a7.focus(); return; }
+        err.classList.add('hidden');
+        form.setAttribute('aria-busy', 'true');
+        const ok = await A.acceptCoachAgreement();
+        form.setAttribute('aria-busy', 'false');
+        if (!ok) { err.textContent = 'No pudimos guardar tu aceptación. Revisa tu conexión e inténtalo de nuevo.'; err.classList.remove('hidden'); return; }
+        form.reset();
+        renderGate();
+        toast('Acuerdo aceptado');
+        if ($('#view-coach').classList.contains('active')) { showList(); loadClients(); }
+        else renderInvite((A.meta() || {}).coach);
+      });
+    }
+    document.addEventListener('pg:consents-changed', renderGate);
+  }
+
   // ---------- Coach: lista ----------
   async function loadClients() {
+    if (!agreementOK()) { renderGate(); return; } // sin acuerdo no se pide ni un dato de clientes
     const status = $('#coach-list-status');
     status.textContent = 'Cargando clientes…';
     try {
       const [mine, list] = await Promise.all([A.remote.coach.myCoach(), A.remote.coach.clients()]);
       A.setMeta({ coach: mine });
       renderInvite(mine);
+      // A8: si un cliente ya no está en la lista (terminó el vínculo o retiró lo que compartía), se avisa al coach.
+      const before = new Map([...cache.values()].map((c) => [c.info.clientId, displayName(c)]));
+      for (const x of list) before.delete(x.clientId);
+      for (const [id, name] of before) if (!endedByMe.delete(id)) ended.push(name);
       cache.clear();
       const ref = today();
       await Promise.all(list.map(async (info) => {
@@ -57,6 +102,7 @@
         }
       }));
       renderList();
+      renderEnded();
       const over = list.filter((c) => c.overFreeLimit).length;
       const limit = $('#coach-limit');
       limit.classList.toggle('hidden', !over);
@@ -65,6 +111,18 @@
     } catch (err) {
       status.textContent = errText(err);
     }
+  }
+
+  // A8 (al coach): «Perdiste el acceso a los datos de [cliente]. Borra cualquier copia que tengas en un máximo de 30 días.»
+  function renderEnded() {
+    const box = $('#coach-ended');
+    box.replaceChildren(...ended.map((name) => {
+      const p = document.createElement('p');
+      p.className = 'acc-note small a7-ended';
+      p.textContent = ConsentTexts.A8text.coachEnded(name);
+      return p;
+    }));
+    box.classList.toggle('hidden', !ended.length);
   }
 
   // Sprint 4: filas con avatar de iniciales, nombre, última actividad y estado con TEXTO ("Al día", "Se atrasa", "Sin registrar").
@@ -91,7 +149,7 @@
 
   // A1: invitación por WhatsApp. Todo lo que escribe una persona entra al DOM con textContent y a la URL con encodeURIComponent.
   function inviteParts() {
-    const mine = A && (A.meta() || {}).coach;
+    const mine = A && agreementOK() && (A.meta() || {}).coach;
     if (!mine || !window.Invite) return null;
     const link = Invite.inviteLink(location, mine.inviteCode);
     if (!link) return null;
@@ -139,7 +197,7 @@
   function closeQr() { const d = $('#sheet-qr'); if (d.open) d.close(); }
 
   function renderInvite(mine) {
-    if (!mine) return;
+    if (!mine || !agreementOK()) return; // sin acuerdo no hay código de invitación activo
     renderInvitePreview();
     $('#coach-invite-code').textContent = mine.inviteCode;
     const parts = [mine.expiresAt ? `Válido hasta el ${new Date(mine.expiresAt).toLocaleDateString('es')}` : 'Sin caducidad',
@@ -242,11 +300,14 @@
 
   // ---------- Eventos del coach ----------
   function wireCoach() {
-    $('#tab-coach').addEventListener('click', () => { showList(); loadClients(); });
+    $('#tab-coach').addEventListener('click', () => { renderGate(); showList(); loadClients(); });
     // ＋ Invitar: la vista con el mensaje de WhatsApp y el código; se refresca el código del coach sin cargar toda la lista.
     $('#tab-invitar').addEventListener('click', async () => {
-      renderInvite((A.meta() || {}).coach);
-      try { const mine = await A.remote.coach.myCoach(); A.setMeta({ coach: mine }); renderInvite(mine); } catch { /* sin conexión: se ve el código guardado */ }
+      renderGate();
+      if (agreementOK()) {
+        renderInvite((A.meta() || {}).coach);
+        try { const mine = await A.remote.coach.myCoach(); A.setMeta({ coach: mine }); renderInvite(mine); } catch { /* sin conexión: se ve el código guardado */ }
+      }
       $('#invitar-title').focus();
     });
     $('#btn-coach-refresh').addEventListener('click', loadClients);
@@ -326,7 +387,16 @@
     $('#btn-end-client').addEventListener('click', async () => {
       const c = cache.get(current);
       if (!c || !confirm(`¿Dejar de acompañar a «${displayName(c)}»? Ya no verás sus datos.`)) return;
-      try { await A.remote.coach.endClient(current); toast('Listo: ya no ves sus datos'); await loadClients(); showList(); }
+      const name = displayName(c), id = current;
+      try {
+        await A.remote.coach.endClient(id);
+        endedByMe.add(id);
+        ended.push(name);
+        toast('Listo: ya no ves sus datos');
+        await loadClients();
+        endedByMe.delete(id);
+        showList();
+      }
       catch (err) { toast(errText(err), true); }
     });
   }
@@ -384,6 +454,8 @@
   function start() {
     if (A || !window.PGAccount) return;
     A = window.PGAccount;
+    wireGate();
+    renderGate();
     wireCoach();
     wireClient();
     refreshNotes();

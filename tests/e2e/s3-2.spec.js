@@ -9,6 +9,8 @@ const lastCode = (page, email) => page.evaluate((e) => window.__pgFakeBackend.la
 const backend = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('pg-fake-backend')));
 async function enterEmail(page, email) {
   await page.getByLabel('Tu correo').fill(email);
+  await page.locator('#acc-a1').check();
+  await page.locator('#acc-a2').check();
   await page.getByRole('button', { name: 'Enviarme el código' }).click();
   await expect(page.locator('#acc-step-code')).toBeVisible();
 }
@@ -42,6 +44,8 @@ test('primer uso: la pantalla legal va antes; luego correo → código → rol c
 
   // Correo no válido
   await page.getByLabel('Tu correo').fill('ana@');
+  await page.locator('#acc-a1').check();
+  await page.locator('#acc-a2').check();
   await page.getByRole('button', { name: 'Enviarme el código' }).click();
   await expect(page.locator('#acc-email-error')).toHaveText(/correo válido/);
   await expect(page.getByLabel('Tu correo')).toBeFocused();
@@ -74,7 +78,7 @@ test('primer uso: la pantalla legal va antes; luego correo → código → rol c
   const user = be.users['ana@ejemplo.com'];
   expect(be.appAccess.filter((a) => a.userId === user.id).map((a) => a.role)).toEqual(['client']);
   expect(be.consentEvents.filter((e) => e.userId === user.id).map((e) => [e.kind, e.granted]).sort())
-    .toEqual([['adult', true], ['privacy', true], ['sensitive_health', true], ['terms', true]]);
+    .toEqual([['adult', true], ['cloud_transfer', true], ['privacy', true], ['sensitive_health', true], ['terms', true]]);
 
   // Sesión persistente tras recargar, también sin conexión
   await app.reload();
@@ -119,6 +123,9 @@ test('coach: nombre comercial → código de invitación; un cliente se vincula 
   await expect(page.locator('#acc-role-error')).toHaveText(/nombre de tu negocio/);
   await page.getByLabel('Nombre comercial').fill('Fit Ana');
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(page.locator('#acc-role-error')).toHaveText(/Acuerdo del coach/); // A7: sin acuerdo no hay código de invitación
+  await page.locator('#acc-a7').check();
+  await page.getByRole('button', { name: 'Continuar' }).click();
   await expect(page.locator('#acc-done-code')).toBeVisible();
   const invite = (await page.locator('#acc-done-code').textContent()).trim();
   expect(invite).toMatch(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
@@ -145,9 +152,9 @@ test('coach: nombre comercial → código de invitación; un cliente se vincula 
   await page.getByRole('button', { name: 'Comprobar código' }).click();
   await expect(page.locator('#acc-share-title')).toHaveText('Te vas a conectar con «Fit Ana».');
   // Ninguna categoría opcional viene marcada; la corporal es obligatoria
-  await expect(page.locator('#acc-share').getByLabel(/Peso, medidas y perfil/)).toBeChecked();
-  for (const l of [/Comidas del diario/, /Hábitos/, /Notas de tus registros/]) await expect(page.locator('#acc-share').getByLabel(l)).not.toBeChecked();
-  await page.locator('#acc-share').getByLabel(/Comidas del diario/).check();
+  await expect(page.locator('#acc-share').getByLabel(/Peso y medidas/)).toBeChecked();
+  for (const l of [/Comidas/, /Hábitos/, /Notas personales/]) await expect(page.locator('#acc-share').getByLabel(l)).not.toBeChecked();
+  await page.locator('#acc-share').getByLabel(/Comidas/).check();
   expect(await app.scrollWidth()).toBeLessThanOrEqual(390);
   await page.screenshot({ path: 'equipo/qa-capturas/s3-2-cuenta-vincular.png', fullPage: true });
   await page.getByRole('button', { name: 'Conectarme y continuar' }).click();
@@ -175,6 +182,8 @@ test('sin conexión al pedir el código: mensaje claro y la app sigue usable', a
   await expect(acc(page)).toBeVisible();
   await page.evaluate(() => window.__pgFakeBackend.setOnline(false));
   await page.getByLabel('Tu correo').fill('o@x.co');
+  await page.locator('#acc-a1').check();
+  await page.locator('#acc-a2').check();
   await page.getByRole('button', { name: 'Enviarme el código' }).click();
   await expect(page.locator('#acc-email-error')).toHaveText(/No hay internet/);
   await page.getByRole('button', { name: /Ahora no/ }).click();
@@ -199,10 +208,10 @@ test('O1-a: datos sin dueño → "¿Estos datos son tuyos?" → Sí: quedan a no
   await expect(page.locator('#acc-owner-title')).toBeFocused();
   expect(await consentsOf(page, 'a@x.co')).toHaveLength(0); // aún no: no se sabe si es su aceptación
   await page.getByRole('button', { name: /Sí, son míos/ }).click();
-  await expect(page.locator('#acc-step-role')).toBeVisible();
+  await expect(page.locator('#acc-step-cloud')).toBeVisible(); // Sprint 6: la copia en la nube se ofrece antes del rol
   const be = await backend(page);
   expect(await page.evaluate(() => localStorage.getItem('perdida-grasa:owner'))).toBe(be.users['a@x.co'].id);
-  await expect.poll(async () => (await consentsOf(page, 'a@x.co')).length).toBe(4);
+  await expect.poll(async () => (await consentsOf(page, 'a@x.co')).length).toBe(3); // A1 + A2 (terms y privacy); la nube aún no
   expect((await app.stored()).entries).toHaveLength(1);
 });
 
@@ -214,13 +223,13 @@ test('O1-a: "No: empezar de cero" borra los datos del teléfono y pide la acepta
   expect(await consentsOf(page, 'b@x.co')).toHaveLength(0);
   for (const n of ['terms', 'privacy', 'adult']) await page.locator(`#form-consent [name=${n}]`).check();
   await page.getByRole('button', { name: 'Continuar' }).click();
-  await expect(page.locator('#acc-step-role')).toBeVisible(); // sigue con su cuenta
+  await expect(page.locator('#acc-step-cloud')).toBeVisible(); // sigue con su cuenta
   const s = await app.stored();
   expect(s.entries).toHaveLength(0);
   expect(s.consent.acceptedAt).not.toBe(CONSENT.acceptedAt);
-  await expect.poll(async () => (await consentsOf(page, 'b@x.co')).length).toBe(4);
+  await expect.poll(async () => (await consentsOf(page, 'b@x.co')).length).toBe(3);
   const ev = await consentsOf(page, 'b@x.co');
-  expect(ev.find((e) => e.kind === 'sensitive_health').granted).toBe(false); // lo que marcó ella, no lo de antes
+  expect(ev.map((e) => e.kind).sort()).toEqual(['adult', 'privacy', 'terms']); // sin A3 ni A4: no autorizó la copia
   expect(await page.evaluate(() => localStorage.getItem('perdida-grasa:owner'))).toBe((await backend(page)).users['b@x.co'].id);
 });
 

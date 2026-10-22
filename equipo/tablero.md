@@ -108,3 +108,16 @@ Alcance cerrado por el Stakeholder: solo el botón "Mostrar QR" en Invitar del c
 - Generador QR propio `qr.js` (modo byte, versión 1-10, nivel M/L, mejor máscara), sin dependencias ni servicios externos; el enlace no sale del dispositivo.
 - Validado con jsQR (solo devDependency de pruebas) + vectores de la norma; E2E con letra ancha a 390 px; caché v27.
 - Handoff: `equipo/handoffs/2026-10-22-sprint5-qr.md`. Pendiente: probar con la cámara de un iPhone y un Android reales.
+
+## Sprint 6 — Autorizaciones A1–A8 y bloqueos legales (Dev Full-stack) ✅ listo para revisión de QA
+Alcance cerrado por el Stakeholder el 2026-10-22 (decisiones #15 a #21 en `decisiones-negocio.md`). La app oficial **no se conecta a `plataforma`** (`config.js` vacío); lo nuevo solo existe con servidor configurado, salvo la edad mínima.
+
+| Listo | En curso | En revisión | Hecho |
+|---|---|---|---|
+| | | | S6-1 BD r1 v1.4: tipos `cloud_transfer`, `photo_view_coach`, `coach_agreement`; compartir apagado por defecto; `core.consent_archive` seudonimizado + `delete_my_account` que archiva (28 pruebas SQL nuevas, estricto en verde) |
+| | | | S6-2 Edad mínima 18 (perfil, formulario, datos de menores no se borran en silencio) |
+| | | | S6-3 `consent-texts.js` con A1–A8 versionados + A1/A2 al crear cuenta, A3/A4 al activar la copia (sin A3+A4 no se sincroniza), A5 por categoría (`compartir-2`, comidas y hábitos apagados, migración de vínculos), A6a/A6b (solo registran; **fotos a la nube siguen apagadas**), A7 (bloquea Clientes e Invitar del coach), A8 |
+| | | | S6-4 Pruebas: unitarias, E2E con letra ancha a 390 px (`s6-consentimientos.spec.js`), caché v28 |
+
+Pendiente del abogado (no es código): aprobar los textos y el Acuerdo del coach, fijar plazos, y **antes de conectar `plataforma` regenerar `legal/*.html` desde los textos v1.0 y subir `LEGAL_VERSIONS`**. Pendiente del Stakeholder: volver a pegar `supabase/r1.sql` en `pruebas` y `plataforma`.
+Handoff: `equipo/handoffs/2026-10-22-sprint6-consentimientos.md`.

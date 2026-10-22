@@ -2,6 +2,7 @@
 // Servidor FALSO (?remote=fake). La app OFICIAL (sin config) no cambia en nada.
 const { test, expect, state, CONSENT } = require('./helpers');
 const Schema = require('../../schema.js');
+const { consentsSeed } = require('./fake-helpers');
 
 const FAKE = 'index.html?remote=fake';
 const SKIP = { 'perdida-grasa:account-skip': '1' };
@@ -11,15 +12,15 @@ const CLOUD = 'Tus datos se guardan en este teléfono y también en tu cuenta. L
 const ready = (page) => page.waitForFunction(() => window.__pgFakeBackend && window.PGSync);
 async function login(page) {
   await ready(page);
-  await page.evaluate(async (e) => {
+  await page.evaluate(async ({ e, seed }) => {
     const r = Remote.createFake({ backend: window.__pgFakeBackend, storage: localStorage });
     await r.auth.sendCode(e);
     await r.auth.verifyCode(e, window.__pgFakeBackend.lastCode(e));
     await r.account.joinApp();
     const { user } = await r.auth.session();
-    PGAccount.setMeta({ userId: user.id, roles: ['client'] }); // lo que deja la pantalla de cuenta al entrar
+    PGAccount.setMeta({ userId: user.id, roles: ['client'], ...seed }); // lo que deja la pantalla de cuenta al entrar (con A3 + A4)
     document.dispatchEvent(new Event('pg:signed-in'));
-  }, EMAIL);
+  }, { e: EMAIL, seed: consentsSeed() });
   await page.evaluate(() => PGAccount.refresh());
 }
 const sync = (page) => page.locator('#sync-status');

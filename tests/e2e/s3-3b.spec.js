@@ -4,6 +4,7 @@
 // re-sellar, bloqueo de salud, sin conexión y el indicador accesible.
 const { test, expect, state, CONSENT, D, KEY } = require('./helpers');
 const Schema = require('../../schema.js');
+const { consentsSeed } = require('./fake-helpers');
 
 const FAKE = 'index.html?remote=fake';
 const SKIP = { 'perdida-grasa:account-skip': '1' }; // sin pantalla de cuenta al abrir: se entra por código abajo
@@ -14,13 +15,16 @@ const ready = (page) => page.waitForFunction(() => window.__pgFakeBackend && win
 // Entra con el código del servidor simulado (lo mismo que hace la pantalla de cuenta de S3-2).
 async function login(page, email = EMAIL) {
   await ready(page);
-  return page.evaluate(async (e) => {
+  return page.evaluate(async ({ e, seed }) => {
     const r = Remote.createFake({ backend: window.__pgFakeBackend, storage: localStorage });
     await r.auth.sendCode(e);
     const { user } = await r.auth.verifyCode(e, window.__pgFakeBackend.lastCode(e));
     await r.account.joinApp();
+    // Sprint 6: la copia en la nube exige A3 + A4; aquí ya están aceptadas (la pantalla de cuenta las guarda en esta clave).
+    const prev = JSON.parse(localStorage.getItem('perdida-grasa:account') || 'null') || {};
+    localStorage.setItem('perdida-grasa:account', JSON.stringify({ ...prev, ...seed }));
     return user.id;
-  }, email);
+  }, { e: email, seed: consentsSeed() });
 }
 const records = (be, uid) => Object.values(be.records || {}).filter((r) => r.userId === uid);
 
@@ -72,14 +76,15 @@ test('dos dispositivos: confirmar dueño → sube; guardar sube a los 2 s; el ot
   const ctxB = await browser.newContext({ baseURL: test.info().project.use.baseURL, serviceWorkers: 'block', timezoneId: 'America/Bogota', viewport: { width: 390, height: 844 } });
   const b = await ctxB.newPage();
   const session = await app.pref('pg-fake-session');
-  await b.addInitScript(({ be, session, consent, key }) => {
+  await b.addInitScript(({ be, session, consent, key, seed }) => {
     if (sessionStorage.getItem('__seed')) return;
     sessionStorage.setItem('__seed', '1');
     localStorage.setItem('pg-fake-backend', be);
     localStorage.setItem('pg-fake-session', session);
     localStorage.setItem('perdida-grasa:account-skip', '1');
+    localStorage.setItem('perdida-grasa:account', JSON.stringify(seed)); // A3 + A4 de la cuenta (Sprint 6)
     localStorage.setItem(key, JSON.stringify({ schemaVersion: 4, profile: null, entries: [], foods: {}, habits: {}, library: {}, consent }));
-  }, { be: JSON.stringify(beA), session, consent: CONSENT, key: KEY });
+  }, { be: JSON.stringify(beA), session, consent: CONSENT, key: KEY, seed: consentsSeed() });
   await b.goto(FAKE);
   await ready(b);
   await expect.poll(() => b.evaluate((k) => (JSON.parse(localStorage.getItem(k)).entries || []).length, KEY), { timeout: 8000 }).toBe(2);

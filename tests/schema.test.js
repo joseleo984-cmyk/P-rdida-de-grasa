@@ -203,3 +203,31 @@ test('isSafeKey', () => {
   for (const k of ['__proto__', 'constructor', 'Prototype']) assert.ok(!Schema.isSafeKey(k), k);
   assert.ok(Schema.isSafeKey('arroz'));
 });
+
+test('edad mínima 18: se rechaza con mensaje amable y claro; 18 se acepta', () => {
+  const base = fixture().profile;
+  assert.strictEqual(Schema.AGE_MIN, 18);
+  assert.strictEqual(Schema.profileError({ ...base, age: 18 }), null);
+  assert.strictEqual(Schema.profileError({ ...base, age: 100 }), null);
+  for (const age of [17, 14, 10, 0, 1]) {
+    const msg = Schema.profileError({ ...base, age });
+    assert.match(msg, /18 años o más/, `edad ${age}`);
+    assert.match(msg, /Si escribiste mal tu edad, corrígela/);
+  }
+  assert.match(Schema.profileError({ ...base, age: 101 }), /entre 18 y 100/);
+  assert.match(Schema.profileError({ ...base, age: -3 }), /18 años o más/);
+  assert.match(Schema.profileError({ ...base, age: NaN }), /entre 18 y 100/);
+});
+
+test('edad mínima 18: datos ya guardados de un menor no se borran en silencio (quedan como borrador a corregir)', () => {
+  const base = fixture().profile;
+  const r = load({ profile: { ...base, age: 16 }, entries: [{ id: 'a1', date: '2026-10-19', weight: 80 }] });
+  assert.strictEqual(r.state.profile, null);                 // no se usa como perfil válido…
+  assert.strictEqual(r.rejected.profile.age, 16);            // …pero se conserva para precargar el formulario
+  assert.strictEqual(r.rejected.profile.name, base.name);
+  assert.match(r.rejected.reason, /18 años o más/);
+  assert.ok(r.warnings.some((w) => /18 años o más/.test(w)));
+  assert.strictEqual(r.state.entries.length, 1);             // el resto de los datos sigue intacto
+  const ok = load({ profile: { ...base, age: '18' } });      // el borrador corregido pasa
+  assert.strictEqual(ok.state.profile.age, 18);
+});

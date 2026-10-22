@@ -177,6 +177,7 @@
   // store: {
   //   getState(), saveMerged(state)        ← guarda SIN stampChanges (no re-sella updatedAt; §5.3 regla crítica)
   //   getMeta(), setMeta(meta)              ← { userId, deviceId, cursor, pushedUpTo, lastOkAt, lastError }
+  //   cloudAllowed?()                       ← false si la persona no autorizó la copia en la nube (A3+A4): no se sincroniza
   //   healthAllowed()                       ← false si el bloqueo de salud (healthPart) impide escribir: no se sincroniza
   //   ownerId()                             ← userId dueño de los datos locales; si no coincide con la sesión, no se sincroniza
   //   photosCloudAllowed?()                 ← autorización "copia de fotos en la nube"
@@ -193,6 +194,8 @@
     async function cycle() {
       const meta0 = store.getMeta() || {};
       if (!meta0.userId) throw Object.assign(new Error('Sin sesión'), { code: 'auth' });
+      // Sprint 6 (A3/A4): sin la autorización de la copia en la nube NO se sube ni se baja nada (modo local).
+      if (typeof store.cloudAllowed === 'function' && !store.cloudAllowed()) return { nocloud: true };
       if (!store.healthAllowed()) return { blocked: true };
       // Dueño de los datos locales (QA S3-2 O1): NUNCA se suben datos que no sean de la cuenta en sesión. Sin dueño
       // confirmado ('unconfirmed') o con otro dueño ('conflict') no se sincroniza hasta que el usuario decida en la UI.
@@ -288,6 +291,7 @@
       if (running) return running;
       setStatus({ state: 'syncing' });
       running = cycle().then((r) => {
+        if (r.nocloud) { setStatus({ state: 'nocloud' }); return { status: 'nocloud' }; }
         if (r.blocked) { setStatus({ state: 'blocked' }); return { status: 'blocked' }; }
         if (r.owner) { setStatus({ state: 'owner', lastError: r.owner }); return { status: 'owner', reason: r.owner }; }
         failures = 0;

@@ -24,6 +24,10 @@
   // LEGAL-01: versiones vigentes de los textos legales (deben coincidir con "**Versión:**" de los .md;
   // lo comprueba tests/legal.test.js). Si cambian, la app pide aceptar de nuevo.
   const LEGAL_VERSIONS = { terms: '0.1', privacy: '0.1' };
+  // Edad mínima (decisión del Stakeholder, 2026-10-22): 18 años. Con menos no se guarda el perfil; si ya había uno
+  // guardado, no se borra: queda como borrador para que la persona lo corrija (ver normalizeProfile).
+  const AGE_MIN = 18;
+  const AGE_UNDER_MSG = `Esta app es solo para personas de ${AGE_MIN} años o más. Si escribiste mal tu edad, corrígela; si eres menor de edad, por ahora no podemos guardar tu perfil.`;
 
   const MEALS = ['Desayuno', 'Almuerzo', 'Cena', 'Snack'];
   const POSES = ['frente', 'perfil', 'espalda'];
@@ -123,7 +127,8 @@
   function profileError(p) {
     if (!isObj(p)) return 'Perfil vacío';
     if (p.sex !== 'male' && p.sex !== 'female') return 'Elige el sexo';
-    if (!(p.age >= 14 && p.age <= 100)) return 'La edad debe estar entre 14 y 100 años';
+    if (Number.isFinite(p.age) && p.age < AGE_MIN) return AGE_UNDER_MSG;
+    if (!(p.age >= AGE_MIN && p.age <= 100)) return `La edad debe estar entre ${AGE_MIN} y 100 años`;
     if (!(p.height >= 120 && p.height <= 230)) return 'La estatura debe estar entre 120 y 230 cm';
     if (!(p.startWeight >= 30 && p.startWeight <= 400)) return 'El peso inicial debe estar entre 30 y 400 kg';
     if (!(p.goalWeight >= 30 && p.goalWeight <= 400)) return 'El peso meta debe estar entre 30 y 400 kg';
@@ -633,7 +638,7 @@
     return { foods: out, copied: copies.length, skipped };
   }
 
-  const api = { CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, normalizeStoredPhoto, isSafeKey,
+  const api = { AGE_MIN, AGE_UNDER_MSG, CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, normalizeStoredPhoto, isSafeKey,
     LEGAL_VERSIONS, normalizeConsent, consentStatus, buildConsent, setConsentFlag,
     EPOCH, uuid, isUUID, stampChanges, purgeDeleted, mergeRecords, toRecords, fromRecords, mergeState, clampStamp, MAX_SKEW_MS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

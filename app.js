@@ -318,20 +318,34 @@
     render();
   });
 
+  // Edad mínima 18: el aviso amable se ve en pantalla y también en el globo del navegador (en vez de "mayor o igual que 18").
+  function checkAge() {
+    const input = profileForm.elements.age;
+    const v = Number(input.value);
+    const under = input.value !== '' && Number.isFinite(v) && v < Schema.AGE_MIN;
+    input.setCustomValidity(under ? Schema.AGE_UNDER_MSG : '');
+    const note = $('#age-note');
+    note.textContent = under ? Schema.AGE_UNDER_MSG : '';
+    note.classList.toggle('hidden', !under);
+  }
+  profileForm.elements.age.addEventListener('input', checkAge);
+
   function fillProfileForm() {
     const p = state.profile || (pending && pending.profile);
     const el = profileForm.elements;
     if (!p) {
       el.startDate.value = today();
       el.rate.value = '0.005';
+      checkAge();
       return;
     }
     for (const k of Object.keys(p)) if (el[k]) el[k].value = p[k];
     if (!el.startDate.value) el.startDate.value = today();
+    checkAge();
   }
   function renderProfileIssue() {
     const box = $('#profile-issue');
-    const msg = !state.profile && pending ? `Revisa tu perfil: ${pending.reason}. Corrige los datos y pulsa Guardar.` : '';
+    const msg = !state.profile && pending ? `Revisa tu perfil: ${pending.reason.replace(/\.$/, '')}. Corrige los datos y pulsa Guardar.` : '';
     if (box.textContent !== msg) box.textContent = msg;
     box.classList.toggle('hidden', !msg);
   }
@@ -1487,6 +1501,7 @@
   // Disparadores: al abrir, al volver a la app, 2 s después de guardar, al recuperar la conexión, cada 5 min visible y
   // el botón "Sincronizar ahora". Nunca sincroniza sin autorización de datos de salud ni con datos de otra cuenta.
   const SYNC_META_KEY = PGNS.key('sync');
+  const ACCOUNT_KEY = PGNS.key('account');
   const OWNER_KEY = PGNS.key('owner');
   const COMMENTS_KEY = PGNS.key('comments');
   const PRE_SYNC_KEY = PGNS.key('backup-pre-sync');
@@ -1507,9 +1522,13 @@
     },
     getMeta: () => readJSON(SYNC_META_KEY) || {},
     setMeta: (m) => setPref(SYNC_META_KEY, JSON.stringify(m)),
+    // Sprint 6 (A3 + A4): la copia en la nube solo corre si la cuenta tiene vigentes las dos autorizaciones (account.js las guarda).
+    cloudAllowed: () => !window.ConsentTexts || ConsentTexts.cloudAllowed(readJSON(ACCOUNT_KEY)),
     healthAllowed: () => !saveBlocked && can('sensitiveHealth'),
     ownerId: () => getPref(OWNER_KEY),
-    photosCloudAllowed: () => false, // S3-5: aún no existe la autorización "copia de fotos en la nube" → fotos solo locales
+    // Sprint 6: A6a/A6b ya se registran como consentimiento, pero la SUBIDA de fotos a la nube sigue APAGADA a propósito.
+    // No cambiar a true sin: bucket probado, aprobación del abogado y la decisión del Stakeholder.
+    photosCloudAllowed: () => false,
     saveComments(list) {
       const byId = new Map((readJSON(COMMENTS_KEY) || []).map((c) => [c.id, c]));
       for (const c of list) if (c && c.id) byId.set(c.id, c);
@@ -1524,7 +1543,7 @@
     el.classList.toggle('hidden', !stateName);
     el.dataset.state = stateName || '';
     if (el.textContent !== txt) el.textContent = txt; // la región viva solo cambia si cambia el texto
-    $('#btn-sync-now').classList.toggle('hidden', !stateName || stateName === 'running');
+    $('#btn-sync-now').classList.toggle('hidden', !stateName || stateName === 'running' || stateName === 'nocloud');
     renderBackup();
   }
 
@@ -1603,6 +1622,7 @@
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleSync(0); });
     window.addEventListener('online', () => scheduleSync(0));
     document.addEventListener('pg:signed-in', () => scheduleSync(0));
+    document.addEventListener('pg:cloud-changed', () => scheduleSync(0)); // Sprint 6: se activó o retiró la copia en la nube
     document.addEventListener('pg:account-changed', (ev) => { cloudSignedIn = !!(ev.detail && ev.detail.signedIn); if (!cloudSignedIn) syncSt = { state: 'idle', lastOkAt: null }; renderBackup(); });
     setInterval(() => { if (document.visibilityState === 'visible') scheduleSync(0); }, 5 * 60 * 1000);
     syncNow();

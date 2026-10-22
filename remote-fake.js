@@ -7,7 +7,7 @@
 
   const APP = 'grasa';
   const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  const CONSENT_KINDS = ['terms', 'privacy', 'adult', 'sensitive_health', 'photos_cloud',
+  const CONSENT_KINDS = ['terms', 'privacy', 'adult', 'sensitive_health', 'cloud_transfer', 'photos_cloud', 'photo_view_coach', 'coach_agreement',
     'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos'];
   const RECORD_KINDS = ['profile', 'entry', 'food', 'habit', 'library'];
   const SHARE_KEYS = ['body', 'notes', 'nutrition', 'habits', 'photos'];
@@ -58,6 +58,8 @@
   const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
   const normEmail = (e) => String(e || '').trim().toLowerCase();
   const iso = (ms) => new Date(ms).toISOString();
+  // Seudónimo de 64 hex SOLO para el servidor falso (no es criptográfico: el real usa SHA-256 con sal del servidor).
+  const pseudoHash = (str) => { let out = ''; let h = 2166136261; for (let i = 0; out.length < 64; i++) { h = Math.imul(h ^ (str.charCodeAt(i % str.length) + i), 16777619) >>> 0; out += h.toString(16).padStart(8, '0'); } return out.slice(0, 64); };
   const clone = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x)));
 
   // ---------- Estado del servidor (compartido entre "dispositivos") ----------
@@ -76,6 +78,7 @@
       this.photos = {};         // id → fila
       this.comments = {};       // id → fila
       this.consentEvents = [];
+      this.consentArchive = []; // Sprint 6: prueba mínima seudonimizada que sobrevive a la baja (solo pruebas; el real es core.consent_archive)
       this.photoViews = [];
       this.blobs = {};          // path → Blob (no se persiste)
       this.revoked = {};        // userId → ms desde el que las sesiones anteriores no valen
@@ -135,13 +138,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, photoViews, revoked, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, photoViews, revoked, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, revoked, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, revoked, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'photoViews', 'revoked']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'revoked']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -268,6 +271,12 @@
         for (const k of Object.keys(be.records)) if (k.startsWith(u.id + '|')) delete be.records[k];
         for (const [id, p] of Object.entries(be.photos)) if (p.userId === u.id) delete be.photos[id];
         for (const [id, c] of Object.entries(be.comments)) if (c.clientId === u.id || c.coachId === u.id) delete be.comments[id];
+        // Sprint 6: antes de borrar, copia mínima y seudonimizada (sin uuid, correo ni nombre), como core.delete_my_account().
+        const pseudo = (id) => pseudoHash('fake-salt:' + id);
+        for (const x of be.consentEvents.filter((e) => e.userId === u.id)) {
+          be.consentArchive.push({ userPseudoId: pseudo(x.userId), coachPseudoId: x.coachId ? pseudo(x.coachId) : null, appId: x.appId, kind: x.kind,
+            action: x.granted ? 'grant' : 'revoke', version: x.version, textHash: x.textHash, clientAt: x.clientAt, eventAt: x.createdAt, archivedAt: iso(be.clock.now()) });
+        }
         be.consentEvents = be.consentEvents.filter((x) => x.userId !== u.id);
         be._persist();
         await auth.signOut();
@@ -362,8 +371,9 @@
     // ---------- Cliente ↔ coach ----------
     const normShares = (s) => {
       const o = s && typeof s === 'object' ? s : {};
-      return { body: o.body === undefined ? true : o.body === true, notes: o.notes === true, nutrition: o.nutrition === undefined ? true : o.nutrition === true,
-        habits: o.habits === undefined ? true : o.habits === true, photos: o.photos === true };
+      // Sprint 6 (C2): comidas y hábitos nacen apagados, igual que en la base real.
+      return { body: o.body === undefined ? true : o.body === true, notes: o.notes === true, nutrition: o.nutrition === true,
+        habits: o.habits === true, photos: o.photos === true };
     };
     const linkOut = (l) => (l ? { id: l.id, coachId: l.coachId, businessName: (be.coaches[l.coachId] || {}).businessName || '', shares: { ...l.shares }, since: l.createdAt } : null);
     // v1.1 §10.1: `shares` lleva `version` y `textHash` del texto de la pantalla de compartir.

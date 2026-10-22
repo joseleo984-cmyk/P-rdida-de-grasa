@@ -25,3 +25,15 @@
 | 12 | Datos de contacto | José Granados · Calle 18 # 16-27, Barranquilla · joseleo984@gmail.com · +57 312 887 6135. **No se publica la cédula.** |
 | 13 | Conservación | Archivos recibidos: mientras el cliente siga en el servicio; máx. 30 días después de dejarlo |
 | 14 | Canal de datos | **No usar WhatsApp para enviar datos** (no da confianza) → **opción B: cuentas reales (R1) antes del piloto**, Supabase plan gratis durante el piloto |
+
+## 2026-10-22 (Sprint 6: consentimientos y bloqueos legales)
+| # | Tema | Decisión |
+|---|---|---|
+| 15 | Edad mínima | **18 años.** El perfil rechaza edades menores con un mensaje claro y amable. Los datos ya guardados de menores no se borran en silencio: la app avisa y pide corregir. |
+| 16 | Acuerdo del coach (A7) | El coach lo **acepta al registrarse como coach**, antes de ver datos de clientes y antes de tener código de invitación activo. Se registra como consentimiento `coach_agreement` (versión y huella del texto). |
+| 17 | Fotos | **Dos autorizaciones separadas**: A6a «guardar mis fotos en la nube» y A6b «que mi coach vea cada foto, una a una». Opcionales y revocables; no condicionan el servicio. En este sprint solo se registra el consentimiento: **la subida de fotos a la nube sigue apagada**. |
+| 18 | Brevo | Se **nombra explícitamente** en A4 (copia en la nube y transmisión internacional): Supabase EE. UU. (Virginia) y Brevo para el correo del código. |
+| 19 | Retención | Se acepta la propuesta del borrador: cuenta inactiva con aviso a los 12 meses y borrado entre los 13 y 24 meses; prueba mínima seudonimizada del consentimiento 3 a 5 años. **En este sprint solo se implementa la conservación mínima seudonimizada al borrar la cuenta**; los plazos de inactividad quedan documentados, no automatizados. |
+| 20 | Dominio y correo propios | Se pospone hasta que la app tenga acogida. |
+| 21 | Impuestos (IVA de la plataforma) | Posición del Stakeholder, **por validar con un contador**. No es tarea de código. |
+
