@@ -48,6 +48,11 @@ test('soloNube: una pantalla de aceptación, sin «solo en mi teléfono» ni «A
   await H.enterWithEmail(p, 'ana@cliente.co', 'Ana Martínez');
   // El enlace del coach lleva directo a conectarse: A5c con solo medidas (fijo), hábitos (elegido) y fotos (aparte)
   await expect(p.locator('#acc-share-title')).toHaveText('Te vas a conectar con «Laura Fit».');
+  // Quien llega con el enlace NO ve la pregunta «¿coach o cliente?»: ni las opciones ni el nombre comercial
+  await expect(p.locator('#acc-role-title')).toHaveText('Te invitó tu coach');
+  await expect(p.locator('#form-acc-role .acc-roles')).toBeHidden();
+  await expect(p.getByLabel(/Soy coach/)).toBeHidden();
+  await expect(p.locator('#acc-coach-fields')).toBeHidden();
   await expect(p.locator('#acc-share [name=share_body]')).toBeChecked();
   await expect(p.locator('#acc-share [name=share_body]')).toBeDisabled();
   await expect(p.locator('#acc-share [name=share_habits]')).toBeChecked();
