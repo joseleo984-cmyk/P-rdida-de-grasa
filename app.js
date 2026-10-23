@@ -2011,6 +2011,27 @@
     document.body.classList.add('has-env-banner');
   }
 
+  // Diagnóstico de pantalla (solo con ?diag=1 en el enlace): muestra las medidas del navegador para entender por qué una barra fija queda mal puesta.
+  if (/[?&]diag=1\b/.test(location.search)) {
+    const box = document.createElement('pre');
+    box.style.cssText = 'position:fixed;left:4px;top:calc(env(safe-area-inset-top) + 4px);z-index:99999;margin:0;padding:6px 8px;font:11px/1.3 ui-monospace,Menlo,monospace;background:rgba(0,0,0,.82);color:#7CFC9A;border-radius:8px;pointer-events:none;max-width:92vw;white-space:pre-wrap';
+    document.body.appendChild(box);
+    const draw = () => {
+      const vv = window.visualViewport, bar = document.querySelector('.tabbar'), r = bar ? bar.getBoundingClientRect() : null;
+      const standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+      box.textContent = [
+        `inner ${innerWidth}x${innerHeight}  client ${document.documentElement.clientHeight}  screen ${screen.height}`,
+        vv ? `vv h${Math.round(vv.height)} top${Math.round(vv.offsetTop)} esc${vv.scale.toFixed(2)}` : 'sin visualViewport',
+        `scrollY ${Math.round(scrollY)}  standalone ${standalone}`,
+        r ? `barra top${Math.round(r.top)} bottom${Math.round(r.bottom)} alto${Math.round(r.height)}` : 'sin barra',
+        `safe-bottom ${getComputedStyle(document.body).paddingBottom}`,
+      ].join('\n');
+    };
+    ['scroll', 'resize', 'touchend', 'focusout'].forEach((ev) => addEventListener(ev, () => setTimeout(draw, 50), { passive: true }));
+    if (window.visualViewport) { visualViewport.addEventListener('resize', draw); visualViewport.addEventListener('scroll', draw); }
+    setInterval(draw, 1000); draw();
+  }
+
   // iPhone/iPad: tras el teclado, un zoom o volver desde otra app, la barra fija puede quedar a mitad de pantalla.
   // Un empujón de 1 px al desplazamiento hace que Safari vuelva a calcular la posición de las barras fijas.
   (() => {
