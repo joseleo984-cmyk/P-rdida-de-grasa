@@ -97,7 +97,7 @@ test('(d) los service workers de la raíz y de pruebas conviven sin borrarse las
   await open(page, site.base + '/');
   await page.waitForTimeout(500);
   const keys = await page.evaluate(() => caches.keys());
-  expect(keys.sort()).toEqual(['perdida-grasa-pruebas-v40', 'perdida-grasa-v40']);
+  expect(keys.sort()).toEqual(['perdida-grasa-pruebas-v41', 'perdida-grasa-v41']);
   for (const k of keys) expect(await page.evaluate(async (k) => (await (await caches.open(k)).keys()).length, k)).toBeGreaterThan(5);
-  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v40')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
+  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v41')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
 });

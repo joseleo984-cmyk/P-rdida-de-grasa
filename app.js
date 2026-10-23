@@ -2011,6 +2011,26 @@
     document.body.classList.add('has-env-banner');
   }
 
+  // iPhone/iPad: tras el teclado, un zoom o volver desde otra app, la barra fija puede quedar a mitad de pantalla.
+  // Un empujón de 1 px al desplazamiento hace que Safari vuelva a calcular la posición de las barras fijas.
+  (() => {
+    const vv = window.visualViewport;
+    let t = 0;
+    const resync = () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        if (vv && (vv.scale > 1.01 || vv.height < window.innerHeight - 1)) return;   // zoom o teclado abierto: no tocar
+        const y = window.scrollY;
+        window.scrollTo(window.scrollX, y + 1);
+        window.scrollTo(window.scrollX, y);
+      }, 150);
+    };
+    document.addEventListener('focusout', resync);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) resync(); });
+    window.addEventListener('pageshow', resync);
+    if (vv) vv.addEventListener('resize', resync);
+  })();
+
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
