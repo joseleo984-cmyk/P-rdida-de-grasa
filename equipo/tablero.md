@@ -161,3 +161,19 @@ Alcance cerrado por el Stakeholder el 2026-10-22 (decisiones #15 a #21 en `decis
 
 Pendiente del abogado (no es código): aprobar los textos y el Acuerdo del coach, fijar plazos, y **antes de conectar `plataforma` regenerar `legal/*.html` desde los textos v1.0 y subir `LEGAL_VERSIONS`**. Pendiente del Stakeholder: volver a pegar `supabase/r1.sql` en `pruebas` y `plataforma`.
 Handoff: `equipo/handoffs/2026-10-22-sprint6-consentimientos.md`.
+
+## Sprint 11 — «App para coaches», Etapa 1 (Dev Full-stack) ✅ listo para revisión de QA
+Decisión del Stakeholder (2026-10-23): el público primero son los coaches. Solo en la copia de pruebas (`producto: 'coach'`, `soloNube: true`); la app oficial queda igual.
+
+| Listo | En curso | En revisión | Hecho |
+|---|---|---|---|
+| | | | S11-1 BD r1 v1.6: `paid_until`, `set_client_payment`, bloqueo `payment_required` en `sync_push` y subida de fotos (342 comprobaciones SQL, estricto en verde) |
+| | | | S11-2 Asesorados y cobros: lista con Pagó / No pagó, resumen, orden por vencimiento, «vence en N días» |
+| | | | S11-3 Bloqueo M4 («Tu acceso está en pausa»): ver, descargar y borrar siempre; «Faltan N días» para el cliente |
+| | | | S11-4 Medidas de cuerpo (esquema v5) con gráfica y tabla Inicio/Hoy/Cambio; ficha del coach |
+| | | | S11-5 Hábitos (agua, pasos, sueño, entrenó) con avance semanal; resumen en la lista y en la ficha del coach; «compartir hábitos» sin premarcar |
+| | | | S11-6 Fotos en la nube detrás de A6a y A6b (una a una), comparar antes/después, bloqueadas por pago |
+| | | | S11-7 Entrada «solo con cuenta» (una pantalla, autorización única de prueba) y modo producto coach |
+
+Pendiente del Stakeholder: pegar `supabase/r1.sql` (v1.6) en `pruebas` y luego en `plataforma`; probar en el iPad (ver handoff). Pendiente del abogado: autorización única (`equipo/legal/borradores/autorizacion-unica-prueba.md`).
+Handoff: `equipo/handoffs/2026-10-24-sprint11-coach.md`.

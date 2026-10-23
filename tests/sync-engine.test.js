@@ -321,3 +321,34 @@ test('dueño de los datos (QA S3-2 O1): sin dueño confirmado o con otro dueño 
   A.owner = U1;
   assert.strictEqual((await A.sync.run()).status, 'ok', 'al confirmar el dueño, sincroniza');
 });
+
+// ---------- Sprint 11 (r1 v1.6): payment_required = «pausa», no error técnico ----------
+test('payment_required: estado «paused», sin reintentos ni error técnico; al volver a estar al día, sincroniza', async () => {
+  const w = world();
+  const a = w.mk();
+  weigh(a, '2026-10-20', 80);
+  let blocked = true;
+  const real = a.sync;
+  const remote = w.server.remoteFor(U1);
+  const guard = { sync: { ...remote.sync, push: async (x) => { if (blocked) throw Object.assign(new Error('Tu acceso está en pausa'), { code: 'payment_required', retryable: false }); return remote.sync.push(x); } } };
+  const dev = Sync.createSync({ remote: guard, store: a, now: w.clock });
+  void real;
+  const r = await dev.run();
+  assert.strictEqual(r.status, 'paused');
+  assert.strictEqual(dev.status().state, 'paused');
+  assert.strictEqual(dev.status().lastError, null);
+  assert.strictEqual(dev.status().nextRetryAt, null);
+  assert.deepStrictEqual(a.getMeta().lastError ?? null, null, 'no se guarda como error técnico');
+  blocked = false;
+  assert.strictEqual((await dev.run()).status, 'ok');
+  assert.strictEqual(weightOn(w.mk(), '2026-10-20') === undefined, true);   // otro móvil sin sincronizar aún no lo ve
+  const b = w.mk();
+  assert.strictEqual((await b.sync.run()).status, 'ok');
+  assert.strictEqual(weightOn(b, '2026-10-20'), 80);
+});
+test('CloudView: el texto de la pausa no habla de errores técnicos', () => {
+  const CV = require('../cloud-view.js');
+  const t = CV.syncText({ state: 'paused' });
+  assert.match(t, /acceso está en pausa/);
+  assert.doesNotMatch(t, /error|servidor|42501/i);
+});
