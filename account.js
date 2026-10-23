@@ -377,14 +377,30 @@
     const inv = pendingInvite();
     if (inv) { showInviteRole(inv); return; }
     $('#form-acc-role').reset();
+    setRoleMode(false);
     updateRoleFields();
     step('role');
+  }
+  // Quien llega con el enlace de su coach NO ve la pregunta «¿coach o cliente?»: ya sabemos que es cliente.
+  // Sin invitación y con solo-nube, las dos opciones se dicen como lo que son («tengo el código de mi coach» / «soy coach»).
+  function setRoleMode(invited) {
+    const form = $('#form-acc-role');
+    form.classList.toggle('invited', !!invited);
+    $('#acc-role-title').textContent = invited ? 'Te invitó tu coach' : '¿Cómo vas a usar la app?';
+    const labels = form.querySelectorAll('.acc-role');
+    if (labels.length === 2 && SOLO) {
+      labels[0].querySelector('strong').textContent = 'Tengo el código de mi coach';
+      labels[0].querySelector('.small').textContent = 'Mi coach me invitó: entro con su código.';
+      labels[1].querySelector('strong').textContent = 'Soy coach';
+      labels[1].querySelector('.small').textContent = 'Acompaño a mis asesorados y veo su progreso.';
+    }
   }
   // A1: pantalla de vinculación con el código de la invitación ya escrito y "cliente" elegido.
   function showInviteRole(inv) {
     openScreen('role');
     const form = $('#form-acc-role');
     form.reset();
+    setRoleMode(true);
     form.elements.role.value = 'client';
     $('#acc-coach-code').value = inv.code;
     updateRoleFields();
@@ -961,7 +977,7 @@
       const own = ownership(s.user.id);
       if (own !== 'ok') { openScreen(own === 'other' ? 'other' : 'owner'); return; }
       if (!meta.cloudAsked && !CT.cloudAllowed(meta)) { showCloudStep(); return; } // también cuentas de antes del Sprint 6: se pregunta una vez
-      if (!meta.onboarded) { const inv = pendingInvite(); if (inv) showInviteRole(inv); else { openScreen('role'); updateRoleFields(); } return; }
+      if (!meta.onboarded) { const inv = pendingInvite(); if (inv) showInviteRole(inv); else { setRoleMode(false); openScreen('role'); updateRoleFields(); } return; }
       if (inviteFresh) handleInvite(meta);
       return;
     }
