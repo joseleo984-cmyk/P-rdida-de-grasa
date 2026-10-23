@@ -772,3 +772,22 @@ Una sola migración: `supabase/migrations/20261025120000_r1_rutinas.sql` (regene
 | 16.5 | `core.delete_my_account` se niega (`invalid`) si quedan archivos en `ejercicios`; `remote.js` los borra antes. | |
 
 **Remote (real y fake, mismo contrato):** `client.myRoutine()`, `client.gifBlob(coachId, gifId)`, `coach.listGifs()`, `uploadGif(file, name)`, `deleteGif(id)`, `gifBlob(id)`, `getRoutine(clientId)`, `saveRoutine(clientId, {title, days})`, `deleteRoutine(clientId)`.
+
+## 17. Cambios v1.8 (Etapa 2b: biblioteca de rutinas, asignar, mostrar/ocultar y «Rutina de hoy»)
+
+Una sola migración aditiva e idempotente: `supabase/migrations/20261026120000_r1_rutinas_biblioteca.sql` (regenera `supabase/r1.sql`). Pruebas: `supabase/tests/120_rutinas_biblioteca.test.sql` (nueva; incluye «la migración conserva los datos de v1.7» aplicando la migración encima de un estado v1.7 con `\ir`), y ajustes de `10_estructura` (17 tablas) y `60_qa_seguridad` (lista blanca). Detalle y pasos: `equipo/handoffs/rutinas-v18.md`.
+
+| # | Cambio | Error / resultado |
+|---|---|---|
+| 17.1 | `grasa.routine_templates` («Mis rutinas», plantillas del coach, máx. **50** por coach) y `grasa.daily_routines` (la «Rutina de hoy», una por coach). RLS sin políticas ni permisos directos. | `permission denied` por la API de tablas |
+| 17.2 | `grasa.routines` (v1.7) pasa a **rutinas asignadas**: se quita el único (coach, cliente) y se añade `visible boolean default true`. Las filas existentes quedan asignadas y visibles. Máx. **20** por coach+cliente. | `invalid` detail `routine_limit` / `template_limit` |
+| 17.3 | Coach (acuerdo A7 + coach activo): `save_template(id\|null, title, content)`, `list_templates()`, `delete_template(id)` (las copias y la del día NO cambian). `assign_template(template, clients[])`: 1–100 asesorados con vínculo ACTIVO, **crea una copia independiente** para cada uno, visible, todo o nada. | `not_found` · `forbidden` · `invalid` |
+| 17.4 | Coach con vínculo activo: `list_client_routines(client)`, `save_client_routine(client, id\|null, title, content)` (con id modifica ESA copia, sin tocar `visible`), `delete_client_routine(id)`, `set_routine_visible(id, bool)` (ocultar no exige acuerdo ni vínculo; mostrar sí). | `forbidden` · `not_found` |
+| 17.5 | `publish_daily(template, day date)` copia la plantilla como rutina de hoy (día = fecha 'AAAA-MM-DD' del dispositivo del coach; el servidor acepta hoy-2 … hoy+2 en Bogotá), reemplaza la anterior. `get_daily()`, `clear_daily()` (no exige acuerdo). | `invalid` detail `bad_day` |
+| 17.6 | Cliente: `my_routines()` = SOLO sus rutinas visibles, de su coach con vínculo activo y coach activo (también con el acceso en pausa por pago). `my_daily(p_today date)`: devuelve la del día SOLO si `day = p_today` (la fecha de hoy del dispositivo del cliente) y con vínculo activo; si no, `null`. La app vuelve a comprobar el día al pintar. | `null` |
+| 17.7 | Compatibilidad v1.7 (misma firma): `save_routine`, `get_routine`, `delete_routine` actúan sobre la PRIMERA (más antigua) rutina del cliente; `my_routine()` devuelve la primera visible. `my_gifs()` y `delete_gif` cuentan plantillas + asignadas + la del día (`gif_uses`, interna). `routine_out` añade `visible`. | `gif_in_use` |
+| 17.8 | `core.delete_my_account` no cambia: las tablas cuelgan de `auth.users` con `on delete cascade`. Si un cliente se va y vuelve con el mismo coach, sus copias reaparecen (igual que en v1.7). | |
+
+**Remote (real y fake):** `client.myRoutines()`, `client.myDaily('AAAA-MM-DD')`; `coach.listTemplates()`, `saveTemplate(id|null, {title, days})`, `deleteTemplate(id)`, `assignTemplate(templateId, clientIds[])`, `listClientRoutines(clientId)`, `saveClientRoutine(clientId, id|null, {title, days})`, `deleteClientRoutine(id)`, `setRoutineVisible(id, bool)`, `publishDaily(templateId, 'AAAA-MM-DD')`, `getDaily()`, `clearDaily()`. Se conservan `myRoutine`, `getRoutine`, `saveRoutine`, `deleteRoutine`.
+
+**Decisión de seguridad:** el bucket `ejercicios` no cambia: un cliente activo sigue pudiendo LEER (con URL firmada) cualquier GIF de la biblioteca de su coach si conoce su uuid; los uuid nunca se entregan al cliente para rutinas ocultas ni plantillas, y los GIF no son datos del cliente.

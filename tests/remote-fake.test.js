@@ -431,3 +431,94 @@ test('rutinas: sin el acuerdo vigente del coach no se arma nada; la baja de la c
   await coachX.account.deleteAccount();
   assert.deepStrictEqual([Object.keys(backend.gifs).length, Object.keys(backend.routines).length], [0, 0]);
 });
+
+// ---------- v1.8: biblioteca de rutinas, asignar (copias), mostrar/ocultar y «Rutina de hoy» ----------
+test('biblioteca: crear plantilla, asignar a varios (copias independientes), editar la copia o la plantilla no cambia las demás', async () => {
+  const { backend, coachX, coachY, ana, bea, ids } = await rutinasSetup();
+  const t = await coachX.coach.saveTemplate(null, ROUTINE());
+  assert.deepStrictEqual([(await coachX.coach.listTemplates()).length, t.title], [1, 'Fuerza']);
+  assert.deepStrictEqual(await coachY.coach.listTemplates(), [], 'otro coach no ve las plantillas');
+  await rejects(coachY.coach.saveTemplate(t.id, ROUTINE()), 'not_found');
+  await rejects(coachY.coach.assignTemplate(t.id, [ids.ana]), 'not_found');
+  await rejects(coachX.coach.assignTemplate(t.id, []), 'invalid');
+  const out = await coachX.coach.assignTemplate(t.id, [ids.ana, ids.bea, ids.ana]);
+  assert.strictEqual(out.length, 2);
+  assert.ok(out.every((r) => r.visible === true && r.id !== t.id && r.title === 'Fuerza'));
+  const [ra] = await coachX.coach.listClientRoutines(ids.ana);
+  await coachX.coach.saveClientRoutine(ids.ana, ra.id, { ...ROUTINE(), title: 'Fuerza de Ana' });
+  assert.strictEqual((await bea.client.myRoutines())[0].title, 'Fuerza', 'la copia de Bea no cambia');
+  await coachX.coach.saveTemplate(t.id, { ...ROUTINE(), title: 'Nueva versión' });
+  assert.deepStrictEqual([(await bea.client.myRoutines())[0].title, (await ana.client.myRoutines())[0].title], ['Fuerza', 'Fuerza de Ana'], 'editar la plantilla no cambia las copias');
+  await coachX.coach.deleteTemplate(t.id);
+  assert.strictEqual((await ana.client.myRoutines()).length, 1, 'borrar la plantilla no borra las copias');
+  // varias rutinas por cliente; otro coach no toca las de este cliente
+  await coachX.coach.saveClientRoutine(ids.ana, null, ROUTINE());
+  assert.strictEqual((await coachX.coach.listClientRoutines(ids.ana)).length, 2);
+  await rejects(coachY.coach.listClientRoutines(ids.ana), 'forbidden');
+  await rejects(coachY.coach.setRoutineVisible(ra.id, false), 'not_found');
+  assert.strictEqual(Object.keys(backend.routines).length, 3);
+});
+test('biblioteca: ocultar/mostrar, límites (50 plantillas, 20 por asesorado) y todo o nada al asignar', async () => {
+  const { coachX, ana, bea, ids } = await rutinasSetup();
+  const t = await coachX.coach.saveTemplate(null, ROUTINE());
+  const [ra] = await coachX.coach.assignTemplate(t.id, [ids.ana]);
+  assert.strictEqual((await coachX.coach.setRoutineVisible(ra.id, false)).visible, false);
+  assert.deepStrictEqual(await ana.client.myRoutines(), [], 'oculta: el cliente no la ve');
+  assert.strictEqual(await ana.client.myRoutine(), null);
+  assert.strictEqual((await coachX.coach.listClientRoutines(ids.ana))[0].visible, false, 'el coach sí la ve');
+  await coachX.coach.setRoutineVisible(ra.id, true);
+  assert.strictEqual((await ana.client.myRoutines()).length, 1);
+  for (let i = 0; i < 19; i++) await coachX.coach.saveClientRoutine(ids.bea, null, ROUTINE());
+  await coachX.coach.assignTemplate(t.id, [ids.bea]);
+  assert.strictEqual((await coachX.coach.listClientRoutines(ids.bea)).length, 20);
+  await assert.rejects(coachX.coach.assignTemplate(t.id, [ids.ana, ids.bea]), (e) => e.code === 'invalid' && e.detail === 'routine_limit');
+  assert.strictEqual((await coachX.coach.listClientRoutines(ids.ana)).length, 1, 'todo o nada');
+  await assert.rejects(coachX.coach.saveClientRoutine(ids.bea, null, ROUTINE()), (e) => e.detail === 'routine_limit');
+  for (let i = 0; i < 49; i++) await coachX.coach.saveTemplate(null, ROUTINE());
+  await assert.rejects(coachX.coach.saveTemplate(null, ROUTINE()), (e) => e.code === 'invalid' && e.detail === 'template_limit');
+  assert.strictEqual((await coachX.coach.listTemplates()).length, 50);
+  await bea.client.leaveCoach();
+  await rejects(coachX.coach.assignTemplate(t.id, [ids.bea]), 'forbidden');
+});
+test('rutina de hoy: todos los asesorados activos la ven solo el día publicado; otro coach, sin vínculo o de otro día no', async () => {
+  const { backend, coachX, coachY, ana, bea, ids } = await rutinasSetup();
+  const g = await coachX.coach.uploadGif(GIF(), 'Press');
+  const t = await coachX.coach.saveTemplate(null, ROUTINE(g.id));
+  const today = backend.todayBogota();
+  await rejects(coachX.coach.publishDaily(t.id, '2030-01-01'), 'invalid');
+  await rejects(coachY.coach.publishDaily(t.id, today), 'not_found');
+  assert.strictEqual(await coachX.coach.getDaily(), null);
+  const d = await coachX.coach.publishDaily(t.id, today);
+  assert.deepStrictEqual([d.title, d.day, d.coachId], ['Fuerza', today, ids.x]);
+  for (const c of [ana, bea]) assert.strictEqual((await c.client.myDaily(today)).title, 'Fuerza');
+  assert.strictEqual(await ana.client.myDaily(Pagos.addDays(today, -1)), null, 'ayer no');
+  assert.strictEqual(await ana.client.myDaily(Pagos.addDays(today, 1)), null, 'mañana (la de ayer no aparece hoy)');
+  await rejects(ana.client.myDaily('hoy'), 'invalid');
+  assert.strictEqual((await ana.client.gifBlob(ids.x, g.id)).size, 12, 'y puede leer sus animaciones');
+  await assert.rejects(coachX.coach.deleteGif(g.id), (e) => e.detail === 'gif_in_use');
+  // reloj del servidor: la fecha de publicación se acepta de hoy-2 a hoy+2
+  backend.clock.set('2026-10-23T15:00:00-05:00');
+  assert.ok(await coachX.coach.publishDaily(t.id, '2026-10-24'));
+  assert.strictEqual(await ana.client.myDaily('2026-10-23'), null);
+  assert.strictEqual((await ana.client.myDaily('2026-10-24')).day, '2026-10-24');
+  // otro coach: sin la de X; sin vínculo no ve nada
+  assert.strictEqual(await coachY.coach.getDaily(), null);
+  await bea.client.leaveCoach();
+  assert.strictEqual(await bea.client.myDaily('2026-10-24'), null);
+  await coachX.coach.clearDaily();
+  assert.strictEqual(await ana.client.myDaily('2026-10-24'), null);
+  assert.strictEqual(await coachX.coach.getDaily(), null);
+});
+test('biblioteca: persiste en el servidor falso (E2E) y la baja de cuenta se lleva plantillas, copias y rutina de hoy', async () => {
+  const { backend, coachX, ana, ids } = await rutinasSetup();
+  const t = await coachX.coach.saveTemplate(null, ROUTINE());
+  await coachX.coach.assignTemplate(t.id, [ids.ana]);
+  await coachX.coach.publishDaily(t.id, backend.todayBogota());
+  const b2 = Fake.FakeBackend.fromJSON(JSON.parse(JSON.stringify(backend.toJSON())));
+  assert.deepStrictEqual([Object.keys(b2.templates).length, Object.keys(b2.routines).length, Object.keys(b2.daily).length], [1, 1, 1]);
+  await ana.account.deleteAccount();
+  assert.strictEqual(Object.keys(backend.routines).length, 0);
+  assert.strictEqual(Object.keys(backend.templates).length, 1, 'las plantillas son del coach');
+  await coachX.account.deleteAccount();
+  assert.deepStrictEqual([Object.keys(backend.templates).length, Object.keys(backend.daily).length], [0, 0]);
+});
