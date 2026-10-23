@@ -225,7 +225,7 @@ test('A6a y A6b: dos interruptores separados, sin marcar, que solo registran la 
   expect(await page.evaluate(() => Object.keys(window.__pgFakeBackend.photos).length)).toBe(0);
   expect(Object.keys((await backend(page)).photos)).toHaveLength(0);
   const src = await (await page.request.get('app.js')).text();
-  expect(src).toMatch(/photosCloudAllowed: \(\) => false/);
+  expect(src).toMatch(/photosCloudAllowed: \(\) => PROD\.coach && photoCloudOn\(\)/); // Sprint 11: solo con producto 'coach' (la app oficial no lo trae: config.js sin esos campos)
   // Las autorizaciones sobreviven a recargar
   await app.reload();
   await app.goPerfil('datos');

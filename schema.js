@@ -588,6 +588,7 @@
       photos.push({
         id, date: p.date, pose, width: dim(p.width), height: dim(p.height),
         createdAt: Number.isFinite(p.createdAt) ? p.createdAt : 0, updatedAt: stamp(p.updatedAt), data: p.data,
+        ...(p.sharedWithCoach === true ? { sharedWithCoach: true } : {}),   // Sprint 11: foto marcada para que la vea el coach
       });
     });
     return { photos, warnings };

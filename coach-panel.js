@@ -15,7 +15,9 @@
   const fmtDay = (iso) => (iso ? new Date(iso + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short' }) : '—');
   const fmtStamp = (iso) => (iso ? new Date(iso).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
   const COMMENTS_KEY = PGNS.key('comments'); // contrato §5.3: comentarios del cliente, aparte del estado
-  const SHARE_NAMES = { body: 'peso, medidas y perfil', nutrition: 'comidas', habits: 'hábitos', notes: 'notas', photos: 'fotos' };
+  const PROD = window.Producto || { coach: false };   // Sprint 11: producto 'coach' (solo la copia de pruebas)
+  const SHARE_NAMES = PROD.coach ? { body: 'medidas', habits: 'hábitos', photos: 'fotos' } : { body: 'peso, medidas y perfil', nutrition: 'comidas', habits: 'hábitos', notes: 'notas', photos: 'fotos' };
+  const todayBo = () => Pagos.todayBogota();   // los cobros se miden con el día de Bogotá
 
   let A = null;           // PGAccount (remote + metadatos)
   const cache = new Map(); // clientId → { info, data, state, sem, sum }
@@ -155,6 +157,7 @@
           const data = await A.remote.coach.clientData(info.clientId);
           const state = Coach.stateFromWire(data.records);
           cache.set(info.clientId, { info, data, state, st: ClientStatus.estado(state, { today: ref, shares: info.shares }), sum: Coach.summarize(state, { today: ref }) });
+          if (PROD.coach) lastPay.set(info.clientId, info);
         } catch (err) {
           if (!(err && err.code === 'forbidden')) throw err; // revocado entre una llamada y otra: se omite
         }
@@ -186,7 +189,85 @@
   // Sprint 4: filas con avatar de iniciales, nombre, última actividad y estado con TEXTO ("Al día", "Se atrasa", "Sin registrar").
   // El estado y el peso salen de ClientStatus (puro) y solo de lo que coach_pull entrega y el cliente compartió.
   function statusChip(st) { return `<span class="chip chip-${esc(st.key)}">${esc(st.label)}</span>`; }
+  const lastPay = new Map();
+  const payOf = (c) => Pagos.status(c.info, todayBo());
+  // Sprint 11 (producto 'coach'): lista de asesorados con «Pagó / No pagó», «pagado hasta», días para vencer y cumplimiento de hábitos.
+  function renderListPay() {
+    const ul = $('#coach-clients');
+    const all = [...cache.values()];
+    const sort = $('#coach-sort').value;
+    const items = all.sort((a, b) => (sort === 'name' ? 0 : Pagos.byDue(payOf(a), payOf(b))) || displayName(a).localeCompare(displayName(b), 'es'));
+    const sm = Pagos.summary(items.map(payOf));
+    const box = $('#coach-pay-summary');
+    box.innerHTML = `<div class="a">${sm.paid}<small>${sm.paid === 1 ? 'pagó' : 'pagaron'}</small></div><div class="b">${sm.unpaid}<small>sin pagar</small></div>`;
+    box.setAttribute('aria-label', `${sm.paid} ${sm.paid === 1 ? 'pagó' : 'pagaron'} y ${sm.unpaid} sin pagar`);
+    $('#coach-subtitle').textContent = items.length ? `${items.length} asesorado${items.length === 1 ? '' : 's'}` : 'Aún no tienes asesorados';
+    if (!items.length) {
+      const code = (A.meta() || {}).coach;
+      ul.innerHTML = `<li class="small muted">Aún no tienes asesorados. Comparte tu código${code ? ` <strong>${esc(code.inviteCode)}</strong>` : ''} para que se conecten contigo.</li>`;
+      return;
+    }
+    ul.innerHTML = items.map((c) => {
+      const name = displayName(c), p = payOf(c), id = esc(c.info.clientId);
+      const habits = Habitos.listLine(c.state, todayBo(), !!(c.info.shares && c.info.shares.habits));
+      return `<li><div class="cli-pay-row">
+        <button type="button" class="cli-main" data-client="${id}" aria-label="${esc(name)}. ${esc(Pagos.coachLine(p))}. ${esc(habits)}. Abrir su ficha">
+          <span class="cli-av av${ClientStatus.hue(name)}" aria-hidden="true">${esc(ClientStatus.initials(name))}</span>
+          <span class="cli-text"><span class="cli-name who">${esc(name)}</span><span class="cli-line">${esc(Pagos.coachLine(p))}</span><span class="cli-line">${esc(habits)}</span></span>
+        </button>
+        <button type="button" class="chip-pay ${p.paid ? 'ok' : 'bad'}" data-pay="${id}" aria-label="${esc(name)}: ${p.paid ? 'pagó' : 'no pagó'}. Tocar para cambiar">${esc(Pagos.chipText(p))}</button>
+      </div></li>`;
+    }).join('');
+  }
+
+  // ---- Cobro: «Pagó» (hoy + 30 días, editable) y «No pagó» ----
+  let payFor = null, payOpener = null;
+  function openPay(clientId) {
+    const c = cache.get(clientId);
+    if (!c) return;
+    payFor = clientId;
+    payOpener = document.activeElement;
+    const p = payOf(c);
+    $('#pago-title').textContent = `Cobro de ${displayName(c)}`;
+    $('#pago-state').textContent = `Ahora: ${Pagos.chipText(p)}. ${Pagos.coachLine(p)}.`;
+    $('#pago-date').value = Pagos.defaultPaidUntil(todayBo());
+    $('#pago-error').classList.add('hidden');
+    $('#sheet-pago').showModal();
+    $('#pago-title').focus();
+  }
+  async function savePay(until, okText) {
+    const err = $('#pago-error');
+    err.classList.add('hidden');
+    const c = cache.get(payFor);
+    if (until != null && !Pagos.isISO(until)) { err.textContent = 'Elige una fecha válida.'; err.classList.remove('hidden'); $('#pago-date').focus(); return; }
+    const today = todayBo();
+    if (until != null && (Pagos.daysLeft(until, today) < -400 || Pagos.daysLeft(until, today) > 400)) { err.textContent = 'Esa fecha está muy lejos de hoy. Elige una más cercana.'; err.classList.remove('hidden'); $('#pago-date').focus(); return; }
+    for (const b of document.querySelectorAll('#form-pago button')) b.disabled = true;
+    try {
+      const r = await A.remote.coach.setPayment(payFor, until);
+      c.info = { ...c.info, paidUntil: r.paidUntil, paidMarkedAt: r.paidMarkedAt, paid: r.paid, daysLeft: r.daysLeft };
+      $('#sheet-pago').close();
+      renderList();
+      if (current === payFor) renderDetail(c);
+      toast(okText(r));
+    } catch (e) { err.textContent = errText(e); err.classList.remove('hidden'); }
+    finally { for (const b of document.querySelectorAll('#form-pago button')) b.disabled = false; }
+  }
+  function wirePay() {
+    $('#coach-clients').addEventListener('click', (ev) => { const b = ev.target.closest('[data-pay]'); if (b) openPay(b.dataset.pay); });
+    $('#btn-detail-pay').addEventListener('click', () => { if (current) openPay(current); });
+    $('#form-pago').addEventListener('submit', (ev) => { ev.preventDefault(); savePay($('#pago-date').value, (r) => `Marcado: pagó hasta el ${Pagos.dayText(r.paidUntil)}`); });
+    $('#pago-unpaid').addEventListener('click', () => savePay(Pagos.unpaidDate(todayBo()), () => 'Marcado: no pagó'));
+    $('#pago-cancel').addEventListener('click', () => $('#sheet-pago').close());
+    $('#sheet-pago').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) ev.currentTarget.close(); });
+    $('#sheet-pago').addEventListener('close', () => { const o = payOpener; payOpener = null; if (o && o.isConnected) o.focus(); });
+    $('#coach-sort').addEventListener('change', renderList);
+    $('#btn-coach-add').addEventListener('click', () => $('#tab-invitar').click());
+    $('#btn-coach-qr').addEventListener('click', () => openQr());
+  }
+
   function renderList() {
+    if (PROD.coach) { renderListPay(); return; }
     const ul = $('#coach-clients');
     const items = [...cache.values()].sort((a, b) => ClientStatus.byUrgency(a.st, b.st) || displayName(a).localeCompare(displayName(b), 'es'));
     $('#coach-subtitle').textContent = ClientStatus.subtitle(items.map((c) => c.st));
@@ -273,6 +354,7 @@
     (btn || $('#coach-title-list')).focus();
   }
   function freePhoto() {
+    if (typeof freeCompare === 'function') freeCompare();
     if (photoURL) URL.revokeObjectURL(photoURL);
     photoURL = null;
     const fig = $('#coach-photo-view');
@@ -292,10 +374,28 @@
     $('#comment-date').value = today();
   }
 
+  // Sprint 11: ficha del asesorado (M2): cobro, medidas Inicio/Hoy/Cambio, hábitos de la semana y fotos.
+  function renderDetailPay(c, sh) {
+    const p = payOf(c);
+    $('#coach-detail-light').textContent = '';
+    $('#coach-detail-pay-line').textContent = Pagos.coachLine(p);
+    const b = $('#btn-detail-pay');
+    b.textContent = Pagos.chipText(p);
+    b.className = 'chip-pay ' + (p.paid ? 'ok' : 'bad');
+    b.setAttribute('aria-label', `${displayName(c)}: ${p.paid ? 'pagó' : 'no pagó'}. Tocar para cambiar`);
+    $('#coach-detail-medidas').innerHTML = Medidas.hasAny(c.state.entries) ? PGMedTable(Medidas.summary(c.state.entries)) : `<p class="small muted">${esc(displayName(c))} todavía no registra medidas.</p>`;
+    const hb = $('#coach-detail-habits');
+    if (sh.habits) {
+      const w = Habitos.week(c.state, todayBo());
+      hb.innerHTML = w.items.map((i) => `<div class="habit${i.days === i.of ? ' done' : ''}"><span>${esc(i.label)}</span><b>${esc(i.text)}</b><div class="bar" role="progressbar" aria-label="${esc(i.label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${i.pct}"><i style="width:${i.pct}%"></i></div></div>`).join('');
+      $('#coach-detail-habits-line').textContent = w.line;
+    } else { hb.innerHTML = ''; $('#coach-detail-habits-line').textContent = Habitos.notSharedText(displayName(c)) + '. Si quiere, puede compartirlos en Más → Mis datos y permisos.'; }
+  }
   function renderDetail(c) {
     const sh = c.info.shares || {};
     $('#coach-detail-title').textContent = displayName(c);
-    $('#coach-detail-light').innerHTML = `${statusChip(c.st)} ${esc(c.st.line)}`;
+    if (PROD.coach) renderDetailPay(c, sh);
+    else $('#coach-detail-light').innerHTML = `${statusChip(c.st)} ${esc(c.st.line)}`;
     const yes = Object.keys(SHARE_NAMES).filter((k) => sh[k]).map((k) => SHARE_NAMES[k]);
     const no = Object.keys(SHARE_NAMES).filter((k) => !sh[k]).map((k) => SHARE_NAMES[k]);
     $('#coach-detail-shares').textContent = `Te muestra: ${yes.join(', ') || '—'}. No te muestra: ${no.join(', ') || '—'}. Es tu cliente desde el ${new Date(c.info.since).toLocaleDateString('es')}.`;
@@ -326,8 +426,9 @@
     // Fotos (solo si las compartió; metadatos de coach_pull). La imagen se pide al abrirla: URL firmada de corta
     // duración + registro photo_views en cada apertura. No se guarda ni la URL ni el blob.
     const photos = (c.data.photos || []).filter((p) => !p.deletedAt).sort((a, b) => String(a.date).localeCompare(String(b.date)));
-    $('#coach-detail-photos-card').classList.toggle('hidden', !sh.photos || !photos.length);
-    $('#coach-detail-photos').innerHTML = photos.map((p) => `<li><button type="button" class="btn btn-ghost" data-photo="${esc(p.id)}">Ver foto: ${esc(fmtDay(p.date))} · ${esc(p.pose)}</button></li>`).join('');
+    $('#coach-detail-photos-card').classList.toggle('hidden', !sh.photos || (!photos.length && !PROD.coach));
+    if (PROD.coach) fillCompare(photos);
+    $('#coach-detail-photos').innerHTML = !photos.length && PROD.coach ? '<li class="small muted">Todavía no marcó fotos para ti.</li>' : photos.map((p) => `<li><button type="button" class="btn btn-ghost" data-photo="${esc(p.id)}">Ver foto: ${esc(fmtDay(p.date))} · ${esc(p.pose)}</button></li>`).join('');
 
     renderComments(c);
   }
@@ -339,6 +440,34 @@
       <div class="note-meta"><span>Sobre el ${esc(fmtDay(x.refDate))} · ${esc(fmtStamp(x.createdAt))} · <strong>${x.readAt ? 'Leído' : 'No leído'}</strong></span>
       <button type="button" class="btn-link small" data-del-comment="${esc(x.id)}">Borrar</button></div></li>`).join('')
       : '<li class="small muted">Sin comentarios todavía.</li>';
+  }
+
+  // Comparar antes / después: dos fotos compartidas (cada una se abre con su propio enlace de 60 s y queda registrada).
+  let cmpURLs = [];
+  function freeCompare() { cmpURLs.forEach((u) => URL.revokeObjectURL(u)); cmpURLs = []; const o = $('#coach-compare-out'); if (o) { o.replaceChildren(); o.classList.add('hidden'); } }
+  function fillCompare(photos) {
+    freeCompare();
+    const box = $('#coach-compare');
+    box.classList.toggle('hidden', photos.length < 2);
+    const opts = photos.map((p) => `<option value="${esc(p.id)}">${esc(fmtDay(p.date))} · ${esc(p.pose)}</option>`).join('');
+    $('#coach-cmp-a').innerHTML = opts; $('#coach-cmp-b').innerHTML = opts;
+    if (photos.length > 1) { $('#coach-cmp-a').value = photos[0].id; $('#coach-cmp-b').value = photos[photos.length - 1].id; }
+  }
+  async function compareNow() {
+    const c = cache.get(current);
+    if (!c) return;
+    const find = (id) => (c.data.photos || []).find((x) => x.id === id);
+    const a = find($('#coach-cmp-a').value), b = find($('#coach-cmp-b').value);
+    if (!a || !b) return;
+    try {
+      const [ba, bb] = [await A.remote.coach.photoBlob(current, a), await A.remote.coach.photoBlob(current, b)];
+      freeCompare();
+      cmpURLs = [URL.createObjectURL(ba), URL.createObjectURL(bb)];
+      const out = $('#coach-compare-out');
+      const fig = (url, p, label) => { const f = document.createElement('figure'); const i = document.createElement('img'); i.src = url; i.alt = `${label}: foto de ${displayName(c)}, ${fmtDay(p.date)}, ${p.pose}`; const cap = document.createElement('figcaption'); cap.className = 'small'; cap.textContent = `${label} · ${fmtDay(p.date)} · ${p.pose}`; f.append(i, cap); return f; };
+      out.replaceChildren(fig(cmpURLs[0], a, 'Antes'), fig(cmpURLs[1], b, 'Después'));
+      out.classList.remove('hidden');
+    } catch (err) { toast(errText(err), true); }
   }
 
   async function reloadCurrent() {
@@ -386,6 +515,8 @@
       if (b) openClient(b.dataset.client);
     });
     $('#btn-coach-back').addEventListener('click', () => showList(current));
+    $('#btn-coach-compare').addEventListener('click', compareNow);
+    wirePay();
     $('#form-rotate').addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const f = ev.currentTarget;
@@ -517,6 +648,7 @@
     wireAgreement();
     wireCoach();
     wireClient();
+    if (PROD.coach) { $('#coach-title-list').textContent = 'Mis asesorados'; $('#btn-coach-back').textContent = '← Mis asesorados'; }
     refreshNotes();
     document.addEventListener('pg:account-changed', (ev) => {
       if (!(ev.detail && ev.detail.isCoach)) { cache.clear(); if ($('#view-coach').classList.contains('active') || $('#view-invitar').classList.contains('active')) $('#tab-panel').click(); }

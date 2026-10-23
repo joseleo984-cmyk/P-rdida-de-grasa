@@ -32,6 +32,7 @@
   }
 
   const all = () => tx('readonly', (s) => s.getAll());
+  const get = (id) => tx('readonly', (s) => s.get(id));   // Sprint 11: una foto por id (sincronización de fotos)
   const put = (photo) => tx('readwrite', (s) => s.put(photo));
   const remove = (id) => tx('readwrite', (s) => s.delete(id));
   const clear = () => tx('readwrite', (s) => s.clear());
@@ -124,5 +125,5 @@
     return migrated;
   }
 
-  root.Photos = { all, put, remove, clear, compress, exportAll, importAll, migrateIds, decode: dataURLToBlob };
+  root.Photos = { all, get, put, remove, clear, compress, exportAll, importAll, migrateIds, decode: dataURLToBlob };
 })(window);
