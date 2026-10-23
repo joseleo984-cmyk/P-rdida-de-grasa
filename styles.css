@@ -638,3 +638,46 @@ body.producto-coach .home-card .btn, body.producto-coach #view-fotos .btn-tall, 
 body.producto-coach .home-card .home-label { margin-bottom: 4px; }
 body.producto-coach .pay-summary { display: flex; }
 .seg-wrap button { min-height: 48px; }
+
+/* ===== Etapa 2: rutinas de ejercicios (Mi rutina del cliente y editor del coach). Solo con el producto 'coach': las vistas no existen en la app oficial ===== */
+.rut-head .rut-title { margin: 0 0 4px; font-size: 1.2rem; }
+.rut-day { padding: 0; overflow: hidden; margin-bottom: 12px; }
+.rut-day > summary { position: relative; display: flex; flex-direction: column; gap: 2px; min-height: 56px; padding: 14px 52px 14px 16px; cursor: pointer; list-style: none; font-weight: 700; }
+.rut-day > summary::-webkit-details-marker { display: none; }
+.rut-day > summary::after { content: '＋'; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: var(--accent); font-weight: 800; font-size: 1.2rem; }
+.rut-day[open] > summary::after { content: '−'; }
+.rut-day > summary:focus-visible, .rut-ex > summary:focus-visible { outline: 3px solid var(--goal); outline-offset: -3px; border-radius: 12px; }
+.rut-day-title { overflow-wrap: anywhere; }
+.rut-ex-list { list-style: none; margin: 0; padding: 0 10px 12px; display: grid; gap: 8px; }
+.rut-ex-row, .rut-ex > summary { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; min-height: 48px; padding: 12px; background: var(--bg); border-radius: 12px; }
+.rut-ex > summary { cursor: pointer; list-style: none; }
+.rut-ex > summary::-webkit-details-marker { display: none; }
+.rut-ex > summary .rut-ex-name::after { content: ' ▾'; color: var(--muted); }
+.rut-ex[open] > summary .rut-ex-name::after { content: ' ▴'; }
+.rut-ex-name { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.rut-ex-sets { flex: none; font-weight: 800; color: var(--accent); white-space: nowrap; }
+.rut-ex-body { padding: 8px 4px 4px; }
+.rut-note { margin: 4px 0 8px; overflow-wrap: anywhere; }
+.rut-gif { min-height: 24px; font-size: .9rem; color: var(--muted); }
+.rut-gif .btn { width: 100%; margin-top: 8px; }
+.rut-gif-img { display: block; width: 100%; max-width: 420px; height: auto; margin: 4px auto 0; border-radius: 12px; background: var(--bg); }
+#rutina-trained .btn { width: 100%; }
+body.paused #rutina-trained { display: none !important; }
+#form-rutina input[type=text], #form-gif input[type=text], #form-gif input[type=file], .rut-edit-day select { width: 100%; min-height: 48px; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+.rut-edit-day { min-width: 0; margin: 16px 0; padding: 4px 12px 12px; border: 1px solid var(--line); border-radius: 14px; }
+.rut-edit-day legend { padding: 0 6px; font-weight: 800; }
+.rut-edit-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 12px; }
+.rut-edit-ex { padding: 2px 12px 12px; border: 1px dashed var(--line); border-radius: 12px; }
+.rut-edit-ex h3 { margin: 10px 0 0; font-size: 1rem; }
+.rut-edit-actions { margin-top: 12px; }
+.rut-edit-actions .btn, .rut-edit-day > .row-actions .btn { flex: 1 1 100px; }
+#btn-redit-add-day { width: 100%; margin-top: 4px; }
+.redit-actions { margin-top: 16px; }
+.redit-actions .btn { flex: 1 1 160px; }
+#btn-gif-upload { width: 100%; margin-top: 12px; }
+.gif-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.gif-item { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.gif-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.gif-info { display: flex; flex-direction: column; flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
+.gif-btns { display: flex; gap: 8px; }
+.gif-preview:not(:empty) { margin-top: 8px; font-size: .9rem; }

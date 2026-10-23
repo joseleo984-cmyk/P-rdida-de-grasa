@@ -320,3 +320,114 @@ test('Sprint 11 (fake): el coach marca el pago, otro coach y el cliente no; venc
   await cli.account.deleteAccount();                                  // borrar la cuenta siempre se puede
   assert.strictEqual(Object.values(backend.users).some((u) => u.id === uid), false);
 });
+
+// ---------- Etapa 2 (r1 v1.7): rutinas y animaciones ----------
+const GIF = (extra = 0, head = 'GIF89a', type = 'image/gif') => new Blob([Uint8Array.from([...Buffer.from(head, 'latin1'), 1, 2, 3, 4, 5, 6, ...new Array(extra).fill(7)])], { type });
+async function rutinasSetup() {
+  const { backend, dev } = setup();
+  const coachX = dev(), coachY = dev(), ana = dev(), bea = dev();
+  for (const [d, mail] of [[coachX, 'x@c.co'], [coachY, 'y@c.co'], [ana, 'ana@c.co'], [bea, 'bea@c.co']]) { await login(d, backend, mail); await d.account.joinApp(); }
+  for (const c of [coachX, coachY]) await agree(c);
+  const { inviteCode } = await coachX.coach.becomeCoach('Coach X');
+  await coachY.coach.becomeCoach('Coach Y');
+  for (const c of [ana, bea]) { await cloud(c); await c.client.joinCoach(inviteCode, SH); }
+  const ids = { ana: (await ana.auth.session()).user.id, bea: (await bea.auth.session()).user.id, x: (await coachX.auth.session()).user.id };
+  return { backend, coachX, coachY, ana, bea, ids };
+}
+const ROUTINE = (gif) => ({ title: 'Fuerza', days: [{ title: 'Día 1 – Pecho', exercises: [{ name: 'Press', sets: '4 × 12', note: 'Baja despacio', gif: gif || '' }, { name: 'Fondos', sets: '3 × 10', note: '', gif: '' }] }, { title: 'Día 2 – Descanso', exercises: [] }] });
+
+test('rutinas: el coach sube una animación, la usa en la rutina de un cliente y SOLO ese cliente (y su coach) la leen', async () => {
+  const { backend, coachX, coachY, ana, bea, ids } = await rutinasSetup();
+  const g = await coachX.coach.uploadGif(GIF(), 'Press banca');
+  assert.deepStrictEqual([g.name, g.mime, g.size, g.uses], ['Press banca', 'image/gif', 12, 0]);
+  const r = await coachX.coach.saveRoutine(ids.ana, ROUTINE(g.id));
+  assert.deepStrictEqual([r.title, r.days.length, r.days[0].exercises[0].gif], ['Fuerza', 2, g.id]);
+  assert.strictEqual((await coachX.coach.listGifs())[0].uses, 1);
+  const mine = await ana.client.myRoutine();
+  assert.deepStrictEqual([mine.title, mine.coachId, mine.days[1].exercises.length], ['Fuerza', ids.x, 0]);
+  assert.strictEqual((await ana.client.gifBlob(ids.x, g.id)).size, 12);
+  assert.strictEqual((await coachX.coach.gifBlob(g.id)).type, 'image/gif');
+  // Bea (también de X) no tiene rutina; otro coach no ve nada de X
+  assert.strictEqual(await bea.client.myRoutine(), null);
+  await rejects(coachY.coach.getRoutine(ids.ana), 'forbidden');
+  await rejects(coachY.coach.saveRoutine(ids.ana, ROUTINE()), 'forbidden');
+  await rejects(coachY.coach.gifBlob(g.id), 'not_found');
+  assert.deepStrictEqual(await coachY.coach.listGifs(), []);
+  await rejects(coachY.coach.deleteGif(g.id), 'not_found');
+  // Un cliente no usa funciones de coach
+  await rejects(ana.coach.saveRoutine(ids.ana, ROUTINE()), 'forbidden');
+  await rejects(ana.coach.uploadGif(GIF(), 'x'), 'forbidden');
+  // La animación de otro coach no sirve en la rutina
+  const gy = await coachY.coach.uploadGif(GIF(), 'Remo Y');
+  await assert.rejects(coachX.coach.saveRoutine(ids.ana, ROUTINE(gy.id)), (e) => e.code === 'invalid' && e.detail === 'gif_not_found');
+  // Persistencia (los E2E pasan el servidor de un teléfono a otro)
+  const b2 = Fake.FakeBackend.fromJSON(JSON.parse(JSON.stringify(backend.toJSON())));
+  assert.strictEqual(Object.keys(b2.routines).length, 1);
+  assert.strictEqual(Object.keys(b2.gifs).length, 2);
+  assert.strictEqual((await Fake.createFake({ backend: b2, storage: (() => { const m = {}; m['pg-fake-session'] = JSON.stringify({ user: { id: ids.ana, email: 'ana@c.co' }, issuedAt: Date.now() }); return { getItem: (k) => m[k] ?? null, setItem: (k, v) => { m[k] = v; }, removeItem: (k) => { delete m[k]; } }; })() }).client.gifBlob(ids.x, g.id)).size, 12);
+});
+test('rutinas: tipo, tamaño y firma de bytes inválidos se rechazan; hasta 3 MB exactos pasan', async () => {
+  const { coachX } = await rutinasSetup();
+  await rejects(coachX.coach.uploadGif(GIF(0, '\x89PNG\r\n\x1a\n', 'image/png'), 'p'), 'invalid');
+  await rejects(coachX.coach.uploadGif(GIF(0, '\x89PNG\r\n\x1a\n', 'image/gif'), 'p'), 'invalid');
+  await rejects(coachX.coach.uploadGif(GIF(0, 'GIF89a', 'video/mp4'), 'p'), 'invalid');
+  await rejects(coachX.coach.uploadGif(GIF(3 * 1048576, 'GIF89a'), 'p'), 'invalid');
+  await rejects(coachX.coach.uploadGif(GIF(), '   '), 'invalid');
+  const exact = new Blob([Uint8Array.from([...Buffer.from('GIF89a'), ...new Array(3 * 1048576 - 6).fill(0)])], { type: 'image/gif' });
+  assert.strictEqual((await coachX.coach.uploadGif(exact, 'Justo 3 MB')).size, 3 * 1048576);
+  const webp = new Blob([Uint8Array.from([0x52, 0x49, 0x46, 0x46, 1, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0, 0])], { type: 'image/webp' });
+  assert.strictEqual((await coachX.coach.uploadGif(webp, 'Webp')).mime, 'image/webp');
+});
+test('rutinas: máx. 7 días y 12 ejercicios por día, título obligatorio y una sola rutina por cliente (guardar reemplaza)', async () => {
+  const { coachX, ids, backend } = await rutinasSetup();
+  const days = (n, ex = 1) => ({ title: 'T', days: Array.from({ length: n }, (_, i) => ({ title: `Día ${i + 1}`, exercises: Array.from({ length: ex }, (_, j) => ({ name: `E${j}`, sets: '3 × 10', note: '', gif: '' })) })) });
+  await rejects(coachX.coach.saveRoutine(ids.ana, days(8)), 'invalid');
+  await rejects(coachX.coach.saveRoutine(ids.ana, days(1, 13)), 'invalid');
+  await rejects(coachX.coach.saveRoutine(ids.ana, { ...days(1), title: '' }), 'invalid');
+  await rejects(coachX.coach.saveRoutine(ids.ana, { title: 'T', days: [] }), 'invalid');
+  assert.strictEqual((await coachX.coach.saveRoutine(ids.ana, days(7, 12))).days.length, 7);
+  await coachX.coach.saveRoutine(ids.ana, days(2));
+  assert.strictEqual(Object.keys(backend.routines).length, 1);
+  assert.strictEqual((await coachX.coach.getRoutine(ids.ana)).days.length, 2);
+  assert.strictEqual(await coachX.coach.getRoutine(ids.bea), null);
+});
+test('rutinas: una animación en uso no se borra; borrar la rutina libera; sin vínculo activo nadie ve nada; el pago vencido no impide VER', async () => {
+  const { backend, coachX, ana, bea, ids } = await rutinasSetup();
+  const g = await coachX.coach.uploadGif(GIF(), 'Press');
+  await coachX.coach.saveRoutine(ids.ana, ROUTINE(g.id));
+  await assert.rejects(coachX.coach.deleteGif(g.id), (e) => e.code === 'invalid' && e.detail === 'gif_in_use');
+  // Ana está en pausa (sin fecha de pago): no puede subir, pero sí ve su rutina y la animación
+  await rejects(ana.sync.push({ records: [] }), 'payment_required');
+  assert.strictEqual((await ana.client.myRoutine()).title, 'Fuerza');
+  assert.strictEqual((await ana.client.gifBlob(ids.x, g.id)).size, 12);
+  // Bea tiene su rutina pero se va: ya no ve la rutina ni la animación; el coach tampoco la ve
+  await coachX.coach.saveRoutine(ids.bea, ROUTINE(g.id));
+  assert.ok(await bea.client.myRoutine());
+  await bea.client.leaveCoach();
+  assert.strictEqual(await bea.client.myRoutine(), null);
+  await rejects(bea.client.gifBlob(ids.x, g.id), 'not_found');
+  await rejects(coachX.coach.getRoutine(ids.bea), 'forbidden');
+  // Borrar la rutina libera la animación
+  await coachX.coach.deleteRoutine(ids.ana);
+  assert.strictEqual(await ana.client.myRoutine(), null);
+  assert.ok(Object.keys(backend.routines).length === 1, 'solo queda la de Bea (hidden)');
+  await coachX.coach.deleteRoutine(ids.bea);
+  await coachX.coach.deleteGif(g.id);
+  assert.deepStrictEqual(await coachX.coach.listGifs(), []);
+  await rejects(ana.client.gifBlob(ids.x, g.id), 'not_found');
+});
+test('rutinas: sin el acuerdo vigente del coach no se arma nada; la baja de la cuenta se lleva animaciones y rutinas', async () => {
+  const { backend, coachX, ids } = await rutinasSetup();
+  const g = await coachX.coach.uploadGif(GIF(), 'Press');
+  await coachX.coach.saveRoutine(ids.ana, ROUTINE(g.id));
+  await coachX.account.recordConsents([ev('coach_agreement', false)]);
+  await rejects(coachX.coach.saveRoutine(ids.ana, ROUTINE()), 'agreement_required');
+  await rejects(coachX.coach.getRoutine(ids.ana), 'agreement_required');
+  await rejects(coachX.coach.uploadGif(GIF(), 'otra'), 'agreement_required');
+  await rejects(coachX.coach.listGifs(), 'agreement_required');
+  await coachX.coach.deleteRoutine(ids.ana);   // reducir acceso siempre se puede
+  await agree(coachX);
+  await coachX.coach.saveRoutine(ids.ana, ROUTINE(g.id));
+  await coachX.account.deleteAccount();
+  assert.deepStrictEqual([Object.keys(backend.gifs).length, Object.keys(backend.routines).length], [0, 0]);
+});

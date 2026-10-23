@@ -61,6 +61,9 @@
   const iso = (ms) => new Date(ms).toISOString();
   // Seudónimo de 64 hex SOLO para el servidor falso (no es criptográfico: el real usa SHA-256 con sal del servidor).
   const pseudoHash = (str) => { let out = ''; let h = 2166136261; for (let i = 0; out.length < 64; i++) { h = Math.imul(h ^ (str.charCodeAt(i % str.length) + i), 16777619) >>> 0; out += h.toString(16).padStart(8, '0'); } return out.slice(0, 64); };
+  const toB64 = (u8) => { let bin = ''; for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return (typeof btoa === 'function' ? btoa(bin) : Buffer.from(bin, 'binary').toString('base64')); };
+  const fromB64 = (b64) => { const bin = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary'); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8; };
+  const rutinas = () => root.Rutinas || (typeof require === 'function' ? require('./rutinas.js') : null);
   const clone = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x)));
 
   // ---------- Estado del servidor (compartido entre "dispositivos") ----------
@@ -84,6 +87,8 @@
       this.agreementCopies = []; // Sprint 10: copias del acuerdo "enviadas" por correo (solo pruebas): { userId, to, version, textHash, at }
       this.copyMode = 'ok';       // Sprint 10: 'ok' | 'unavailable' (la función de borde no está desplegada/configurada) | 'rate_limited'
       this.blobs = {};          // path → Blob (no se persiste)
+      this.gifs = {};           // Etapa 2 (r1 v1.7): id → { id, coachId, name, mime, size, createdAt, b64 } (los bytes SÍ se guardan en base64: los E2E pasan el «servidor» de un teléfono a otro)
+      this.routines = {};       // Etapa 2: `${coachId}|${clientId}` → { id, coachId, clientId, title, days, createdAt, updatedAt }
       this.revoked = {};        // userId → ms desde el que las sesiones anteriores no valen
       this._online = true;
       // Sprint 9 (solo pruebas, no se persiste): simula Supabase Auth con CAPTCHA activado. account.js lo enciende cuando
@@ -189,13 +194,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -337,6 +342,8 @@
         for (const k of Object.keys(be.records)) if (k.startsWith(u.id + '|')) delete be.records[k];
         for (const [id, p] of Object.entries(be.photos)) if (p.userId === u.id) delete be.photos[id];
         for (const [id, c] of Object.entries(be.comments)) if (c.clientId === u.id || c.coachId === u.id) delete be.comments[id];
+        for (const [id, g] of Object.entries(be.gifs)) if (g.coachId === u.id) delete be.gifs[id];
+        for (const [k, r] of Object.entries(be.routines)) if (r.coachId === u.id || r.clientId === u.id) delete be.routines[k];
         // Sprint 6: antes de borrar, copia mínima y seudonimizada (sin uuid, correo ni nombre), como core.delete_my_account().
         const pseudo = (id) => pseudoHash('fake-salt:' + id);
         for (const x of be.consentEvents.filter((e) => e.userId === u.id)) {
@@ -518,6 +525,20 @@
         if (!c.readAt) { c.readAt = iso(be.clock.now()); c.serverUpdatedAt = be._serverStamp(); }
         return done(undefined);
       },
+      // Etapa 2: la rutina de su coach (solo lectura; se ve aunque el acceso esté en pausa) y las animaciones de ese coach.
+      async myRoutine() {
+        const u = await authed();
+        const l = be.activeLink(u.id);
+        const r = l && be.coaches[l.coachId] && be.coaches[l.coachId].active ? be.routines[`${l.coachId}|${u.id}`] : null;
+        return r ? { id: r.id, coachId: r.coachId, clientId: r.clientId, title: r.title, updatedAt: r.updatedAt, days: clone(r.days) } : null;
+      },
+      async gifBlob(coachId, gifId) {
+        const u = await authed();
+        const l = be.activeLink(u.id);
+        const g = be.gifs[gifId];
+        if (!l || l.coachId !== coachId || !be.coaches[coachId] || !be.coaches[coachId].active || !g || g.coachId !== coachId) fail('not_found', 'Animación no encontrada');
+        return new Blob([fromB64(g.b64)], { type: g.mime });
+      },
       async setPhotoShared(photoId, shared) {
         const u = await authed();
         const p = be.photos[photoId];
@@ -630,6 +651,67 @@
         l.paidMarkedAt = iso(be.clock.now());
         l.updatedAt = l.paidMarkedAt;
         return done(be.payState(l));
+      },
+      // Etapa 2: biblioteca de animaciones del coach y rutinas por cliente (mismas reglas que grasa.register_gif, save_routine, etc.).
+      async listGifs() {
+        const u = await asCoach();
+        const uses = (id) => Object.values(be.routines).filter((r) => r.coachId === u.id && r.days.some((d) => d.exercises.some((e) => e.gif === id))).length;
+        return Object.values(be.gifs).filter((g) => g.coachId === u.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+          .map((g) => ({ id: g.id, name: g.name, mime: g.mime, size: g.size, createdAt: g.createdAt, uses: uses(g.id) }));
+      },
+      async uploadGif(file, name) {
+        const u = await asCoach();
+        const R = rutinas();
+        if (!file || typeof file.slice !== 'function') fail('invalid', 'Archivo no válido');
+        const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+        const chk = R.checkGif({ type: file.type, size: file.size }, head);
+        if (!chk.ok) { const e = new RemoteError('invalid', chk.message); e.detail = chk.message; throw e; }
+        const nm = String(name || '').trim();
+        if (!nm || nm.length > R.LIMITS.gifName) fail('invalid', 'El nombre debe tener entre 1 y 60 caracteres');
+        if (Object.values(be.gifs).filter((g) => g.coachId === u.id).length >= R.LIMITS.gifs) fail('invalid', 'La biblioteca está llena');
+        const id = randUUID();
+        be.gifs[id] = { id, coachId: u.id, name: nm, mime: chk.mime, size: file.size, createdAt: iso(be.clock.now()), b64: toB64(new Uint8Array(await file.arrayBuffer())) };
+        return done({ id, name: nm, mime: chk.mime, size: file.size, createdAt: be.gifs[id].createdAt, uses: 0 });
+      },
+      async deleteGif(gifId) {
+        const u = await asCoach({ agreement: false });
+        const g = be.gifs[gifId];
+        if (!g || g.coachId !== u.id) fail('not_found', 'Animación no encontrada');
+        if (Object.values(be.routines).some((r) => r.coachId === u.id && r.days.some((d) => d.exercises.some((e) => e.gif === gifId)))) { const e = new RemoteError('invalid', 'Datos no válidos'); e.detail = 'gif_in_use'; throw e; }
+        delete be.gifs[gifId];
+        return done(undefined);
+      },
+      async gifBlob(gifId) {
+        const u = await asCoach({ agreement: false });
+        const g = be.gifs[gifId];
+        if (!g || g.coachId !== u.id) fail('not_found', 'Animación no encontrada');
+        return new Blob([fromB64(g.b64)], { type: g.mime });
+      },
+      async getRoutine(clientId) {
+        const u = await asCoach();
+        if (!be.links.some((x) => x.coachId === u.id && x.clientId === clientId && x.status === 'active') || !be.coaches[u.id].active) fail('forbidden', 'Sin vínculo activo con ese cliente');
+        const r = be.routines[`${u.id}|${clientId}`];
+        return r ? { id: r.id, coachId: r.coachId, clientId: r.clientId, title: r.title, updatedAt: r.updatedAt, days: clone(r.days) } : null;
+      },
+      async saveRoutine(clientId, routine) {
+        const u = await asCoach();
+        const R = rutinas();
+        if (!be.links.some((x) => x.coachId === u.id && x.clientId === clientId && x.status === 'active') || !be.coaches[u.id].active) fail('forbidden', 'Sin vínculo activo con ese cliente');
+        const v = R.validate(routine);
+        if (!v.ok) { const e = new RemoteError('invalid', v.errors[0].message); e.detail = v.errors[0].message; throw e; }
+        const days = R.toContent(routine).days;
+        for (const d of days) for (const e of d.exercises) if (e.gif && !(be.gifs[e.gif] && be.gifs[e.gif].coachId === u.id)) { const x = new RemoteError('invalid', 'Datos no válidos'); x.detail = 'gif_not_found'; throw x; }
+        const key = `${u.id}|${clientId}`;
+        const cur = be.routines[key];
+        const now = iso(be.clock.now());
+        be.routines[key] = { id: cur ? cur.id : randUUID(), coachId: u.id, clientId, title: String(routine.title).trim(), days, createdAt: cur ? cur.createdAt : now, updatedAt: now };
+        const r = be.routines[key];
+        return done({ id: r.id, coachId: r.coachId, clientId: r.clientId, title: r.title, updatedAt: r.updatedAt, days: clone(r.days) });
+      },
+      async deleteRoutine(clientId) {
+        const u = await asCoach({ agreement: false });
+        delete be.routines[`${u.id}|${clientId}`];
+        return done(undefined);
       },
       async deleteComment(commentId) {
         const u = await asCoach({ agreement: false });

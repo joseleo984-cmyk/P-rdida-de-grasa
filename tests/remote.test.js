@@ -452,3 +452,106 @@ test('uploadPhoto: el 403 de Storage con el vínculo vencido se traduce a paymen
   m.h.rpc = () => ({ data: [], error: null });
   await rejects(r.sync.uploadPhoto('P1', 'b'), 'forbidden');
 });
+
+// ---------- Etapa 2 (r1 v1.7): rutinas y animaciones ----------
+const COACH = '22222222-2222-4222-8222-222222222222';
+const GIFID = 'a0000000-0000-4000-8000-000000000001';
+const gifFile = (head, type = 'image/gif', extra = 0) => new Blob([Uint8Array.from([...Buffer.from(head, 'latin1'), 0, 0, 0, 0, 0, 0, ...new Array(extra).fill(1)])], { type });
+test('coach.uploadGif: valida tipo, tamaño y firma de bytes, registra con p_head y sube SIN re-codificar a ejercicios/{uid}/{id}.gif', async () => {
+  globalThis.Rutinas = require('../rutinas.js');
+  try {
+    const m = mock({ rpc: (s, fn, a) => ({ data: fn === 'register_gif' ? { id: a.p_id, name: a.p_name, mime: a.p_mime, size_bytes: a.p_size, created_at: '2026-10-25T10:00:00Z', uses: 0 } : null, error: null }),
+      storage: (name, path) => ({ data: { path }, error: null }) });
+    const r = make(m);
+    const f = gifFile('GIF89a');
+    const out = await r.coach.uploadGif(f, '  Press de banca ');
+    const reg = m.calls.find((c) => c[2] === 'register_gif');
+    assert.deepStrictEqual([reg[3].p_name, reg[3].p_mime, reg[3].p_size, reg[3].p_head], ['Press de banca', 'image/gif', 12, '474946383961000000000000']);
+    const up = m.calls.find((c) => c[0] === 'storage' && c[2] === 'upload');
+    assert.deepStrictEqual([up[1], up[2], up[3] === `${UID}/${reg[3].p_id}.gif`, up[4] === f, up[5]], ['ejercicios', 'upload', true, true, { upsert: true, contentType: 'image/gif', cacheControl: '0' }]);
+    assert.deepStrictEqual([out.name, out.mime, out.size, out.uses], ['Press de banca', 'image/gif', 12, 0]);
+    // Rechazos locales: no llegan a llamar al servidor
+    const n = m.calls.length;
+    await rejects(r.coach.uploadGif(gifFile('\x89PNG\r\n\x1a\n', 'image/png'), 'x'), 'invalid');
+    await rejects(r.coach.uploadGif(gifFile('\x89PNG\r\n\x1a\n', 'image/gif'), 'x'), 'invalid');
+    await rejects(r.coach.uploadGif(gifFile('GIF89a', 'image/gif', 3 * 1048576), 'x'), 'invalid');
+    await rejects(r.coach.uploadGif(null, 'x'), 'invalid');
+    assert.strictEqual(m.calls.length, n);
+    const bad = await r.coach.uploadGif(gifFile('GIF89a', 'image/png'), 'x').catch((e) => e);
+    assert.match(bad.detail, /GIF o WebP/);
+    // Si la subida falla, se deshace el registro
+    m.h.storage = () => err({ name: 'StorageApiError', status: 400, message: 'mime type image/gif is not supported' }, 400);
+    await rejects(r.coach.uploadGif(gifFile('GIF87a'), 'y'), 'invalid');
+    assert.strictEqual(m.calls.at(-1)[2], 'delete_gif');
+  } finally { delete globalThis.Rutinas; }
+});
+test('coach.deleteGif: borra el registro y después el archivo; en uso → invalid con detail gif_in_use', async () => {
+  const m = mock({ rpc: () => ({ data: null, error: null }), storage: () => ({ data: [], error: null }) });
+  const r = make(m);
+  await r.coach.deleteGif(GIFID);
+  assert.deepStrictEqual(m.calls.filter((c) => c[0] === 'rpc' || c[0] === 'storage').map((c) => [...c.slice(0, 3), c[3]]), [['rpc', 'grasa', 'delete_gif', { p_id: GIFID }], ['storage', 'ejercicios', 'remove', [`${UID}/${GIFID}.gif`]]]);
+  m.h.rpc = () => err({ message: 'invalid', code: '22023', details: 'gif_in_use' });
+  const e = await r.coach.deleteGif(GIFID).catch((x) => x);
+  assert.deepStrictEqual([e.code, e.detail], ['invalid', 'gif_in_use']);
+  assert.strictEqual(m.calls.filter((c) => c[2] === 'remove').length, 1, 'si la BD se niega, el archivo no se toca');
+});
+test('gifBlob (coach y cliente): URL firmada de 60 s del bucket ejercicios; ids no válidos no llaman', async () => {
+  globalThis.Rutinas = require('../rutinas.js');
+  try {
+    const m = mock({ storage: (name, path) => ({ data: name === 'createSignedUrl' ? { signedUrl: `https://abcdefgh.supabase.co/storage/v1/object/sign/${path}?token=t` } : { path }, error: null }) });
+    const r = make(m, { fetch: async () => ({ ok: true, status: 200, blob: async () => 'GIF' }) });
+    assert.strictEqual(await r.client.gifBlob(COACH, GIFID), 'GIF');
+    assert.deepStrictEqual(m.calls.at(-1), ['storage', 'ejercicios', 'createSignedUrl', `${COACH}/${GIFID}.gif`, 60]);
+    assert.strictEqual(await r.coach.gifBlob(GIFID), 'GIF');
+    assert.deepStrictEqual(m.calls.at(-1), ['storage', 'ejercicios', 'createSignedUrl', `${UID}/${GIFID}.gif`, 60]);
+    const n = m.calls.length;
+    await rejects(r.client.gifBlob('../otro', GIFID), 'invalid');
+    await rejects(r.client.gifBlob(COACH, 'x/../y'), 'invalid');
+    await rejects(r.coach.gifBlob('nope'), 'invalid');
+    assert.strictEqual(m.calls.length, n);
+    m.h.storage = () => err({ name: 'StorageApiError', status: 400, message: 'Object not found' }, 400);
+    await rejects(r.client.gifBlob(COACH, GIFID), 'not_found');
+  } finally { delete globalThis.Rutinas; }
+});
+test('rutinas: saveRoutine manda título y contenido limpios; myRoutine y getRoutine traducen la fila; null si no hay', async () => {
+  globalThis.Rutinas = require('../rutinas.js');
+  try {
+    const row = { id: 'RID', coach_id: COACH, client_id: UID, title: 'Fuerza', updated_at: '2026-10-25T10:00:00Z', content: { days: [{ title: 'Día 1', exercises: [{ name: 'Press', sets: '4 × 12', gif: GIFID }] }] } };
+    const m = mock({ rpc: (s, fn) => ({ data: fn === 'my_routine' || fn === 'get_routine' || fn === 'save_routine' ? row : null, error: null }) });
+    const r = make(m);
+    const draft = { title: ' Fuerza ', days: [{ title: ' Día 1 ', exercises: [{ name: ' Press ', sets: '4 × 12', note: '', gif: GIFID.toUpperCase() }, { name: '', sets: '', note: '', gif: '' }] }] };
+    const saved = await r.coach.saveRoutine(UID, draft);
+    assert.deepStrictEqual(m.calls.at(-1), ['rpc', 'grasa', 'save_routine', { p_client: UID, p_title: 'Fuerza', p_content: { days: [{ title: 'Día 1', exercises: [{ name: 'Press', sets: '4 × 12', gif: GIFID }] }] } }]);
+    assert.deepStrictEqual([saved.id, saved.coachId, saved.title, saved.days[0].exercises[0].gif, saved.days[0].exercises[0].note], ['RID', COACH, 'Fuerza', GIFID, '']);
+    assert.strictEqual((await r.client.myRoutine()).title, 'Fuerza');
+    assert.strictEqual((await r.coach.getRoutine(UID)).coachId, COACH);
+    assert.deepStrictEqual(m.calls.at(-1), ['rpc', 'grasa', 'get_routine', { p_client: UID }]);
+    m.h.rpc = () => ({ data: null, error: null });
+    assert.strictEqual(await r.client.myRoutine(), null);
+    await r.coach.deleteRoutine(UID);
+    assert.deepStrictEqual(m.calls.at(-1), ['rpc', 'grasa', 'delete_routine', { p_client: UID }]);
+    // Validación local: no llega al servidor
+    const n = m.calls.length;
+    const e = await r.coach.saveRoutine(UID, { title: '', days: [] }).catch((x) => x);
+    assert.deepStrictEqual([e.code, /título/.test(e.detail)], ['invalid', true]);
+    assert.strictEqual(m.calls.length, n);
+    // Errores del servidor
+    m.h.rpc = () => err({ message: 'invalid', code: '22023', details: 'gif_not_found' });
+    assert.strictEqual((await r.coach.saveRoutine(UID, draft).catch((x) => x)).detail, 'gif_not_found');
+    m.h.rpc = () => err({ message: 'forbidden', code: '42501', details: 'coach_agreement_required' }, 403);
+    await rejects(r.coach.getRoutine(UID), 'agreement_required');
+    m.h.rpc = () => err({ message: 'forbidden', code: '42501' }, 403);
+    await rejects(r.coach.saveRoutine(UID, draft), 'forbidden');
+  } finally { delete globalThis.Rutinas; }
+});
+test('coach.listGifs traduce la biblioteca (tamaño, usos)', async () => {
+  const m = mock({ rpc: () => ({ data: [{ id: GIFID, name: 'Press', mime: 'image/gif', size_bytes: 1500, created_at: '2026-10-25T10:00:00Z', uses: 2 }], error: null }) });
+  assert.deepStrictEqual(await make(m).coach.listGifs(), [{ id: GIFID, name: 'Press', mime: 'image/gif', size: 1500, createdAt: '2026-10-25T10:00:00.000Z', uses: 2 }]);
+  assert.deepStrictEqual(m.calls.at(-1), ['rpc', 'grasa', 'my_gifs', {}]);
+});
+test('account.deleteAccount también vacía el bucket ejercicios antes de borrar la cuenta', async () => {
+  const m = mock({ rpc: () => ({ data: null, error: null }), storage: () => ({ data: [], error: null }) });
+  await make(m).account.deleteAccount();
+  const lists = m.calls.filter((c) => c[0] === 'storage' && c[2] === 'list').map((c) => c[1]);
+  assert.deepStrictEqual(lists, ['grasa-photos', 'ejercicios']);
+});

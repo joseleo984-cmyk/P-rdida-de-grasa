@@ -11,6 +11,7 @@
   const PRODUCTION_HOSTS = ['joseleo984-cmyk.github.io'];
   const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
   const BUCKET = 'grasa-photos';
+  const GIF_BUCKET = 'ejercicios';   // Etapa 2 (r1 v1.7): animaciones de los ejercicios, privado, '{coach_id}/{gif_id}.gif'
   const CURSOR0 = '1970-01-01T00:00:00.000Z';
   const BATCH = 500;              // máx. elementos (registros + fotos) por llamada a sync_push (§2.3)
   const TIMEOUT_MS = 15000;       // §3: timeout 15 s → offline
@@ -197,6 +198,7 @@
     const rpc = (schema, fn, args) => call(() => sb.schema(schema).rpc(fn, args || {}));
     const table = (schema, name) => sb.schema(schema).from(name);
     const bucket = () => sb.storage.from(BUCKET);
+    const gifBucket = () => sb.storage.from(GIF_BUCKET);
     const rows = (d) => (Array.isArray(d) ? d : d == null ? [] : [d]);
 
     // Sesión guardada por supabase-js (§5.7): se lee SIN red, sirve offline aunque el token haya caducado.
@@ -244,11 +246,18 @@
       shares: sharesOut({ body: l.share_body, notes: l.share_notes, nutrition: l.share_nutrition, habits: l.share_habits, photos: l.share_photos }),
       since: l.since || l.created_at,
       paidUntil: l.paid_until || null, paidMarkedAt: isoOrNull(l.paid_marked_at), paid: l.paid === true, daysLeft: l.days_left == null ? null : Number(l.days_left) } : null);
+    // Etapa 2 (r1 v1.7): rutinas y animaciones. snake_case del servidor → camelCase de la app (forma de la rutina: rutinas.js).
+    const gifOut = (g) => ({ id: g.id, name: g.name, mime: g.mime, size: Number(g.size_bytes) || 0, createdAt: isoOrNull(g.created_at), uses: Number(g.uses) || 0 });
+    const routineOut = (r) => {
+      if (!r || !r.id) return null;
+      const R = root.Rutinas;
+      return R ? R.fromServer(r) : { id: r.id, coachId: r.coach_id, clientId: r.client_id, title: r.title, days: (r.content && r.content.days) || [], updatedAt: r.updated_at };
+    };
     const uuid = () => (root.crypto && root.crypto.randomUUID ? root.crypto.randomUUID() : root.Schema.uuid());
 
     // Descarga con URL firmada de 60 s (§2.4, §11.6). La URL no se guarda ni se cachea (el SW no toca otros orígenes).
-    async function signedBlob(path) {
-      const d = await call(() => bucket().createSignedUrl(path, SIGNED_URL_S), 'storage');
+    async function signedBlob(path, bkt = bucket()) {
+      const d = await call(() => bkt.createSignedUrl(path, SIGNED_URL_S), 'storage');
       if (!d || !d.signedUrl) throw new RemoteError('not_found', MESSAGES.not_found);
       let res;
       try { res = await timedFetch(d.signedUrl, { cache: 'no-store' }); }
@@ -295,14 +304,16 @@
     };
 
     // ---------- account ----------
-    async function removeAllPhotos(uid) {
+    async function removeAllPhotos(uid, bkt = bucket()) {
       for (let i = 0; i < 100; i++) {
-        const list = await call(() => bucket().list(uid, { limit: 1000 }), 'storage');
+        const list = await call(() => bkt.list(uid, { limit: 1000 }), 'storage');
         const names = rows(list).map((f) => f && f.name).filter(Boolean);
         if (!names.length) return;
-        await call(() => bucket().remove(names.map((n) => `${uid}/${n}`)), 'storage');
+        await call(() => bkt.remove(names.map((n) => `${uid}/${n}`)), 'storage');
       }
     }
+    // Etapa 2: la baja también borra las animaciones del coach (la BD se niega si quedan archivos en 'ejercicios').
+    const removeEverything = async (uid) => { await removeAllPhotos(uid); await removeAllPhotos(uid, gifBucket()); };
     const account = {
       async joinApp() { await me(); return rows(await rpc('core', 'join_app', { p_app: app })).flat(); },
       async roles() { await me(); return rows(await rpc('core', 'my_roles', { p_app: app })).flat(); },
@@ -358,11 +369,11 @@
       // §11.2: primero las fotos de Storage; si la BD aún ve archivos (`invalid`), se reintenta el borrado una vez.
       async deleteAccount() {
         const u = await me();
-        await removeAllPhotos(u.id);
+        await removeEverything(u.id);
         try { await rpc('core', 'delete_my_account'); }
         catch (err) {
           if (err.code !== 'invalid') throw err;
-          await removeAllPhotos(u.id);
+          await removeEverything(u.id);
           await rpc('core', 'delete_my_account');
         }
         await auth.signOut({ local: true });
@@ -453,6 +464,15 @@
       },
       async leaveCoach() { await me(); await rpc('grasa', 'leave_coach'); },
       async markCommentRead(commentId) { await me(); await rpc('grasa', 'mark_comment_read', { p_id: commentId }); },
+      // Etapa 2: la rutina que armó su coach (null si no hay o no tiene coach). Es solo lectura y se ve aunque el acceso esté en pausa.
+      async myRoutine() { await me(); return routineOut(await rpc('grasa', 'my_routine')); },
+      // La animación de un ejercicio, con URL firmada de 60 s nueva en cada llamada (la política de Storage solo la deja leer si es de SU coach).
+      async gifBlob(coachId, gifId) {
+        await me();
+        const R = root.Rutinas;
+        if (!R || !R.UUID_RE.test(String(coachId)) || !R.UUID_RE.test(String(gifId))) throw new RemoteError('invalid', 'Animación no válida');
+        return signedBlob(`${coachId}/${gifId}.gif`, gifBucket());
+      },
       async setPhotoShared(photoId, shared) {
         const u = await me();
         const d = await call(() => table('grasa', 'photos').update({ shared_with_coach: !!shared, updated_at: new Date().toISOString() })
@@ -516,6 +536,45 @@
         const r = rows(d)[0] || {};
         return { paidUntil: r.paid_until || null, paidMarkedAt: isoOrNull(r.paid_marked_at), paid: r.paid === true, daysLeft: r.days_left == null ? null : Number(r.days_left) };
       },
+      // Etapa 2: biblioteca de animaciones del coach y rutinas por cliente.
+      async listGifs() { await me(); return rows(await rpc('grasa', 'my_gifs')).map(gifOut); },
+      // Valida tipo, tamaño y FIRMA de bytes (no se re-codifica: se sube tal cual, para no perder la animación), la registra y la sube.
+      // Si la subida falla, deshace el registro para no dejar animaciones fantasma en la biblioteca.
+      async uploadGif(file, name) {
+        const u = await me();
+        const R = root.Rutinas;
+        if (!R) throw new RemoteError('server', 'rutinas.js no está cargado');
+        if (!file || typeof file.slice !== 'function') throw new RemoteError('invalid', 'Archivo no válido');
+        const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+        const chk = R.checkGif({ type: file.type, size: file.size }, head);
+        if (!chk.ok) { const e = new RemoteError('invalid', chk.message); e.detail = chk.message; throw e; }
+        const id = uuid();
+        const g = await rpc('grasa', 'register_gif', { p_id: id, p_name: String(name || '').trim(), p_mime: chk.mime, p_size: file.size, p_head: R.toHex(head) });
+        try { await call(() => gifBucket().upload(`${u.id}/${id}.gif`, file, { upsert: true, contentType: chk.mime, cacheControl: '0' }), 'storage'); }
+        catch (err) { try { await rpc('grasa', 'delete_gif', { p_id: id }); } catch { /* queda registrado sin archivo: se borra desde la biblioteca */ } throw err; }
+        return gifOut(g);
+      },
+      // Borra el registro (la BD se niega con detail 'gif_in_use' si alguna rutina lo usa) y después el archivo.
+      async deleteGif(gifId) {
+        const u = await me();
+        await rpc('grasa', 'delete_gif', { p_id: gifId });
+        try { await call(() => gifBucket().remove([`${u.id}/${gifId}.gif`]), 'storage'); } catch { /* sin archivo ya no se puede ver: la baja de cuenta lo vuelve a intentar */ }
+      },
+      async gifBlob(gifId) {
+        const u = await me();
+        if (!root.Rutinas || !root.Rutinas.UUID_RE.test(String(gifId))) throw new RemoteError('invalid', 'Animación no válida');
+        return signedBlob(`${u.id}/${gifId}.gif`, gifBucket());
+      },
+      async getRoutine(clientId) { await me(); return routineOut(await rpc('grasa', 'get_routine', { p_client: clientId })); },
+      async saveRoutine(clientId, routine) {
+        await me();
+        const R = root.Rutinas;
+        if (!R) throw new RemoteError('server', 'rutinas.js no está cargado');
+        const v = R.validate(routine);
+        if (!v.ok) { const e = new RemoteError('invalid', v.errors[0].message); e.detail = v.errors[0].message; throw e; }
+        return routineOut(await rpc('grasa', 'save_routine', { p_client: clientId, p_title: String(routine.title).trim(), p_content: R.toContent(routine) }));
+      },
+      async deleteRoutine(clientId) { await me(); await rpc('grasa', 'delete_routine', { p_client: clientId }); },
       async deleteComment(commentId) { await me(); await rpc('grasa', 'delete_comment', { p_id: commentId }); },
       async endClient(clientId) { await me(); await rpc('grasa', 'end_client', { p_client: clientId }); },
     };
@@ -523,7 +582,7 @@
     return { kind: 'real', auth, account, sync, client, coach };
   }
 
-  const api = { config, create, createFake, fakeAllowed, CAPTCHA_SITEKEY_RE, textHash, mapError, RemoteError, PRODUCTION_HOSTS, BUCKET };
+  const api = { config, create, createFake, fakeAllowed, CAPTCHA_SITEKEY_RE, textHash, mapError, RemoteError, PRODUCTION_HOSTS, BUCKET, GIF_BUCKET };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Remote = api;
 })(typeof window !== 'undefined' ? window : globalThis);

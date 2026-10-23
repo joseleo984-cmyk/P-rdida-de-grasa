@@ -757,3 +757,18 @@ El cliente le paga al coach POR FUERA de la app; el coach lo marca. La plataform
 - Hay que volver a pegar `supabase/r1.sql` en `pruebas` y en `plataforma` (idempotente; debe terminar con `OK r1 v1`). Los scripts `qa-live-rls.js` (sección a3) y `qa-live-recheck.js` marcan el pago antes de sincronizar y prueban: pausa, cliente no puede marcarse, coach sí, vencido bloquea push y foto pero no pull, día límite.
 
 Handoff: `equipo/handoffs/2026-10-24-sprint11-coach.md`.
+
+
+## 16. Cambios v1.7 (Etapa 2: rutinas de ejercicios y GIFs del coach)
+
+Una sola migración: `supabase/migrations/20261025120000_r1_rutinas.sql` (regenera `supabase/r1.sql`). Pruebas: `supabase/tests/110_rutinas.test.sql` (nueva) y ajustes de `10_estructura` (15 tablas, bucket `ejercicios`) y `60_qa_seguridad` (lista blanca). Detalle y pasos: `equipo/handoffs/rutinas-etapa2.md`.
+
+| # | Cambio | Error / resultado |
+|---|---|---|
+| 16.1 | Tablas `grasa.exercise_gifs` (biblioteca del coach; ≤ 3 MB, `image/gif` o `image/webp`, ≤ 200 por coach) y `grasa.routines` (una por coach+cliente; título + `content` jsonb). RLS activada **sin políticas ni permisos directos**: solo se tocan por funciones. | `permission denied` por la API de tablas |
+| 16.2 | `register_gif(id, name, mime, size, head)` valida tipo, tamaño y la **firma de bytes** (`head` = 12 primeros bytes en hex: `GIF87a`/`GIF89a` o `RIFF….WEBP`). `my_gifs()`, `delete_gif(id)` (se niega con detail `gif_in_use` si alguna rutina lo usa). Coach activo con acuerdo A7 (borrar no lo exige). | `invalid` · `forbidden` (+ `coach_agreement_required`) · `not_found` |
+| 16.3 | `save_routine(client, title, content)`, `get_routine(client)`, `delete_routine(client)`: coach con acuerdo y vínculo activo con ese cliente. Contenido validado por `routine_content_ok`: 1–7 días, 0–12 ejercicios por día, nombre ≤ 60, `sets` ≤ 30, nota ≤ 200, `gif` uuid; claves desconocidas = inválido; los GIF citados deben ser del propio coach. `my_routine()`: el cliente lee SOLO la de su coach con vínculo activo (también con el acceso en pausa por pago). | `invalid` (detail `gif_not_found`) · `forbidden` |
+| 16.4 | Bucket privado `ejercicios` (`{coach_id}/{gif_id}.gif`, 3 MB, solo gif/webp). Políticas: el coach lee/borra su carpeta y sube/reemplaza solo un id que registró (`gif_upload_allowed`); el cliente lee solo los de su coach activo (`client_can_read_gif`). Lectura únicamente con URL firmada de 60 s. | 403 en Storage |
+| 16.5 | `core.delete_my_account` se niega (`invalid`) si quedan archivos en `ejercicios`; `remote.js` los borra antes. | |
+
+**Remote (real y fake, mismo contrato):** `client.myRoutine()`, `client.gifBlob(coachId, gifId)`, `coach.listGifs()`, `uploadGif(file, name)`, `deleteGif(id)`, `gifBlob(id)`, `getRoutine(clientId)`, `saveRoutine(clientId, {title, days})`, `deleteRoutine(clientId)`.
