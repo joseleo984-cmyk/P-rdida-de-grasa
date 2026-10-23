@@ -2,7 +2,9 @@
 -- Motivo: remote.client.myLink() / joinCoach() devuelven { businessName } (contrato §3.4), pero el cliente no puede
 -- leer grasa.coaches (RLS coaches_own: solo su propia fila, y esa tabla lleva el código de invitación). Esta función
 -- expone SOLO el nombre comercial del coach con el que el usuario tiene un vínculo activo, nada más.
-create or replace function grasa.my_link()
+-- v1.6: el tipo de salida cambió en 20261024120000_r1_pagos_coach.sql; se borra antes para que r1.sql siga siendo idempotente (se vuelve a conceder al final).
+drop function if exists grasa.my_link();
+create function grasa.my_link()
 returns table (id uuid, coach_id uuid, business_name text, share_body boolean, share_notes boolean,
                share_nutrition boolean, share_habits boolean, share_photos boolean, since timestamptz)
 language sql stable security definer set search_path = '' as $$

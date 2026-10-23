@@ -11,7 +11,11 @@
   //   - borrado lógico: `deleted = { entries, foods, habits, photos }` con lápidas { id, date, deletedAt, updatedAt }.
   //     Las lápidas viven APARTE de los datos vivos: la UI, los cálculos, el CSV y el visor del coach no las ven.
   //   - claves naturales: registro corporal y hábitos por fecha; biblioteca por nombre en minúsculas.
-  const CURRENT_VERSION = 4;
+  // v5 (Sprint 11, «App para coaches»): el registro corporal (`entry`) admite medidas de cuerpo tipo sastre: brazo derecho/izquierdo
+  //   (armR, armL), espalda (back) y muslo derecho/izquierdo (thighR, thighL), además de cuello y cintura que ya existían.
+  //   Son campos OPCIONALES: un respaldo v4 es válido tal cual (la migración v4→v5 no cambia ningún dato) y el peso ya no es obligatorio.
+  //   Un respaldo v5 no se puede abrir en una app de versión 4 (dice «versión más nueva»), como siempre.
+  const CURRENT_VERSION = 5;
   const EPOCH = '1970-01-01T00:00:00.000Z';
 
   // Cada migración recibe el estado de la versión N-1 (y `ctx.uid`) y devuelve uno nuevo de la versión N (sin mutar).
@@ -19,6 +23,7 @@
     2: (s) => ({ ...s }),
     3: (s) => ({ ...s, consent: s.consent === undefined ? null : s.consent }),
     4: (s, ctx) => migrateTo4(s, ctx.uid),
+    5: (s) => ({ ...s }),   // medidas nuevas opcionales en `entry`: nada que convertir
   };
 
   // LEGAL-01: versiones vigentes de los textos legales (deben coincidir con "**Versión:**" de los .md;
@@ -42,6 +47,7 @@
   // Rangos aceptados (algo más amplios que los del formulario para no perder datos legítimos).
   const RANGES = {
     weight: [20, 400], waist: [30, 250], neck: [15, 80], hip: [40, 250], bodyFat: [2, 70],
+    armR: [10, 80], armL: [10, 80], back: [15, 150], thighR: [20, 120], thighL: [20, 120],
     kcal: [0, 10000], protein: [0, 1000], carbs: [0, 2000], fat: [0, 1000],
     steps: [0, 200000], water: [0, 20], sleep: [0, 24],
   };
@@ -174,6 +180,8 @@
     return p;
   }
 
+  // Medidas que puede llevar un registro corporal (todas opcionales; basta con una). Sprint 11: + brazos, espalda y muslos.
+  const ENTRY_FIELDS = ['weight', 'waist', 'neck', 'hip', 'bodyFat', 'armR', 'armL', 'back', 'thighR', 'thighL'];
   function normalizeEntries(raw, warn, uid) {
     if (raw === undefined) return [];
     if (!Array.isArray(raw)) { warn('Registros descartados: formato no válido'); return []; }
@@ -182,14 +190,14 @@
     raw.forEach((e, i) => {
       if (!isObj(e) || !isISODate(e.date)) { warn(`Registro ${i + 1} descartado: sin fecha válida`); return; }
       const entry = { id: e.id, date: e.date };
-      for (const k of ['weight', 'waist', 'neck', 'hip', 'bodyFat']) {
+      for (const k of ENTRY_FIELDS) {
         const v = num(e[k], RANGES[k]);
         if (Number.isNaN(v)) warn(`Registro ${e.date}: "${k}" no válido, se descarta`);
         else if (v !== undefined) entry[k] = v;
       }
       const note = text(e.note, 140);
       if (note) entry.note = note;
-      if (entry.weight === undefined && entry.waist === undefined && entry.neck === undefined && entry.hip === undefined && entry.bodyFat === undefined) {
+      if (ENTRY_FIELDS.every((k) => entry[k] === undefined)) {
         warn(`Registro ${e.date} descartado: sin medidas`);
         return;
       }
@@ -580,6 +588,7 @@
       photos.push({
         id, date: p.date, pose, width: dim(p.width), height: dim(p.height),
         createdAt: Number.isFinite(p.createdAt) ? p.createdAt : 0, updatedAt: stamp(p.updatedAt), data: p.data,
+        ...(p.sharedWithCoach === true ? { sharedWithCoach: true } : {}),   // Sprint 11: foto marcada para que la vea el coach
       });
     });
     return { photos, warnings };
@@ -638,7 +647,7 @@
     return { foods: out, copied: copies.length, skipped };
   }
 
-  const api = { AGE_MIN, AGE_UNDER_MSG, CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, normalizeStoredPhoto, isSafeKey,
+  const api = { ENTRY_FIELDS, RANGES, AGE_MIN, AGE_UNDER_MSG, CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, normalizeStoredPhoto, isSafeKey,
     LEGAL_VERSIONS, normalizeConsent, consentStatus, buildConsent, setConsentFlag,
     EPOCH, uuid, isUUID, stampChanges, purgeDeleted, mergeRecords, toRecords, fromRecords, mergeState, clampStamp, MAX_SKEW_MS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

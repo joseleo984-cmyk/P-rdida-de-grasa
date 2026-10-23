@@ -529,3 +529,111 @@ body:not(.has-remote) .needs-account { display: none; }
 #view-acuerdo .btn, #view-acuerdo .acc-main { min-height: 48px; }
 #view-acuerdo .acc-main { width: 100%; }
 #view-acuerdo .row-actions .btn { flex: 1 1 160px; }
+
+/* ===== Sprint 11 («App para coaches», Etapa 1) ===== */
+/* Lo nuevo solo existe en el modo producto 'coach' (clase en <body> puesta por producto.js; la app oficial no la tiene). */
+.pc-only { display: none; }
+body.producto-coach .pc-only { display: block; }
+body.producto-coach .pc-only.hidden, .pc-only.hidden { display: none !important; }
+body.producto-coach .home-legacy { display: none !important; }
+body.producto-coach .photos-off-note { display: none; }
+body.producto-coach #view-fotos .back-row { display: none; }
+body.producto-coach .view-title { margin: 4px 0 12px; font-size: 1.25rem; }
+body.producto-coach #more-saved, body.solo-nube #btn-more-login { display: none; }
+/* Entrada solo con cuenta: no hay pantalla legal local, ni «Ahora no», ni casillas A1/A2 en el correo; nombre visible */
+body.solo-nube #consent, body.solo-nube #btn-acc-skip, body.solo-nube #acc-terms { display: none !important; }
+#acc-name-box { display: none; }
+body.solo-nube #acc-name-box { display: block; }
+body.solo-nube #btn-toggle-health, body.solo-nube #btn-toggle-photos, body.solo-nube #btn-withdraw-legal, body.solo-nube #coach-copy-card { display: none; }
+body.consent-open #solo { display: block; }
+.draft-badge { display: inline-block; margin: 0 0 8px; padding: 4px 10px; border-radius: 99px; background: var(--goal); color: #1b1300; font-weight: 800; font-size: .82rem; }
+#form-solo .btn { margin-top: 8px; width: 100%; min-height: 48px; }
+#form-solo .auth-links, #form-solo .consent-item .auth-links { display: block; margin: 4px 0 0 34px; }
+.consent-item .auth-links a { display: inline-block; margin: 0 12px 0 0; padding: 8px 0; color: var(--accent); font-weight: 600; }
+
+/* Barra de abajo con 5 pestañas de texto (cliente en modo coach) */
+body.producto-coach .tabbar button { min-height: 56px; }
+
+/* Cobros: chips «Pagó / No pagó», resumen y lista del coach */
+.chip-pay { flex: none; border: 0; font: inherit; font-weight: 800; font-size: .88rem; padding: 10px 14px; border-radius: 999px; cursor: pointer; min-height: 48px; min-width: 88px; }
+.chip-pay.ok { background: var(--ok-bg, #dcf1e5); color: var(--ok-fg, #1f7a45); }
+.chip-pay.bad { background: var(--none-bg, #fbe4e1); color: var(--none-fg, #b3261e); }
+.chip-pay:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.pay-summary { display: flex; gap: 8px; margin: 0 0 10px; }
+.pay-summary > div { flex: 1; border-radius: 14px; padding: 10px; font-weight: 800; text-align: center; font-size: 1.2rem; }
+.pay-summary small { display: block; font-weight: 600; font-size: .8rem; }
+.pay-summary .a { background: var(--ok-bg, #dcf1e5); color: var(--ok-fg, #1f7a45); }
+.pay-summary .b { background: var(--none-bg, #fbe4e1); color: var(--none-fg, #b3261e); }
+.coach-sort { display: none; align-items: center; gap: 8px; margin: 0 0 10px; }
+body.producto-coach .coach-sort { display: flex; }
+.coach-sort select { flex: 1; min-height: 48px; }
+.cli-pay-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); min-width: 0; }
+.cli-pay-row .cli-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; text-align: left; font: inherit; color: var(--text); background: transparent; border: 0; padding: 4px; min-height: 56px; cursor: pointer; border-radius: 10px; }
+.cli-pay-row .cli-main:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.cli-pay-row .cli-text { display: flex; flex-direction: column; min-width: 0; }
+.cli-pay-row .cli-line { font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
+.coach-add { display: grid; gap: 8px; margin-top: 12px; }
+body.producto-coach .coach-add .btn { width: 100%; min-height: 48px; }
+.detail-pay { display: none; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 6px 0; }
+body.producto-coach .detail-pay { display: flex; }
+.detail-pay p { margin: 0; flex: 1 1 160px; }
+.pay-countdown { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: var(--accent-soft); font-weight: 800; }
+.pay-countdown.soon { background: var(--late-bg, #fbf0cc); color: var(--late-fg, #6b4a00); border: 2px solid var(--goal); }
+.pause-card { text-align: center; }
+.pause-card .pause-icon { font-size: 2.6rem; margin: 0; }
+.pause-card .btn { width: 100%; margin-top: 8px; min-height: 48px; }
+.pause-own { text-align: left; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.pause-own h3 { margin: 0 0 4px; font-size: 1rem; }
+.pause-banner { display: none; padding: 10px 12px; border: 1px solid var(--goal); border-left-width: 4px; border-radius: 10px; margin: 0 0 12px; font-weight: 600; }
+body.paused .pause-banner { display: block; }
+/* Acceso en pausa: solo se ve y se descarga; no se registra ni se sube nada nuevo */
+body.paused #form-habitos, body.paused #form-medidas, body.paused #form-photo, body.paused #viewer-delete, body.paused #viewer-share-row,
+body.paused #photos-coach-card, body.paused [data-del-med], body.paused #home-coach { display: none !important; }
+body.paused #view-fotos > .card:has(#form-photo) { display: none; }
+
+/* Hábitos y barras */
+.habit-list { display: grid; gap: 10px; margin: 8px 0; }
+.habit { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; font-size: .92rem; }
+.habit .bar { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.habit .bar i { display: block; height: 100%; background: var(--accent); }
+.habit.done .bar i { background: var(--ok-dot, #1f7a45); }
+.stepper { display: flex; gap: 6px; align-items: center; }
+.stepper .btn { min-width: 48px; min-height: 48px; padding: 0; font-size: 1.3rem; }
+.stepper input { text-align: center; min-height: 48px; }
+#form-habitos .btn, #form-medidas .btn { min-height: 48px; }
+#form-habitos input, #form-medidas input { min-height: 48px; }
+#form-habitos .check { min-height: 48px; }
+#form-habitos .check input { min-height: 0; }
+
+/* Medidas */
+.seg-wrap { display: flex; flex-wrap: wrap; border-radius: 14px; }
+.seg-wrap button { min-height: 44px; }
+.med-chart svg { width: 100%; height: auto; max-height: 180px; display: block; }
+.med-chart .axis { stroke: var(--line); stroke-width: 1; }
+.med-chart .line { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.med-chart .dot { fill: var(--accent); }
+.med-chart text { fill: var(--muted); font-size: 11px; }
+.med-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.med-table th, .med-table td { padding: 8px 4px; text-align: right; border-bottom: 1px solid var(--line); }
+.med-table th:first-child, .med-table td:first-child { text-align: left; }
+.med-table th { font-size: .78rem; color: var(--muted); font-weight: 700; }
+.med-table .dn { color: var(--ok-fg, #1f7a45); font-weight: 800; }
+@media (prefers-color-scheme: dark) { .med-table .dn { color: #7fd39d; } }
+.med-history { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.med-history li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.med-history .icon-btn { min-width: 48px; min-height: 48px; }
+.viewer-share { color: #fff; display: flex; align-items: center; gap: 8px; min-height: 48px; }
+.viewer-share input { width: 24px; height: 24px; }
+.viewer-bar .btn { min-height: 48px; }
+.thumb .shared-badge { position: absolute; right: 6px; top: 6px; background: var(--accent); color: var(--on-accent); font-size: .68rem; padding: 2px 7px; border-radius: 99px; }
+#coach-compare { margin-top: 12px; }
+#coach-compare .compare-pair { margin-top: 10px; }
+#coach-compare .compare-pair img { width: 100%; border-radius: 10px; display: block; }
+.coach-photos .btn { min-height: 48px; }
+#form-pago input[type=date] { width: 100%; min-height: 48px; font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+#form-pago .btn { width: 100%; min-height: 48px; }
+body.producto-coach .btn, body.producto-coach .btn-tall, body.solo-nube .btn { min-height: 48px; }
+body.producto-coach .home-card .btn, body.producto-coach #view-fotos .btn-tall, body.producto-coach #photos-coach-card .btn { width: 100%; margin-top: 8px; }
+body.producto-coach .home-card .home-label { margin-bottom: 4px; }
+body.producto-coach .pay-summary { display: flex; }
+.seg-wrap button { min-height: 48px; }

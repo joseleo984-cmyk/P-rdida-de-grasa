@@ -37,7 +37,7 @@ test('migración v1, v2 y v3 → v4: UUID, updatedAt = EPOCH, sin lápidas y sin
     const { state, warnings } = load(raw);
     assert.strictEqual(JSON.stringify(raw), before, name + ': no muta la entrada');
     assert.deepStrictEqual(warnings, [], name);
-    assert.strictEqual(state.schemaVersion, 4);
+    assert.strictEqual(state.schemaVersion, Schema.CURRENT_VERSION);
     assert.strictEqual(state.entries.length, 3);
     const all = [...state.entries, ...Object.values(state.foods).flat(), ...Object.values(state.habits), ...Object.values(state.library)];
     assert.strictEqual(all.length, 3 + 2 + 2 + 2);
@@ -61,7 +61,7 @@ test('migración: idempotente y estable (v4 → v4 conserva ids y updatedAt) y s
   const twice = load(plain(once)).state;
   assert.deepStrictEqual(plain(twice), plain(once));
   assert.throws(() => load({ foo: 1 }), /respaldo/);   // migrateTo4 no inventa claves
-  assert.throws(() => Schema.migrate({ schemaVersion: 5, entries: [] }), /más nueva/);
+  assert.throws(() => Schema.migrate({ schemaVersion: 6, entries: [] }), /más nueva/);
 });
 
 test('normalize: ids no UUID, updatedAt inválido y lápidas inválidas se corrigen o descartan', () => {

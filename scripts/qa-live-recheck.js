@@ -57,6 +57,7 @@ const code = (r) => r.code;
     rec('habit', day, day, { water: true, note: NOTES.habit }),
     rec('library', 'alimento h6', null, { name: 'Alimento H6', note: NOTES.library }),
   ];
+  await rpc('grasa', 'leave_coach', {}, A.token); // Sprint 11: sin vínculo previo (un vínculo vencido bloquearía sync_push)
   let r = await rpc('grasa', 'sync_push', { p_records: recs, p_photos: [] }, A.token);
   rep(ok2(r), 'A sync_push con note en profile/entry/food/habit/library', ok2(r) ? '' : `HTTP ${r.status} ${r.json && r.json.message}`);
   await rpc('grasa', 'leave_coach', {}, A.token); // limpia vínculo previo, si lo hay
@@ -65,6 +66,17 @@ const code = (r) => r.code;
   const shares = (o) => ({ body: true, notes: false, nutrition: false, habits: false, photos: false, ...o, ...SH });
   r = await rpc('grasa', 'join_coach', { p_code: cd, p_shares: shares({}) }, A.token);
   rep(ok2(r) && r.json && r.json.status === 'active', 'A se vincula (solo peso/medidas)');
+  // Sprint 11 (r1 v1.6): vinculada, A debe estar al día para sincronizar; solo el coach lo marca.
+  const hoyBo = (d = 0) => new Date(Date.now() - 5 * 3600000 + d * 86400000).toISOString().slice(0, 10);
+  r = await rpc('grasa', 'sync_push', { p_records: [], p_photos: [] }, A.token);
+  rep(!ok2(r) && r.status === 403 && /payment_required/.test(flat(r.json)), 'A vinculada y sin pago: sync_push → payment_required', `HTTP ${r.status}`);
+  const payResp = r;
+  r = await rpc('grasa', 'set_client_payment', { p_client: A.id, p_paid_until: hoyBo(30) }, A.token);
+  rep(!ok2(r) && r.status === 403, 'A NO puede marcar su propio pago (403)', `HTTP ${r.status}`);
+  r = await rpc('grasa', 'set_client_payment', { p_client: A.id, p_paid_until: hoyBo(30) }, C.token);
+  rep(ok2(r) && r.json && r.json.paid === true, 'el coach marca el pago de A (hoy + 30)', ok2(r) ? '' : `HTTP ${r.status}`);
+  r = await rpc('grasa', 'sync_push', { p_records: [], p_photos: [] }, A.token);
+  rep(ok2(r), 'A al día: sync_push funciona');
   const pull = async () => (await rpc('grasa', 'coach_pull', { p_client: A.id, p_since: Z }, C.token));
   const noNotes = (j) => !Object.values(NOTES).some((x) => flat(j).includes(x)) && !flat(j).includes('"note"');
   let p = await pull();
@@ -112,6 +124,7 @@ const code = (r) => r.code;
   map('REST sin sesión (anon) rpc', await rpc('core', 'my_roles', { p_app: 'grasa' }), {}, 'auth');
   map('REST sin sesión (anon) tabla', await api('GET', '/rest/v1/records?select=id', { headers: { 'Accept-Profile': 'grasa' } }), {}, 'auth');
   map('con sesión, RLS/forbidden (coach_pull)', forb, {}, 'forbidden');
+  map('cliente vinculado sin pago (sync_push)', payResp, {}, 'payment_required');   // Sprint 11
   r = await api('POST', '/rest/v1/records', { token: C.token, body: { ...rec('entry', '2020-01-03', '2020-01-03', {}), user_id: A.id }, headers: { 'Content-Profile': 'grasa' } });
   map('con sesión, INSERT bloqueado por RLS', r, {}, 'forbidden');
   map('JWT mal formado en REST', await rpc('core', 'my_roles', { p_app: 'grasa' }, 'abc.def'), {}, 'auth');

@@ -729,3 +729,31 @@ Una sola migración: `supabase/migrations/20261023120000_r1_consentimientos_serv
 - **Decidido (E3, 14.6):** retirar A3 o A4 corta al coach en la siguiente consulta, como promete la A8. Ver la fila 14.6.
 - Los eventos son solo-inserción: una cuenta que retira y vuelve a aceptar acumula eventos (es lo buscado).
 - Hay que volver a pegar `supabase/r1.sql` en `pruebas` y en `plataforma` (idempotente). Los scripts `qa-live-rls.js` y `qa-live-recheck.js` registran primero los consentimientos con el mismo método (INSERT en `core.consent_events` con la sesión de cada cuenta).
+
+
+## 15. Cambios v1.6 (Sprint 11: «App para coaches», Etapa 1 — cobros manuales y bloqueo por pago)
+
+Una sola migración: `supabase/migrations/20261024120000_r1_pagos_coach.sql` (regenera `supabase/r1.sql`). Pruebas: `supabase/tests/100_pagos_coach.test.sql` (nueva, 44 comprobaciones) y ajustes de `01_helpers` (`tests.paid`), `40`, `60` (lista blanca) y `70`. Para que `r1.sql` siga siendo idempotente al pegarlo dos veces, las migraciones antiguas que crean `coach_clients()` y `my_link()` ahora hacen `drop function if exists` antes (cambió su tipo de salida); el permiso se concede de nuevo en la migración nueva.
+
+El cliente le paga al coach POR FUERA de la app; el coach lo marca. La plataforma no cobra nada.
+
+| # | Cambio | Error / resultado | Efecto en la app |
+|---|---|---|---|
+| 15.1 | `grasa.coach_links.paid_until date` y `paid_marked_at timestamptz`. Los vínculos activos que ya existían reciben `hoy + 30` **una sola vez** (gracia). Un vínculo nuevo nace **sin fecha** = vencido hasta que el coach marque. | | |
+| 15.2 | `grasa.set_client_payment(p_client uuid, p_paid_until date) → jsonb {client_id, paid_until, paid_marked_at, paid, days_left}`. `SECURITY DEFINER`, solo el coach ACTIVO de un vínculo ACTIVO con ese cliente y con el acuerdo (A7) vigente. Fecha razonable: de hoy − 400 a hoy + 400 (null = sin pago registrado). | otro coach / el cliente / quien no es coach: `42501 forbidden`; sin acuerdo: `42501 forbidden` detail `coach_agreement_required`; fecha absurda: `22023 invalid` | `remote.coach.setPayment(clientId, 'AAAA-MM-DD' \| null)`. «Pagó» = hoy + 30 (editable); «No pagó» = ayer. |
+| 15.3 | **Al día** = `paid_until >= hoy` en `America/Bogota` (`grasa.today_bogota()`, interna). El día límite sigue al día. | | `pagos.js` calcula igual con UTC-5 fijo (Colombia no tiene horario de verano). |
+| 15.4 | `coach_clients()` devuelve además `paid_until, paid_marked_at, paid, days_left`. `my_link()` igual (el cliente ve su propio estado). Solo ven el estado el coach y el cliente de ese vínculo. | | `remote.coach.clients()` y `client.myLink()` traen `paidUntil, paidMarkedAt, paid, daysLeft`. |
+| 15.5 | Cliente con vínculo **activo** y vencido: `sync_push` falla (después de los consentimientos). `sync_pull`, `update_shares`, `leave_coach`, borrar fotos y `core.delete_my_account` **siguen permitidos**. Sin vínculo activo nunca se bloquea. | `42501`, mensaje **y detail `payment_required`** | `mapError` → `RemoteError('payment_required')` (no reintentable). `sync.js` → estado `paused` (sin error técnico ni reintentos). La app muestra M4 «Tu acceso está en pausa». |
+| 15.6 | La subida de fotos a Storage también exige estar al día: las políticas `INSERT` y `UPDATE` de `grasa_photos_owner_*` añaden `not grasa.payment_blocked_me()`. Leer y borrar no. | 403 (RLS de Storage) | `remote.sync.uploadPhoto` traduce ese 403 a `payment_required` si `my_link()` dice que está vencido. |
+| 15.7 | Funciones nuevas, todas `SECURITY DEFINER` con `search_path` fijo: `client_payment_blocked(uuid)` y `today_bogota()` (internas, sin permiso para la API), `payment_blocked_me()` y `require_payment()` (sin parámetros de usuario: solo informan del propio estado) y `set_client_payment`. El cliente **no** puede modificar `paid_until` (solo tiene `SELECT` en `coach_links`; probado UPDATE directo y llamada a la función sobre sí mismo). RLS y lista blanca de privilegios intactas (se amplía la lista blanca de `60_qa_seguridad`). | | |
+
+**Fake (`remote-fake.js`):** `be.payState`, `paymentBlocked`, `requirePayment`, `setPaidUntil(email, iso)` (solo pruebas), `coach.setPayment`, y los mismos errores.
+
+**Esquema de datos v5 (cliente, sin SQL):** `entry` admite `armR, armL, back, thighR, thighL` (además de `neck`, `waist`); todas opcionales (el peso ya no es obligatorio). La migración local v4→v5 no cambia ningún dato (copia `:backup-v4` por el mecanismo de siempre). El servidor guarda `data` como `jsonb` (≤ 4 KB), no cambia.
+
+**Riesgos y decisiones abiertas**
+- Un cliente que deja a su coach y vuelve a vincularse recibe un vínculo **nuevo sin fecha** (vencido hasta que el coach marque). Un cliente que se desvincula deja de estar bloqueado, pero también el coach deja de verlo.
+- Una versión antigua de la app (sin Sprint 11) que sincronice con un cliente vinculado vencido verá un error genérico del servidor.
+- Hay que volver a pegar `supabase/r1.sql` en `pruebas` y en `plataforma` (idempotente; debe terminar con `OK r1 v1`). Los scripts `qa-live-rls.js` (sección a3) y `qa-live-recheck.js` marcan el pago antes de sincronizar y prueban: pausa, cliente no puede marcarse, coach sí, vencido bloquea push y foto pero no pull, día límite.
+
+Handoff: `equipo/handoffs/2026-10-24-sprint11-coach.md`.

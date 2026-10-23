@@ -53,7 +53,8 @@ select tests.ok(not exists (
       'grasa.coach_can_see', 'grasa.coach_can_see_photo', 'grasa.become_coach', 'grasa.rotate_invite_code',
       'grasa.preview_invite_code', 'grasa.join_coach', 'grasa.update_shares', 'grasa.leave_coach', 'grasa.end_client',
       'grasa.coach_clients', 'grasa.coach_pull', 'grasa.add_comment', 'grasa.delete_comment', 'grasa.mark_comment_read',
-      'grasa.coach_photo_opened', 'grasa.billing_active_clients', 'grasa.my_link')),
+      'grasa.coach_photo_opened', 'grasa.billing_active_clients', 'grasa.my_link',
+      'grasa.set_client_payment', 'grasa.require_payment', 'grasa.payment_blocked_me')),
   'authenticated solo ejecuta las SECURITY DEFINER de la lista blanca del contrato');
 select tests.ok(not exists (
   select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
@@ -88,6 +89,7 @@ begin
   perform grasa.join_coach(current_setting('t.code_x'),
     jsonb_build_object('body', true, 'notes', false, 'nutrition', true, 'habits', false, 'photos', true,
                        'version', '0.1', 'text_hash', tests.h('compartir')));
+  perform set_config('role', 'postgres', true); perform tests.paid('ana'); perform tests.login('ana');   -- Sprint 11: al día
   perform grasa.sync_push(jsonb_build_array(
     jsonb_build_object('id', '10000000-0000-4000-8000-0000000000a1', 'kind', 'entry', 'nkey', '2026-10-20', 'date', '2026-10-20',
                        'data', jsonb_build_object('weight', 80, 'note', 'nota privada de Ana'), 'updated_at', '2026-10-20T10:00:00Z'),

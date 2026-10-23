@@ -29,6 +29,7 @@
     consent: 'Falta aceptar las autorizaciones de la copia en la nube: revísalas en Más → Mis datos y permisos. Tus datos siguen en este teléfono.',
     blocked: 'No se guarda en tu cuenta porque no autorizaste los datos de salud.',
     owner: 'Falta que confirmes que estos datos son tuyos.',
+    paused: 'Tu acceso está en pausa: habla con tu coach. Tus datos siguen aquí y puedes verlos, descargarlos o borrarlos.',
   };
   // Texto del indicador para el estado del motor (sync.js). Devuelve '' si no hay nada que decir (idle sin éxito previo).
   function syncText(st, now = Date.now(), tz) {

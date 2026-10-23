@@ -9,7 +9,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const arg = process.argv.indexOf('--out');
 const OUT = path.resolve(ROOT, arg > 0 ? process.argv[arg + 1] : '_site');
-const FILES = ['index.html', 'styles.css', 'ns.js', 'calc.js', 'schema.js', 'consent-texts.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'app.js', 'config.js',
+const FILES = ['index.html', 'styles.css', 'ns.js', 'calc.js', 'schema.js', 'consent-texts.js', 'producto.js', 'consent-texts-solo.js', 'pagos.js', 'medidas.js', 'habitos.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'app.js', 'config.js',
   'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'sw.js', 'manifest.webmanifest', 'icon.svg'];
 const DIRS = [['legal', 'legal'], ['vendor/supabase-2.117.2.js', 'vendor/supabase-2.117.2.js']];
 const { checkCaptcha } = require('./check-conexion.js');

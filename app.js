@@ -10,6 +10,10 @@
   const fmt = (n, d = 1) => (n == null || Number.isNaN(n) ? '—' : Number(n).toLocaleString('es', { minimumFractionDigits: d, maximumFractionDigits: d }));
   const today = () => toISO(new Date());
   const uid = () => Schema.uuid();   // S2-4: UUID (crypto.randomUUID con respaldo) para poder sincronizar
+  // Sprint 11: modo producto «coach» y entrada «solo con cuenta» (solo la copia de pruebas; la app oficial no los tiene: producto.js).
+  const PROD = window.Producto || { coach: false, soloNube: false };
+  const CT = window.ConsentTexts;
+  const HABIT_KEYS = ['water', 'steps', 'sleep'];
 
   function toISO(d) {
     const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
@@ -134,7 +138,7 @@
   // ---------- Navegación ----------
   // Barra de abajo. Cliente (y sin cuenta): Inicio | Comidas | ＋ Registrar | Progreso | Más.
   // Coach: Clientes | ＋ Invitar | Más (su propio seguimiento sigue en Más). Las vistas conservan sus ids (#view-…).
-  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar' };
+  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
   let navCoach = false;
   function show(view, mode) {
@@ -145,7 +149,7 @@
       $('#view-perfil').dataset.mode = m;
       $('#perfil-title').textContent = PERFIL_TITLES[m];
     }
-    const tabView = navCoach && ['panel', 'comidas', 'registro'].includes(view) ? 'mas' : TAB_OF[view] || view;
+    const tabView = navCoach && ['panel', 'comidas', 'registro', 'habitos', 'medidas', 'fotos'].includes(view) ? 'mas' : PROD.coach && view === 'fotos' ? 'fotos' : TAB_OF[view] || view;
     $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + view));
     $$('.tabbar button').forEach((b) => {
       const on = b.dataset.view === tabView;
@@ -174,22 +178,29 @@
     } else show(view, mode);
   });
   // Ayudante para las pruebas y para otros módulos: ir a una vista (Perfil con todas sus tarjetas: show('perfil', 'all')).
-  window.PGNav = { show: (view, mode) => show(view, mode), applyNav: (isCoach) => applyNav(isCoach) };
+  window.PGNav = { show: (view, mode) => show(view, mode), applyNav: (isCoach) => applyNav(isCoach), resetAll: (ask) => resetAll(ask),
+    photosGrant: async () => { await grant('photos'); return a6aGranted(); } };
 
   // Qué botones tiene la barra según la cuenta: el coach ve Clientes | Invitar | Más; todos los demás, las cinco de siempre.
   function applyNav(isCoach) {
     const was = navCoach;
     navCoach = !!isCoach;
     document.body.classList.toggle('mode-coach', navCoach);
-    const order = navCoach ? ['coach', 'invitar', 'mas'] : ['panel', 'comidas', 'registrar', 'registro', 'mas'];
+    // Sprint 11 (producto 'coach'): cliente = Inicio · Hábitos · Medidas · Fotos · Más; coach = Asesorados · Invitar · Más.
+    const order = PROD.coach ? (navCoach ? ['coach', 'invitar', 'mas'] : ['panel', 'habitos', 'medidas', 'fotos', 'mas'])
+      : navCoach ? ['coach', 'invitar', 'mas'] : ['panel', 'comidas', 'registrar', 'registro', 'mas'];
     const bar = $('#tabbar');
-    for (const id of ['panel', 'comidas', 'registrar', 'registro', 'mas', 'coach', 'invitar']) $('#tab-' + id).classList.toggle('hidden', !order.includes(id));
+    for (const id of ['panel', 'comidas', 'registrar', 'registro', 'mas', 'coach', 'invitar', 'habitos', 'medidas', 'fotos']) $('#tab-' + id).classList.toggle('hidden', !order.includes(id));
     order.forEach((id) => bar.appendChild($('#tab-' + id))); // el orden de lectura es el orden visual
     if (navCoach && !was) $('#tab-coach').click(); // el coach empieza en su lista de clientes
     else if (!navCoach && was) {
       const cur = document.querySelector('.view.active');
       if (cur && (cur.id === 'view-coach' || cur.id === 'view-invitar')) show('panel');
     }
+  }
+  if (PROD.coach) {
+    $('#tab-coach .tb-label').textContent = 'Asesorados';
+    applyNav(false);
   }
 
   // ---------- Más (cuenta y menú) ----------
@@ -617,6 +628,58 @@
     renderPhotos(true);
   }
 
+  // ---- Sprint 11: fotos en la nube, detrás de A6a (guardar en la nube) y A6b (que el coach vea cada foto, una a una) ----
+  const consentOf = (kind, id) => { const m = acct(); const c = m && m.consents && m.consents[kind]; return !!(c && c.granted === true && c.version === CT.version(id)); };
+  const a6bGranted = () => consentOf('photo_view_coach', 'A6b');
+  // ¿Se suben las fotos a la nube? Solo con producto 'coach' (la app oficial las deja apagadas), cuenta con la copia en la nube, fotos autorizadas y A6a.
+  function photoCloudOn() { const m = acct(); return PROD.coach && !!m && CT.cloudAllowed(m) && consentOf('photos_cloud', 'A6a') && Schema.consentStatus(state.consent) === 'ok' && state.consent.photos === true; }
+  // ¿Puede marcar fotos para su coach? A6b vigente + el vínculo comparte fotos.
+  function coachPhotosOn() { const l = myLinkNow(); return photoCloudOn() && !!l && !!(l.shares && l.shares.photos) && a6bGranted(); }
+  function renderPhotosCoach() {
+    const l = myLinkNow();
+    const card = $('#photos-coach-card');
+    const show = PROD.coach && !!l && photoCloudOn();
+    card.classList.toggle('hidden', !show);
+    $('#photos-a6a-text').classList.toggle('hidden', !PROD.soloNube);
+    if (PROD.soloNube) setText($('#photos-a6a-text'), CT.fill(CT.get('A6a').body, {}));
+    if (!show) return;
+    const on = coachPhotosOn(), name = l.businessName || 'tu coach';
+    setText($('#photos-coach-state'), on ? `${name} puede ver solo las fotos que tú marques, una por una. Marca cada foto al abrirla. Retirar el permiso las oculta al instante.`
+      : `${name} todavía no puede ver tus fotos.`);
+    const t = $('#photos-a6b-text');
+    t.classList.toggle('hidden', on);
+    if (!on) setText(t, CT.fill(CT.get('A6b').body, { coach: name }));
+    setText($('#btn-photos-coach'), on ? 'Quitar el permiso a mi coach' : `Permitir que ${name} vea mis fotos, una a una`);
+  }
+  $('#btn-photos-coach').addEventListener('click', async () => {
+    if (!window.PGAccount || !PGAccount.setCoachPhotos) return;
+    const on = coachPhotosOn();
+    const err = $('#photos-coach-error');
+    err.classList.add('hidden');
+    const btn = $('#btn-photos-coach');
+    btn.disabled = true;
+    try {
+      const done = await PGAccount.setCoachPhotos(!on);
+      if (done && on) await unshareAllPhotos();
+      if (done) toast(on ? 'Listo: tu coach ya no ve tus fotos' : 'Listo: marca las fotos que quieras mostrar');
+    } catch (e) { err.textContent = PGAccount.errorText(e, 'shares'); err.classList.remove('hidden'); }
+    finally { btn.disabled = false; render(); }
+  });
+  async function unshareAllPhotos() {
+    const now = new Date().toISOString();
+    for (const p of photos.filter((x) => x.sharedWithCoach)) { p.sharedWithCoach = false; p.updatedAt = now; try { await Photos.put(p); } catch { /* se reintenta en la próxima carga */ } }
+    scheduleSync(300);
+  }
+  document.addEventListener('pg:photos-unshare', () => { unshareAllPhotos(); render(); });
+  document.addEventListener('pg:photos-cloud-changed', () => {
+    const m = syncStore.getMeta();
+    syncStore.setMeta({ ...m, pushedUpTo: null });   // las fotos que ya estaban se suben con la primera sincronización tras autorizar A6a
+    loadPhotos(); render(); scheduleSync(0);
+  });
+  let lastPhotosAllowed = photosAllowed();
+  document.addEventListener('pg:consents-changed', () => { const a = photosAllowed(); if (a !== lastPhotosAllowed) { lastPhotosAllowed = a; loadPhotos(); } render(); });
+  document.addEventListener('pg:account-ready', () => { lastPhotosAllowed = photosAllowed(); loadPhotos(); });
+
   // Peso registrado el mismo día o el más cercano (máximo 3 días de diferencia).
   function weightNear(iso) {
     const day = Calc.toDay(iso);
@@ -639,12 +702,14 @@
     try {
       const { blob, width, height } = await Photos.compress(file);
       const photo = { id: uid(), date: photoForm.elements.date.value, pose: photoForm.elements.pose.value, blob, width, height, createdAt: Date.now(), updatedAt: new Date().toISOString() };
+      if (PROD.coach) photo.sharedWithCoach = false;   // Sprint 11: nada se muestra al coach hasta que la persona marque cada foto
       await Photos.put(photo);
       photos.push(photo);
       comparePose = photo.pose;
       photoForm.elements.file.value = '';
       toast('Foto guardada');
       renderPhotos(true);
+      if (photoCloudOn()) scheduleSync(500);   // Sprint 11: sube a la nube (A6a) si la persona lo autorizó
     } catch (err) {
       toast(err.message || 'No se pudo guardar la foto');
     } finally {
@@ -670,10 +735,26 @@
     if (!viewing) return;
     $('img', viewer).src = photoUrl(viewing);
     const w = weightNear(viewing.date);
-    $('#viewer-caption').textContent = `${fmtDate(viewing.date)} · ${POSES[viewing.pose]}${w ? ' · ' + fmt(w.weight) + ' kg' : ''}`;
+    $('#viewer-caption').textContent = `${fmtDate(viewing.date)} · ${POSES[viewing.pose]}${w && !PROD.coach ? ' · ' + fmt(w.weight) + ' kg' : ''}`;
+    // Sprint 11: «Mi coach puede ver esta foto» (una a una): solo con A6a + A6b vigentes y el vínculo compartiendo fotos.
+    const shareRow = $('#viewer-share-row');
+    shareRow.classList.toggle('hidden', !coachPhotosOn());
+    $('#viewer-share').checked = viewing.sharedWithCoach === true;
     viewer.showModal();
   });
   $('#viewer-close').addEventListener('click', () => viewer.close());
+  $('#viewer-share').addEventListener('change', async (ev) => {
+    if (!viewing || !coachPhotosOn()) return;
+    const on = ev.target.checked;
+    try {
+      viewing.sharedWithCoach = on;
+      viewing.updatedAt = new Date().toISOString();
+      await Photos.put(viewing);
+      toast(on ? 'Tu coach ya puede ver esta foto' : 'Tu coach ya no ve esta foto');
+      renderPhotos();
+      scheduleSync(300);
+    } catch { ev.target.checked = !on; toast('No se pudo cambiar', true); }
+  });
   viewer.addEventListener('click', (ev) => { if (ev.target === viewer) viewer.close(); });
   $('#viewer-delete').addEventListener('click', async () => {
     if (!viewing || !confirm('¿Eliminar esta foto?')) return;
@@ -691,6 +772,7 @@
       viewer.close();
       toast('Foto eliminada');
       renderPhotos();
+      scheduleSync(300);   // Sprint 11: la lápida también borra el archivo de la nube
     } catch {
       toast('No se pudo eliminar la foto');
     }
@@ -699,17 +781,18 @@
   function renderPhotos(resetSelection = false) {
     $$('#compare-pose button').forEach((b) => b.classList.toggle('on', b.dataset.pose === comparePose));
     renderCompare(resetSelection);
+    renderPhotosCoach();
 
     const byDate = {};
     for (const p of sortedPhotos().reverse()) (byDate[p.date] ||= []).push(p);
     const dates = Object.keys(byDate);
     $('#gallery').innerHTML = dates.length ? dates.map((d) => {
-      const w = weightNear(d);
+      const w = PROD.coach ? null : weightNear(d);
       return `<div class="photo-day">
         <div class="meal-head"><strong>${fmtDate(d)}</strong><span class="muted">${w ? fmt(w.weight) + ' kg' : ''}</span></div>
         <div class="thumbs">${byDate[d].map((p) => `
-          <button class="thumb" data-photo="${esc(p.id)}" aria-label="Ver foto ${esc(POSES[p.pose])} del ${esc(fmtDate(d))}">
-            <img src="${esc(photoUrl(p))}" alt="" loading="lazy"><span>${esc(POSES[p.pose])}</span>
+          <button class="thumb" data-photo="${esc(p.id)}" aria-label="Ver foto ${esc(POSES[p.pose])} del ${esc(fmtDate(d))}${p.sharedWithCoach ? '. Tu coach puede verla' : ''}">
+            <img src="${esc(photoUrl(p))}" alt="" loading="lazy"><span>${esc(POSES[p.pose])}</span>${p.sharedWithCoach ? '<em class="shared-badge">Tu coach la ve</em>' : ''}
           </button>`).join('')}</div>
       </div>`;
     }).join('') : '<p class="muted small">Aún no hay fotos.</p>';
@@ -734,7 +817,7 @@
     }
     const a = list.find((p) => p.id === selA.value);
     const b = list.find((p) => p.id === selB.value);
-    const wa = weightNear(a.date), wb = weightNear(b.date);
+    const wa = PROD.coach ? null : weightNear(a.date), wb = PROD.coach ? null : weightNear(b.date);
     const days = Calc.toDay(b.date) - Calc.toDay(a.date);
     const parts = [`${Math.abs(days)} días`];
     if (wa && wb) {
@@ -1017,12 +1100,12 @@
       ev.target.value = '';
     }
   });
-  $('#btn-reset').addEventListener('click', async () => {
-    if (!confirm('¿Borrar todos los datos de este dispositivo (incluidas las fotos)? No se puede deshacer.')) return;
+  async function resetAll(ask = true) {
+    if (ask && !confirm('¿Borrar todos los datos de este dispositivo (incluidas las fotos)? No se puede deshacer.')) return;
     // Se borran las claves (no se escribe un estado vacío): no depende de la cuota ni del bloqueo por versión.
     // Incluye las copias :backup/:corrupto y las marcas de copia de HU-01: también son datos personales.
     try {
-      for (const k of [STORAGE_KEY, BACKUP_KEY, CORRUPT_KEY, LAST_BACKUP_KEY, BACKUP_SNOOZE_KEY]) localStorage.removeItem(k);
+      for (const k of [STORAGE_KEY, BACKUP_KEY, CORRUPT_KEY, LAST_BACKUP_KEY, BACKUP_SNOOZE_KEY, SOLO_KEY]) localStorage.removeItem(k);
       // Copias por versión de origen (:backup-v1, :backup-v3…) creadas al migrar (S2-4).
       for (const k of Object.keys(localStorage)) if (k.startsWith(BACKUP_KEY + '-v')) localStorage.removeItem(k);
     } catch {
@@ -1042,7 +1125,8 @@
     if (photosOk) toast('Datos borrados');
     else toast('Se borraron los datos, pero no las fotos. Inténtalo de nuevo', true);
     render();
-  });
+  }
+  $('#btn-reset').addEventListener('click', () => resetAll(true));
 
   // ---------- Copia de un cliente (modo coach, solo lectura) ----------
   // Lee un respaldo JSON SOLO en memoria: no toca `state`, localStorage ni IndexedDB. Todo pasa por
@@ -1180,7 +1264,8 @@
   }
   // Perfil → Datos: con cuenta y sync funcionando se dice la verdad (nube + fotos solo aquí); si no, el texto de siempre.
   const DATA_LOCAL = 'Todo se guarda solo en este dispositivo. Exporta una copia para respaldarla o pasarla a otro dispositivo.';
-  const DATA_CLOUD = 'Tus datos se guardan en este teléfono y también en tu cuenta. Las fotos, por ahora, solo se guardan en este teléfono.';
+  const DATA_CLOUD = PROD.coach ? 'Tus datos se guardan en este teléfono y también en tu cuenta. Tus fotos se guardan en tu cuenta solo si las autorizaste.'
+    : 'Tus datos se guardan en este teléfono y también en tu cuenta. Las fotos, por ahora, solo se guardan en este teléfono.';
   function renderDataCard(mode) {
     setText($('#data-intro'), mode.cloud ? DATA_CLOUD : DATA_LOCAL);
     for (const id of ['#storage-status', '#backup-status']) $(id).classList.toggle('hidden', mode.cloud);
@@ -1240,7 +1325,7 @@
     if (document.visibilityState !== 'visible') return;
     const now = today();
     if (now === lastDay) return;
-    for (const input of [foodDate, entryForm.elements.date, photoForm.elements.date]) {
+    for (const input of [foodDate, entryForm.elements.date, photoForm.elements.date, habForm.elements.date, medForm.elements.date]) {
       if (input.value === lastDay) input.value = now;
     }
     lastDay = now;
@@ -1292,7 +1377,13 @@
     const empty = !s.profile && !(s.entries || []).length && ![s.foods, s.habits, s.library].some((d) => d && Object.keys(d).length);
     return !empty && healthPart(s) !== healthBaseline;
   }
-  function photosAllowed() { const c = state.consent; return Schema.consentStatus(c) === 'ok' && c.photos === true; }
+  // Sprint 11 (soloNube): las fotos además exigen A6a vigente (guardar fotos en la nube), que se da desde la pestaña Fotos.
+  function a6aGranted() {
+    const m = window.PGAccount && PGAccount.meta();
+    const c = m && m.consents && m.consents.photos_cloud;
+    return !!(c && c.granted === true && c.version === CT.version('A6a'));
+  }
+  function photosAllowed() { const c = state.consent; return Schema.consentStatus(c) === 'ok' && c.photos === true && (!PROD.soloNube || a6aGranted()); }
   healthBaseline = healthPart(state);
   const consentForm = $('#form-consent');
   const REQUIRED = ['terms', 'privacy', 'adult'];
@@ -1311,9 +1402,10 @@
     const status = Schema.consentStatus(state.consent);
     const open = status !== 'ok';
     document.body.classList.toggle('consent-open', open);
-    $('#consent').classList.toggle('hidden', !open);
+    $('#consent').classList.toggle('hidden', !open || PROD.soloNube);
+    $('#solo').classList.toggle('hidden', !(open && PROD.soloNube));
     document.body.classList.toggle('no-health', !open && !can('sensitiveHealth'));
-    document.body.classList.toggle('no-photos', !open && !can('photos'));
+    document.body.classList.toggle('no-photos', !open && !photosAllowed());
     // Con datos de una versión más nueva no se puede guardar la aceptación: se ofrece la salida de "Borrar todo".
     $('#consent-blocked').classList.toggle('hidden', !(open && saveBlocked));
     if (open && !consentShown) {
@@ -1339,11 +1431,55 @@
         upd.textContent += ` Antes autorizaste: ${names.join(' y ')}; márcalo de nuevo si sigues de acuerdo.`;
       }
       updateConsentButton();
-      $('#consent-title').focus();
+      if (PROD.soloNube) { fillSolo(); $('#form-solo').reset(); updateSoloButton(); $('#solo-title').focus(); }
+      else $('#consent-title').focus();
     }
     consentShown = open;
     renderPrivacy();
   }
+
+  // ---- Sprint 11: UNA pantalla de aceptación (soloNube). Mismos eventos que exige el servidor, registrados por account.js al entrar. ----
+  const SOLO_KEY = PGNS.key('solo');   // { at, habits }: lo que se marcó en la pantalla, hasta que la persona entre con su correo
+  function fillLinks(el, links) {
+    el.replaceChildren(...links.map((l) => {
+      const a = document.createElement('a');
+      a.className = 'legal-link'; a.href = l.href; a.setAttribute('data-legal', ''); a.textContent = l.label;
+      return a;
+    }));
+  }
+  function fillSolo() {
+    const V = Schema.LEGAL_VERSIONS;
+    $('#solo-a1-text').textContent = CT.fill(CT.get('A1').body, {});
+    $('#solo-a2-text').textContent = CT.fill(CT.get('A2').body, { legalVersion: V.terms === V.privacy ? V.terms : `${V.terms} / ${V.privacy}` });
+    fillLinks($('#solo-a2-links'), CT.get('A2').links);
+    $('#solo-au-text').textContent = CT.fill(CT.get('AU').body, {});
+    fillLinks($('#solo-au-links'), CT.get('AU').links);
+  }
+  const soloForm = $('#form-solo');
+  function updateSoloButton() {
+    const el = soloForm.elements;
+    const ok = el.adult.checked && el.terms.checked && el.unica.checked;
+    $('#btn-solo').disabled = !ok;
+    $('#solo-hint').textContent = ok ? 'Listo: pulsa Continuar.' : 'Marca las tres casillas obligatorias para continuar.';
+  }
+  soloForm.addEventListener('change', updateSoloButton);
+  soloForm.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const el = soloForm.elements;
+    if (!(el.adult.checked && el.terms.checked && el.unica.checked)) { updateSoloButton(); return; }
+    const at = nowISO();
+    let c;
+    // La autorización única cubre los datos de seguimiento (equivale a «datos de salud» local); las fotos se autorizan aparte, en Fotos.
+    try { c = Schema.buildConsent({ terms: true, privacy: true, adult: true, sensitiveHealth: true, photos: false }, at); } catch { updateSoloButton(); return; }
+    const prev = state.consent;
+    state.consent = c;
+    if (!save()) { state.consent = prev; return; }
+    setPref(SOLO_KEY, JSON.stringify({ at, habits: el.habits.checked }));
+    render();
+    loadPhotos();
+    toast('Aceptación guardada');
+    document.dispatchEvent(new CustomEvent('pg:legal-accepted'));
+  });
 
   function updateConsentButton() {
     const el = consentForm.elements;
@@ -1403,7 +1539,16 @@
     render();
     return true;
   }
-  function grant(key) {
+  async function grant(key) {
+    // Sprint 11 (soloNube): autorizar fotos = A6a (guardarlas en la nube), con su texto exacto en pantalla; sin el «confirm» de siempre.
+    if (key === 'photos' && PROD.soloNube && window.PGAccount && PGAccount.grantPhotosCloud) {
+      if (!(await PGAccount.grantPhotosCloud())) { toast('No pudimos guardar tu autorización. Revisa tu internet', true); return; }
+      if (!consentOK()) return;
+      if (!can('photos') && !setFlag('photos', true)) return;
+      await loadPhotos(); render();
+      toast('Fotos autorizadas');
+      return;
+    }
     if (!confirm(GRANT_TEXT[key])) return;
     if (!setFlag(key, true)) return;
     if (key === 'photos') loadPhotos();
@@ -1441,13 +1586,14 @@
   });
 
   // Ningún formulario de datos se guarda sin las autorizaciones que necesita (defensa además del bloqueo visual).
-  const HEALTH_FORMS = ['form-profile', 'form-entry', 'form-food', 'form-habits'];
+  const HEALTH_FORMS = ['form-profile', 'form-entry', 'form-food', 'form-habits', 'form-habitos', 'form-medidas'];
   document.addEventListener('submit', (ev) => {
     const id = ev.target.id;
-    if (id === 'form-consent') return;
+    if (id === 'form-consent' || id === 'form-solo') return;
     const blocked = !consentOK() ? 'Acepta los Términos y la Política para continuar'
+      : isPaused() && [...HEALTH_FORMS, 'form-photo'].includes(id) ? 'Tu acceso está en pausa: habla con tu coach'   // Sprint 11: nada nuevo mientras esté en pausa
       : HEALTH_FORMS.includes(id) && !can('sensitiveHealth') ? 'Autoriza tus datos de salud para registrar tu seguimiento'
-        : id === 'form-photo' && !can('photos') ? 'Autoriza tus fotos para poder subirlas' : '';
+        : id === 'form-photo' && !photosAllowed() ? 'Autoriza tus fotos para poder subirlas' : '';
     if (!blocked) return;
     ev.preventDefault();
     ev.stopImmediatePropagation();
@@ -1472,6 +1618,178 @@
   $('#legal-close').addEventListener('click', () => legalDialog.close());
   legalDialog.addEventListener('close', () => { if (legalReturn) legalReturn.focus(); legalReturn = null; });
 
+  // ---------- Sprint 11: hábitos, medidas, Inicio del cliente y acceso en pausa (producto 'coach') ----------
+  // Todo esto solo se ve con producto 'coach' (clase en <body>); en la app oficial las vistas nuevas no tienen botón en la barra.
+  const acct = () => (window.PGAccount ? PGAccount.meta() : null) || null;
+  const myLinkNow = () => { const m = acct(); return m && m.link && !(m.roles || []).includes('coach') ? m.link : null; };
+  // Estado del pago del cliente con coach. Un vínculo guardado por una versión anterior (sin la clave paidUntil) no pausa a nadie hasta que se refresque.
+  const payNow = () => { const l = myLinkNow(); return l && 'paidUntil' in l ? Pagos.status(l, Pagos.todayBogota()) : null; };
+  function isPaused() { const st = payNow(); return PROD.coach && !!st && !st.paid; }
+  const barHTML = (items) => items.map((i) => `<div class="habit${i.done ? ' done' : ''}"><span>${esc(i.label)}</span><b>${esc(i.text)}</b><div class="bar" role="progressbar" aria-label="${esc(i.label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(i.pct)}"><i style="width:${Math.round(i.pct)}%"></i></div></div>`).join('');
+
+  // --- Hábitos ---
+  const habForm = $('#form-habitos');
+  habForm.elements.date.value = today();
+  function fillHabForm() {
+    const el = habForm.elements;
+    const h = state.habits[el.date.value] || {};
+    el.water.value = h.water != null ? Math.round(h.water / Habitos.GLASS_L) : '';
+    el.steps.value = h.steps != null ? h.steps : '';
+    el.sleep.value = h.sleep != null ? h.sleep : '';
+    el.trained.checked = !!h.trained;
+  }
+  habForm.elements.date.addEventListener('change', fillHabForm);
+  habForm.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-step]');
+    if (!b) return;
+    const input = habForm.elements.water;
+    input.value = Math.max(0, Math.min(40, (Number(input.value) || 0) + Number(b.dataset.dir)));
+  });
+  habForm.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const el = habForm.elements, d = el.date.value;
+    if (!Schema.isISODate(d)) { toast('Elige el día'); return; }
+    const n = (k) => (el[k].value === '' ? undefined : Number(el[k].value));
+    const glasses = n('water'), steps = n('steps'), sleep = n('sleep');
+    if ((glasses != null && !(glasses >= 0 && glasses <= 40)) || (steps != null && !(steps >= 0 && steps <= 100000)) || (sleep != null && !(sleep >= 0 && sleep <= 24))) { toast('Revisa los números: algo está fuera de rango'); return; }
+    if (glasses == null && steps == null && sleep == null && !el.trained.checked) { toast('Anota al menos un hábito'); return; }
+    state.habits[d] = { steps, water: glasses == null ? undefined : glasses * Habitos.GLASS_L, sleep, trained: el.trained.checked };
+    if (!save()) return;
+    toast('Hábitos guardados');
+    render();
+  });
+  function renderHabitos() {
+    const w = Habitos.week(state, today());
+    $('#habitos-week').innerHTML = barHTML(w.items.map((i) => ({ ...i, done: i.days === i.of })));
+    setText($('#habitos-week-line'), w.line);
+    setText($('#habitos-goal'), `Meta del día: ${Habitos.GLASSES_GOAL} vasos, ${Habitos.STEPS_GOAL.toLocaleString('es')} pasos y ${Habitos.SLEEP_GOAL} h de sueño.`);
+    if (!habForm.contains(document.activeElement)) fillHabForm();
+  }
+
+  // --- Medidas ---
+  const medForm = $('#form-medidas');
+  medForm.elements.date.value = today();
+  let medKey = 'waist';
+  $('#medidas-pick').innerHTML = Medidas.MEASURES.map((m) => `<button type="button" data-med="${m.key}" aria-pressed="false">${esc(m.label)}</button>`).join('');
+  $('#medidas-pick').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-med]');
+    if (!b) return;
+    medKey = b.dataset.med;
+    renderMedChart();
+  });
+  medForm.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const el = medForm.elements, d = el.date.value;
+    const err = $('#medidas-error');
+    const fail = (msg, field) => { err.textContent = msg; err.classList.remove('hidden'); if (field) field.focus(); };
+    if (!Schema.isISODate(d)) { fail('Elige la fecha.', el.date); return; }
+    const vals = {};
+    for (const m of Medidas.MEASURES) {
+      const raw = String(el[m.key].value).replace(',', '.').trim();
+      if (raw === '') continue;
+      const v = Number(raw), [lo, hi] = Schema.RANGES[m.key];
+      if (!Number.isFinite(v) || v < lo || v > hi) { fail(`Revisa «${m.label}»: debe estar entre ${lo} y ${hi} cm.`, el[m.key]); return; }
+      vals[m.key] = v;
+    }
+    if (!Object.keys(vals).length) { fail('Escribe al menos una medida.', el.neck); return; }
+    err.classList.add('hidden');
+    const existing = state.entries.find((e) => e.date === d);
+    if (existing) Object.assign(existing, vals); else state.entries.push({ id: uid(), date: d, ...vals });
+    if (!save()) return;
+    for (const m of Medidas.MEASURES) el[m.key].value = '';
+    el.date.value = today();
+    toast(existing ? 'Medidas actualizadas' : 'Medidas guardadas');
+    render();
+  });
+  $('#medidas-history').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-del-med]');
+    if (!b || isPaused()) return;
+    if (!confirm('¿Eliminar este registro de medidas?')) return;
+    state.entries = state.entries.filter((e) => e.id !== b.dataset.delMed);
+    if (save()) render();
+  });
+  function medChartSVG(key) {
+    const label = Medidas.labelOf(key);
+    const c = Medidas.chart(Medidas.series(state.entries, key), { w: 320, h: 150 });
+    if (!c) return `<p class="muted small">Aún no hay medidas de «${esc(label)}». Anota la primera arriba.</p>`;
+    const first = c.pts[0], last = c.pts[c.pts.length - 1];
+    const val = (p, anchor) => `<text x="${p.x}" y="${Math.max(11, p.y - 9)}" text-anchor="${anchor}">${esc(Medidas.fmt(p.value))}</text>`;
+    return `<svg viewBox="0 0 ${c.w} ${c.h}" role="img" aria-label="${esc(Medidas.chartLabel(label, c))}" focusable="false">
+      <line class="axis" x1="10" y1="${c.h - 20}" x2="${c.w - 10}" y2="${c.h - 20}"/>
+      ${c.d ? `<path class="line" d="${c.d}"/>` : ''}${c.pts.map((p) => `<circle class="dot" cx="${p.x}" cy="${p.y}" r="4"/>`).join('')}
+      ${val(first, c.pts.length > 1 ? 'start' : 'middle')}${c.pts.length > 1 ? val(last, 'end') : ''}
+      <text x="10" y="${c.h - 5}" text-anchor="start">${esc(fmtDate(first.date))}</text>${c.pts.length > 1 ? `<text x="${c.w - 10}" y="${c.h - 5}" text-anchor="end">${esc(fmtDate(last.date))}</text>` : ''}</svg>`;
+  }
+  function renderMedChart() {
+    $$('#medidas-pick button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.med === medKey)));
+    $$('#medidas-pick button').forEach((b) => b.classList.toggle('on', b.dataset.med === medKey));
+    $('#medidas-chart').innerHTML = medChartSVG(medKey);
+    const row = Medidas.summary(state.entries).find((r) => r.key === medKey);
+    setText($('#medidas-chart-sub'), row.count ? `${row.label}: inicio ${row.startText} cm · hoy ${row.todayText} cm${row.change == null ? '' : ` · cambio ${row.changeText} cm`}` : '');
+  }
+  window.PGMedTable = (rows) => `<table class="med-table"><thead><tr><th scope="col">Medida</th><th scope="col">Inicio</th><th scope="col">Hoy</th><th scope="col">Cambio</th></tr></thead><tbody>${rows.map((r) =>
+    `<tr><th scope="row">${esc(r.label)}</th><td>${esc(r.startText)}</td><td>${esc(r.todayText)}</td><td class="${r.dir === 'down' ? 'dn' : ''}">${esc(r.changeText)}</td></tr>`).join('')}</tbody></table>`;
+  function renderMedidas() {
+    renderMedChart();
+    $('#medidas-table').innerHTML = PGMedTable(Medidas.summary(state.entries));
+    const list = state.entries.filter((e) => Medidas.KEYS.some((k) => e[k] != null)).sort((a, b) => b.date.localeCompare(a.date));
+    $('#medidas-empty').classList.toggle('hidden', list.length > 0);
+    $('#medidas-history').innerHTML = list.map((e) => `<li><span><strong>${esc(fmtDate(e.date))}</strong><br><span class="small muted">${Medidas.MEASURES.filter((m) => e[m.key] != null).map((m) => `${esc(m.label)} ${esc(Medidas.fmt(e[m.key]))}`).join(' · ')}</span></span>
+      <button type="button" class="icon-btn" data-del-med="${esc(e.id)}" aria-label="Eliminar las medidas del ${esc(fmtDate(e.date))}">✕</button></li>`).join('');
+    // Lo último que anotó, como pista en cada casilla.
+    for (const r of Medidas.summary(state.entries)) medForm.elements[r.key].placeholder = r.count ? `Última: ${r.todayText}` : '';
+  }
+
+  // --- Inicio del cliente (modo coach): próximo pago, hábitos de hoy y atajos ---
+  function renderHomeCoach() {
+    if (!PROD.coach) return;
+    const st = payNow();
+    const cd = $('#pay-countdown');
+    const c = st && !isPaused() ? Pagos.clientCountdown(st) : null;
+    cd.classList.toggle('hidden', !c);
+    cd.classList.toggle('soon', !!(c && c.soon));
+    setText(cd, c ? c.text : '');
+    const day = Habitos.day(state, today());
+    $('#hc-habits').innerHTML = barHTML(day.items);
+    setText($('#hc-habits-sub'), day.logged ? 'Hoy' : 'Aún sin registrar');
+    const last = Medidas.summary(state.entries).filter((r) => r.count).sort((a, b) => b.lastDate.localeCompare(a.lastDate))[0];
+    setText($('#hc-med-text'), last ? `Última medida: ${fmtDate(last.lastDate)} · ${last.label} ${last.todayText} cm` : 'Aún no registras medidas.');
+    const m = acct();
+    const name = (m && m.displayName) || (m && m.email ? m.email.split('@')[0] : '');
+    setText($('#home-greeting'), name ? `Hola, ${name.charAt(0).toUpperCase() + name.slice(1)}` : 'Hola');
+  }
+
+  // --- Acceso en pausa (M4) ---
+  function renderPaused() {
+    const paused = isPaused();
+    document.body.classList.toggle('paused', paused);
+    $('#pause-card').classList.toggle('hidden', !paused);
+    if (!paused) return;
+    const l = myLinkNow(), st = payNow();
+    const who = l.businessName ? `tu coach, ${l.businessName},` : 'tu coach';
+    setText($('#pause-text'), `${st.key === 'overdue' ? `Tu pago venció el ${Pagos.dayText(st.paidUntil)}. ` : ''}Habla con ${who} para reactivarlo. Cuando te confirme el pago, la app vuelve a funcionar sola.`);
+  }
+  async function checkPayment(manual) {
+    if (!window.PGAccount || !PGAccount.refreshLink) return;
+    const was = isPaused();
+    if (manual) setText($('#pause-status'), 'Comprobando…');
+    try { await PGAccount.refreshLink(); } catch { if (manual) setText($('#pause-status'), 'No pudimos comprobarlo. Revisa tu internet.'); return; }
+    render();
+    if (was && !isPaused()) { toast('Listo: tu acceso volvió'); scheduleSync(0); }
+    else if (manual && isPaused()) setText($('#pause-status'), 'Todavía no aparece tu pago. Tu coach debe marcarlo en su lista.');
+    else if (manual) setText($('#pause-status'), '');
+  }
+  $('#btn-pause-check').addEventListener('click', () => checkPayment(true));
+  $('#btn-pause-see').addEventListener('click', () => { show('medidas'); $('#medidas-title').focus(); });
+  $('#btn-pause-download').addEventListener('click', () => $('#btn-export').click());
+  $('#btn-pause-delete').addEventListener('click', () => $('#btn-account-delete').click());
+  document.addEventListener('pg:link-changed', () => render());
+  document.addEventListener('pg:account-ready', () => render());
+  document.addEventListener('pg:payment-required', () => checkPayment(false));
+  // Mientras está en pausa se vuelve a mirar sola cada minuto y al volver a la app: cuando el coach marque el pago, se reactiva.
+  setInterval(() => { if (isPaused() && document.visibilityState === 'visible') checkPayment(false); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && PROD.coach && myLinkNow()) checkPayment(false); });
+
   // ---------- Render ----------
   function render() {
     renderConsent();
@@ -1484,6 +1802,10 @@
     renderPlan();
     renderPhotos();
     renderMas();
+    renderHabitos();
+    renderMedidas();
+    renderHomeCoach();
+    renderPaused();
   }
 
   entryForm.elements.date.value = today();
@@ -1491,7 +1813,7 @@
   loadPhotos();
   fillProfileForm();
   render();
-  if (!state.profile) show('perfil');
+  if (!state.profile && !PROD.coach) show('perfil');   // Sprint 11: en el modo coach no se pide perfil (ni peso ni plan)
   // El perfil a revisar ya se anuncia en #profile-issue (role=alert): no se repite en el toast (Obs. QA S1-1).
   if (pending && !state.profile) loadNotice = '';
   if (loadNotice) toast(loadNotice);
@@ -1526,9 +1848,28 @@
     cloudAllowed: () => !window.ConsentTexts || ConsentTexts.cloudAllowed(readJSON(ACCOUNT_KEY)),
     healthAllowed: () => !saveBlocked && can('sensitiveHealth'),
     ownerId: () => getPref(OWNER_KEY),
-    // Sprint 6: A6a/A6b ya se registran como consentimiento, pero la SUBIDA de fotos a la nube sigue APAGADA a propósito.
-    // No cambiar a true sin: bucket probado, aprobación del abogado y la decisión del Stakeholder.
-    photosCloudAllowed: () => false,
+    // Sprint 6: A6a/A6b se registran como consentimiento. La SUBIDA de fotos a la nube sigue APAGADA en la app oficial.
+    // Sprint 11: solo con producto 'coach' (copia de pruebas) y con A6a vigente (photoCloudOn). La visibilidad para el coach, además, exige A6b y marcar cada foto.
+    photosCloudAllowed: () => PROD.coach && photoCloudOn(),
+    photos: {
+      async list() { return (await Photos.all()).map(({ blob, ...meta }) => meta); },
+      async getBlob(id) { const p = await Photos.get(id); return p ? p.blob : null; },
+      // Fotos recibidas: se baja el archivo con URL firmada (solo si es nueva en este teléfono) y se guardan los metadatos.
+      async applyRemote({ upserts = [], deletes = [] }) {
+        for (const r of upserts) {
+          const mine = await Photos.get(r.id);
+          let blob = mine && mine.blob;
+          if (!blob) {
+            try { blob = await syncRemote.sync.downloadPhoto(r.storagePath); }
+            catch (e) { if (e && e.code === 'not_found') continue; throw e; }   // otro error: el ciclo se repite con el mismo cursor
+          }
+          await Photos.put({ ...(mine || {}), id: r.id, date: r.date, pose: r.pose, width: r.width, height: r.height,
+            createdAt: Number.isFinite(Date.parse(r.createdAt)) ? Date.parse(r.createdAt) : Date.now(), updatedAt: r.updatedAt, sharedWithCoach: r.sharedWithCoach === true, blob });
+        }
+        for (const d of deletes) await Photos.remove(d.id);
+        await loadPhotos();
+      },
+    },
     saveComments(list) {
       const byId = new Map((readJSON(COMMENTS_KEY) || []).map((c) => [c.id, c]));
       for (const c of list) if (c && c.id) byId.set(c.id, c);
@@ -1543,7 +1884,7 @@
     el.classList.toggle('hidden', !stateName);
     el.dataset.state = stateName || '';
     if (el.textContent !== txt) el.textContent = txt; // la región viva solo cambia si cambia el texto
-    $('#btn-sync-now').classList.toggle('hidden', !stateName || stateName === 'running' || stateName === 'nocloud' || stateName === 'consent');
+    $('#btn-sync-now').classList.toggle('hidden', !stateName || stateName === 'running' || stateName === 'nocloud' || stateName === 'consent' || stateName === 'paused');
     renderBackup();
   }
 
@@ -1588,6 +1929,7 @@
     syncSt = { state: st.state, lastOkAt: st.lastOkAt || null };
     showSync(CloudView.stateKey(st));
     if (st.state === 'consent') document.dispatchEvent(new CustomEvent('pg:consent-required')); // account.js envía lo pendiente y reintenta
+    if (st.state === 'paused') document.dispatchEvent(new CustomEvent('pg:payment-required'));  // Sprint 11: el servidor dice «payment_required»: se vuelve a mirar el vínculo
     if (st.nextRetryAt && (st.state === 'offline' || st.state === 'error')) scheduleSync(Math.max(1000, Date.parse(st.nextRetryAt) - Date.now()));
   }
 
@@ -1631,6 +1973,7 @@
   function initSync() {
     syncCfg = window.Remote && window.Sync ? Remote.config() : null;
     if (syncCfg) { document.body.classList.add('has-remote'); renderMas(); }
+    if (!syncCfg && PROD.soloNube) { Producto.apply({ soloNube: false }); render(); } // «solo con cuenta» no tiene sentido sin servidor: vuelve el modo local
     if (syncCfg) $('#coach-copy-card').classList.add('hidden'); // con servidor, el coach usa la pestaña Clientes
     if (syncCfg) startSync().catch((err) => console.warn('Sincronización no disponible:', err && err.message));
   }

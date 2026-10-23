@@ -24,6 +24,12 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* sin espacio */ } },
     del(k) { try { localStorage.removeItem(k); } catch { /* nada */ } },
   };
+  // Sprint 11: modo producto «coach» y entrada «solo con cuenta» (solo la copia de pruebas; la oficial no los tiene).
+  const PROD = window.Producto || { coach: false, soloNube: false };
+  const SOLO = PROD.soloNube === true;
+  const SOLO_KEY = PGNS.key('solo');   // { at, habits }: lo marcado en la pantalla única de aceptación (app.js)
+  const soloData = () => { try { return JSON.parse(ls.get(SOLO_KEY) || 'null'); } catch { return null; } };
+  const SHARE_ID = CT && CT.shareId ? CT.shareId(PROD.coach) : 'A5';
   const readMeta = () => { try { return JSON.parse(ls.get(META_KEY) || 'null'); } catch { return null; } };
   const writeMeta = (m) => (m ? ls.set(META_KEY, JSON.stringify(m)) : ls.del(META_KEY));
 
@@ -83,6 +89,7 @@
   let resendTimer = null;
   let resendLeft = 0;
   let previewed = null; // { code, businessName }
+  let pendingName = ''; // soloNube: el nombre que escribió al pedir el código
 
   // ---------- Conexión ----------
   function loadScript(src) {
@@ -129,6 +136,7 @@
       case 'rate_limited': return 'Demasiados intentos seguidos. Espera un poco y vuelve a intentarlo.';
       case 'invalid': return where === 'email' ? 'Escribe un correo válido, por ejemplo nombre@correo.com.' : (err.message || 'Revisa los datos.');
       case 'auth': return 'Tu sesión se cerró. Entra de nuevo con tu correo.';
+      case 'payment_required': return 'Tu acceso está en pausa: habla con tu coach.';
       case 'consent_required': return 'Falta aceptar la copia en la nube (datos de salud y servidor). Revísalo en Más → Mis datos y permisos.';
       case 'agreement_required': return 'Para usar esto como coach primero acepta el Acuerdo del coach.';
       default: return 'No pudimos conectarnos. Inténtalo de nuevo en un momento.';
@@ -182,7 +190,11 @@
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) { showError('#acc-email-error', errorText({ code: 'invalid' }, 'email')); $('#acc-email').focus(); return; }
     // A1 + A2 (sin marcar): sin ellas no se pide el código, porque el correo viaja a Brevo para enviarlo.
     const a1 = $('#acc-a1'), a2 = $('#acc-a2');
-    if (!a1.checked || !a2.checked) {
+    if (SOLO) {
+      // Sprint 11: lo legal ya se aceptó en la pantalla única; aquí solo el nombre (así te ve tu coach en su lista).
+      pendingName = $('#acc-name').value.trim();
+      if (pendingName.length < 2) { showError('#acc-email-error', 'Escribe tu nombre (al menos 2 letras): así te verá tu coach.'); $('#acc-name').focus(); return; }
+    } else if (!a1.checked || !a2.checked) {
       showError('#acc-email-error', 'Para crear tu cuenta marca las dos casillas. Si prefieres no hacerlo, usa la app sin cuenta: tus datos se quedan solo en tu teléfono.');
       (a1.checked ? a2 : a1).focus();
       return;
@@ -193,7 +205,7 @@
     busy(form, true);
     try {
       await remote.auth.sendCode(value, { captchaToken: captchaToken1 });
-      termsAt = nowISO();
+      termsAt = SOLO && soloData() && soloData().at ? soloData().at : nowISO();
       email = value.toLowerCase();
       $('#acc-code-email').textContent = email;
       $('#acc-code').value = '';
@@ -237,6 +249,12 @@
     await logConsent('A1', 'adult', true, {}, { clientAt: at });
     await logConsent('A2', 'terms', true, legalVars(), { clientAt: at });
     await logConsent('A2', 'privacy', true, legalVars(), { clientAt: at });
+    // Sprint 11: la autorización única registra los MISMOS dos eventos que exige el servidor (sensitive_health y cloud_transfer), con la huella de su texto.
+    if (SOLO) {
+      await logConsent('AU', 'sensitive_health', true, {}, { clientAt: at });
+      await logConsent('AU', 'cloud_transfer', true, {}, { clientAt: at });
+      writeMeta({ ...readMeta(), cloudAsked: true });
+    }
   }
   $('#btn-acc-skip').addEventListener('click', () => {
     ls.set(SKIP_KEY, '1');
@@ -297,9 +315,13 @@
       const prev = readMeta();
       const meta = { ...(prev && prev.userId === user.id ? prev : {}), userId: user.id, email: user.email, roles };
       if (roles.includes('coach')) { meta.onboarded = true; meta.coach = await remote.coach.myCoach().catch(() => meta.coach || null); }
+      else { const l = await remote.client.myLink().catch(() => null); if (l) { meta.link = l; meta.onboarded = true; } } // Sprint 11: ya tiene coach en la cuenta (otro teléfono): no se vuelve a pedir el rol
       writeMeta(meta);
       ls.del(SKIP_KEY);
       await queueTermsEvents();
+      if (SOLO && pendingName) {
+        try { await remote.account.setDisplayName(pendingName); writeMeta({ ...readMeta(), displayName: pendingName }); } catch { /* sin conexión: se vuelve a intentar al refrescar */ }
+      }
       await afterLogin(user.id);
     } catch (err) {
       showError('#acc-code-error', errorText(err, 'code'));
@@ -424,6 +446,7 @@
     $('#acc-coach-fields').classList.toggle('hidden', role !== 'coach');
     const code = $('#acc-coach-code').value.trim();
     if (!previewed || previewed.code !== normCode(code)) { previewed = null; $('#acc-share').classList.add('hidden'); }
+    $('#acc-code-opt').classList.toggle('hidden', SOLO);
     $('#btn-acc-role').textContent = role === 'client' && code && !previewed ? 'Comprobar código' : role === 'client' && previewed ? 'Conectarme y continuar' : 'Continuar';
   }
   const normCode = (c) => String(c || '').toUpperCase().replace(/[\s-]/g, '');
@@ -451,11 +474,12 @@
         meta.roles = await remote.account.roles();
       } else {
         const code = normCode(f.get('coachCode'));
+        if (SOLO && !code) { showError('#acc-role-error', 'Para entrar necesitas el código o el enlace de tu coach. Pídeselo y vuelve a intentarlo.'); busy(form, false); $('#acc-coach-code').focus(); return; }
         if (code && !previewed) {
           const { businessName } = await remote.client.previewCode(code);
           previewed = { code, businessName };
           $('#acc-share-title').textContent = `Te vas a conectar con «${businessName}».`;
-          renderShareFields($('#acc-share-fields'), businessName, {});
+          renderShareFields($('#acc-share-fields'), businessName, { habits: !!(SOLO && soloData() && soloData().habits) });
           $('#acc-share').classList.remove('hidden');
           updateRoleFields();
           busy(form, false);
@@ -473,10 +497,11 @@
             });
             return;
           }
-          const shares = { body: true, nutrition: form.elements.share_nutrition.checked, habits: form.elements.share_habits.checked, notes: form.elements.share_notes.checked, photos: false,
+          const chk = (n) => !!(form.elements[n] && form.elements[n].checked);
+          const shares = { body: true, nutrition: chk('share_nutrition'), habits: chk('share_habits'), notes: chk('share_notes'), photos: false,
             ...(await shareMeta(previewed.businessName)) };
           meta.link = await remote.client.joinCoach(code, shares);
-          meta.shareVersion = CT.version('A5');
+          meta.shareVersion = CT.version(SHARE_ID);
         }
       }
       meta.onboarded = true;
@@ -561,7 +586,7 @@
   function copyAfterAccept() {
     sendAgreementCopy().then((r) => document.dispatchEvent(new CustomEvent('pg:agreement-copy', { detail: { ...r, auto: true } })));
   }
-  const shareMeta = async (coach) => ({ version: CT.version('A5'), textHash: await Remote.textHash(CT.fullText('A5', { coach })) });
+  const shareMeta = async (coach) => ({ version: CT.version(SHARE_ID), textHash: await Remote.textHash(CT.fullText(SHARE_ID, { coach })) });
 
   // ---------- A3 + A4: copia en la nube ----------
   let cloudThen = null;
@@ -637,18 +662,18 @@
 
   // ---------- A5: compartir con el coach, por categoría (sin casillas premarcadas) ----------
   function renderShareFields(fs, coach, shares) {
-    const t = CT.get('A5'), vars = { coach };
+    const t = CT.get(SHARE_ID), vars = { coach };
     const legend = document.createElement('legend');
     legend.className = 'small share-intro';
     legend.textContent = CT.fill(t.intro, vars);
-    const rows = ['body', 'notes', 'nutrition', 'habits', 'photos'].map((k) => {
+    const rows = ['body', 'notes', 'nutrition', 'habits', 'photos'].filter((k) => t.categories[k]).map((k) => {
       const label = document.createElement('label');
       label.className = 'check share-row';
       const input = document.createElement('input');
       input.type = 'checkbox';
       input.name = 'share_' + k;
       if (k === 'body') { input.checked = true; input.disabled = true; }
-      else if (k === 'photos') input.disabled = true; // las fotos se piden aparte (A6) y hoy no se suben a la nube
+      else if (k === 'photos') { input.disabled = true; if (PROD.coach) input.checked = !!(shares && shares.photos); } // las fotos se piden aparte (A6)
       else input.checked = !!(shares && shares[k]);
       const span = document.createElement('span');
       span.textContent = t.categories[k];
@@ -698,10 +723,10 @@
     if (signedIn && meta.link) {
       $('#shares-title').textContent = `Tu coach: «${meta.link.businessName}», desde el ${new Date(meta.link.since).toLocaleDateString('es')}.`;
       // No se vuelve a dibujar mientras la persona está tocando las casillas (se perdería lo que acaba de marcar).
-      if (!sf.contains(document.activeElement) || !sf.elements.share_nutrition) renderShareFields($('#shares-fieldset'), meta.link.businessName, meta.link.shares);
+      if (!sf.contains(document.activeElement) || !sf.elements.share_habits) renderShareFields($('#shares-fieldset'), meta.link.businessName, meta.link.shares);
       $('#shares-migrate').classList.toggle('hidden', !CT.shareMigrationNeeded(meta));
       const SEE = { nutrition: 'tus comidas', habits: 'tus hábitos', notes: 'tus notas', photos: 'las fotos que marques' };
-      const sees = ['tu peso y tus medidas', ...Object.keys(SEE).filter((k) => meta.link.shares && meta.link.shares[k]).map((k) => SEE[k])];
+      const sees = [PROD.coach ? 'tus medidas' : 'tu peso y tus medidas', ...Object.keys(SEE).filter((k) => meta.link.shares && meta.link.shares[k]).map((k) => SEE[k])];
       $('#shares-summary').textContent = `Tu coach puede ver ${sees.length > 1 ? sees.slice(0, -1).join(', ') + ' y ' + sees[sees.length - 1] : sees[0]}.`;
     }
     if (!signedIn) $('#form-logout').classList.add('hidden');
@@ -724,8 +749,9 @@
     const meta = readMeta();
     if (!meta || !meta.link) return;
     const old = meta.link.shares || {};
-    const shares = { body: true, nutrition: f.elements.share_nutrition.checked, habits: f.elements.share_habits.checked,
-      notes: f.elements.share_notes.checked, photos: false, ...(await shareMeta(meta.link.businessName)) };
+    const chk = (n) => !!(f.elements[n] && f.elements[n].checked);
+    const shares = { body: true, nutrition: chk('share_nutrition'), habits: chk('share_habits'),
+      notes: chk('share_notes'), photos: PROD.coach ? !!old.photos : false, ...(await shareMeta(meta.link.businessName)) };
     showError('#shares-error', '');
     // A8: quitar una categoría es retirar una autorización.
     const removed = Object.keys(SHARE_LABEL).filter((k) => old[k] && !shares[k]);
@@ -745,7 +771,7 @@
         next = { ...readMeta(), link };
         await flushConsents();
       }
-      writeMeta({ ...next, shareVersion: CT.version('A5') });
+      writeMeta({ ...next, shareVersion: CT.version(SHARE_ID) });
       toast('Listo: tu coach verá solo lo que marcaste');
     } catch (err) { showError('#shares-error', errorText(err, 'shares')); }
     finally { busy(f, false); renderCard(); }
@@ -770,14 +796,28 @@
     { id: 'A6b', kind: 'photo_view_coach', que: 'que tu coach vea tus fotos', coach: true },
   ];
   const fmtDate = (iso) => new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
+  const rowsFor = () => (SOLO ? AUTH_ROWS.filter((r) => r.id === 'A6a' || r.id === 'A6b') : AUTH_ROWS);
   function renderPerms(meta) {
     const list = $('#perms-list');
+    if (SOLO) $('#perms-intro').textContent = 'La autorización única es necesaria para usar la app. Las de tus fotos son opcionales y las puedes cambiar cuando quieras.';
     const coachName = meta.link ? meta.link.businessName : 'tu coach';
-    const sig = JSON.stringify([coachName, AUTH_ROWS.map((r) => { const c = (meta.consents || {})[r.kind]; return [CT.version(r.id), c && c.granted, c && c.version, c && c.clientAt]; })]);
+    const sig = JSON.stringify([SOLO, coachName, rowsFor().map((r) => { const c = (meta.consents || {})[r.kind]; return [CT.version(r.id), c && c.granted, c && c.version, c && c.clientAt]; })]);
     if (list.dataset.sig === sig) return;
     if (list.contains(document.activeElement) && list.dataset.sig) return; // no se redibuja mientras la persona toca un interruptor
     list.dataset.sig = sig;
-    list.replaceChildren(...AUTH_ROWS.map((r) => {
+    const unique = [];
+    if (SOLO) {
+      // La autorización única no tiene interruptor: se retira borrando la cuenta (así dice su texto).
+      const c = (meta.consents || {}).cloud_transfer;
+      const row = document.createElement('div');
+      row.className = 'auth-row';
+      const p = document.createElement('p'); p.className = 'small'; p.textContent = CT.fill(CT.get('AU').body, {});
+      const d = document.createElement('p'); d.className = 'small muted auth-date';
+      d.textContent = c && c.granted ? `Autorización única aceptada el ${fmtDate(c.clientAt)}. Para retirarla, borra tu cuenta.` : 'Autorización única: sin aceptar.';
+      row.append(p, d);
+      unique.push(row);
+    }
+    list.replaceChildren(...unique, ...rowsFor().map((r) => {
       const c = (meta.consents || {})[r.kind];
       const on = !!(c && c.granted === true && c.version === CT.version(r.id));
       const row = document.createElement('div');
@@ -807,6 +847,24 @@
     const vars = { coach: meta.link ? meta.link.businessName : 'tu coach' };
     const coachId = row.coach && meta.link ? meta.link.coachId : undefined;
     showError('#perms-error', '');
+    // Sprint 11 (producto 'coach'): las fotos tienen su propio flujo (A6a guarda en la nube, A6b muestra cada foto al coach).
+    if (PROD.coach && (row.id === 'A6a' || row.id === 'A6b')) {
+      input.disabled = true;
+      try {
+        if (row.id === 'A6a') {
+          if (input.checked) { if (!(await window.PGNav.photosGrant())) input.checked = false; }
+          else { input.checked = true; if (await revokePhotosCloud()) input.checked = false; }
+        } else if (input.checked) {
+          if (!meta.link) { input.checked = false; showError('#perms-error', 'Primero conéctate con tu coach.'); }
+          else if (!CT.cloudAllowed(meta) || !grantedWith(readMeta(), 'photos_cloud', 'A6a')) { input.checked = false; showError('#perms-error', 'Primero autoriza guardar tus fotos en la nube (Fotos).'); }
+          else if (!(await setCoachPhotos(true))) input.checked = false;
+        } else { input.checked = true; if (await setCoachPhotos(false)) { input.checked = false; document.dispatchEvent(new CustomEvent('pg:photos-unshare')); } }
+      } catch (err) { input.checked = !input.checked; showError('#perms-error', errorText(err, 'shares')); }
+      input.disabled = false;
+      $('#perms-list').dataset.sig = '';
+      renderCard();
+      return;
+    }
     if (input.checked) {
       await logConsent(row.id, row.kind, true, vars, { coachId });
       if (row.cloud) writeMeta({ ...readMeta(), cloudAsked: true });
@@ -841,6 +899,7 @@
       writeMeta(null);
       ls.del(OWNER_KEY); // los datos del teléfono quedan sin dueño: si entra otra cuenta, se le pregunta como siempre
       await renderCard();
+      if (SOLO) { window.PGNav.resetAll(false); toast('Cuenta borrada. También borramos los datos de este teléfono'); return; } // sin modo local: vuelve la pantalla de aceptación
       toast('Cuenta borrada. Tus datos siguen en este teléfono');
       $('#btn-account-login').focus();
     } catch (err) { toast(errorText(err, 'delete')); }
@@ -868,6 +927,7 @@
     await renderCard();
     toast('Sesión cerrada');
     if (wipe) $('#btn-reset').click(); // "Borrar todo" de la app (pide su propia confirmación)
+    else if (SOLO) openScreen('email'); // Sprint 11: sin modo «solo en mi teléfono», se vuelve a pedir la entrada
     else $('#btn-account-login').focus();
   });
 
@@ -881,6 +941,7 @@
       const next = { ...readMeta(), roles, authExpired: false };
       if (roles.includes('coach')) next.coach = await remote.coach.myCoach();
       else next.link = await remote.client.myLink();
+      try { const prof = await remote.account.profile(); if (prof && prof.displayName) next.displayName = prof.displayName; } catch (e) { if (e && e.code === 'auth') throw e; }
       writeMeta(next);
       // Autorizaciones: lo pendiente sube y se aprende lo que ya se aceptó en otro teléfono (A7, A3, A4…).
       await flushConsents();
@@ -904,8 +965,53 @@
       if (inviteFresh) handleInvite(meta);
       return;
     }
-    if (ls.get(SKIP_KEY) === '1' && !(inviteFresh && pendingInvite())) return;
+    if (!SOLO && ls.get(SKIP_KEY) === '1' && !(inviteFresh && pendingInvite())) return;
     openScreen('email');
+  }
+
+  // ---------- Sprint 11: vínculo, fotos en la nube y fotos para el coach ----------
+  const grantedWith = (meta, kind, id) => { const c = meta && meta.consents && meta.consents[kind]; return !!(c && c.granted === true && c.version === CT.version(id)); };
+  // Vuelve a pedir el vínculo (por si el coach marcó el pago). Lo avisa a app.js con pg:link-changed.
+  async function refreshLink() {
+    if (!remote) return null;
+    const meta = readMeta();
+    if (!meta || !meta.userId) return null;
+    const link = await remote.client.myLink();
+    writeMeta({ ...readMeta(), link });
+    document.dispatchEvent(new CustomEvent('pg:link-changed'));
+    return link;
+  }
+  // A6a: «guardar mis fotos en la nube». Con su texto exacto en pantalla; queda registrada aunque no haya internet (cola).
+  async function grantPhotosCloud() {
+    await logConsent('A6a', 'photos_cloud', true);
+    flushConsents();
+    document.dispatchEvent(new CustomEvent('pg:consents-changed'));
+    document.dispatchEvent(new CustomEvent('pg:photos-cloud-changed'));
+    return true;
+  }
+  async function revokePhotosCloud() {
+    const meta = readMeta() || {};
+    if (!(await a8Confirm({ text: CT.A8text.withdraw('la copia de tus fotos en la nube'), okLabel: 'Retirar' }))) return false;
+    if (meta.link && grantedWith(meta, 'photo_view_coach', 'A6b')) await setCoachPhotos(false, { ask: false });
+    await logConsent('A6a', 'photos_cloud', false);
+    await flushConsents();
+    document.dispatchEvent(new CustomEvent('pg:consents-changed'));
+    document.dispatchEvent(new CustomEvent('pg:photos-unshare'));
+    return true;
+  }
+  // A6b + la categoría «fotos» del vínculo. `on` = false oculta todas al instante (el vínculo deja de compartir fotos).
+  async function setCoachPhotos(on, { ask = true } = {}) {
+    const meta = readMeta() || {};
+    const link = meta.link;
+    if (!link) return false;
+    if (!on && ask && !(await a8Confirm({ text: CT.A8text.withdraw('que tu coach vea tus fotos'), okLabel: 'Retirar' }))) return false;
+    await logConsent('A6b', 'photo_view_coach', on, { coach: link.businessName }, { coachId: link.coachId });
+    const updated = await remote.client.updateShares({ ...link.shares, body: true, photos: on, ...(await shareMeta(link.businessName)) });
+    writeMeta({ ...readMeta(), link: updated, shareVersion: CT.version(SHARE_ID) });
+    await flushConsents();
+    document.dispatchEvent(new CustomEvent('pg:consents-changed'));
+    document.dispatchEvent(new CustomEvent('pg:link-changed'));
+    return true;
   }
 
   // ---------- Arranque ----------
@@ -914,7 +1020,9 @@
     // Puente para coach-panel.js (S3-4): el mismo Remote y los metadatos de la cuenta. Sin servidor no existe.
     window.PGAccount = { remote, meta: readMeta, setMeta: (m) => writeMeta({ ...readMeta(), ...m }), refresh, errorText,
       // Sprint 6: A7 (acuerdo del coach) y A8 los usa coach-panel.js; ConsentTexts decide si el acuerdo está vigente.
-      acceptCoachAgreement: async () => { const ok = await acceptStrict('A7', 'coach_agreement'); if (ok) copyAfterAccept(); return ok; }, sendAgreementCopy, a8Confirm, fillLinks };
+      acceptCoachAgreement: async () => { const ok = await acceptStrict('A7', 'coach_agreement'); if (ok) copyAfterAccept(); return ok; }, sendAgreementCopy, a8Confirm, fillLinks,
+      // Sprint 11: vínculo al día (pago), fotos en la nube (A6a) y que el coach vea cada foto (A6b).
+      refreshLink, grantPhotosCloud, setCoachPhotos, revokePhotosCloud };
     renderTermsStep();
     renderA7Box();
     await renderCard();

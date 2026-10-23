@@ -292,7 +292,7 @@ test('cliente: previewCode 0 filas e join_coach null = invalid_code; shares con 
   assert.strictEqual(await r.client.myLink(), null);
   m.h.rpc = (s, fn) => ({ data: { preview_invite_code: [{ business_name: 'Coach X' }], join_coach: { id: 'L', coach_id: 'C' }, my_link: [link], update_shares: {} }[fn] ?? null, error: null });
   assert.deepStrictEqual(await r.client.previewCode('abc234'), { businessName: 'Coach X' });
-  const expected = { id: 'L', coachId: 'C', businessName: 'Coach X', shares: { body: true, notes: false, nutrition: true, habits: false, photos: false }, since: '2026-10-21T00:00:00Z' };
+  const expected = { id: 'L', coachId: 'C', businessName: 'Coach X', shares: { body: true, notes: false, nutrition: true, habits: false, photos: false }, since: '2026-10-21T00:00:00Z', paidUntil: null, paidMarkedAt: null, paid: false, daysLeft: null };
   assert.deepStrictEqual(await r.client.joinCoach('ABC234', { body: true, habits: false, version: '0.1', textHash: H }), expected);
   await r.client.updateShares({ notes: true, version: '0.2', textHash: H });
   assert.deepStrictEqual(m.calls.find((c) => c[2] === 'update_shares')[3].p_shares, { body: true, notes: true, nutrition: true, habits: false, photos: false, version: '0.2', text_hash: H });
@@ -412,4 +412,43 @@ test('sendAgreementCopy: sin sesión → auth; sin internet → offline sin llam
   const m2 = mock();
   await rejects(make(m2, { navigator: { onLine: false } }).account.sendAgreementCopy(), 'offline');
   assert.strictEqual(m2.calls.filter((c) => c[0] === 'fn').length, 0);
+});
+
+// ---------- Sprint 11 (r1 v1.6): cobros manuales ----------
+test('payment_required (42501, detail payment_required) se traduce a su propio código, no es técnico ni reintentable', async () => {
+  const m = mock({ rpc: () => err({ message: 'payment_required', code: '42501', details: 'payment_required' }, 403) });
+  const r = make(m);
+  await assert.rejects(r.sync.push({ records: [{ id: UID, kind: 'entry', nkey: '2026-10-21', date: '2026-10-21', data: {}, updatedAt: '2026-10-21T10:00:00Z' }] }), (e) => {
+    assert.strictEqual(e.code, 'payment_required'); assert.strictEqual(e.retryable, false); return true;
+  });
+  assert.strictEqual(Remote.mapError({ message: 'x', code: '42501', details: 'payment_required' }, { status: 403 }).code, 'payment_required');
+  assert.strictEqual(Remote.mapError({ message: 'payment_required', code: '42501' }, { status: 403 }).code, 'payment_required');
+  assert.strictEqual(Remote.mapError({ message: 'forbidden', code: '42501' }, { status: 403 }).code, 'forbidden');
+});
+test('coach.setPayment, coach.clients y client.myLink llevan paid_until, paid y days_left', async () => {
+  const m = mock({ rpc: (s, fn) => ({ data: {
+    set_client_payment: { client_id: 'A', paid_until: '2026-11-20', paid_marked_at: '2026-10-21T10:00:00Z', paid: true, days_left: 30 },
+    coach_clients: [{ client_id: 'A', display_name: 'Ana', link_id: 'L', since: 'S', shares: { body: true }, last_activity: null, over_free_limit: false, paid_until: '2026-11-20', paid_marked_at: '2026-10-21T10:00:00Z', paid: true, days_left: 30 }],
+    my_link: [{ id: 'L', coach_id: 'C', business_name: 'Coach X', share_body: true, share_notes: false, share_nutrition: false, share_habits: true, share_photos: false, since: 'S', paid_until: null, paid_marked_at: null, paid: false, days_left: null }],
+  }[fn] ?? null, error: null }) });
+  const r = make(m);
+  assert.deepStrictEqual(await r.coach.setPayment('A', '2026-11-20'), { paidUntil: '2026-11-20', paidMarkedAt: '2026-10-21T10:00:00.000Z', paid: true, daysLeft: 30 });
+  assert.deepStrictEqual(m.calls.at(-1)[3], { p_client: 'A', p_paid_until: '2026-11-20' });
+  await r.coach.setPayment('A', null);
+  assert.deepStrictEqual(m.calls.at(-1)[3], { p_client: 'A', p_paid_until: null });
+  await rejects(r.coach.setPayment('A', 'mañana'), 'invalid');
+  const [c] = await r.coach.clients();
+  assert.deepStrictEqual([c.paidUntil, c.paid, c.daysLeft], ['2026-11-20', true, 30]);
+  const l = await r.client.myLink();
+  assert.deepStrictEqual([l.paidUntil, l.paid, l.daysLeft, l.shares.habits], [null, false, null, true]);
+});
+test('uploadPhoto: el 403 de Storage con el vínculo vencido se traduce a payment_required (con el vínculo al día sigue siendo forbidden)', async () => {
+  const m = mock({ storage: (name) => (name === 'upload' ? err({ message: 'new row violates row-level security policy', statusCode: '403' }, 403) : { data: null, error: null }),
+    rpc: () => ({ data: [{ id: 'L', coach_id: 'C', business_name: 'X', paid: false, paid_until: null }], error: null }) });
+  const r = make(m);
+  await rejects(r.sync.uploadPhoto('P1', 'b'), 'payment_required');
+  m.h.rpc = () => ({ data: [{ id: 'L', coach_id: 'C', business_name: 'X', paid: true, paid_until: '2099-01-01' }], error: null });
+  await rejects(r.sync.uploadPhoto('P1', 'b'), 'forbidden');
+  m.h.rpc = () => ({ data: [], error: null });
+  await rejects(r.sync.uploadPhoto('P1', 'b'), 'forbidden');
 });

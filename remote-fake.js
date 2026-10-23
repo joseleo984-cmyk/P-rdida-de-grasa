@@ -148,6 +148,19 @@
       if (!this.hasConsent(userId, 'coach_agreement')) fail('agreement_required', 'Falta aceptar el Acuerdo del coach');
     }
 
+    // Sprint 11 (r1 v1.6): cobros manuales. Hoy en Bogotá (UTC-5 fijo) y estado de pago de un vínculo, como grasa.today_bogota() y my_link().
+    todayBogota() { return new Date(this.clock.now() - 5 * 3600000).toISOString().slice(0, 10); }
+    payState(link) {
+      const today = this.todayBogota();
+      const left = link && link.paidUntil ? Math.round((Date.parse(link.paidUntil + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 86400000) : null;
+      return { paidUntil: (link && link.paidUntil) || null, paidMarkedAt: (link && link.paidMarkedAt) || null, paid: left != null && left >= 0, daysLeft: left };
+    }
+    // ¿Tiene vínculo ACTIVO y no está al día? (sin vínculo nunca se bloquea). Solo sync.push y la subida de fotos lo exigen.
+    paymentBlocked(userId) { const l = this.activeLink(userId); return !!l && !this.payState(l).paid; }
+    requirePayment(userId) { if (this.paymentBlocked(userId)) fail('payment_required', 'Tu acceso está en pausa: habla con tu coach'); }
+    // Solo pruebas: deja el vínculo activo de ese correo pagado hasta esa fecha (como tests.paid en SQL).
+    setPaidUntil(email, iso) { const u = this.users[normEmail(email)]; const l = u && this.activeLink(u.id); if (!l) throw new Error('Sin vínculo activo'); l.paidUntil = iso; l.paidMarkedAt = new Date(this.clock.now()).toISOString(); this._persist(); }
+
     userById(id) { return Object.values(this.users).find((u) => u.id === id) || null; }
     roles(userId, app = APP) {
       const r = this.appAccess.filter((a) => a.userId === userId && a.appId === app && a.active).map((a) => a.role);
@@ -355,6 +368,7 @@
       async push({ records = [], photos = [] } = {}) {
         const u = await authed();
         be.requireCloudConsent(u.id);
+        be.requirePayment(u.id);   // Sprint 11: con coach y vencido, no se sube nada (sí se puede bajar, descargar y borrar)
         if (!Array.isArray(records) || !Array.isArray(photos)) fail('invalid', 'Formato no válido');
         const rejected = { records: [], photos: [] };
         // En lotes de 500, como la implementación real.
@@ -406,6 +420,7 @@
       },
       async uploadPhoto(photoId, blob) {
         const u = await authed();
+        be.requirePayment(u.id);   // Sprint 11: la política de Storage también exige estar al día para subir
         const path = `${u.id}/${photoId}.jpg`;
         be.blobs[path] = blob; // upsert
         return { path };
@@ -430,7 +445,7 @@
       return { body: o.body === undefined ? true : o.body === true, notes: o.notes === true, nutrition: o.nutrition === true,
         habits: o.habits === true, photos: o.photos === true };
     };
-    const linkOut = (l) => (l ? { id: l.id, coachId: l.coachId, businessName: (be.coaches[l.coachId] || {}).businessName || '', shares: { ...l.shares }, since: l.createdAt } : null);
+    const linkOut = (l) => (l ? { id: l.id, coachId: l.coachId, businessName: (be.coaches[l.coachId] || {}).businessName || '', shares: { ...l.shares }, since: l.createdAt, ...be.payState(l) } : null);
     // v1.1 §10.1: `shares` lleva `version` y `textHash` del texto de la pantalla de compartir.
     const shareText = (s) => {
       if (!s || typeof s.version !== 'string' || !s.version || s.version.length > 20 || !HASH_RE.test(s.textHash || '')) fail('invalid', 'Falta la versión o el hash del texto de compartir');
@@ -470,7 +485,7 @@
         const t = shareText(shares);
         const prev = be.activeLink(u.id);
         if (prev) { prev.status = 'ended'; prev.endedAt = iso(be.clock.now()); }
-        const l = { id: randUUID(), coachId: c.id, clientId: u.id, status: 'active', shares: sh, createdAt: iso(be.clock.now()), endedAt: null, updatedAt: iso(be.clock.now()) };
+        const l = { id: randUUID(), coachId: c.id, clientId: u.id, status: 'active', shares: sh, createdAt: iso(be.clock.now()), endedAt: null, updatedAt: iso(be.clock.now()), paidUntil: null, paidMarkedAt: null };
         be.links.push(l);
         be.coaches[c.id].inviteUses = (be.coaches[c.id].inviteUses || 0) + 1;
         be._grant(u.id, 'client', app);
@@ -566,7 +581,7 @@
         return act.map((l, i) => {
           const stamps = Object.values(be.records).filter((r) => r.userId === l.clientId).map((r) => r.serverUpdatedAt).sort();
           return { clientId: l.clientId, displayName: (be.profiles[l.clientId] || {}).displayName || '', linkId: l.id, since: l.createdAt,
-            shares: { ...l.shares }, lastActivity: stamps.length && be.hasConsent(l.clientId, 'sensitive_health') && be.hasConsent(l.clientId, 'cloud_transfer') ? stamps[stamps.length - 1] : null, overFreeLimit: i >= be.coaches[u.id].freeClients };
+            shares: { ...l.shares }, lastActivity: stamps.length && be.hasConsent(l.clientId, 'sensitive_health') && be.hasConsent(l.clientId, 'cloud_transfer') ? stamps[stamps.length - 1] : null, overFreeLimit: i >= be.coaches[u.id].freeClients, ...be.payState(l) };
         });
       },
       async clientData(clientId, since) {
@@ -600,6 +615,21 @@
         const cid = id || randUUID();
         be.comments[cid] = { id: cid, linkId: l.id, coachId: u.id, clientId, refDate: refDate || null, body: text, createdAt: iso(be.clock.now()), readAt: null, deletedAt: null, serverUpdatedAt: be._serverStamp() };
         return done(commentOut(be.comments[cid]));
+      },
+      // Sprint 11: el coach marca hasta cuándo pagó (null = sin pago registrado). Mismas reglas que grasa.set_client_payment.
+      async setPayment(clientId, paidUntil) {
+        const u = await asCoach();
+        const l = be.links.find((x) => x.coachId === u.id && x.clientId === clientId && x.status === 'active');
+        if (!l || !be.coaches[u.id].active) fail('forbidden', 'Sin vínculo activo con ese cliente');
+        if (paidUntil != null) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(String(paidUntil)) || Number.isNaN(Date.parse(paidUntil + 'T00:00:00Z'))) fail('invalid', 'Fecha no válida');
+          const diff = (Date.parse(paidUntil + 'T00:00:00Z') - Date.parse(be.todayBogota() + 'T00:00:00Z')) / 86400000;
+          if (diff < -400 || diff > 400) fail('invalid', 'La fecha de pago está fuera de un rango razonable');
+        }
+        l.paidUntil = paidUntil == null ? null : String(paidUntil);
+        l.paidMarkedAt = iso(be.clock.now());
+        l.updatedAt = l.paidMarkedAt;
+        return done(be.payState(l));
       },
       async deleteComment(commentId) {
         const u = await asCoach({ agreement: false });

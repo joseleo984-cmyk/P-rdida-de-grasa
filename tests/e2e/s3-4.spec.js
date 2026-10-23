@@ -153,6 +153,7 @@ test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registr
       const be = window.__pgFakeBackend;
       const r = RemoteFake.createFake({ backend: be, storage: localStorage });
       const uid = (await r.auth.session()).user.id;
+      be.setPaidUntil('cli@x.co', be.todayBogota());   // Sprint 11: vinculado y al día (el coach marcó el pago)
       const id = '00000000-0000-4000-8000-0000000000f1';
       await r.sync.push({ photos: [{ id, date: '2026-10-20', pose: 'frente', width: 8, height: 8, storagePath: `${uid}/${id}.jpg`, sharedWithCoach: false, createdAt: '2026-10-20T10:00:00.000Z', updatedAt: '2026-10-20T10:00:00.000Z' }] });
       await r.client.setPhotoShared(id, true);

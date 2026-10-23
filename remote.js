@@ -77,7 +77,8 @@
   // va en `detail` solo para depurar.
   // Sprint 7 (r1 v1.5): el servidor impone los consentimientos. `consent_required` (42501) = al cliente le faltan A3/A4 vigentes;
   // `agreement_required` = forbidden con detail 'coach_agreement_required' (al coach le falta el acuerdo A7 vigente).
-  const DB_CODES = ['auth', 'forbidden', 'not_found', 'invalid', 'invalid_code', 'rate_limited', 'consent_required'];
+  // Sprint 11 (r1 v1.6): `payment_required` (42501, detail 'payment_required') = el cliente con coach no está al día: la app lo trata como «acceso en pausa», no como error técnico.
+  const DB_CODES = ['auth', 'forbidden', 'not_found', 'invalid', 'invalid_code', 'rate_limited', 'consent_required', 'payment_required'];
   const SQLSTATE = {
     42501: 'forbidden',
     23514: 'invalid', 22023: 'invalid', '22P02': 'invalid', 23502: 'invalid', 22001: 'invalid', 23505: 'invalid',
@@ -90,6 +91,7 @@
     invalid: 'Datos no válidos', server: 'Error del servidor',
     captcha_failed: 'No pudimos verificar que eres una persona',
     consent_required: 'Falta aceptar una autorización', agreement_required: 'Falta aceptar el Acuerdo del coach',
+    payment_required: 'Tu acceso está en pausa: habla con tu coach',
   };
   const NET_NAMES = ['TypeError', 'AbortError', 'TimeoutError', 'AuthRetryableFetchError', 'StorageUnknownError', 'FunctionsFetchError'];
   const NET_TEXT = /^(TypeError|AbortError|TimeoutError)\b|failed to fetch|networkerror|load failed|fetch failed|network request failed|aborted/i;
@@ -108,6 +110,7 @@
       return r;
     };
     if (/coach_agreement_required/.test(String(e.details || e.detail || ''))) return mk('agreement_required');
+    if (/payment_required/.test(String(e.details || e.detail || ''))) return mk('payment_required');
     if (DB_CODES.includes(msg)) return mk(msg);
     // Sprint 9: el servidor (Supabase Auth con CAPTCHA activado) rechazó o no recibió el token: código `captcha_failed`
     // ("captcha verification process failed", "no captcha response (captcha_token) found in request").
@@ -239,7 +242,8 @@
     });
     const linkOut = (l) => (l && l.id ? { id: l.id, coachId: l.coach_id, businessName: l.business_name || '',
       shares: sharesOut({ body: l.share_body, notes: l.share_notes, nutrition: l.share_nutrition, habits: l.share_habits, photos: l.share_photos }),
-      since: l.since || l.created_at } : null);
+      since: l.since || l.created_at,
+      paidUntil: l.paid_until || null, paidMarkedAt: isoOrNull(l.paid_marked_at), paid: l.paid === true, daysLeft: l.days_left == null ? null : Number(l.days_left) } : null);
     const uuid = () => (root.crypto && root.crypto.randomUUID ? root.crypto.randomUUID() : root.Schema.uuid());
 
     // Descarga con URL firmada de 60 s (§2.4, §11.6). La URL no se guarda ni se cachea (el SW no toca otros orígenes).
@@ -399,7 +403,16 @@
       async uploadPhoto(photoId, blob) {
         const u = await me();
         const path = `${u.id}/${photoId}.jpg`;
-        await call(() => bucket().upload(path, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '0' }), 'storage');
+        try { await call(() => bucket().upload(path, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '0' }), 'storage'); }
+        catch (err) {
+          // Sprint 11: la política de Storage rechaza la subida con 403 si el cliente no está al día: se traduce a payment_required.
+          if (err && err.code === 'forbidden') {
+            let l = null;
+            try { l = await myLink(); } catch { /* sin conexión: se deja el error original */ }
+            if (l && l.paid === false) throw new RemoteError('payment_required', MESSAGES.payment_required);
+          }
+          throw err;
+        }
         return { path };
       },
       async downloadPhoto(path) {
@@ -471,7 +484,8 @@
       async clients() {
         await me();
         return rows(await rpc('grasa', 'coach_clients')).map((c) => ({ clientId: c.client_id, displayName: c.display_name || '',
-          linkId: c.link_id, since: c.since, shares: sharesOut(c.shares || {}), lastActivity: c.last_activity || null, overFreeLimit: !!c.over_free_limit }));
+          linkId: c.link_id, since: c.since, shares: sharesOut(c.shares || {}), lastActivity: c.last_activity || null, overFreeLimit: !!c.over_free_limit,
+          paidUntil: c.paid_until || null, paidMarkedAt: isoOrNull(c.paid_marked_at), paid: c.paid === true, daysLeft: c.days_left == null ? null : Number(c.days_left) }));
       },
       async clientData(clientId, since) {
         await me();
@@ -493,6 +507,14 @@
         if (!text || text.length > 1000) throw new RemoteError('invalid', 'El comentario debe tener entre 1 y 1000 caracteres');
         const r = rows(await rpc('grasa', 'add_comment', { p_id: id || uuid(), p_client: clientId, p_ref_date: refDate || null, p_body: text }))[0];
         return r ? commentOut(r) : null;
+      },
+      // Sprint 11: el coach marca hasta cuándo pagó el cliente (null = sin pago registrado). Devuelve el estado resultante.
+      async setPayment(clientId, paidUntil) {
+        await me();
+        if (paidUntil != null && !/^\d{4}-\d{2}-\d{2}$/.test(String(paidUntil))) throw new RemoteError('invalid', 'Fecha no válida');
+        const d = await rpc('grasa', 'set_client_payment', { p_client: clientId, p_paid_until: paidUntil == null ? null : paidUntil });
+        const r = rows(d)[0] || {};
+        return { paidUntil: r.paid_until || null, paidMarkedAt: isoOrNull(r.paid_marked_at), paid: r.paid === true, daysLeft: r.days_left == null ? null : Number(r.days_left) };
       },
       async deleteComment(commentId) { await me(); await rpc('grasa', 'delete_comment', { p_id: commentId }); },
       async endClient(clientId) { await me(); await rpc('grasa', 'end_client', { p_client: clientId }); },

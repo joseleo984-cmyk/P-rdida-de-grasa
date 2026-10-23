@@ -13,6 +13,7 @@ reset role; select tests.login('ana');
 select grasa.join_coach(current_setting('t.code_x'),
   jsonb_build_object('body', true, 'notes', false, 'nutrition', true, 'habits', false, 'photos', false,
                      'version', '0.1', 'text_hash', tests.h('compartir')));
+reset role; select tests.paid('ana'); select tests.login('ana');   -- Sprint 11: vinculada y al día para sincronizar
 select grasa.sync_push(jsonb_build_array(
   jsonb_build_object('id', '10000000-0000-4000-8000-000000000001', 'kind', 'profile', 'nkey', 'profile',
                      'data', jsonb_build_object('sex', 'female', 'height', 165), 'updated_at', '2026-10-20T10:00:00Z'),

@@ -19,6 +19,9 @@ Estado al 2026-10-23 (Sprint 8). La conexión de la app oficial a `plataforma` q
 - [x] **EQ** El **servidor** impone el acuerdo del coach (A7) y A3 + A4 del cliente (r1 v1.5, migración `20261023120000`), no solo la app. *(Sprint 7)*
 - [ ] **SH** Pegar el `supabase/r1.sql` nuevo (r1 v1.5) en **`pruebas`** y en **`plataforma`** y ver `OK r1 v1`; después correr `scripts/qa-live-rls.js` y `scripts/qa-live-recheck.js`. *(Sprint 7)*
 
+- [ ] **SH** *(Sprint 11, «App para coaches»)* Pegar el `supabase/r1.sql` nuevo (**r1 v1.6**, cobros y bloqueo por pago) en **`pruebas`** y después en **`plataforma`** (debe terminar con `OK r1 v1`); correr `scripts/qa-live-rls.js` y `scripts/qa-live-recheck.js`; probar en el iPad con `equipo/handoffs/2026-10-24-sprint11-coach.md`. Los vínculos que ya existían reciben 30 días de gracia una sola vez.
+- [ ] **SH** El abogado revisa la **autorización única** de prueba (`equipo/legal/borradores/autorizacion-unica-prueba.md`) y los hábitos como dato (¿sensible?). Hasta entonces solo existe en `/pruebas/`.
+
 ## 2. Supabase `plataforma` (replicar lo hecho en `pruebas`)
 - [x] **SH** Pegar `supabase/r1.sql` (el más reciente) y ver `OK r1 v1`. Solo cuando `pruebas` esté validada de punta a punta.
 - [x] **SH** *Project Settings → Data API → Exposed schemas*: `core` y `grasa`, **y pulsar Save**.
