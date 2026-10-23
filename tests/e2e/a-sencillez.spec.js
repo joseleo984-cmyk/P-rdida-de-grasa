@@ -156,3 +156,16 @@ test('con ?diag=1 se muestran las medidas de pantalla; sin eso no aparece nada',
   await app.open({ state: state({ consent: CONSENT }) });
   await expect(page.locator('body > pre')).toHaveCount(0);
 });
+
+test('en la app instalada: cinco toques en el círculo de Más encienden y apagan el diagnóstico', async ({ app, page }) => {
+  await app.open({ state: state({ consent: CONSENT }) });
+  await page.locator('#tab-mas').click();
+  await expect(page.locator('body > pre')).toHaveCount(0);
+  for (let i = 0; i < 5; i++) await page.locator('#more-avatar').click();
+  await expect(page.locator('body > pre')).toContainText('barra top');
+  await app.reload();
+  await expect(page.locator('body > pre')).toContainText('barra top');   // queda activado hasta apagarlo
+  await page.locator('#tab-mas').click();
+  for (let i = 0; i < 5; i++) await page.locator('#more-avatar').click();
+  await expect(page.locator('body > pre')).toHaveCount(0);
+});
