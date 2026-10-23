@@ -372,6 +372,7 @@
     renderDetail(c);
     $('#coach-detail-title').focus();
     $('#comment-date').value = today();
+    if (PROD.coach) document.dispatchEvent(new CustomEvent('pg:coach-client-open', { detail: { clientId, name: displayName(c) } }));   // Etapa 2: rutinas-view.js arma su tarjeta de rutina
   }
 
   // Sprint 11: ficha del asesorado (M2): cobro, medidas Inicio/Hoy/Cambio, hábitos de la semana y fotos.

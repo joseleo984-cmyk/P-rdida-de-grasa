@@ -247,6 +247,12 @@
           <button type="button" class="btn btn-danger btn-tall" id="btn-pause-delete">Borrar mi cuenta</button>
         </div>
       </div>
+      <!-- Etapa 2: Mi rutina (solo cliente con coach). Fuera de #home-coach: con el acceso en pausa también se ve (es solo lectura). -->
+      <section id="home-rutina" class="home-card pc-only hidden" aria-labelledby="hr-title">
+        <h3 id="hr-title" class="home-label">Mi rutina</h3>
+        <p id="hr-text" class="small muted">Tus ejercicios y cómo se hacen.</p>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-home-rutina" data-goto="rutina">Ver mi rutina</button>
+      </section>
       <div id="home-coach" class="pc-only">
         <p id="pay-countdown" class="pay-countdown hidden" role="status"></p>
         <section class="home-card" aria-labelledby="hc-habits-title">
@@ -650,6 +656,11 @@
             <div id="coach-compare-out" class="compare-pair hidden"></div>
           </div>
         </div>
+        <div class="card pc-only hidden" id="coach-detail-rutina-card">
+          <h2>Rutina de ejercicios</h2>
+          <p id="coach-detail-rutina-line" class="small muted" role="status" aria-live="polite"></p>
+          <button type="button" class="btn btn-tall" id="btn-coach-rutina">Armar rutina</button>
+        </div>
         <div class="card">
           <h2>Comentarios</h2>
           <ul id="coach-comments" class="coach-notes"></ul>
@@ -852,6 +863,49 @@
       </div>
     </section>
 
+    <!-- Etapa 2: MI RUTINA (cliente, solo lectura): días plegables y la animación de cada ejercicio, que se pide al abrirlo -->
+    <section id="view-rutina" class="view" aria-labelledby="rutina-title">
+      <div class="back-row"><button type="button" class="btn-link back-btn" data-goto="mas">← Más</button><h2 class="back-title" id="rutina-title" tabindex="-1">Mi rutina</h2></div>
+      <p id="rutina-status" class="small muted" role="status" aria-live="polite"></p>
+      <div id="rutina-body"></div>
+      <div id="rutina-trained" class="card hidden">
+        <p class="small muted">¿Ya hiciste tu entrenamiento de hoy?</p>
+        <button type="button" class="btn btn-tall" id="btn-rutina-trained">Hoy entrené</button>
+        <p id="rutina-trained-status" class="small" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <!-- Etapa 2: ARMAR LA RUTINA (coach): título, días, ejercicios y su biblioteca de animaciones -->
+    <section id="view-rutina-edit" class="view" aria-labelledby="redit-title">
+      <div class="back-row"><button type="button" class="btn-link back-btn" id="btn-redit-back">← Volver</button><h2 class="back-title" id="redit-title" tabindex="-1">Rutina</h2></div>
+      <p id="redit-status" class="small muted" role="status" aria-live="polite"></p>
+      <form id="form-rutina" class="card" novalidate>
+        <label class="acc-label" for="redit-name">Título de la rutina</label>
+        <input type="text" id="redit-name" name="title" maxlength="60" autocomplete="off" placeholder="Por ejemplo: Fuerza en 4 días">
+        <div id="redit-days"></div>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-redit-add-day">＋ Agregar otro día</button>
+        <p id="redit-error" class="acc-error hidden" role="alert"></p>
+        <div class="row-actions redit-actions">
+          <button type="submit" class="btn btn-tall" id="btn-redit-save">Guardar rutina</button>
+          <button type="button" class="btn btn-danger btn-tall hidden" id="btn-redit-delete">Borrar la rutina</button>
+        </div>
+      </form>
+      <div class="card" id="redit-library">
+        <h2>Mis animaciones</h2>
+        <p class="small muted">Sube una animación (GIF o WebP, hasta 3 MB) una sola vez y úsala en todos los ejercicios y clientes que quieras. No son datos de tus clientes: solo las ven tus asesorados.</p>
+        <form id="form-gif" novalidate>
+          <label class="acc-label" for="gif-file">Archivo de la animación</label>
+          <input type="file" id="gif-file" accept="image/gif,image/webp">
+          <label class="acc-label" for="gif-name">Nombre</label>
+          <input type="text" id="gif-name" maxlength="60" autocomplete="off" placeholder="Por ejemplo: Press de banca">
+          <p id="gif-error" class="acc-error hidden" role="alert"></p>
+          <button type="submit" class="btn btn-tall" id="btn-gif-upload">Subir animación</button>
+        </form>
+        <p id="gif-status" class="small muted" role="status" aria-live="polite"></p>
+        <ul id="gif-list" class="gif-list"></ul>
+      </div>
+    </section>
+
     <!-- MÁS: cuenta y menú con todo lo que no está en la barra -->
     <section id="view-mas" class="view" aria-labelledby="mas-title">
       <h2 id="mas-title" class="sr-only" tabindex="-1">Más</h2>
@@ -872,6 +926,7 @@
         <li class="home-legacy"><button type="button" class="more-row" id="row-fotos"><span class="more-text"><strong>Mis fotos</strong><span class="more-sub">Fotos de progreso y comparación</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="coach-only hidden"><button type="button" class="more-row" id="row-c-acuerdo"><span class="more-text"><strong>Mi acuerdo</strong><span class="more-sub">El Acuerdo del coach que aceptaste, con copia</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-link hidden"><button type="button" class="more-row" id="row-coach"><span class="more-text"><strong>Mi coach</strong><span class="more-sub">Qué puede ver y cómo dejar de compartir</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="rutina-row pc-only hidden"><button type="button" class="more-row" id="row-rutina"><span class="more-text"><strong>Mi rutina</strong><span class="more-sub">Tus ejercicios y cómo se hacen</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-datos"><span class="more-text"><strong>Mis datos y permisos</strong><span class="more-sub">Tu <span class="needs-account">cuenta, tu </span>privacidad y tus datos de salud</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-copia"><span class="more-text"><strong>Descargar una copia</strong><span class="more-sub">Guarda tus datos en un archivo</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-instalar" data-install-guide><span class="more-text"><strong>Cómo instalar la app</strong><span class="more-sub">Ponla en la pantalla de inicio de tu teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
@@ -1086,6 +1141,7 @@
   <script src="pagos.js"></script>
   <script src="medidas.js"></script>
   <script src="habitos.js"></script>
+  <script src="rutinas.js"></script>
   <script src="sync.js"></script>
   <script src="cloud-view.js"></script>
   <script src="acuerdo-view.js"></script>
@@ -1102,5 +1158,6 @@
   <script src="remote.js"></script>
   <script src="account.js"></script>
   <script src="coach-panel.js"></script>
+  <script src="rutinas-view.js"></script>
 </body>
 </html>

@@ -138,7 +138,7 @@
   // ---------- Navegación ----------
   // Barra de abajo. Cliente (y sin cuenta): Inicio | Comidas | ＋ Registrar | Progreso | Más.
   // Coach: Clientes | ＋ Invitar | Más (su propio seguimiento sigue en Más). Las vistas conservan sus ids (#view-…).
-  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas' };
+  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas', rutina: 'mas', 'rutina-edit': 'coach' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
   let navCoach = false;
   function show(view, mode) {
@@ -179,7 +179,8 @@
   });
   // Ayudante para las pruebas y para otros módulos: ir a una vista (Perfil con todas sus tarjetas: show('perfil', 'all')).
   window.PGNav = { show: (view, mode) => show(view, mode), applyNav: (isCoach) => applyNav(isCoach), resetAll: (ask) => resetAll(ask),
-    photosGrant: async () => { await grant('photos'); return a6aGranted(); } };
+    photosGrant: async () => { await grant('photos'); return a6aGranted(); },
+    trainedToday: () => !!(state.habits[today()] || {}).trained };   // Etapa 2: «Hoy entrené» en Mi rutina
 
   // Qué botones tiene la barra según la cuenta: el coach ve Clientes | Invitar | Más; todos los demás, las cinco de siempre.
   function applyNav(isCoach) {
@@ -223,7 +224,7 @@
   $('#view-mas').addEventListener('click', (ev) => {
     const b = ev.target.closest('.more-row');
     if (!b) return;
-    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-coach': ['perfil', 'coach'],
+    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-coach': ['perfil', 'coach'], 'row-rutina': ['rutina'],
       'row-datos': ['perfil', 'datos'], 'row-copia': ['perfil', 'copia'], 'row-ayuda': ['ayuda'] }[b.id];
     if (to) goTo(to[0], to[1], b.id);
     else if (b.id === 'row-salir') { goTo('perfil', 'datos', b.id); $('#btn-account-logout').click(); const f = $('#form-logout'); if (f && f.scrollIntoView) f.scrollIntoView({ block: 'center' }); }
@@ -1672,6 +1673,17 @@
     setText($('#habitos-goal'), `Meta del día: ${Habitos.GLASSES_GOAL} vasos, ${Habitos.STEPS_GOAL.toLocaleString('es')} pasos y ${Habitos.SLEEP_GOAL} h de sueño.`);
     if (!habForm.contains(document.activeElement)) fillHabForm();
   }
+
+  // Etapa 2: «Hoy entrené» en Mi rutina marca el mismo hábito «Entrené» del día (con el acceso en pausa no se guarda nada nuevo).
+  document.addEventListener('pg:rutina-trained', () => {
+    if (isPaused()) { toast('Tu acceso está en pausa: por ahora solo puedes ver tu rutina'); return; }
+    const d = today();
+    state.habits[d] = { ...(state.habits[d] || {}), trained: true };
+    if (!save()) return;
+    toast('Anotamos que hoy entrenaste');
+    render();
+    document.dispatchEvent(new CustomEvent('pg:rutina-trained-done'));
+  });
 
   // --- Medidas ---
   const medForm = $('#form-medidas');
