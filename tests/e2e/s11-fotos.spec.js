@@ -56,22 +56,29 @@ test('cliente: fotos bloqueadas hasta A6a; sube a la nube; el coach solo las ve 
   // El coach todavía no puede ver ninguna: no hay A6b ni el vínculo comparte fotos
   await expect(p.locator('#photos-coach-card')).toBeVisible();
   await expect(p.locator('#photos-coach-state')).toContainText('todavía no puede ver tus fotos');
-  await expect(p.locator('#photos-a6b-text')).toContainText('Autorizo que Laura Fit vea la foto que marqué, una a una');
+  await expect(p.locator('#photos-a6b-text')).toContainText('Autorizo que Laura Fit vea las fotos de progreso que yo suba');
   await H.shot(p, 's11-fotos-cliente.png', { fullPage: true });
-  await p.getByRole('button', { name: 'Permitir que Laura Fit vea mis fotos, una a una' }).click();
-  await expect(p.locator('#photos-coach-state')).toContainText('solo las fotos que tú marques');
+  await p.getByRole('button', { name: 'Permitir que Laura Fit vea mis fotos' }).click();
+  await expect(p.locator('#photos-coach-state')).toContainText('Laura Fit puede ver tus fotos');
   const be1 = await H.backend(p);
   const a6b = be1.consentEvents.filter((e) => e.kind === 'photo_view_coach').pop();
-  expect([a6b.granted, a6b.version]).toEqual([true, CT.version('A6b')]);
+  expect([a6b.granted, a6b.version]).toEqual([true, '0.3-A6b-coach']);
   expect(Object.values(be1.links).find((l) => l.status === 'active').shares.photos).toBe(true);
-  // Marcar UNA foto: la del día de hoy
+  // Al dar el permiso, las fotos que ya estaban pasan a verse (sin marcar una por una); la persona puede ocultar UNA: la de hoy
+  await expect.poll(() => photosInServer(p).then((x) => x.filter((y) => y.shared).length)).toBe(2);
+  await expect(p.locator('#gallery .shared-badge')).toHaveCount(2);
   await p.locator('#gallery .thumb').first().click();
   await expect(p.locator('#viewer-share-row')).toBeVisible();
-  await p.locator('#viewer-share').check();
-  await expect(p.locator('#toast')).toHaveText('Tu coach ya puede ver esta foto');
+  await expect(p.locator('#viewer-share')).toBeChecked();
+  await p.locator('#viewer-share').uncheck();
+  await expect(p.locator('#toast')).toHaveText('Tu coach ya no ve esta foto');
   await p.locator('#viewer-close').click();
   await expect(p.locator('#gallery .shared-badge')).toHaveCount(1);
   await expect.poll(() => photosInServer(p).then((x) => x.filter((y) => y.shared).length)).toBe(1);
+  // Una foto NUEVA, con el permiso vigente, la ve el coach sin hacer nada más
+  await upload(p, D(-5), 'perfil');
+  await expect.poll(() => photosInServer(p).then((x) => x.filter((y) => y.shared).length)).toBe(2);
+  await expect(p.locator('#gallery .shared-badge')).toHaveCount(2);
   // Lo que ve el coach (API del coach contra el mismo servidor): solo la marcada, una URL por apertura y queda registrada
   const seen = await p.evaluate(async () => {
     const be = window.__pgFakeBackend;
@@ -83,7 +90,7 @@ test('cliente: fotos bloqueadas hasta A6a; sube a la nube; el coach solo las ve 
     await r.coach.photoBlob(uid, d.photos[0]);
     return { n: d.photos.length, views: be.photoViews.length };
   });
-  expect(seen).toEqual({ n: 1, views: 1 });
+  expect(seen).toEqual({ n: 2, views: 1 });
   // Retirar A6b: se oculta al instante (el vínculo deja de compartir fotos) y las marcas se limpian
   await p.getByRole('button', { name: 'Quitar el permiso a mi coach' }).click();
   await p.locator('#a8-ok').click();
@@ -112,7 +119,7 @@ test('cliente: fotos bloqueadas hasta A6a; sube a la nube; el coach solo las ve 
   await p.evaluate(() => PGAccount.refreshLink());
   await expect(p.locator('body')).toHaveClass(/paused/);
   await expect(p.locator('#form-photo')).toBeHidden();
-  await expect(p.locator('#gallery .thumb')).toHaveCount(1);   // ver sus fotos, siempre
+  await expect(p.locator('#gallery .thumb')).toHaveCount(2);   // ver sus fotos, siempre
   await H.layout(p);
   expect(errors).toEqual([]);
 });
