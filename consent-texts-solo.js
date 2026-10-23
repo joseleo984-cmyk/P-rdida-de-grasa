@@ -26,6 +26,15 @@
     links: [{ label: 'Texto completo: Política §7.1', href: POLICY }],
   };
 
+  // Producto «coach»: al subir una foto con este permiso vigente, el coach la ve (sin marcarla una por una). La app oficial conserva el A6b de siempre.
+  if (root.Producto && root.Producto.coach) {
+    CT.TEXTS.A6b = {
+      version: '0.3-A6b-coach', kinds: ['photo_view_coach'],
+      body: 'Autorizo que {coach} vea las fotos de progreso que yo suba a mi cuenta, las que ya tengo y las que suba después. Las abre con un enlace que vence en 60 segundos y queda registro de cada vista, que tú ves. No puede descargarlas, capturarlas ni compartirlas (lo prohíbe su acuerdo; no podemos bloquear técnicamente las capturas). Puedes ocultar una foto o retirar el permiso y deja de verlas al instante. No condiciona nada.',
+      links: [{ label: 'Texto completo: Política §6', href: POLICY }],
+    };
+  }
+
   const fullText0 = CT.fullText;
   CT.fullText = function (id, vars = {}) {
     if (id !== 'A5c') return fullText0(id, vars);

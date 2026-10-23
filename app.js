@@ -629,7 +629,7 @@
     renderPhotos(true);
   }
 
-  // ---- Sprint 11: fotos en la nube, detrás de A6a (guardar en la nube) y A6b (que el coach vea cada foto, una a una) ----
+  // ---- Sprint 11: fotos en la nube, detrás de A6a (guardar en la nube) y A6b (que el coach vea las fotos que la persona sube; puede ocultar una) ----
   const consentOf = (kind, id) => { const m = acct(); const c = m && m.consents && m.consents[kind]; return !!(c && c.granted === true && c.version === CT.version(id)); };
   const a6bGranted = () => consentOf('photo_view_coach', 'A6b');
   // ¿Se suben las fotos a la nube? Solo con producto 'coach' (la app oficial las deja apagadas), cuenta con la copia en la nube, fotos autorizadas y A6a.
@@ -645,12 +645,12 @@
     if (PROD.soloNube) setText($('#photos-a6a-text'), CT.fill(CT.get('A6a').body, {}));
     if (!show) return;
     const on = coachPhotosOn(), name = l.businessName || 'tu coach';
-    setText($('#photos-coach-state'), on ? `${name} puede ver solo las fotos que tú marques, una por una. Marca cada foto al abrirla. Retirar el permiso las oculta al instante.`
+    setText($('#photos-coach-state'), on ? `${name} puede ver tus fotos. Para ocultar una, ábrela y desmarca «Mi coach puede ver esta foto». Quitar el permiso las oculta todas al instante.`
       : `${name} todavía no puede ver tus fotos.`);
     const t = $('#photos-a6b-text');
     t.classList.toggle('hidden', on);
     if (!on) setText(t, CT.fill(CT.get('A6b').body, { coach: name }));
-    setText($('#btn-photos-coach'), on ? 'Quitar el permiso a mi coach' : `Permitir que ${name} vea mis fotos, una a una`);
+    setText($('#btn-photos-coach'), on ? 'Quitar el permiso a mi coach' : `Permitir que ${name} vea mis fotos`);
   }
   $('#btn-photos-coach').addEventListener('click', async () => {
     if (!window.PGAccount || !PGAccount.setCoachPhotos) return;
@@ -662,13 +662,20 @@
     try {
       const done = await PGAccount.setCoachPhotos(!on);
       if (done && on) await unshareAllPhotos();
-      if (done) toast(on ? 'Listo: tu coach ya no ve tus fotos' : 'Listo: marca las fotos que quieras mostrar');
+      if (done && !on) await shareAllPhotos();
+      if (done) toast(on ? 'Listo: tu coach ya no ve tus fotos' : 'Listo: tu coach ya puede ver tus fotos');
     } catch (e) { err.textContent = PGAccount.errorText(e, 'shares'); err.classList.remove('hidden'); }
     finally { btn.disabled = false; render(); }
   });
   async function unshareAllPhotos() {
     const now = new Date().toISOString();
     for (const p of photos.filter((x) => x.sharedWithCoach)) { p.sharedWithCoach = false; p.updatedAt = now; try { await Photos.put(p); } catch { /* se reintenta en la próxima carga */ } }
+    scheduleSync(300);
+  }
+  async function shareAllPhotos() {
+    const now = new Date().toISOString();
+    for (const p of photos.filter((x) => !x.sharedWithCoach)) { p.sharedWithCoach = true; p.updatedAt = now; try { await Photos.put(p); } catch { /* se reintenta en la próxima carga */ } }
+    await loadPhotos();   // por si otra carga leyó la galería a medias
     scheduleSync(300);
   }
   document.addEventListener('pg:photos-unshare', () => { unshareAllPhotos(); render(); });
@@ -703,7 +710,7 @@
     try {
       const { blob, width, height } = await Photos.compress(file);
       const photo = { id: uid(), date: photoForm.elements.date.value, pose: photoForm.elements.pose.value, blob, width, height, createdAt: Date.now(), updatedAt: new Date().toISOString() };
-      if (PROD.coach) photo.sharedWithCoach = false;   // Sprint 11: nada se muestra al coach hasta que la persona marque cada foto
+      if (PROD.coach) photo.sharedWithCoach = coachPhotosOn();   // con el permiso A6b vigente la foto nueva la ve el coach; la persona puede ocultarla desde la foto
       await Photos.put(photo);
       photos.push(photo);
       comparePose = photo.pose;
@@ -737,7 +744,7 @@
     $('img', viewer).src = photoUrl(viewing);
     const w = weightNear(viewing.date);
     $('#viewer-caption').textContent = `${fmtDate(viewing.date)} · ${POSES[viewing.pose]}${w && !PROD.coach ? ' · ' + fmt(w.weight) + ' kg' : ''}`;
-    // Sprint 11: «Mi coach puede ver esta foto» (una a una): solo con A6a + A6b vigentes y el vínculo compartiendo fotos.
+    // Sprint 11: «Mi coach puede ver esta foto» (para ocultarla o mostrarla): solo con A6a + A6b vigentes y el vínculo compartiendo fotos.
     const shareRow = $('#viewer-share-row');
     shareRow.classList.toggle('hidden', !coachPhotosOn());
     $('#viewer-share').checked = viewing.sharedWithCoach === true;
