@@ -2011,25 +2011,44 @@
     document.body.classList.add('has-env-banner');
   }
 
-  // Diagnóstico de pantalla (solo con ?diag=1 en el enlace): muestra las medidas del navegador para entender por qué una barra fija queda mal puesta.
-  if (/[?&]diag=1\b/.test(location.search)) {
-    const box = document.createElement('pre');
-    box.style.cssText = 'position:fixed;left:4px;top:calc(env(safe-area-inset-top) + 4px);z-index:99999;margin:0;padding:6px 8px;font:11px/1.3 ui-monospace,Menlo,monospace;background:rgba(0,0,0,.82);color:#7CFC9A;border-radius:8px;pointer-events:none;max-width:92vw;white-space:pre-wrap';
-    document.body.appendChild(box);
-    const draw = () => {
-      const vv = window.visualViewport, bar = document.querySelector('.tabbar'), r = bar ? bar.getBoundingClientRect() : null;
-      const standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
-      box.textContent = [
-        `inner ${innerWidth}x${innerHeight}  client ${document.documentElement.clientHeight}  screen ${screen.height}`,
-        vv ? `vv h${Math.round(vv.height)} top${Math.round(vv.offsetTop)} esc${vv.scale.toFixed(2)}` : 'sin visualViewport',
-        `scrollY ${Math.round(scrollY)}  standalone ${standalone}`,
-        r ? `barra top${Math.round(r.top)} bottom${Math.round(r.bottom)} alto${Math.round(r.height)}` : 'sin barra',
-        `safe-bottom ${getComputedStyle(document.body).paddingBottom}`,
-      ].join('\n');
-    };
-    ['scroll', 'resize', 'touchend', 'focusout'].forEach((ev) => addEventListener(ev, () => setTimeout(draw, 50), { passive: true }));
-    if (window.visualViewport) { visualViewport.addEventListener('resize', draw); visualViewport.addEventListener('scroll', draw); }
-    setInterval(draw, 1000); draw();
+  // Diagnóstico de pantalla: muestra las medidas del navegador para entender por qué una barra fija queda mal puesta.
+  // Se activa con ?diag=1 en el enlace o tocando 5 veces el círculo de arriba de «Más» (sirve en la app instalada); se apaga igual.
+  const DIAG_KEY = PGNS.key('diag');
+  const diagStored = () => { try { return localStorage.getItem(DIAG_KEY) === '1'; } catch { return false; } };
+  const diagStore = (on) => { try { if (on) localStorage.setItem(DIAG_KEY, '1'); else localStorage.removeItem(DIAG_KEY); } catch { /* sin espacio */ } };
+  let diagBox = null, diagTimer = 0;
+  function diagDraw() {
+    if (!diagBox) return;
+    const vv = window.visualViewport, bar = document.querySelector('.tabbar'), r = bar ? bar.getBoundingClientRect() : null;
+    const standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    diagBox.textContent = [
+      `inner ${innerWidth}x${innerHeight}  client ${document.documentElement.clientHeight}  screen ${screen.height}`,
+      vv ? `vv h${Math.round(vv.height)} top${Math.round(vv.offsetTop)} esc${vv.scale.toFixed(2)}` : 'sin visualViewport',
+      `scrollY ${Math.round(scrollY)}  standalone ${standalone}`,
+      r ? `barra top${Math.round(r.top)} bottom${Math.round(r.bottom)} alto${Math.round(r.height)}` : 'sin barra',
+      `safe-bottom ${getComputedStyle(document.body).paddingBottom}`,
+    ].join('\n');
+  }
+  function diagShow(on) {
+    if (on && !diagBox) {
+      diagBox = document.createElement('pre');
+      diagBox.style.cssText = 'position:fixed;left:4px;top:calc(env(safe-area-inset-top) + 4px);z-index:99999;margin:0;padding:6px 8px;font:11px/1.3 ui-monospace,Menlo,monospace;background:rgba(0,0,0,.82);color:#7CFC9A;border-radius:8px;pointer-events:none;max-width:92vw;white-space:pre-wrap';
+      document.body.appendChild(diagBox);
+      diagTimer = setInterval(diagDraw, 1000);
+      diagDraw();
+    } else if (!on && diagBox) { clearInterval(diagTimer); diagBox.remove(); diagBox = null; }
+  }
+  ['scroll', 'resize', 'touchend', 'focusout'].forEach((ev) => addEventListener(ev, () => setTimeout(diagDraw, 50), { passive: true }));
+  if (window.visualViewport) { visualViewport.addEventListener('resize', diagDraw); visualViewport.addEventListener('scroll', diagDraw); }
+  diagShow(/[?&]diag=1\b/.test(location.search) || diagStored());
+  { // cinco toques seguidos (en menos de 4 s) en el círculo de «Más» encienden o apagan el diagnóstico
+    let taps = 0, first = 0;
+    const av = document.getElementById('more-avatar');
+    if (av) av.addEventListener('click', () => {
+      const now = Date.now();
+      if (now - first > 4000) { taps = 0; first = now; }
+      if (++taps >= 5) { taps = 0; const on = !diagBox; diagStore(on); diagShow(on); toast(on ? 'Diagnóstico de pantalla activado' : 'Diagnóstico de pantalla apagado'); }
+    });
   }
 
   // iPhone/iPad: tras el teclado, un zoom o volver desde otra app, la barra fija puede quedar a mitad de pantalla.
