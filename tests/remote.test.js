@@ -485,6 +485,30 @@ test('coach.uploadGif: valida tipo, tamaño y firma de bytes, registra con p_hea
     assert.strictEqual(m.calls.at(-1)[2], 'delete_gif');
   } finally { delete globalThis.Rutinas; }
 });
+test('coach.uploadGif v1.9: un video mp4/mov/webm se registra con su tipo y firma y se sube con ese contentType; más de 10 MB o firma falsa no llegan al servidor', async () => {
+  globalThis.Rutinas = require('../rutinas.js');
+  try {
+    const m = mock({ rpc: (s, fn, a) => ({ data: fn === 'register_gif' ? { id: a.p_id, name: a.p_name, mime: a.p_mime, size_bytes: a.p_size, created_at: '2026-10-27T10:00:00Z', uses: 0 } : null, error: null }),
+      storage: (name, path) => ({ data: { path }, error: null }) });
+    const r = make(m);
+    const vid = (head, type, extra = 0) => new Blob([Uint8Array.from([...head, ...new Array(extra).fill(1)])], { type });
+    const MP4 = [0, 0, 0, 0x20, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d], MOV = [0, 0, 0, 0x14, 0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20], WEBM = [0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81, 0x01, 0x42, 0xf7, 0x81];
+    for (const [head, type, hex] of [[MP4, 'video/mp4', '000000206674797069736f6d'], [MOV, 'video/quicktime', '000000146674797071742020'], [WEBM, 'video/webm', '1a45dfa39f4286810142f781']]) {
+      const f = vid(head, type, 50);
+      const out = await r.coach.uploadGif(f, 'Sentadilla');
+      const reg = m.calls.filter((c) => c[2] === 'register_gif').at(-1);
+      assert.deepStrictEqual([reg[3].p_mime, reg[3].p_size, reg[3].p_head], [type, 62, hex]);
+      const up = m.calls.filter((c) => c[0] === 'storage' && c[2] === 'upload').at(-1);
+      assert.deepStrictEqual([up[1], up[3] === `${UID}/${reg[3].p_id}.gif`, up[4] === f, up[5].contentType], ['ejercicios', true, true, type]);
+      assert.strictEqual(out.mime, type);
+    }
+    const n = m.calls.length;
+    await rejects(r.coach.uploadGif(vid(MP4, 'video/mp4', 10 * 1048576), 'x'), 'invalid');
+    await rejects(r.coach.uploadGif(vid([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0], 'video/mp4'), 'x'), 'invalid');
+    await rejects(r.coach.uploadGif(vid(MP4, 'video/avi'), 'x'), 'invalid');
+    assert.strictEqual(m.calls.length, n);
+  } finally { delete globalThis.Rutinas; }
+});
 test('coach.deleteGif: borra el registro y después el archivo; en uso → invalid con detail gif_in_use', async () => {
   const m = mock({ rpc: () => ({ data: null, error: null }), storage: () => ({ data: [], error: null }) });
   const r = make(m);

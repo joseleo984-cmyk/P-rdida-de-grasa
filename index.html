@@ -904,10 +904,10 @@
       </form>
       <div class="card" id="redit-library">
         <h2>Mis animaciones</h2>
-        <p class="small muted">Sube una animación (GIF o WebP, hasta 3 MB) una sola vez y úsala en todos los ejercicios y clientes que quieras. No son datos de tus clientes: solo las ven tus asesorados.</p>
+        <p class="small muted" id="gif-help">Sube un video corto (hasta 15 segundos y 10 MB) o un GIF liviano (hasta 3 MB) una sola vez y úsalo en todos los ejercicios y clientes que quieras. Los videos se ven solos, en bucle y sin sonido. No son datos de tus clientes: solo los ven tus asesorados.</p>
         <form id="form-gif" novalidate>
-          <label class="acc-label" for="gif-file">Archivo de la animación</label>
-          <input type="file" id="gif-file" accept="image/gif,image/webp">
+          <label class="acc-label" for="gif-file">Video o animación (MP4, MOV, WebM, GIF o WebP)</label>
+          <input type="file" id="gif-file" accept="image/gif,image/webp,video/mp4,video/quicktime,video/webm,.gif,.webp,.mp4,.mov,.webm" aria-describedby="gif-help">
           <label class="acc-label" for="gif-name">Nombre</label>
           <input type="text" id="gif-name" maxlength="60" autocomplete="off" placeholder="Por ejemplo: Press de banca">
           <p id="gif-error" class="acc-error hidden" role="alert"></p>

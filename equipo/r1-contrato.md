@@ -791,3 +791,24 @@ Una sola migración aditiva e idempotente: `supabase/migrations/20261026120000_r
 **Remote (real y fake):** `client.myRoutines()`, `client.myDaily('AAAA-MM-DD')`; `coach.listTemplates()`, `saveTemplate(id|null, {title, days})`, `deleteTemplate(id)`, `assignTemplate(templateId, clientIds[])`, `listClientRoutines(clientId)`, `saveClientRoutine(clientId, id|null, {title, days})`, `deleteClientRoutine(id)`, `setRoutineVisible(id, bool)`, `publishDaily(templateId, 'AAAA-MM-DD')`, `getDaily()`, `clearDaily()`. Se conservan `myRoutine`, `getRoutine`, `saveRoutine`, `deleteRoutine`.
 
 **Decisión de seguridad:** el bucket `ejercicios` no cambia: un cliente activo sigue pudiendo LEER (con URL firmada) cualquier GIF de la biblioteca de su coach si conoce su uuid; los uuid nunca se entregan al cliente para rutinas ocultas ni plantillas, y los GIF no son datos del cliente.
+
+## 18. Cambios v1.9 (Etapa 2c: videos cortos como demostración de ejercicios)
+
+Una sola migración aditiva e idempotente: `supabase/migrations/20261027120000_r1_rutinas_video.sql` (regenera `supabase/r1.sql`). Pruebas: `supabase/tests/130_rutinas_video.test.sql` (nueva; incluye aplicar la migración dos veces con `\ir`) y ajuste de `10_estructura` (bucket de 10 MB y 5 tipos). Detalle y pasos: `equipo/handoffs/rutinas-video.md`.
+
+| # | Cambio | Error / resultado |
+|---|---|---|
+| 18.1 | `grasa.exercise_gifs` admite `video/mp4`, `video/quicktime` (.mov del iPhone) y `video/webm` además de `image/gif` e `image/webp`. Los checks de columna de v1.7 se sustituyen por `exercise_gifs_mime_ok` y `exercise_gifs_size_ok`: **GIF/WebP ≤ 3 MB (3 145 728 bytes), video ≤ 10 MB (10 485 760)**, ≥ 1 byte. | `check` en la tabla (solo si alguien se salta la función) |
+| 18.2 | `gif_head_ok(head, mime)` (interna) añade las firmas: **mp4** = «ftyp» (`66747970`) en los bytes 4–7, cualquier marca ISO (`isom`, `mp42`, `avc1`…); **quicktime** = «ftyp» + marca `qt  ` (`71742020`) en los bytes 8–11; **webm** = EBML `1A45DFA3` en los bytes 0–3. `register_gif(id, name, mime, size, head)` (**mismos parámetros**) valida tipo, tope por tipo y firma; los GIF/WebP siguen exactamente como en v1.7. | `invalid` (detail con el motivo) |
+| 18.3 | Bucket `ejercicios`: `file_size_limit` 10 MB y `allowed_mime_types` = los 5 tipos. Las políticas (coach sube solo ids registrados con `.gif` en el nombre; cliente lee solo los de su coach con vínculo activo) **no cambian**: un video también se guarda como `{coach_id}/{id}.gif`; el tipo real viaja en el `contentType` de la subida y en `exercise_gifs.mime`. | 403 en Storage |
+| 18.4 | `my_gifs()`, `delete_gif()` (`gif_in_use`), `gif_uses`, rutinas, plantillas y la rutina de hoy **no cambian** (un video se usa en los ejercicios igual que un GIF: campo `gif` = uuid). | |
+
+**Límites blandos (el servidor no puede comprobarlos):**
+- **Duración máx. 15 s:** solo la comprueba la app (un `<video>` temporal con `loadedmetadata`/`duration`). El servidor no ve dentro del video. Un cliente a medida podría subir uno más largo (de todos modos ≤ 10 MB).
+- **Tope de 3 MB para GIF/WebP:** lo imponen la app y `register_gif`/el check de la tabla con el tamaño **declarado**; Storage solo impone el tope de bucket (10 MB para todos los tipos). Un cliente malicioso podría declarar un GIF pequeño y subir hasta 10 MB; no expone datos de nadie.
+- **Firma de bytes:** la BD recibe los 12 primeros bytes declarados por la app; Storage no los mira (igual que v1.7). `.mkv` comparte la cabecera EBML con webm y no se distingue con 12 bytes.
+- La app registra el tipo según los **bytes** (mp4 vs mov por la marca): un `.mov` declarado como `video/mp4` se registra como `video/quicktime`.
+
+**App / Remote (sin cambios de interfaz):** `uploadGif(file, name)` y `gifBlob(...)` aceptan los videos; `rutinas.js`: `checkGif` (tipo, tamaño por tipo, firma; mensajes en español), `checkDuration(segundos)`, `isVideo`, `maxBytes`, `ACCEPT`, `LIMITS.videoBytes` y `LIMITS.videoSeconds`. Mensajes: «Ese video pesa X MB; el máximo es 10 MB.», «Esa animación pesa X MB; el máximo es 3 MB.», «Ese video dura X s; el máximo son 15.», «Ese tipo de archivo no sirve…».
+
+**Compatibilidad:** el SQL se aplica antes que la app; la app vieja (v1.8) sigue subiendo y leyendo GIF/WebP. Con la app nueva y SQL viejo, subir un video falla en `register_gif` con `invalid` (solo GIF o WebP).

@@ -32,10 +32,64 @@ test('checkGif: tipo, tamaño y firma de bytes; cada rechazo trae un mensaje cla
   assert.strictEqual(big.ok, false); assert.match(big.message, /3 MB/);
   assert.match(R.checkGif({ type: 'image/gif', size: 0 }, GIF89).message, /vacío/);
   assert.match(R.checkGif({ type: 'image/png', size: 10 }, PNG).message, /GIF o WebP/);
-  assert.match(R.checkGif({ type: 'video/mp4', size: 10 }, GIF89).message, /GIF o WebP/);
+  assert.match(R.checkGif({ type: 'video/mp4', size: 10 }, GIF89).message, /de verdad/, 'bytes de GIF con tipo video/mp4 se rechazan');
   assert.match(R.checkGif({ type: 'image/gif', size: 10 }, PNG).message, /de verdad/, 'un PNG con extensión .gif se rechaza por sus bytes');
   assert.match(R.checkGif({ type: 'image/webp', size: 10 }, GIF89).message, /de verdad/, 'el tipo declarado no coincide con los bytes');
   assert.strictEqual(R.checkGif(null, GIF89).ok, false);
+});
+// ---- v1.9: videos cortos ----
+const MP4 = Uint8Array.from([0, 0, 0, 0x20, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d]);   // ....ftypisom
+const MP42 = Uint8Array.from([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32]);  // ....ftypmp42
+const MOV = Uint8Array.from([0, 0, 0, 0x14, 0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20]);   // ....ftypqt  
+const WEBM = Uint8Array.from([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81, 0x01, 0x42, 0xf7, 0x81]);
+const MB = 1024 * 1024;
+test('sniff: mp4 (ftyp, cualquier marca ISO), mov (marca «qt  ») y webm (EBML)', () => {
+  assert.strictEqual(R.sniff(MP4), 'video/mp4');
+  assert.strictEqual(R.sniff(MP42), 'video/mp4');
+  assert.strictEqual(R.sniff(MOV), 'video/quicktime');
+  assert.strictEqual(R.sniff(WEBM), 'video/webm');
+  assert.strictEqual(R.sniff(Uint8Array.from([0, 0, 0, 0x20, 0x66, 0x74, 0x79, 0x71, 0x69, 0x73, 0x6f, 0x6d])), null, 'ftyq no es ftyp');
+  assert.strictEqual(R.sniff(Uint8Array.from([0x1a, 0x45, 0xdf, 0xa4, 0, 0, 0, 0, 0, 0, 0, 0])), null, 'EBML con un byte distinto');
+});
+test('checkGif con videos: tipos, 10 MB, firma, y el GIF sigue en 3 MB', () => {
+  assert.deepStrictEqual(R.checkGif({ type: 'video/mp4', size: 5 * MB }, MP4), { ok: true, mime: 'video/mp4' });
+  assert.deepStrictEqual(R.checkGif({ type: 'video/quicktime', size: 5 * MB }, MOV), { ok: true, mime: 'video/quicktime' });
+  assert.deepStrictEqual(R.checkGif({ type: 'video/webm', size: 5 * MB }, WEBM), { ok: true, mime: 'video/webm' });
+  assert.deepStrictEqual(R.checkGif({ type: '', size: 1000 }, MOV), { ok: true, mime: 'video/quicktime' }, 'un .mov sin tipo declarado vale por sus bytes');
+  assert.deepStrictEqual(R.checkGif({ type: 'video/mp4', size: 1000 }, MOV), { ok: true, mime: 'video/quicktime' }, 'mov declarado como mp4: se registra como dicen los bytes');
+  assert.deepStrictEqual(R.checkGif({ type: 'video/quicktime', size: 1000 }, MP42), { ok: true, mime: 'video/mp4' });
+  assert.strictEqual(R.checkGif({ type: 'video/mp4', size: R.LIMITS.videoBytes }, MP4).ok, true, 'exactamente 10 MB sí');
+  const big = R.checkGif({ type: 'video/mp4', size: 10 * MB + 1 }, MP4);
+  assert.strictEqual(big.ok, false); assert.match(big.message, /pesa 10 MB; el máximo es 10 MB/);
+  const v16 = R.checkGif({ type: 'video/webm', size: 16 * MB }, WEBM);
+  assert.match(v16.message, /pesa 16 MB; el máximo es 10 MB/);
+  assert.match(R.checkGif({ type: 'image/gif', size: 4 * MB }, GIF89).message, /pesa 4 MB; el máximo es 3 MB/, 'un GIF de 4 MB sigue sin pasar');
+  assert.strictEqual(R.checkGif({ type: 'image/gif', size: 3 * MB }, GIF89).ok, true);
+  assert.match(R.checkGif({ type: 'video/webm', size: 10 }, MP4).message, /de verdad/, 'webm declarado con bytes de mp4');
+  assert.match(R.checkGif({ type: 'video/mp4', size: 10 }, WEBM).message, /de verdad/);
+  assert.match(R.checkGif({ type: 'video/mp4', size: 10 }, PNG).message, /de verdad/, 'un PNG renombrado a .mp4');
+  assert.match(R.checkGif({ type: 'video/avi', size: 10 }, MP4).message, /tipo de archivo no sirve/);
+  assert.match(R.checkGif({ type: 'application/pdf', size: 10 }, MP4).message, /tipo de archivo no sirve/);
+  assert.match(R.checkGif({ type: 'video/mp4', size: 0 }, MP4).message, /vacío/);
+});
+test('isVideo, maxBytes y accept', () => {
+  assert.strictEqual(R.isVideo('video/webm'), true); assert.strictEqual(R.isVideo('image/gif'), false);
+  assert.strictEqual(R.maxBytes('video/mp4'), 10 * MB); assert.strictEqual(R.maxBytes('image/webp'), 3 * MB);
+  for (const t of ['image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', '.mov', '.mp4']) assert.ok(R.ACCEPT.includes(t), t);
+});
+test('el selector de archivo de index.html acepta exactamente R.ACCEPT (GIF/WebP y video)', () => {
+  const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
+  assert.ok(html.includes(`id="gif-file" accept="${R.ACCEPT}"`));
+  assert.ok(html.includes('Sube un video corto (hasta 15 segundos y 10 MB) o un GIF liviano (hasta 3 MB)'));
+});
+test('checkDuration: hasta 15 s; más, o ilegible, se rechaza con mensaje', () => {
+  assert.strictEqual(R.checkDuration(15).ok, true);
+  assert.strictEqual(R.checkDuration(15.04).ok, true, 'redondeo de contenedor');
+  assert.strictEqual(R.checkDuration(0.5).ok, true);
+  const long = R.checkDuration(20);
+  assert.strictEqual(long.ok, false); assert.match(long.message, /dura 20 s; el máximo son 15/);
+  assert.match(R.checkDuration(15.5).message, /dura 15,5 s; el máximo son 15/);
+  for (const bad of [0, -1, NaN, Infinity, undefined, null]) assert.match(R.checkDuration(bad).message, /No pudimos leer este video/);
 });
 test('suggestName: nombre del archivo sin extensión ni guiones', () => {
   assert.strictEqual(R.suggestName('press-banca_plano.gif'), 'press banca plano');

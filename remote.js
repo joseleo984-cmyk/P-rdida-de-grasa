@@ -11,7 +11,7 @@
   const PRODUCTION_HOSTS = ['joseleo984-cmyk.github.io'];
   const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
   const BUCKET = 'grasa-photos';
-  const GIF_BUCKET = 'ejercicios';   // Etapa 2 (r1 v1.7): animaciones de los ejercicios, privado, '{coach_id}/{gif_id}.gif'
+  const GIF_BUCKET = 'ejercicios';   // Etapa 2 (r1 v1.7): animaciones de los ejercicios, privado, '{coach_id}/{gif_id}.gif' (v1.9: también guarda videos mp4/mov/webm con ese mismo nombre; el tipo real va en el contentType)
   const CURSOR0 = '1970-01-01T00:00:00.000Z';
   const BATCH = 500;              // máx. elementos (registros + fotos) por llamada a sync_push (§2.3)
   const TIMEOUT_MS = 15000;       // §3: timeout 15 s → offline
@@ -556,7 +556,8 @@
       },
       // Etapa 2: biblioteca de animaciones del coach y rutinas por cliente.
       async listGifs() { await me(); return rows(await rpc('grasa', 'my_gifs')).map(gifOut); },
-      // Valida tipo, tamaño y FIRMA de bytes (no se re-codifica: se sube tal cual, para no perder la animación), la registra y la sube.
+      // Valida tipo, tamaño (GIF/WebP 3 MB, video 10 MB) y FIRMA de bytes (no se re-codifica: se sube tal cual), la registra y la sube.
+      // La duración (15 s) la comprueba la pantalla antes de llamar aquí: es un límite blando, el servidor no ve el video.
       // Si la subida falla, deshace el registro para no dejar animaciones fantasma en la biblioteca.
       async uploadGif(file, name) {
         const u = await me();

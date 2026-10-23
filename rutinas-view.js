@@ -51,12 +51,65 @@
   const dailyNow = () => (daily && R.dailyActive(daily, today()) ? daily : null);   // si la app sigue abierta pasada la medianoche, ya no vale
   const hasAny = () => !!((routines && routines.length) || dailyNow());
 
+  // ---------- Animación o video (v1.9) ----------
+  // Lo que baja de Storage puede traer el tipo vacío: se mira la firma de bytes (12 primeros) y, si es un video, se le pone su tipo (Safari lo exige).
+  async function mediaInfo(blob) {
+    let mime = '';
+    try { mime = R.sniff(new Uint8Array(await blob.slice(0, 12).arrayBuffer())) || ''; } catch { /* sin firma: se usa el tipo del blob */ }
+    if (!mime) mime = blob.type || '';
+    const video = R.isVideo(mime);
+    return { blob: video && blob.type !== mime ? new Blob([blob], { type: mime }) : blob, video, mime };
+  }
+  // <video> que se reproduce solo, en bucle y sin sonido, como un GIF. Si el sistema no deja arrancarlo solo (ahorro de batería), aparecen los controles.
+  function buildVideo(url, label) {
+    const v = document.createElement('video');
+    v.className = 'rut-gif-img rut-gif-video';
+    v.muted = true; v.defaultMuted = true; v.loop = true; v.autoplay = true; v.playsInline = true;
+    v.setAttribute('muted', ''); v.setAttribute('loop', ''); v.setAttribute('autoplay', ''); v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
+    v.disablePictureInPicture = true; v.preload = 'auto';
+    v.setAttribute('aria-label', label);
+    v.src = url;
+    const p = v.play();
+    if (p && typeof p.catch === 'function') p.catch(() => { v.controls = true; });
+    return v;
+  }
+  function buildMedia(info, url, label) {
+    if (info.video) return buildVideo(url, label);
+    const img = document.createElement('img');
+    img.className = 'rut-gif-img'; img.alt = label; img.src = url;
+    return img;
+  }
+  // Suelta el archivo en memoria: un <video> con la URL sin soltar mantiene el blob vivo.
+  function dropMedia(slot) {
+    if (!slot) return;
+    for (const v of slot.querySelectorAll('video')) { try { v.pause(); } catch { /* ya parado */ } v.removeAttribute('src'); try { v.load(); } catch { /* sin soporte */ } }
+    slot.replaceChildren();
+  }
+  // Duración (s) de un video del coach, leída con un <video> temporal. NaN si el navegador no lo puede leer. El servidor no la ve: límite blando.
+  function probeDuration(file) {
+    return new Promise((resolve) => {
+      const v = document.createElement('video');
+      const url = URL.createObjectURL(file);
+      let done = false, timer;
+      const end = (d) => { if (done) return; done = true; clearTimeout(timer); v.removeAttribute('src'); try { v.load(); } catch { /* sin soporte */ } URL.revokeObjectURL(url); resolve(d); };
+      timer = setTimeout(() => end(NaN), 10000);
+      v.preload = 'metadata'; v.muted = true; v.playsInline = true;
+      v.onerror = () => end(NaN);
+      v.onloadedmetadata = () => {
+        if (v.duration === Infinity) {   // webm grabado en el navegador: no trae duración hasta que se salta al final
+          v.ondurationchange = () => { if (Number.isFinite(v.duration)) end(v.duration); };
+          v.currentTime = 1e101;
+        } else end(v.duration);
+      };
+      v.src = url;
+    });
+  }
+
   function freeGif(el) {
     if (el._url) URL.revokeObjectURL(el._url);
     el._url = null;
     el._tok = (el._tok || 0) + 1;
-    const slot = el.querySelector('.rut-gif');
-    if (slot) slot.replaceChildren();
+    dropMedia(el.querySelector('.rut-gif'));
   }
   function freeAllGifs() { for (const el of document.querySelectorAll('#rutina-body .rut-ex')) freeGif(el); }
 
@@ -65,21 +118,17 @@
     const slot = el.querySelector('.rut-gif');
     if (!slot || !el.dataset.gif || !el.dataset.coach) return;
     const tok = (el._tok = (el._tok || 0) + 1);
-    slot.textContent = 'Cargando la animación…';
+    slot.textContent = 'Cargando la demostración…';
     try {
-      const blob = await A.remote.client.gifBlob(el.dataset.coach, el.dataset.gif);
+      const info = await mediaInfo(await A.remote.client.gifBlob(el.dataset.coach, el.dataset.gif));
       if (!el.open || el._tok !== tok) return;   // lo cerró o lo reabrió mientras cargaba
-      el._url = URL.createObjectURL(blob);
-      const img = document.createElement('img');
-      img.className = 'rut-gif-img';
-      img.alt = `Animación del ejercicio: ${el.dataset.name}`;
-      img.src = el._url;
-      slot.replaceChildren(img);
+      el._url = URL.createObjectURL(info.blob);
+      slot.replaceChildren(buildMedia(info, el._url, `${info.video ? 'Video' : 'Animación'} del ejercicio: ${el.dataset.name}`));
     } catch (err) {
       if (!el.open || el._tok !== tok) return;
       const p = document.createElement('p');
       p.className = 'small warn';
-      p.textContent = 'No pudimos cargar la animación. Revisa tu internet e inténtalo de nuevo.';
+      p.textContent = 'No pudimos cargar la demostración. Revisa tu internet e inténtalo de nuevo.';
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'btn btn-ghost btn-tall'; b.textContent = 'Reintentar'; b.dataset.retry = '1';
       slot.replaceChildren(p, b);
@@ -204,8 +253,8 @@
   const gifName = (id) => { const g = gifs.find((x) => x.id === id); return g ? g.name : ''; };
   function gifOptions(sel) {
     const known = gifs.some((g) => g.id === sel);
-    return `<option value="">Sin animación</option>${sel && !known ? `<option value="${esc(sel)}" selected>Animación que ya no está en tu biblioteca</option>` : ''}` +
-      gifs.map((g) => `<option value="${esc(g.id)}"${g.id === sel ? ' selected' : ''}>${esc(g.name)}</option>`).join('');
+    return `<option value="">Sin video ni animación</option>${sel && !known ? `<option value="${esc(sel)}" selected>Animación que ya no está en tu biblioteca</option>` : ''}` +
+      gifs.map((g) => `<option value="${esc(g.id)}"${g.id === sel ? ' selected' : ''}>${esc(g.name)}${R.isVideo(g.mime) ? ' (video)' : ''}</option>`).join('');
   }
   function renderDays() {
     const L = R.LIMITS;
@@ -335,28 +384,26 @@
 
   // ---------- Biblioteca de animaciones (dentro del editor) ----------
   const previews = new Map();   // id → object URL de la vista previa abierta (se suelta al cerrarla)
-  function freePreviews() { for (const u of previews.values()) URL.revokeObjectURL(u); previews.clear(); }
+  function freePreviews() { for (const u of previews.values()) URL.revokeObjectURL(u); previews.clear(); for (const s of document.querySelectorAll('#gif-list .gif-preview')) dropMedia(s); }
   function renderLibrary() {
     const ul = $('#gif-list');
     ul.innerHTML = gifs.length ? gifs.map((g) => `<li class="gif-item" data-id="${esc(g.id)}">
-        <div class="gif-row"><span class="gif-info"><strong>${esc(g.name)}</strong><span class="small muted">${esc(R.fmtSize(g.size))} · ${g.uses ? `en ${plural(g.uses, 'rutina', 'rutinas')}` : 'sin usar todavía'}</span></span>
-          <span class="gif-btns"><button type="button" class="btn btn-ghost" data-gact="view" aria-expanded="false" aria-label="Ver la animación ${esc(g.name)}">Ver</button>
+        <div class="gif-row"><span class="gif-info"><strong>${esc(g.name)}</strong><span class="small muted"><span class="gif-kind${R.isVideo(g.mime) ? ' gif-kind-video' : ''}">${R.isVideo(g.mime) ? '▶ Video' : g.mime === 'image/webp' ? 'WebP' : 'GIF'}</span> ${esc(R.fmtSize(g.size))} · ${g.uses ? `en ${plural(g.uses, 'rutina', 'rutinas')}` : 'sin usar todavía'}</span></span>
+          <span class="gif-btns"><button type="button" class="btn btn-ghost" data-gact="view" aria-expanded="false" aria-label="Ver ${R.isVideo(g.mime) ? 'el video' : 'la animación'} ${esc(g.name)}">Ver</button>
           <button type="button" class="btn btn-ghost" data-gact="del" aria-label="Borrar la animación ${esc(g.name)}">Borrar</button></span></div>
-        <div class="gif-preview" role="status" aria-live="polite"></div></li>`).join('') : '<li class="small muted">Todavía no subes ninguna animación.</li>';
+        <div class="gif-preview" role="status" aria-live="polite"></div></li>`).join('') : '<li class="small muted">Todavía no subes ningún video ni animación.</li>';
   }
   async function togglePreview(li) {
     const id = li.dataset.id, slot = li.querySelector('.gif-preview'), btn = li.querySelector('[data-gact="view"]');
-    if (previews.has(id)) { URL.revokeObjectURL(previews.get(id)); previews.delete(id); slot.replaceChildren(); btn.setAttribute('aria-expanded', 'false'); btn.textContent = 'Ver'; return; }
+    if (previews.has(id)) { URL.revokeObjectURL(previews.get(id)); previews.delete(id); dropMedia(slot); btn.setAttribute('aria-expanded', 'false'); btn.textContent = 'Ver'; return; }
     btn.setAttribute('aria-expanded', 'true'); btn.textContent = 'Ocultar';
     slot.textContent = 'Cargando…';
     try {
-      const blob = await A.remote.coach.gifBlob(id);
+      const info = await mediaInfo(await A.remote.coach.gifBlob(id));
       if (btn.getAttribute('aria-expanded') !== 'true') return;
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(info.blob);
       previews.set(id, url);
-      const img = document.createElement('img');
-      img.className = 'rut-gif-img'; img.alt = `Animación: ${gifName(id)}`; img.src = url;
-      slot.replaceChildren(img);
+      slot.replaceChildren(buildMedia(info, url, `${info.video ? 'Video' : 'Animación'}: ${gifName(id)}`));
     } catch (err) { slot.textContent = errText(err); btn.setAttribute('aria-expanded', 'false'); btn.textContent = 'Ver'; }
   }
   async function deleteGif(li) {
@@ -378,9 +425,9 @@
     const fail = (msg, el) => { err.textContent = msg; err.classList.remove('hidden'); if (el) el.focus(); };
     err.classList.add('hidden');
     const file = fileEl.files && fileEl.files[0];
-    if (!file) { fail('Elige el archivo de la animación.', fileEl); return; }
+    if (!file) { fail('Elige el video o la animación.', fileEl); return; }
     let name = $('#gif-name').value.trim() || R.suggestName(file.name);
-    if (!name) { fail('Ponle un nombre a la animación.', $('#gif-name')); return; }
+    if (!name) { fail('Ponle un nombre.', $('#gif-name')); return; }
     if (name.length > R.LIMITS.gifName) { fail(`El nombre es muy largo: máximo ${R.LIMITS.gifName} letras.`, $('#gif-name')); return; }
     // Se valida aquí (tipo, tamaño y firma de bytes) para avisar enseguida; remote.js y el servidor lo vuelven a comprobar. NO se re-codifica.
     const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
@@ -389,14 +436,19 @@
     busy = true;
     const btn = $('#btn-gif-upload');
     btn.disabled = true;
-    $('#gif-status').textContent = 'Subiendo la animación…';
+    if (R.isVideo(chk.mime)) {   // duración máxima: límite blando (solo la app la ve)
+      $('#gif-status').textContent = 'Revisando el video…';
+      const dur = R.checkDuration(await probeDuration(file));
+      if (!dur.ok) { busy = false; btn.disabled = false; $('#gif-status').textContent = ''; fail(dur.message, fileEl); return; }
+    }
+    $('#gif-status').textContent = R.isVideo(chk.mime) ? 'Subiendo el video…' : 'Subiendo la animación…';
     try {
       await A.remote.coach.uploadGif(file, name);
       gifs = await A.remote.coach.listGifs();
       $('#form-gif').reset();
       renderLibrary(); if (draft) renderDays();
-      $('#gif-status').textContent = `Listo: «${name}» ya está en tu biblioteca.`;
-      toast('Animación guardada');
+      $('#gif-status').textContent = `Listo: «${name}» ya está en tu biblioteca. Toca «Ver» para revisarlo.`;
+      toast(R.isVideo(chk.mime) ? 'Video guardado' : 'Animación guardada');
     } catch (e) { $('#gif-status').textContent = ''; fail(e && e.code === 'invalid' && e.detail ? e.detail : errText(e)); }
     finally { busy = false; btn.disabled = false; }
   }

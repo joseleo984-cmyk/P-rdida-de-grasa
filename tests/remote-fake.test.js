@@ -336,6 +336,25 @@ async function rutinasSetup() {
 }
 const ROUTINE = (gif) => ({ title: 'Fuerza', days: [{ title: 'Día 1 – Pecho', exercises: [{ name: 'Press', sets: '4 × 12', note: 'Baja despacio', gif: gif || '' }, { name: 'Fondos', sets: '3 × 10', note: '', gif: '' }] }, { title: 'Día 2 – Descanso', exercises: [] }] });
 
+test('rutinas v1.9: el coach sube videos (mp4, mov, webm), con tope de 10 MB; los GIF siguen en 3 MB; el cliente los lee', async () => {
+  const { coachX, coachY, ana, bea, ids } = await rutinasSetup();
+  const vid = (head, extra = 0, type = 'video/mp4') => new Blob([Uint8Array.from([...head, ...new Array(extra).fill(9)])], { type });
+  const MP4 = [0, 0, 0, 0x20, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d], MOV = [0, 0, 0, 0x14, 0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20], WEBM = [0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81, 0x01, 0x42, 0xf7, 0x81];
+  const a = await coachX.coach.uploadGif(vid(MP4, 100), 'Sentadilla mp4');
+  const b = await coachX.coach.uploadGif(vid(MOV, 100, 'video/quicktime'), 'Sentadilla mov');
+  const c = await coachX.coach.uploadGif(vid(WEBM, 100, 'video/webm'), 'Sentadilla webm');
+  assert.deepStrictEqual([a.mime, b.mime, c.mime], ['video/mp4', 'video/quicktime', 'video/webm']);
+  assert.strictEqual((await coachX.coach.gifBlob(b.id)).type, 'video/quicktime');
+  await coachX.coach.saveRoutine(ids.ana, ROUTINE(a.id));
+  assert.strictEqual((await ana.client.gifBlob(ids.x, a.id)).type, 'video/mp4');
+  await rejects(coachY.coach.gifBlob(a.id), 'not_found');
+  const big = vid(MP4, 10 * 1024 * 1024 - 12 + 1);
+  await rejects(coachX.coach.uploadGif(big, 'Grande'), 'invalid');
+  await coachX.coach.uploadGif(vid(MP4, 10 * 1024 * 1024 - 12), 'Justo 10 MB');
+  await rejects(coachX.coach.uploadGif(vid([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0], 10), 'Falso'), 'invalid');
+  await rejects(coachX.coach.uploadGif(GIF(3 * 1024 * 1024), 'GIF 3 MB y pico'), 'invalid');
+});
+
 test('rutinas: el coach sube una animación, la usa en la rutina de un cliente y SOLO ese cliente (y su coach) la leen', async () => {
   const { backend, coachX, coachY, ana, bea, ids } = await rutinasSetup();
   const g = await coachX.coach.uploadGif(GIF(), 'Press banca');
