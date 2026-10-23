@@ -7,7 +7,7 @@ select tests.ok(not exists (
   where n.nspname in ('core', 'grasa') and c.relkind in ('r', 'p') and not c.relrowsecurity),
   'todas las tablas de core y grasa tienen RLS activada');
 select tests.ok((select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
-                 where n.nspname in ('core', 'grasa') and c.relkind = 'r') = 13, 'hay 13 tablas (6 core + 7 grasa)');
+                 where n.nspname in ('core', 'grasa') and c.relkind = 'r') = 15, 'hay 15 tablas (6 core + 9 grasa)');
 
 -- 2. Las funciones SECURITY DEFINER fijan search_path (sin secuestro por esquemas del usuario).
 select tests.ok(not exists (
@@ -45,5 +45,8 @@ select tests.ok((select display_name from core.profiles where id = tests.uid('an
   'el registro en auth.users crea core.profiles con display_name');
 select tests.ok(exists (select 1 from storage.buckets where id = 'grasa-photos' and not public),
   'bucket grasa-photos existe y es privado');
+select tests.ok(exists (select 1 from storage.buckets where id = 'ejercicios' and not public and file_size_limit = 3145728
+                        and allowed_mime_types = array['image/gif', 'image/webp']),
+  'bucket ejercicios existe, es privado, de 3 MB y solo gif/webp');
 
 rollback;
