@@ -149,3 +149,10 @@ test('la barra de abajo queda pegada al borde inferior de la pantalla aunque se 
   const gap = await page.evaluate(() => Math.round(window.innerHeight - document.querySelector('.tabbar').getBoundingClientRect().bottom));
   expect(gap).toBe(0);
 });
+
+test('con ?diag=1 se muestran las medidas de pantalla; sin eso no aparece nada', async ({ app, page }) => {
+  await app.open({ path: 'index.html?diag=1', state: state({ consent: CONSENT }) });
+  await expect(page.locator('body > pre')).toContainText('barra top');
+  await app.open({ state: state({ consent: CONSENT }) });
+  await expect(page.locator('body > pre')).toHaveCount(0);
+});
