@@ -112,6 +112,8 @@ input, select {
   font: inherit; color: var(--text); background: var(--bg);
   border: 1px solid var(--line); border-radius: 10px; padding: 10px 11px; width: 100%; min-width: 0;
 }
+/* iPhone/iPad: un campo con letra menor de 16 px hace zoom al tocarlo y deja la barra de abajo y la de arriba corridas de su sitio. */
+@supports (-webkit-touch-callout: none) { input, select, textarea { font-size: max(16px, 1em); } }
 input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
 input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
 .form-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }

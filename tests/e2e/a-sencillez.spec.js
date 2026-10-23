@@ -142,3 +142,10 @@ test.describe('A3 en otros navegadores', () => {
     expect(await app.pref(GUIDE_KEY)).toBeNull();
   });
 });
+
+test('la barra de abajo queda pegada al borde inferior de la pantalla aunque se desplace la página', async ({ app, page }) => {
+  await app.open({ state: state({ consent: CONSENT }) });
+  await page.evaluate(() => { document.body.style.minHeight = '3000px'; window.scrollTo(0, 800); });
+  const gap = await page.evaluate(() => Math.round(window.innerHeight - document.querySelector('.tabbar').getBoundingClientRect().bottom));
+  expect(gap).toBe(0);
+});
