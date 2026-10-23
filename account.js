@@ -315,6 +315,7 @@
       const prev = readMeta();
       const meta = { ...(prev && prev.userId === user.id ? prev : {}), userId: user.id, email: user.email, roles };
       if (roles.includes('coach')) { meta.onboarded = true; meta.coach = await remote.coach.myCoach().catch(() => meta.coach || null); }
+      else { const l = await remote.client.myLink().catch(() => null); if (l) { meta.link = l; meta.onboarded = true; } } // Sprint 11: ya tiene coach en la cuenta (otro teléfono): no se vuelve a pedir el rol
       writeMeta(meta);
       ls.del(SKIP_KEY);
       await queueTermsEvents();

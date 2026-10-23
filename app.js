@@ -1766,7 +1766,7 @@
     $('#pause-card').classList.toggle('hidden', !paused);
     if (!paused) return;
     const l = myLinkNow(), st = payNow();
-    const who = l.businessName ? `tu coach, ${l.businessName}` : 'tu coach';
+    const who = l.businessName ? `tu coach, ${l.businessName},` : 'tu coach';
     setText($('#pause-text'), `${st.key === 'overdue' ? `Tu pago venció el ${Pagos.dayText(st.paidUntil)}. ` : ''}Habla con ${who} para reactivarlo. Cuando te confirme el pago, la app vuelve a funcionar sola.`);
   }
   async function checkPayment(manual) {

@@ -25,10 +25,10 @@ let fails = 0, n = 0;
 const rep = (ok, name, info = '') => { n++; if (!ok) fails++; console.log(`${ok ? 'OK   ' : 'FALLA'} ${name}${info ? ' — ' + info : ''}`); };
 const sec = (t) => console.log(`\n== ${t}`);
 
-async function api(method, path, { token, body, headers = {} } = {}) {
+async function api(method, path, { token, body, raw, headers = {} } = {}) {
   try {
     const res = await fetch(URL0 + path, {
-      method, signal: AbortSignal.timeout(15000), body: body === undefined ? undefined : JSON.stringify(body),
+      method, signal: AbortSignal.timeout(15000), body: raw !== undefined ? raw : body === undefined ? undefined : JSON.stringify(body),
       headers: { apikey: KEY, ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers },
     });
     const text = await res.text(); let json = null; try { json = JSON.parse(text); } catch { /* vacío */ }
@@ -151,6 +151,46 @@ async function main() {
     'A join_coach con SOLO peso/medidas (vínculo activo; comidas/hábitos/notas = false)', ok2(r) ? '' : errTxt(r));
   r = await rpc('core', 'my_consents', { p_app: 'grasa' }, A.token);
   rep(ok2(r) && flat(r.json).includes('sensitive_health'), 'A my_consents devuelve sensitive_health (los share_* no se listan por diseño)');
+
+  // ---------- a3) Sprint 11 (r1 v1.6): cobros manuales y bloqueo por pago ----------
+  // Vinculada y SIN fecha de pago = en pausa: sync_push falla con 42501 payment_required; sync_pull y borrar la cuenta siguen permitidos.
+  sec('a3) Cobros: el coach marca el pago; el cliente no; vencido bloquea push pero no pull');
+  const hoyBo = (d = 0) => new Date(Date.now() - 5 * 3600000 + d * 86400000).toISOString().slice(0, 10);   // hoy en Bogotá (UTC-5)
+  const isPay = (x) => !ok2(x) && x.status === 403 && x.json && x.json.code === '42501' && (x.json.message === 'payment_required' || /payment_required/.test(String(x.json.details || '')));
+  r = await rpc('grasa', 'sync_push', { p_records: [], p_photos: [] }, A.token);
+  rep(isPay(r), 'A vinculada y sin fecha de pago: sync_push → 403 / 42501 payment_required', errTxt(r));
+  r = await rpc('grasa', 'sync_pull', { p_since: '1970-01-01T00:00:00Z', p_limit: 10, p_overlap: true }, A.token);
+  rep(ok2(r), 'A vencida: sync_pull SIGUE permitido', ok2(r) ? '' : errTxt(r));
+  r = await rpc('grasa', 'my_link', {}, A.token);
+  rep(ok2(r) && rows(r).length === 1 && rows(r)[0].paid === false && rows(r)[0].paid_until === null, 'A my_link: paid = false y sin paid_until');
+  r = await rpc('grasa', 'set_client_payment', { p_client: A.id, p_paid_until: hoyBo(30) }, A.token);
+  rep(!ok2(r) && r.status === 403, 'A NO puede marcarse a sí misma como pagada (set_client_payment → 403)', errTxt(r));
+  r = await mut('PATCH', 'grasa', 'coach_links', `client_id=eq.${A.id}`, { paid_until: hoyBo(30) }, A.token);
+  rep(!ok2(r) || (Array.isArray(r.json) && r.json.length === 0), 'A NO puede hacer UPDATE directo de paid_until', errTxt(r));
+  r = await rpc('grasa', 'set_client_payment', { p_client: A.id, p_paid_until: hoyBo(1000) }, coach.token);
+  rep(!ok2(r) && r.status >= 400 && r.status < 500, 'coach con fecha absurda (hoy + 1000 días): rechazada', errTxt(r));
+  r = await rpc('grasa', 'set_client_payment', { p_client: A.id, p_paid_until: hoyBo(30) }, coach.token);
+  rep(ok2(r) && r.json && r.json.paid === true && r.json.days_left === 30, 'coach marca «pagó» (hoy + 30): paid = true, days_left = 30', ok2(r) ? '' : errTxt(r));
+  r = await rpc('grasa', 'coach_clients', {}, coach.token);
+  rep(ok2(r) && rows(r).some((x) => x.client_id === A.id && x.paid === true && x.days_left === 30 && x.paid_until === hoyBo(30)), 'coach_clients devuelve paid_until, paid y days_left de A');
+  r = await rpc('grasa', 'my_link', {}, A.token);
+  rep(ok2(r) && rows(r)[0].paid === true && rows(r)[0].days_left === 30, 'A my_link ve el mismo estado');
+  if (bOk) {
+    r = await rpc('grasa', 'set_client_payment', { p_client: A.id, p_paid_until: hoyBo(30) }, B.token);
+    rep(!ok2(r) && r.status === 403, 'B (no es coach) NO puede marcar el pago de A', errTxt(r));
+  }
+  r = await rpc('grasa', 'set_client_payment', { p_client: A.id, p_paid_until: hoyBo(-1) }, coach.token);
+  rep(ok2(r) && r.json && r.json.paid === false, 'coach marca «no pagó» (ayer): vencido');
+  r = await rpc('grasa', 'sync_push', { p_records: [mkRec('entry', day, day, { weight: 1 })], p_photos: [] }, A.token);
+  rep(isPay(r), 'A vencida desde ayer: sync_push → payment_required', errTxt(r));
+  r = await rpc('grasa', 'set_client_payment', { p_client: A.id, p_paid_until: hoyBo(0) }, coach.token);
+  rep(ok2(r) && r.json && r.json.paid === true && r.json.days_left === 0, 'día límite (pagado hasta hoy): sigue al día (days_left = 0)');
+  // La subida de fotos al bucket también exige estar al día (política de Storage): prueba de rechazo con un archivo vacío
+  r = await rpc('grasa', 'set_client_payment', { p_client: A.id, p_paid_until: hoyBo(-1) }, coach.token);
+  const up = await api('POST', `/storage/v1/object/grasa-photos/${A.id}/${crypto.randomUUID()}.jpg`, { token: A.token, raw: Buffer.from([0xff, 0xd8, 0xff, 0xd9]), headers: { 'Content-Type': 'image/jpeg' } });
+  rep(!ok2(up) && (up.status === 403 || up.status === 400), 'A vencida: subir una foto al bucket → rechazada (política de Storage)', errTxt(up));
+  r = await rpc('grasa', 'set_client_payment', { p_client: A.id, p_paid_until: hoyBo(30) }, coach.token);   // deja a A al día para el resto del script
+  rep(ok2(r) && r.json.paid === true, 'coach deja a A al día (hoy + 30) para seguir con las demás pruebas');
 
   // ---------- b) Cliente A empuja y recupera; B no ve nada ----------
   sec('b) Aislamiento entre clientes');

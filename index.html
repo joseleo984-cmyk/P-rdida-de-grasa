@@ -393,13 +393,13 @@
         <h2>Registrar mis medidas</h2>
         <form id="form-medidas" class="grid-form" novalidate>
           <label class="span-2">Fecha<input type="date" name="date" required></label>
-          <label>Cuello (cm)<input type="number" name="neck" step="0.1" min="15" max="80" inputmode="decimal"></label>
-          <label>Brazo derecho (cm)<input type="number" name="armR" step="0.1" min="10" max="80" inputmode="decimal"></label>
-          <label>Brazo izquierdo (cm)<input type="number" name="armL" step="0.1" min="10" max="80" inputmode="decimal"></label>
-          <label>Espalda (cm)<input type="number" name="back" step="0.1" min="15" max="150" inputmode="decimal"></label>
-          <label>Cintura (cm)<input type="number" name="waist" step="0.1" min="30" max="250" inputmode="decimal"></label>
-          <label>Muslo derecho (cm)<input type="number" name="thighR" step="0.1" min="20" max="120" inputmode="decimal"></label>
-          <label>Muslo izquierdo (cm)<input type="number" name="thighL" step="0.1" min="20" max="120" inputmode="decimal"></label>
+          <label>Cuello (cm)<input type="text" name="neck" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
+          <label>Brazo derecho (cm)<input type="text" name="armR" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
+          <label>Brazo izquierdo (cm)<input type="text" name="armL" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
+          <label>Espalda (cm)<input type="text" name="back" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
+          <label>Cintura (cm)<input type="text" name="waist" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
+          <label>Muslo derecho (cm)<input type="text" name="thighR" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
+          <label>Muslo izquierdo (cm)<input type="text" name="thighL" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
           <p id="medidas-error" class="span-2 acc-error hidden" role="alert"></p>
           <div class="span-2 form-actions"><button class="btn btn-tall" type="submit">Guardar mis medidas</button><span class="muted small">Con decimales, por ejemplo 33,5. Si no mides alguna, déjala en blanco.</span></div>
         </form>

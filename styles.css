@@ -632,3 +632,8 @@ body.paused #view-fotos > .card:has(#form-photo) { display: none; }
 .coach-photos .btn { min-height: 48px; }
 #form-pago input[type=date] { width: 100%; min-height: 48px; font: inherit; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
 #form-pago .btn { width: 100%; min-height: 48px; }
+body.producto-coach .btn, body.producto-coach .btn-tall, body.solo-nube .btn { min-height: 48px; }
+body.producto-coach .home-card .btn, body.producto-coach #view-fotos .btn-tall, body.producto-coach #photos-coach-card .btn { width: 100%; margin-top: 8px; }
+body.producto-coach .home-card .home-label { margin-bottom: 4px; }
+body.producto-coach .pay-summary { display: flex; }
+.seg-wrap button { min-height: 48px; }
