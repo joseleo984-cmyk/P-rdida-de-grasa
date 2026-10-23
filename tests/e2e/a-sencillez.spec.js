@@ -95,7 +95,7 @@ test.describe('A3 en Safari de iPhone', () => {
     await opener.click();
     const dlg = page.locator('#install-dialog');
     await expect(dlg).toBeVisible();
-    await expect(dlg.locator('ol li')).toHaveCount(3);
+    await expect(dlg.locator('#install-dialog-steps ol li')).toHaveCount(3);
     await expect(dlg.locator('#install-dialog-note')).toBeHidden(); // es Safari de iPhone: sin la nota para otros navegadores
     await expect(page.locator('#install-dialog-close')).toBeFocused();
     await page.keyboard.press('Escape');
@@ -119,6 +119,21 @@ test.describe('A3 en otros navegadores', () => {
       await page.locator('#tab-mas').click();
       await page.getByRole('button', { name: /Cómo instalar la app/ }).click();
       await expect(page.locator('#install-dialog-note')).toBeVisible();
+    });
+  });
+  test.describe('Chrome en Android', () => {
+    test.use({ userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36' });
+    test('la guía permanente trae los pasos de Android (Chrome) y de computador', async ({ app, page }) => {
+      await app.open({ state: state({ consent: CONSENT }) });
+      await expect(page.locator('#install-card')).toBeHidden();
+      await page.locator('#tab-mas').click();
+      await page.getByRole('button', { name: /Cómo instalar la app/ }).click();
+      const note = page.locator('#install-dialog-note');
+      await expect(note).toBeVisible();
+      await expect(note).toContainText('En Android (Chrome)');
+      await expect(note).toContainText('Instalar app');
+      await expect(note).toContainText('Abrir en Chrome');
+      await expect(note).toContainText('En computador (Chrome o Edge)');
     });
   });
   test('en el navegador de escritorio de las pruebas tampoco aparece', async ({ app, page }) => {
