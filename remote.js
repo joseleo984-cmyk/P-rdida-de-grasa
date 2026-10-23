@@ -253,6 +253,17 @@
       const R = root.Rutinas;
       return R ? R.fromServer(r) : { id: r.id, coachId: r.coach_id, clientId: r.client_id, title: r.title, days: (r.content && r.content.days) || [], updatedAt: r.updated_at };
     };
+    // v1.8: la rutina de hoy llega sin id propio; las listas llegan como un solo jsonb (arreglo).
+    const dailyOut = (d) => (d && d.day && root.Rutinas ? root.Rutinas.dailyFromServer(d) : null);
+    const routinesOut = (d) => rows(d).map(routineOut).filter(Boolean);
+    const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+    const checkRoutine = (routine) => {
+      const R = root.Rutinas;
+      if (!R) throw new RemoteError('server', 'rutinas.js no está cargado');
+      const v = R.validate(routine);
+      if (!v.ok) { const e = new RemoteError('invalid', v.errors[0].message); e.detail = v.errors[0].message; throw e; }
+      return R;
+    };
     const uuid = () => (root.crypto && root.crypto.randomUUID ? root.crypto.randomUUID() : root.Schema.uuid());
 
     // Descarga con URL firmada de 60 s (§2.4, §11.6). La URL no se guarda ni se cachea (el SW no toca otros orígenes).
@@ -466,6 +477,13 @@
       async markCommentRead(commentId) { await me(); await rpc('grasa', 'mark_comment_read', { p_id: commentId }); },
       // Etapa 2: la rutina que armó su coach (null si no hay o no tiene coach). Es solo lectura y se ve aunque el acceso esté en pausa.
       async myRoutine() { await me(); return routineOut(await rpc('grasa', 'my_routine')); },
+      // v1.8: SUS rutinas visibles (varias) y la «Rutina de hoy» de su coach (solo si el día publicado es `today`, 'AAAA-MM-DD' de su dispositivo).
+      async myRoutines() { await me(); return routinesOut(await rpc('grasa', 'my_routines')); },
+      async myDaily(today) {
+        await me();
+        if (!DAY_RE.test(String(today))) throw new RemoteError('invalid', 'Fecha no válida');
+        return dailyOut(await rpc('grasa', 'my_daily', { p_today: String(today) }));
+      },
       // La animación de un ejercicio, con URL firmada de 60 s nueva en cada llamada (la política de Storage solo la deja leer si es de SU coach).
       async gifBlob(coachId, gifId) {
         await me();
@@ -575,6 +593,35 @@
         return routineOut(await rpc('grasa', 'save_routine', { p_client: clientId, p_title: String(routine.title).trim(), p_content: R.toContent(routine) }));
       },
       async deleteRoutine(clientId) { await me(); await rpc('grasa', 'delete_routine', { p_client: clientId }); },
+      // v1.8: «Mis rutinas» (plantillas del coach), asignar (copias), rutinas de un asesorado, mostrar/ocultar y la «Rutina de hoy».
+      async listTemplates() { await me(); return routinesOut(await rpc('grasa', 'list_templates')); },
+      async saveTemplate(id, routine) {
+        await me();
+        const R = checkRoutine(routine);
+        return routineOut(await rpc('grasa', 'save_template', { p_id: id || null, p_title: String(routine.title).trim(), p_content: R.toContent(routine) }));
+      },
+      async deleteTemplate(id) { await me(); await rpc('grasa', 'delete_template', { p_id: id }); },
+      async assignTemplate(templateId, clientIds) {
+        await me();
+        const ids = Array.isArray(clientIds) ? [...new Set(clientIds)] : [];
+        if (!ids.length || ids.length > 100) throw new RemoteError('invalid', 'Elige entre 1 y 100 asesorados');
+        return routinesOut(await rpc('grasa', 'assign_template', { p_template: templateId, p_clients: ids }));
+      },
+      async listClientRoutines(clientId) { await me(); return routinesOut(await rpc('grasa', 'list_client_routines', { p_client: clientId })); },
+      async saveClientRoutine(clientId, id, routine) {
+        await me();
+        const R = checkRoutine(routine);
+        return routineOut(await rpc('grasa', 'save_client_routine', { p_client: clientId, p_id: id || null, p_title: String(routine.title).trim(), p_content: R.toContent(routine) }));
+      },
+      async deleteClientRoutine(id) { await me(); await rpc('grasa', 'delete_client_routine', { p_id: id }); },
+      async setRoutineVisible(id, visible) { await me(); return routineOut(await rpc('grasa', 'set_routine_visible', { p_id: id, p_visible: !!visible })); },
+      async publishDaily(templateId, day) {
+        await me();
+        if (!DAY_RE.test(String(day))) throw new RemoteError('invalid', 'Fecha no válida');
+        return dailyOut(await rpc('grasa', 'publish_daily', { p_template: templateId, p_day: String(day) }));
+      },
+      async getDaily() { await me(); return dailyOut(await rpc('grasa', 'get_daily')); },
+      async clearDaily() { await me(); await rpc('grasa', 'clear_daily'); },
       async deleteComment(commentId) { await me(); await rpc('grasa', 'delete_comment', { p_id: commentId }); },
       async endClient(clientId) { await me(); await rpc('grasa', 'end_client', { p_client: clientId }); },
     };

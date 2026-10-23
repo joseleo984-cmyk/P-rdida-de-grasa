@@ -83,7 +83,8 @@ test('toContent: sin ejercicios vacíos ni claves de más; note y gif solo si ex
 test('fromServer: contenido del servidor → forma de la app con todos los textos; null si no hay fila', () => {
   assert.strictEqual(R.fromServer(null), null);
   const r = R.fromServer({ id: 'i', coach_id: 'c', client_id: 'k', title: ' T ', updated_at: 'U', content: { days: [{ title: 'D', exercises: [{ name: 'E', sets: '3 × 10', gif: 'g' }] }] } });
-  assert.deepStrictEqual(r, { id: 'i', coachId: 'c', clientId: 'k', title: 'T', updatedAt: 'U', days: [{ title: 'D', exercises: [{ name: 'E', sets: '3 × 10', note: '', gif: 'g' }] }] });
+  assert.deepStrictEqual(r, { id: 'i', coachId: 'c', clientId: 'k', title: 'T', updatedAt: 'U', createdAt: null, visible: true, days: [{ title: 'D', exercises: [{ name: 'E', sets: '3 × 10', note: '', gif: 'g' }] }] });
+  assert.strictEqual(R.fromServer({ id: 'i', title: 'T', visible: false, content: { days: [] } }).visible, false, 'visible false se respeta');
 });
 test('summary, dayLine, gifIds y fmtSize', () => {
   assert.strictEqual(R.summary({ days: [{ exercises: [1, 2] }, { exercises: [] }, { exercises: [3] }] }), '3 días · 3 ejercicios');
@@ -96,4 +97,36 @@ test('summary, dayLine, gifIds y fmtSize', () => {
 });
 test('blankRoutine: un día con un ejercicio vacío listo para escribir', () => {
   assert.deepStrictEqual(R.blankRoutine(), { title: '', days: [{ title: 'Día 1', exercises: [{ name: '', sets: '', note: '', gif: '' }] }] });
+});
+
+// ---------- v1.8: biblioteca, asignación y rutina de hoy ----------
+test('límites v1.8: 50 plantillas, 20 rutinas por asesorado, 100 asesorados por asignación', () => {
+  assert.deepStrictEqual([R.LIMITS.templates, R.LIMITS.perClient, R.LIMITS.assignAtOnce], [50, 20, 100]);
+});
+test('dailyFromServer: la rutina de hoy llega con su día y sin id propio; sin día no hay rutina', () => {
+  assert.strictEqual(R.dailyFromServer(null), null);
+  assert.strictEqual(R.dailyFromServer({ title: 'x', content: { days: [] } }), null);
+  const d = R.dailyFromServer({ coach_id: 'c', template_id: 't', title: ' Pecho ', day: '2026-10-21', published_at: 'P', content: { days: [{ title: 'D', exercises: [{ name: 'E', sets: '3', gif: 'g' }] }] } });
+  assert.deepStrictEqual([d.coachId, d.templateId, d.title, d.day, d.publishedAt, d.id, d.days[0].exercises[0].gif], ['c', 't', 'Pecho', '2026-10-21', 'P', null, 'g']);
+});
+test('dailyActive: solo el MISMO día calendario; ayer y mañana no', () => {
+  const d = { day: '2026-10-21' };
+  assert.strictEqual(R.dailyActive(d, '2026-10-21'), true);
+  assert.strictEqual(R.dailyActive(d, '2026-10-22'), false);
+  assert.strictEqual(R.dailyActive(d, '2026-10-20'), false);
+  assert.strictEqual(R.dailyActive(null, '2026-10-21'), false);
+  assert.strictEqual(R.dailyActive(d, ''), false);
+});
+test('localDay: el día del dispositivo en su propia zona (no el UTC)', () => {
+  const x = new Date(2026, 9, 21, 23, 30);   // 21 oct, 23:30 hora local
+  assert.strictEqual(R.localDay(x), '2026-10-21');
+  assert.strictEqual(R.localDay(new Date(2026, 0, 1, 0, 5)), '2026-01-01');
+});
+test('homeLine: una rutina → título y resumen; varias → «Tienes N rutinas: …»', () => {
+  const r = (t) => ({ title: t, days: [{ exercises: [1] }] });
+  assert.strictEqual(R.homeLine([]), '');
+  assert.strictEqual(R.homeLine([r('Pecho')]), 'Pecho · 1 día · 1 ejercicio');
+  assert.strictEqual(R.homeLine([r('A'), r('B')]), 'Tienes 2 rutinas: A y B.');
+  assert.strictEqual(R.homeLine([r('A'), r('B'), r('C')]), 'Tienes 3 rutinas: A, B y C.');
+  assert.strictEqual(R.homeLine([r('A'), r('B'), r('C'), r('D'), r('E')]), 'Tienes 5 rutinas: A, B, C y 2 más.');
 });

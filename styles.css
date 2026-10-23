@@ -681,3 +681,45 @@ body.paused #rutina-trained { display: none !important; }
 .gif-info { display: flex; flex-direction: column; flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
 .gif-btns { display: flex; gap: 8px; }
 .gif-preview:not(:empty) { margin-top: 8px; font-size: .9rem; }
+
+/* ===== v1.8: Mis rutinas (biblioteca del coach), rutinas asignadas, interruptor de visibilidad y «Rutina de hoy» ===== */
+.rut-badge { display: inline-block; align-self: flex-start; margin: 0 0 6px; padding: 4px 12px; border-radius: 999px; background: var(--accent); color: #fff; font-size: .85rem; font-weight: 800; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rut-badge { color: #042f2c; } }
+:root[data-theme="dark"] .rut-badge { color: #042f2c; }
+.rut-block { margin-bottom: 8px; }
+.rut-head { display: flex; flex-direction: column; }
+.rut-section { margin: 20px 4px 10px; font-size: 1.05rem; }
+.rl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.rl-item { margin: 0; min-width: 0; }
+.rl-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; min-width: 0; }
+.rl-head .rut-badge { margin: 4px 0; }
+.rl-name { font-size: 1.1rem; overflow-wrap: anywhere; }
+.rl-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.rl-btns .btn { flex: 1 1 150px; min-height: 48px; }
+#btn-rl-new, #btn-redit-save { width: 100%; }
+#rl-daily .btn { width: 100%; margin-top: 8px; min-height: 48px; }
+.rc-list { list-style: none; margin: 8px 0 12px; padding: 0; display: grid; gap: 12px; }
+.rc-item { padding: 12px; border: 1px solid var(--line); border-radius: 14px; min-width: 0; display: grid; gap: 10px; }
+.rc-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.rc-name { font-size: 1.05rem; }
+.rc-switch { display: flex; align-items: center; gap: 12px; min-height: 48px; cursor: pointer; position: relative; }
+.rc-switch input { position: absolute; inset: 0; z-index: 1; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.rc-track { flex: none; position: relative; width: 52px; height: 30px; border-radius: 999px; background: var(--muted); transition: background .15s; }
+.rc-track::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); transition: transform .15s; }
+.rc-switch input:checked + .rc-track { background: var(--accent); }
+.rc-switch input:checked + .rc-track::after { transform: translateX(22px); }
+.rc-switch input:focus-visible + .rc-track { outline: 3px solid var(--goal); outline-offset: 2px; }
+.rc-switch input:disabled + .rc-track { opacity: .5; }
+.rc-switch-text { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.rc-actions .btn { flex: 1 1 140px; min-height: 48px; }
+.rc-assign { display: grid; gap: 8px; margin: 8px 0 12px; }
+#rc-pick { width: 100%; min-height: 48px; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+#btn-coach-rutina { width: 100%; }
+.da-body { padding: 0 16px 20px; display: grid; gap: 10px; }
+.da-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.da-item, .da-all { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; background: var(--bg); }
+.da-all.hidden { display: none; }
+.da-item input, .da-all input { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--accent); }
+.da-item span, .da-all span { min-width: 0; overflow-wrap: anywhere; }
+.da-body .row-actions .btn { flex: 1 1 140px; min-height: 48px; }
+#home-daily .btn { width: 100%; }

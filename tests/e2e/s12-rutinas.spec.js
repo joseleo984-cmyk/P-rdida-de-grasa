@@ -1,5 +1,6 @@
-// Etapa 2: rutinas de ejercicios con animaciones. El coach arma la rutina de cada asesorado (y sube GIFs a su biblioteca);
-// el cliente la ve en «Mi rutina» (solo lectura) y la animación se pide al abrir cada ejercicio. Servidor FALSO; producto 'coach'.
+// Etapa 2 y 2b (v1.8): rutinas de ejercicios con animaciones. El coach arma rutinas (de su biblioteca «Mis rutinas» o directo para un asesorado),
+// las asigna (copias), las muestra u oculta y publica la «Rutina de hoy»; el cliente las ve en «Mi rutina» (solo lectura) y la animación se
+// pide al abrir cada ejercicio. Servidor FALSO; producto 'coach'.
 const { test, expect } = require('@playwright/test');
 const H = require('./s11-helpers');
 
@@ -71,10 +72,10 @@ test('coach: arma la rutina de un asesorado con su propia animación (valida tip
   const { p, errors } = await coachPhone(browser, testInfo);
   await p.addStyleTag({ content: H.WIDE });
   await openFicha(p, 'Ana Martínez');
-  await expect(p.locator('#coach-detail-rutina-card h2')).toHaveText('Rutina de ejercicios');
-  await expect(p.locator('#coach-detail-rutina-line')).toHaveText('Ana Martínez todavía no tiene una rutina.');
-  await p.getByRole('button', { name: 'Armar rutina' }).click();
-  await expect(p.locator('#redit-title')).toHaveText('Rutina de Ana Martínez');
+  await expect(p.locator('#coach-detail-rutina-card h2')).toHaveText('Rutinas de ejercicios');
+  await expect(p.locator('#coach-detail-rutina-line')).toHaveText('Ana Martínez todavía no tiene rutinas.');
+  await p.getByRole('button', { name: '＋ Crear una rutina nueva' }).click();
+  await expect(p.locator('#redit-title')).toHaveText('Nueva rutina para Ana Martínez');
   await expect(p.locator('#view-rutina-edit')).toBeVisible();
   await expect(p.locator('#tab-coach')).toHaveAttribute('aria-current', 'page');
   // --- Biblioteca: se rechazan los archivos que no sirven (tipo, firma de bytes, tamaño) ---
@@ -131,16 +132,22 @@ test('coach: arma la rutina de un asesorado con su propia animación (valida tip
   await H.layout(p); await H.tall(p, '#view-rutina-edit');
   await H.shot(p, 's12-coach-editor.png', { fullPage: true });
   await p.getByRole('button', { name: 'Guardar rutina' }).click();
-  await expect(p.locator('#toast')).toHaveText('Rutina guardada');
+  await expect(p.locator('#toast')).toHaveText('Rutina guardada para Ana Martínez');
   await expect(p.locator('#coach-detail-view')).toBeVisible();
-  await expect(p.locator('#coach-detail-rutina-line')).toContainText('«Fuerza en 2 días» · 2 días · 2 ejercicios');
+  await expect(p.locator('#coach-detail-rutina-line')).toHaveText('1 rutina asignada · Ana Martínez la ve.');
+  await expect(p.locator('#coach-detail-rutinas .rc-item')).toHaveCount(1);
+  await expect(p.locator('#coach-detail-rutinas .rc-item')).toContainText('Fuerza en 2 días');
+  await expect(p.locator('#coach-detail-rutinas .rc-item')).toContainText('2 días · 2 ejercicios');
+  await expect(p.getByRole('switch', { name: /Visible para el asesorado: Fuerza en 2 días/ })).toBeChecked();
   let be = await H.backend(p);
   const row = Object.values(be.routines)[0];
   expect(row.days[0].exercises[0]).toMatchObject({ name: 'Press de banca', sets: '4 × 12', note: 'Baja la barra despacio' });
   expect(row.days[0].exercises[0].gif).toBe(Object.keys(be.gifs)[0]);
   expect(row.days[1].exercises).toEqual([]);
   // Editar: llega con lo guardado; ya hay una animación en uso (no se puede borrar)
-  await p.getByRole('button', { name: 'Editar la rutina' }).click();
+  await p.getByRole('button', { name: /Entrar y modificar/ }).click();
+  await expect(p.locator('#redit-title')).toHaveText('Rutina de Ana Martínez');
+  await expect(p.locator('#redit-hint')).toContainText('Estás modificando la copia de Ana Martínez');
   await expect(p.locator('#redit-name')).toHaveValue('Fuerza en 2 días');
   await expect(p.getByLabel('Animación (opcional)').first()).toHaveValue(Object.keys(be.gifs)[0]);
   await expect(p.locator('#gif-list li').first()).toContainText('en 1 rutina');
@@ -162,13 +169,13 @@ test('coach: arma la rutina de un asesorado con su propia animación (valida tip
   await expect(p.getByRole('button', { name: 'Máximo 12 ejercicios por día' })).toBeDisabled();
   await H.layout(p);
   // Borrar la rutina
-  await p.getByRole('button', { name: 'Borrar la rutina' }).click();
-  await expect(p.locator('#toast')).toHaveText('Rutina borrada');
-  await expect(p.locator('#coach-detail-rutina-line')).toHaveText('Ana Martínez todavía no tiene una rutina.');
+  await p.getByRole('button', { name: 'Quitar esta rutina' }).click();
+  await expect(p.locator('#toast')).toHaveText('Rutina quitada');
+  await expect(p.locator('#coach-detail-rutina-line')).toHaveText('Ana Martínez todavía no tiene rutinas.');
   be = await H.backend(p);
   expect(Object.keys(be.routines)).toHaveLength(0);
   // Sin uso, la animación se puede borrar de la biblioteca
-  await p.getByRole('button', { name: 'Armar rutina' }).click();
+  await p.getByRole('button', { name: '＋ Crear una rutina nueva' }).click();
   await p.locator('#gif-list').getByRole('button', { name: 'Borrar la animación Press de banca' }).click();
   await expect(p.locator('#gif-status')).toHaveText('Animación borrada.');
   expect(Object.keys((await H.backend(p)).gifs)).toHaveLength(0);
@@ -326,36 +333,327 @@ test('el coach cambia la rutina y el cliente la ve actualizada al volver a la pa
   await expect(a.locator('#rutina-body')).toContainText('Todavía no tienes una rutina.');
 });
 
-test('claro y oscuro, letra ancha a 390 px: Mi rutina y el editor del coach sin desborde', async ({ browser }, testInfo) => {
+// ======================= v1.8: biblioteca, asignar, mostrar/ocultar y rutina de hoy =======================
+// Siembra por la API (como Laura): una animación y dos plantillas («Pecho», con la animación, y «Piernas»). Devuelve sus ids.
+async function seedLibrary(page) {
+  return page.evaluate(async (b64) => {
+    const be = window.__pgFakeBackend;
+    const m = {}; const mem = { getItem: (k) => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } };
+    const r = RemoteFake.createFake({ backend: be, storage: mem });
+    await r.auth.sendCode('laura@coach.co');
+    await r.auth.verifyCode('laura@coach.co', be.lastCode('laura@coach.co'));
+    const g = await r.coach.uploadGif(new Blob([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], { type: 'image/gif' }), 'Press de banca');
+    const pecho = await r.coach.saveTemplate(null, { title: 'Pecho', days: [{ title: 'Día 1 – Pecho', exercises: [{ name: 'Press de banca', sets: '4 × 12', note: 'Baja despacio', gif: g.id }, { name: 'Fondos', sets: '3 × 10', note: '', gif: '' }] }] });
+    const piernas = await r.coach.saveTemplate(null, { title: 'Piernas', days: [{ title: 'Día 1 – Piernas', exercises: [{ name: 'Sentadilla', sets: '4 × 10', note: '', gif: '' }] }] });
+    return { gif: g.id, pecho: pecho.id, piernas: piernas.id };
+  }, GIF_B64);
+}
+// Hace algo por la API como Laura (la coach) en el «servidor» de esa página.
+const asLaura = (page, fn, arg) => page.evaluate(async ([src, arg]) => {
+  const be = window.__pgFakeBackend;
+  const m = {}; const mem = { getItem: (k) => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } };
+  const r = RemoteFake.createFake({ backend: be, storage: mem });
+  await r.auth.sendCode('laura@coach.co'); await r.auth.verifyCode('laura@coach.co', be.lastCode('laura@coach.co'));
+  const id = (e) => Object.values(be.users).find((u) => u.email === e).id;
+  // eslint-disable-next-line no-new-func
+  return new Function('r', 'be', 'id', 'arg', `return (async () => { ${src} })()`)(r, be, id, arg);
+}, [fn, arg]);
+const openLibrary = async (p) => {
+  await p.locator('#tab-mas').click();
+  await p.locator('#row-c-rutinas').click();
+  await expect(p.locator('#rutinas-title')).toBeFocused();
+};
+const NEXT_DAY = new Date('2026-10-22T12:00:00-05:00');
+
+test('coach: crea una rutina en «Mis rutinas» con su animación, la asigna a 2 asesorados (copias), edita la copia de uno sin afectar al otro y oculta una', async ({ browser }, testInfo) => {
+  const coach = await coachPhone(browser, testInfo);
+  const p = coach.p;
+  await p.addStyleTag({ content: H.WIDE });
+  // La barra del coach sigue siendo Asesorados · Invitar · Más; «Mis rutinas» está dentro de Más
+  expect((await p.locator('.tabbar button:visible').allTextContents()).map((x) => x.trim())).toEqual(['Asesorados', 'Invitar', 'Más']);
+  await openLibrary(p);
+  await expect(p.locator('#tab-mas')).toHaveAttribute('aria-current', 'page');
+  await expect(p.locator('#rl-status')).toContainText('Todavía no tienes rutinas');
+  await expect(p.locator('#rl-daily-line')).toContainText('Hoy no hay ninguna publicada');
+  // --- Crear la plantilla «Pecho» con una animación ---
+  await p.getByRole('button', { name: '＋ Crear una rutina' }).click();
+  await expect(p.locator('#redit-title')).toHaveText('Crear una rutina');
+  await expect(p.locator('#tab-mas')).toHaveAttribute('aria-current', 'page');
+  await expect(p.locator('#redit-hint')).toContainText('no pertenece a ningún asesorado');
+  await p.locator('#gif-file').setInputFiles(gifFile('press-banca.gif'));
+  await p.locator('#gif-name').fill('Press de banca');
+  await p.getByRole('button', { name: 'Subir animación' }).click();
+  await expect(p.locator('#gif-status')).toContainText('«Press de banca» ya está en tu biblioteca');
+  await p.locator('#redit-name').fill('Pecho');
+  await p.getByLabel('Nombre del día').first().fill('Día 1 – Pecho');
+  await p.locator('#d0e0-name').fill('Press de banca');
+  await p.locator('#d0e0-sets').fill('4 × 12');
+  await p.getByLabel('Animación (opcional)').first().selectOption({ label: 'Press de banca' });
+  await p.getByRole('button', { name: 'Guardar rutina' }).click();
+  await expect(p.locator('#toast')).toHaveText('Rutina guardada en tu biblioteca');
+  await expect(p.locator('#view-rutinas')).toBeVisible();
+  await expect(p.locator('#rl-list .rl-item')).toHaveCount(1);
+  await expect(p.locator('#rl-list .rl-item')).toContainText('Pecho');
+  await expect(p.locator('#rl-list .rl-item')).toContainText('1 día · 1 ejercicio');
+  let be = await H.backend(p);
+  expect(Object.values(be.templates)).toHaveLength(1);
+  expect(Object.values(be.routines)).toHaveLength(0);   // una plantilla no pertenece a nadie
+  // --- «Asignar a…» Ana y Beto ---
+  await p.getByRole('button', { name: 'Asignar la rutina Pecho a asesorados' }).click();
+  const dlg = p.locator('#dlg-asignar');
+  await expect(dlg).toBeVisible();
+  await expect(p.locator('#da-title')).toHaveText('Asignar «Pecho» a…');
+  await expect(p.locator('#da-list input')).toHaveCount(2);
+  await expect(p.locator('#da-list')).toContainText('Ana Martínez');
+  await expect(p.locator('#da-list')).toContainText('Beto Ruiz');
+  await p.getByRole('button', { name: 'Asignar', exact: true }).click();
+  await expect(p.locator('#da-error')).toHaveText('Marca al menos un asesorado.');
+  await H.layout(p); await H.tall(p, '#dlg-asignar .da-body');
+  await p.getByLabel('Todos mis asesorados').check();
+  await expect(p.locator('#da-list input:checked')).toHaveCount(2);
+  await p.getByLabel('Beto Ruiz').uncheck();
+  await expect(p.getByLabel('Todos mis asesorados')).not.toBeChecked();
+  await p.getByLabel('Beto Ruiz').check();
+  await expect(p.getByLabel('Todos mis asesorados')).toBeChecked();
+  await p.getByRole('button', { name: 'Asignar', exact: true }).click();
+  await expect(dlg).not.toBeVisible();
+  await expect(p.locator('#toast')).toContainText('asignada a 2 asesorados');
+  be = await H.backend(p);
+  const rows = Object.values(be.routines);
+  expect(rows).toHaveLength(2);
+  expect(new Set(rows.map((r) => r.id)).size).toBe(2);
+  expect(rows.every((r) => r.visible === true && r.title === 'Pecho' && r.days[0].exercises[0].gif === Object.keys(be.gifs)[0])).toBe(true);
+  // --- La copia de Ana se modifica desde su ficha: no cambia la de Beto ---
+  await openFicha(p, 'Ana Martínez');
+  await expect(p.locator('#coach-detail-rutinas .rc-item')).toHaveCount(1);
+  await p.getByRole('button', { name: /Entrar y modificar/ }).click();
+  await expect(p.locator('#tab-coach')).toHaveAttribute('aria-current', 'page');
+  await p.locator('#redit-name').fill('Pecho de Ana');
+  await p.locator('#d0e0-sets').fill('5 × 8');
+  await p.getByRole('button', { name: 'Guardar rutina' }).click();
+  await expect(p.locator('#toast')).toHaveText('Rutina guardada para Ana Martínez');
+  await expect(p.locator('#coach-detail-rutinas .rc-item')).toContainText('Pecho de Ana');
+  be = await H.backend(p);
+  const byTitle = (t) => Object.values(be.routines).filter((r) => r.title === t);
+  expect(byTitle('Pecho de Ana')).toHaveLength(1);
+  expect(byTitle('Pecho')).toHaveLength(1);
+  expect(byTitle('Pecho')[0].days[0].exercises[0].sets).toBe('4 × 12');
+  // --- Editar la plantilla después NO cambia las copias ya asignadas ---
+  await openLibrary(p);
+  await p.getByRole('button', { name: 'Editar la rutina Pecho' }).click();
+  await expect(p.locator('#redit-title')).toHaveText('Editar la rutina');
+  await p.locator('#redit-name').fill('Pecho v2');
+  await p.getByRole('button', { name: 'Guardar rutina' }).click();
+  await expect(p.locator('#toast')).toHaveText('Rutina guardada en tu biblioteca');
+  await expect(p.locator('#rl-list .rl-item')).toContainText('Pecho v2');
+  be = await H.backend(p);
+  expect(Object.values(be.routines).map((r) => r.title).sort()).toEqual(['Pecho', 'Pecho de Ana']);
+  // --- Beto: oculta la rutina con el interruptor y le asigna otra desde la biblioteca ---
+  await openFicha(p, 'Beto Ruiz');
+  const sw = p.getByRole('switch', { name: /Visible para el asesorado: Pecho/ });
+  await expect(sw).toBeChecked();
+  await sw.uncheck();
+  await expect(p.locator('#toast')).toHaveText('«Pecho» quedó oculta para Beto Ruiz');
+  await expect(p.locator('#coach-detail-rutina-line')).toHaveText('1 rutina asignada · 1 oculta para Beto Ruiz.');
+  await expect(sw).not.toBeChecked();
+  expect(Object.values((await H.backend(p)).routines).find((r) => r.title === 'Pecho').visible).toBe(false);
+  await p.locator('#rc-pick').selectOption({ label: 'Pecho v2' });
+  await p.getByRole('button', { name: 'Asignar', exact: true }).click();
+  await expect(p.locator('#toast')).toHaveText('«Pecho v2» asignada a Beto Ruiz');
+  await expect(p.locator('#coach-detail-rutinas .rc-item')).toHaveCount(2);
+  await H.layout(p); await H.tall(p, '#coach-detail-rutina-card');
+  // --- Los clientes: Ana ve la suya (con la animación); Beto ve solo la visible, no la oculta ---
+  const ana = await clientPhone(browser, testInfo, coach, 'ana@c.co', 'Ana Martínez');
+  await ana.p.locator('#tab-mas').click(); await ana.p.locator('#row-rutina').click();
+  await expect(ana.p.locator('#rutina-body .rut-title')).toHaveText(['Pecho de Ana']);
+  await ana.p.locator('.rut-ex').filter({ hasText: 'Press de banca' }).locator('summary').click();
+  await expect.poll(() => ana.p.locator('.rut-ex img').evaluate((i) => i.naturalWidth)).toBe(1);
+  const beto = await clientPhone(browser, testInfo, coach, 'beto@c.co', 'Beto Ruiz');
+  await beto.p.locator('#tab-panel').click();
+  await expect(beto.p.locator('#hr-text')).toHaveText('Pecho v2 · 1 día · 1 ejercicio');
+  await beto.p.locator('#tab-mas').click(); await beto.p.locator('#row-rutina').click();
+  await expect(beto.p.locator('#rutina-body .rut-title')).toHaveText(['Pecho v2']);   // la oculta («Pecho») no aparece
+  await expect(beto.p.locator('#rutina-body')).not.toContainText('Pecho de Ana');
+  expect(ana.errors).toEqual([]);
+  expect(beto.errors).toEqual([]);
+  expect(coach.errors).toEqual([]);
+});
+
+test('rutina de hoy: el coach publica una de su biblioteca para TODOS sus asesorados; solo se ve ese día; otro coach o cliente ajeno no la ven', async ({ browser }, testInfo) => {
+  const coach = await coachPhone(browser, testInfo);
+  const p = coach.p;
+  const ids = await seedLibrary(p);
+  const martaCode = await H.seedCoach(p, 'marta@coach.co', 'Marta Fit');
+  await H.seedClient(p, 'carlos@c.co', 'Carlos Gómez', martaCode, { paidDays: 20 });
+  await p.reload(); await H.ready(p);
+  await p.addStyleTag({ content: H.WIDE });
+  await openLibrary(p);
+  await expect(p.locator('#rl-list .rl-item')).toHaveCount(2);
+  await p.getByRole('button', { name: /Publicar Pecho como rutina de hoy/ }).click();
+  await expect(p.locator('#toast')).toHaveText('«Pecho» es la rutina de hoy para todos tus asesorados');
+  await expect(p.locator('#rl-daily-line')).toContainText('Hoy: «Pecho». La ven todos tus asesorados activos en su Inicio, solo durante hoy.');
+  await expect(p.locator('#rl-list .rl-item').filter({ hasText: 'Pecho' }).locator('.rut-badge')).toHaveText('Es la de hoy');
+  let be = await H.backend(p);
+  const laura = Object.values(be.users).find((u) => u.email === 'laura@coach.co').id;
+  expect(be.daily[laura]).toMatchObject({ title: 'Pecho', day: '2026-10-21' });   // la fecha de calendario del dispositivo del coach
+  // Cambiarla por otra pide confirmación y la reemplaza (una sola por coach); luego vuelve a la primera
+  let asked = '';
+  p.removeAllListeners('dialog');
+  p.once('dialog', (d) => { asked = d.message(); d.accept(); });
+  await p.getByRole('button', { name: /Publicar Piernas como rutina de hoy/ }).click();
+  await expect(p.locator('#rl-daily-line')).toContainText('Hoy: «Piernas»');
+  expect(asked).toContain('Ya publicaste «Pecho» para hoy');
+  p.on('dialog', (d) => d.accept());
+  await p.getByRole('button', { name: /Publicar Pecho como rutina de hoy/ }).click();
+  await expect(p.locator('#rl-daily-line')).toContainText('Hoy: «Pecho»');
+  await H.layout(p); await H.tall(p, '#view-rutinas');
+  // --- Clientes del coach: ambos la ven en Inicio sin que se la asignen ---
+  const ana = await clientPhone(browser, testInfo, coach, 'ana@c.co', 'Ana Martínez');
+  const beto = await clientPhone(browser, testInfo, coach, 'beto@c.co', 'Beto Ruiz');
+  for (const c of [ana, beto]) {
+    await c.p.addStyleTag({ content: H.WIDE });
+    await c.p.locator('#tab-panel').click();
+    await expect(c.p.locator('#hd-title')).toHaveText('Rutina de hoy');
+    await expect(c.p.locator('#hd-text')).toHaveText('Pecho · 1 día · 2 ejercicios');
+    await expect(c.p.locator('#home-rutina')).toBeHidden();   // no tiene rutinas asignadas: solo la de hoy
+    expect(await c.p.evaluate(async () => (await PGAccount.remote.client.myRoutines()).length)).toBe(0);
+  }
+  await H.layout(ana.p);
+  await ana.p.getByRole('button', { name: 'Ver la rutina de hoy' }).click();
+  await expect(ana.p.locator('#view-rutina')).toBeVisible();
+  await expect(ana.p.locator('#rutina-body .rut-daily .rut-badge')).toHaveText('Rutina de hoy');
+  await expect(ana.p.locator('#rutina-body .rut-title')).toHaveText(['Pecho']);
+  await ana.p.locator('.rut-ex').filter({ hasText: 'Press de banca' }).locator('summary').click();
+  await expect.poll(() => ana.p.locator('.rut-ex img').evaluate((i) => i.naturalWidth)).toBe(1);   // las animaciones de la de hoy las lee cualquier asesorado
+  await expect(ana.p.locator('#rutina-trained')).toBeVisible();
+  await H.layout(ana.p);
+  // --- Cliente ajeno (de OTRO coach) y el otro coach: no la ven ---
+  const carlos = await clientPhone(browser, testInfo, { p, code: martaCode }, 'carlos@c.co', 'Carlos Gómez');
+  await carlos.p.locator('#tab-panel').click();
+  await expect(carlos.p.locator('#home-daily')).toBeHidden();
+  await expect(carlos.p.locator('#hr-text')).toHaveText('Tu coach todavía no te armó una rutina.');
+  expect(await carlos.p.evaluate(async () => PGAccount.remote.client.myDaily('2026-10-21'))).toBeNull();
+  const marta = await p.evaluate(async () => {
+    const be = window.__pgFakeBackend;
+    const m = {}; const mem = { getItem: (k) => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } };
+    const r = RemoteFake.createFake({ backend: be, storage: mem });
+    await r.auth.sendCode('marta@coach.co'); await r.auth.verifyCode('marta@coach.co', be.lastCode('marta@coach.co'));
+    const out = { daily: await r.coach.getDaily(), templates: (await r.coach.listTemplates()).length };
+    try { await r.coach.publishDaily(Object.keys(be.templates)[0], '2026-10-21'); out.publicar = 'pudo'; } catch (e) { out.publicar = e.code; }
+    return out;
+  });
+  expect(marta).toEqual({ daily: null, templates: 0, publicar: 'not_found' });
+  // --- Al día siguiente (reloj del dispositivo y fecha del servidor) ya no aparece ---
+  await ana.p.clock.setSystemTime(NEXT_DAY);
+  await ana.p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await ana.p.locator('#tab-panel').click();
+  await expect(ana.p.locator('#home-daily')).toBeHidden();
+  await ana.p.locator('#tab-mas').click(); await ana.p.locator('#row-rutina').click();
+  await expect(ana.p.locator('#rutina-body')).toContainText('Todavía no tienes una rutina.');
+  await expect(ana.p.locator('#rutina-body .rut-daily')).toHaveCount(0);
+  expect(await ana.p.evaluate(async () => PGAccount.remote.client.myDaily('2026-10-22'))).toBeNull();   // el servidor compara con la fecha publicada
+  expect(await ana.p.evaluate(async () => (await PGAccount.remote.client.myDaily('2026-10-21')).title)).toBe('Pecho');
+  // Beto sigue en «hoy»: la sigue viendo (cada dispositivo compara con SU fecha)
+  await expect(beto.p.locator('#home-daily')).toBeVisible();
+  // El coach, al día siguiente: la última ya no se muestra; la quita
+  await p.clock.setSystemTime(NEXT_DAY);
+  await openLibrary(p);
+  await expect(p.locator('#rl-daily-line')).toContainText('«Pecho» (21 oct) y ya no se muestra');
+  await expect(p.locator('#rl-list .rut-badge')).toHaveCount(0);
+  await p.getByRole('button', { name: 'Quitar la rutina de hoy' }).click();
+  await expect(p.locator('#toast')).toHaveText('Quitaste la rutina de hoy');
+  await expect(p.locator('#rl-daily-line')).toContainText('Hoy no hay ninguna publicada');
+  be = await H.backend(p);
+  expect(Object.keys(be.daily)).toHaveLength(0);
+  expect(ids.gif).toBeTruthy();
+  for (const x of [ana, beto, carlos, coach]) expect(x.errors).toEqual([]);
+});
+
+test('en pausa por pago el cliente sigue viendo sus rutinas asignadas y la rutina de hoy (es lectura); ocultar una la quita de su lista', async ({ browser }, testInfo) => {
+  const coach = await coachPhone(browser, testInfo);
+  const ids = await seedLibrary(coach.p);
+  await asLaura(coach.p, `
+    const [a] = await r.coach.assignTemplate(arg.pecho, [id('ana@c.co')]);
+    await r.coach.assignTemplate(arg.piernas, [id('ana@c.co')]);
+    await r.coach.publishDaily(arg.piernas, '2026-10-21');
+    await r.coach.setRoutineVisible(a.id, false);
+    return null;`, ids);
+  const ana = await clientPhone(browser, testInfo, coach, 'ana@c.co', 'Ana Martínez');
+  const a = ana.p;
+  await setPaid(a, -3);
+  await a.evaluate(() => PGAccount.refreshLink());
+  await expect(a.locator('body')).toHaveClass(/paused/);
+  await a.locator('#tab-panel').click();
+  await expect(a.locator('#home-coach')).toBeHidden();
+  await expect(a.locator('#home-daily')).toBeVisible();
+  await expect(a.locator('#hd-text')).toHaveText('Piernas · 1 día · 1 ejercicio');
+  await expect(a.locator('#home-rutina')).toBeVisible();
+  await expect(a.locator('#hr-text')).toHaveText('Piernas · 1 día · 1 ejercicio');   // la de «Pecho» está oculta
+  await a.getByRole('button', { name: 'Ver la rutina de hoy' }).click();
+  await expect(a.locator('#rutina-body .rut-title')).toHaveText(['Piernas', 'Piernas']);   // la de hoy y la asignada
+  await expect(a.locator('#rutina-body .rut-section')).toHaveText('Mis rutinas');
+  await expect(a.locator('#rutina-trained')).toBeHidden();   // en pausa no se anota nada nuevo
+  await H.layout(a);
+  expect(ana.errors.filter((e) => !/40\d|403/.test(e))).toEqual([]);
+});
+
+test('claro y oscuro, letra ancha a 390 px: Mis rutinas, «Asignar a…», la ficha con rutinas y Mi rutina con la de hoy, sin desborde', async ({ browser }, testInfo) => {
   for (const scheme of ['light', 'dark']) {
     const coach = await coachPhone(browser, testInfo);
     await coach.p.emulateMedia({ colorScheme: scheme });
-    await seedRoutine(coach.p);
+    const ids = await seedLibrary(coach.p);
+    await asLaura(coach.p, `
+      const [a] = await r.coach.assignTemplate(arg.pecho, [id('ana@c.co')]);
+      await r.coach.assignTemplate(arg.piernas, [id('ana@c.co'), id('beto@c.co')]);
+      await r.coach.setRoutineVisible(a.id, false);
+      await r.coach.publishDaily(arg.pecho, '2026-10-21');
+      return null;`, ids);
+    await coach.p.reload(); await H.ready(coach.p);
     await coach.p.addStyleTag({ content: H.WIDE });
+    // Mis rutinas
+    await openLibrary(coach.p);
+    await expect(coach.p.locator('#rl-list .rl-item')).toHaveCount(2);
+    await H.layout(coach.p); await H.tall(coach.p, '#view-rutinas');
+    if (scheme === 'dark') await H.shot(coach.p, 's12-coach-mis-rutinas-oscuro.png', { fullPage: true });
+    // Asignar a…
+    await coach.p.getByRole('button', { name: 'Asignar la rutina Pecho a asesorados' }).click();
+    await expect(coach.p.locator('#da-list input')).toHaveCount(2);
+    await H.layout(coach.p); await H.tall(coach.p, '#dlg-asignar .da-body');
+    await H.shot(coach.p, `s12-coach-asignar-${scheme}.png`);
+    await coach.p.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(coach.p.locator('#dlg-asignar')).not.toBeVisible();
+    // Ficha de Ana: dos rutinas, una oculta
     await openFicha(coach.p, 'Ana Martínez');
-    await coach.p.getByRole('button', { name: 'Editar la rutina' }).click();
-    await expect(coach.p.locator('#redit-name')).toHaveValue('Fuerza en 2 días');
+    await expect(coach.p.locator('#coach-detail-rutinas .rc-item')).toHaveCount(2);
+    await expect(coach.p.locator('#coach-detail-rutina-line')).toHaveText('2 rutinas asignadas · 1 oculta para Ana Martínez.');
+    await coach.p.locator('#coach-detail-rutina-card').scrollIntoViewIfNeeded();
+    await H.layout(coach.p); await H.tall(coach.p, '#coach-detail-rutina-card');
+    if (scheme === 'dark') await H.shot(coach.p, 's12-coach-ficha-rutinas-oscuro.png', { fullPage: true });
+    // Editor
+    await coach.p.getByRole('button', { name: /Entrar y modificar la rutina Piernas/ }).click();
     await H.layout(coach.p); await H.tall(coach.p, '#view-rutina-edit');
-    if (scheme === 'dark') await H.shot(coach.p, 's12-coach-editor-oscuro.png', { fullPage: true });
+    // Cliente con la de hoy + sus rutinas
     const ana = await clientPhone(browser, testInfo, coach, 'ana@c.co', 'Ana Martínez');
     await ana.p.emulateMedia({ colorScheme: scheme });
     await ana.p.addStyleTag({ content: H.WIDE });
-    await ana.p.locator('#tab-mas').click(); await ana.p.locator('#row-rutina').click();
+    await ana.p.locator('#tab-panel').click();
+    await expect(ana.p.locator('#home-daily')).toBeVisible();
+    await H.layout(ana.p);
+    await ana.p.getByRole('button', { name: 'Ver la rutina de hoy' }).click();
     await ana.p.locator('.rut-ex').filter({ hasText: 'Press de banca' }).locator('summary').click();
     await expect(ana.p.locator('.rut-ex img')).toBeVisible();
     await H.layout(ana.p); await H.tall(ana.p, '#view-rutina');
-    // Las filas y resúmenes se pueden tocar con el dedo: ≥ 48 px
     const small = await ana.p.evaluate(() => [...document.querySelectorAll('#view-rutina summary')].filter((s) => s.getBoundingClientRect().height < 47.5).length);
     expect(small).toBe(0);
-    if (scheme === 'dark') await H.shot(ana.p, 's12-cliente-mi-rutina-oscuro.png', { fullPage: true });
+    if (scheme === 'dark') await H.shot(ana.p, 's12-cliente-rutina-de-hoy-oscuro.png', { fullPage: true });
     expect(ana.errors).toEqual([]);
     expect(coach.errors).toEqual([]);
   }
 });
 
-test('la app OFICIAL no cambia: sin producto coach no hay tarjeta, fila ni pantallas de rutina', async ({ page }) => {
+test('la app OFICIAL no cambia: sin producto coach no hay tarjetas, filas ni pantallas de rutinas', async ({ page }) => {
   await page.goto('index.html');
   expect(await page.evaluate(() => [Producto.coach, typeof Rutinas])).toEqual([false, 'object']);   // el módulo carga pero no se activa
-  await H.allHidden(page, '#home-rutina, .rutina-row, #coach-detail-rutina-card, #view-rutina, #view-rutina-edit');
+  await H.allHidden(page, '#home-rutina, #home-daily, .rutina-row, #row-c-rutinas, #coach-detail-rutina-card, #view-rutina, #view-rutina-edit, #view-rutinas, #dlg-asignar');
   expect(await page.evaluate(() => [...document.querySelectorAll('.view.active')].map((v) => v.id))).not.toContain('view-rutina');
 });

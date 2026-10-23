@@ -555,3 +555,73 @@ test('account.deleteAccount también vacía el bucket ejercicios antes de borrar
   const lists = m.calls.filter((c) => c[0] === 'storage' && c[2] === 'list').map((c) => c[1]);
   assert.deepStrictEqual(lists, ['grasa-photos', 'ejercicios']);
 });
+
+// ---------- v1.8: biblioteca, asignar, visibilidad y rutina de hoy ----------
+test('v1.8 cliente: myRoutines traduce el arreglo (con visible) y myDaily manda su fecha de hoy; fecha mal formada no llama', async () => {
+  globalThis.Rutinas = require('../rutinas.js');
+  try {
+    const row = (id, title) => ({ id, coach_id: COACH, client_id: UID, title, visible: true, created_at: '2026-10-25T10:00:00Z', updated_at: '2026-10-25T10:00:00Z', content: { days: [{ title: 'D', exercises: [] }] } });
+    const m = mock({ rpc: (s, fn) => ({ data: fn === 'my_routines' ? [row('R1', 'Pecho'), row('R2', 'Piernas')] : fn === 'my_daily' ? { coach_id: COACH, template_id: 'T', title: 'Hoy', day: '2026-10-21', published_at: '2026-10-21T10:00:00Z', content: { days: [{ title: 'D', exercises: [] }] } } : null, error: null }) });
+    const r = make(m);
+    const list = await r.client.myRoutines();
+    assert.deepStrictEqual(list.map((x) => [x.id, x.title, x.visible]), [['R1', 'Pecho', true], ['R2', 'Piernas', true]]);
+    assert.deepStrictEqual(m.calls.at(-1), ['rpc', 'grasa', 'my_routines', {}]);
+    const d = await r.client.myDaily('2026-10-21');
+    assert.deepStrictEqual(m.calls.at(-1), ['rpc', 'grasa', 'my_daily', { p_today: '2026-10-21' }]);
+    assert.deepStrictEqual([d.title, d.day, d.coachId, d.id], ['Hoy', '2026-10-21', COACH, null]);
+    const n = m.calls.length;
+    await rejects(r.client.myDaily('hoy'), 'invalid');
+    assert.strictEqual(m.calls.length, n);
+    m.h.rpc = () => ({ data: null, error: null });
+    assert.strictEqual(await r.client.myDaily('2026-10-22'), null);
+    m.h.rpc = () => ({ data: [], error: null });
+    assert.deepStrictEqual(await r.client.myRoutines(), []);
+  } finally { delete globalThis.Rutinas; }
+});
+test('v1.8 coach: plantillas, asignar, rutinas del asesorado, visibilidad y rutina de hoy llaman a las funciones correctas', async () => {
+  globalThis.Rutinas = require('../rutinas.js');
+  try {
+    const row = { id: 'T1', coach_id: UID, title: 'Pecho', visible: true, updated_at: '2026-10-25T10:00:00Z', content: { days: [{ title: 'D', exercises: [] }] } };
+    const m = mock({ rpc: (s, fn) => ({ data: fn === 'list_templates' || fn === 'assign_template' || fn === 'list_client_routines' ? [row] : fn === 'save_template' || fn === 'save_client_routine' || fn === 'set_routine_visible' ? row : fn === 'publish_daily' ? { coach_id: UID, title: 'Pecho', day: '2026-10-21', content: { days: [{ title: 'D', exercises: [] }] } } : null, error: null }) });
+    const r = make(m);
+    const draft = { title: ' Pecho ', days: [{ title: 'D', exercises: [] }] };
+    const last = () => m.calls.at(-1);
+    assert.strictEqual((await r.coach.listTemplates())[0].title, 'Pecho');
+    assert.deepStrictEqual(last(), ['rpc', 'grasa', 'list_templates', {}]);
+    await r.coach.saveTemplate(null, draft);
+    assert.deepStrictEqual(last(), ['rpc', 'grasa', 'save_template', { p_id: null, p_title: 'Pecho', p_content: { days: [{ title: 'D', exercises: [] }] } }]);
+    await r.coach.saveTemplate('T1', draft);
+    assert.strictEqual(last()[3].p_id, 'T1');
+    await r.coach.deleteTemplate('T1');
+    assert.deepStrictEqual(last(), ['rpc', 'grasa', 'delete_template', { p_id: 'T1' }]);
+    assert.strictEqual((await r.coach.assignTemplate('T1', ['A', 'B', 'A'])).length, 1);
+    assert.deepStrictEqual(last(), ['rpc', 'grasa', 'assign_template', { p_template: 'T1', p_clients: ['A', 'B'] }]);
+    await rejects(r.coach.assignTemplate('T1', []), 'invalid');
+    assert.strictEqual((await r.coach.listClientRoutines('A'))[0].visible, true);
+    assert.deepStrictEqual(last(), ['rpc', 'grasa', 'list_client_routines', { p_client: 'A' }]);
+    await r.coach.saveClientRoutine('A', null, draft);
+    assert.deepStrictEqual([last()[2], last()[3].p_client, last()[3].p_id], ['save_client_routine', 'A', null]);
+    await r.coach.saveClientRoutine('A', 'R9', draft);
+    assert.strictEqual(last()[3].p_id, 'R9');
+    await r.coach.deleteClientRoutine('R9');
+    assert.deepStrictEqual(last(), ['rpc', 'grasa', 'delete_client_routine', { p_id: 'R9' }]);
+    await r.coach.setRoutineVisible('R9', false);
+    assert.deepStrictEqual(last(), ['rpc', 'grasa', 'set_routine_visible', { p_id: 'R9', p_visible: false }]);
+    const d = await r.coach.publishDaily('T1', '2026-10-21');
+    assert.deepStrictEqual(last(), ['rpc', 'grasa', 'publish_daily', { p_template: 'T1', p_day: '2026-10-21' }]);
+    assert.strictEqual(d.day, '2026-10-21');
+    await rejects(r.coach.publishDaily('T1', 'hoy'), 'invalid');
+    m.h.rpc = () => ({ data: null, error: null });
+    assert.strictEqual(await r.coach.getDaily(), null);
+    await r.coach.clearDaily();
+    assert.deepStrictEqual(last(), ['rpc', 'grasa', 'clear_daily', {}]);
+    // validación local y errores del servidor
+    const n = m.calls.length;
+    await rejects(r.coach.saveTemplate(null, { title: '', days: [] }), 'invalid');
+    assert.strictEqual(m.calls.length, n);
+    m.h.rpc = () => err({ message: 'invalid', code: '22023', details: 'template_limit' });
+    assert.strictEqual((await r.coach.saveTemplate(null, draft).catch((x) => x)).detail, 'template_limit');
+    m.h.rpc = () => err({ message: 'invalid', code: '22023', details: 'routine_limit' });
+    assert.strictEqual((await r.coach.assignTemplate('T1', ['A']).catch((x) => x)).detail, 'routine_limit');
+  } finally { delete globalThis.Rutinas; }
+});

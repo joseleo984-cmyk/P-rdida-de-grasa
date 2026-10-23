@@ -248,6 +248,11 @@
         </div>
       </div>
       <!-- Etapa 2: Mi rutina (solo cliente con coach). Fuera de #home-coach: con el acceso en pausa también se ve (es solo lectura). -->
+      <section id="home-daily" class="home-card pc-only hidden" aria-labelledby="hd-title">
+        <h3 id="hd-title" class="home-label">Rutina de hoy</h3>
+        <p id="hd-text" class="small"></p>
+        <button type="button" class="btn btn-tall" id="btn-home-daily" data-goto="rutina">Ver la rutina de hoy</button>
+      </section>
       <section id="home-rutina" class="home-card pc-only hidden" aria-labelledby="hr-title">
         <h3 id="hr-title" class="home-label">Mi rutina</h3>
         <p id="hr-text" class="small muted">Tus ejercicios y cómo se hacen.</p>
@@ -657,9 +662,15 @@
           </div>
         </div>
         <div class="card pc-only hidden" id="coach-detail-rutina-card">
-          <h2>Rutina de ejercicios</h2>
+          <h2>Rutinas de ejercicios</h2>
           <p id="coach-detail-rutina-line" class="small muted" role="status" aria-live="polite"></p>
-          <button type="button" class="btn btn-tall" id="btn-coach-rutina">Armar rutina</button>
+          <ul id="coach-detail-rutinas" class="rc-list"></ul>
+          <div id="rc-assign" class="rc-assign hidden">
+            <label class="acc-label" for="rc-pick">Asignar una de mis rutinas</label>
+            <select id="rc-pick"></select>
+            <button type="button" class="btn btn-ghost btn-tall" id="btn-rc-assign">Asignar</button>
+          </div>
+          <button type="button" class="btn btn-tall" id="btn-coach-rutina">＋ Crear una rutina nueva</button>
         </div>
         <div class="card">
           <h2>Comentarios</h2>
@@ -878,6 +889,7 @@
     <!-- Etapa 2: ARMAR LA RUTINA (coach): título, días, ejercicios y su biblioteca de animaciones -->
     <section id="view-rutina-edit" class="view" aria-labelledby="redit-title">
       <div class="back-row"><button type="button" class="btn-link back-btn" id="btn-redit-back">← Volver</button><h2 class="back-title" id="redit-title" tabindex="-1">Rutina</h2></div>
+      <p id="redit-hint" class="small muted"></p>
       <p id="redit-status" class="small muted" role="status" aria-live="polite"></p>
       <form id="form-rutina" class="card" novalidate>
         <label class="acc-label" for="redit-name">Título de la rutina</label>
@@ -906,6 +918,22 @@
       </div>
     </section>
 
+    <!-- v1.8: MIS RUTINAS (coach): biblioteca de rutinas reutilizables, asignarlas y la «Rutina de hoy» -->
+    <section id="view-rutinas" class="view" aria-labelledby="rutinas-title">
+      <div class="back-row"><button type="button" class="btn-link back-btn" data-goto="mas">← Más</button><h2 class="back-title" id="rutinas-title" tabindex="-1">Mis rutinas</h2></div>
+      <div class="card" id="rl-daily">
+        <h2>Rutina de hoy</h2>
+        <p id="rl-daily-line" class="small" role="status" aria-live="polite"></p>
+        <button type="button" class="btn btn-ghost btn-tall hidden" id="btn-rl-daily-clear">Quitar la rutina de hoy</button>
+      </div>
+      <div class="card">
+        <p class="small muted">Crea una rutina una sola vez (por ejemplo «Pecho» o «Piernas») y asígnala a quien quieras. Cada asesorado recibe su propia copia: si después cambias la rutina, las copias ya asignadas no cambian.</p>
+        <button type="button" class="btn btn-tall" id="btn-rl-new">＋ Crear una rutina</button>
+      </div>
+      <p id="rl-status" class="small muted" role="status" aria-live="polite"></p>
+      <ul id="rl-list" class="rl-list"></ul>
+    </section>
+
     <!-- MÁS: cuenta y menú con todo lo que no está en la barra -->
     <section id="view-mas" class="view" aria-labelledby="mas-title">
       <h2 id="mas-title" class="sr-only" tabindex="-1">Más</h2>
@@ -924,6 +952,7 @@
         <li class="coach-only hidden home-legacy"><button type="button" class="more-row" id="row-c-comidas"><span class="more-text"><strong>Mis comidas</strong><span class="more-sub">Tu diario de comidas y hábitos</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="home-legacy"><button type="button" class="more-row" id="row-plan"><span class="more-text"><strong>Mi plan y perfil</strong><span class="more-sub">Tus datos, tu meta y tus calorías del día</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="home-legacy"><button type="button" class="more-row" id="row-fotos"><span class="more-text"><strong>Mis fotos</strong><span class="more-sub">Fotos de progreso y comparación</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="coach-only pc-only hidden"><button type="button" class="more-row" id="row-c-rutinas"><span class="more-text"><strong>Mis rutinas</strong><span class="more-sub">Crea rutinas, asígnalas y publica la de hoy</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="coach-only hidden"><button type="button" class="more-row" id="row-c-acuerdo"><span class="more-text"><strong>Mi acuerdo</strong><span class="more-sub">El Acuerdo del coach que aceptaste, con copia</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-link hidden"><button type="button" class="more-row" id="row-coach"><span class="more-text"><strong>Mi coach</strong><span class="more-sub">Qué puede ver y cómo dejar de compartir</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="rutina-row pc-only hidden"><button type="button" class="more-row" id="row-rutina"><span class="more-text"><strong>Mi rutina</strong><span class="more-sub">Tus ejercicios y cómo se hacen</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
@@ -992,6 +1021,27 @@
     <button type="button" id="tab-coach" data-view="coach" class="hidden"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3.2 3.2 0 0 1 0 6"/><path d="M18 14.5c1.8.8 3 2.6 3 5.5"/></svg><span class="tb-label">Clientes</span></button>
     <button type="button" id="tab-invitar" data-view="invitar" class="tab-add hidden"><span class="tab-disc"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span><span class="tb-label">Invitar</span></button>
   </nav>
+
+  <!-- v1.8: Asignar una rutina a uno o varios asesorados (se crea una copia para cada uno) -->
+  <dialog id="dlg-asignar" class="sheet" aria-labelledby="da-title">
+    <form id="form-asignar" novalidate>
+      <div class="sheet-head">
+        <h2 id="da-title" tabindex="-1">Asignar a…</h2>
+        <button type="button" class="sheet-x" id="da-close" aria-label="Cerrar">×</button>
+      </div>
+      <div class="da-body">
+        <p class="small muted">Cada asesorado recibe su propia copia. Si después cambias esta rutina, las copias ya asignadas no cambian. Quedan visibles para el asesorado.</p>
+        <p id="da-status" class="small muted" role="status" aria-live="polite"></p>
+        <label class="check da-all hidden" id="da-all-row"><input type="checkbox" id="da-all"> <span>Todos mis asesorados</span></label>
+        <ul id="da-list" class="da-list"></ul>
+        <p id="da-error" class="acc-error hidden" role="alert"></p>
+        <div class="row-actions">
+          <button type="submit" class="btn btn-tall" id="btn-da-ok">Asignar</button>
+          <button type="button" class="btn btn-ghost btn-tall" id="btn-da-cancel">Cancelar</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
 
   <!-- ＋ Registrar: hoja con lo que se puede anotar hoy -->
   <dialog id="sheet-registrar" class="sheet" aria-labelledby="sheet-title">

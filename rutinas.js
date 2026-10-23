@@ -1,11 +1,12 @@
 // Etapa 2 («App para coaches»): rutinas de ejercicios y GIFs. Lógica PURA (sin DOM; pruebas en tests/rutinas.test.js).
-// El coach arma UNA rutina por cliente: título + días («Día 1 – Pecho y tríceps») + ejercicios (nombre, series × repeticiones,
+// v1.8: el coach tiene una biblioteca de rutinas («Mis rutinas», plantillas), las ASIGNA (se crea una copia por asesorado; un asesorado puede tener
+// varias y cada una se puede mostrar u ocultar) y publica una «Rutina de hoy» para todos. Cada rutina: título + días («Día 1 – Pecho y tríceps») + ejercicios (nombre, series × repeticiones,
 // nota y animación opcionales). Las animaciones (GIF o WebP, máx. 3 MB) se suben UNA vez a la biblioteca del coach y se reutilizan.
 // Los límites y la firma de bytes son los mismos que impone el servidor (grasa.routine_content_ok y grasa.register_gif, r1 v1.7):
 // aquí solo se validan antes para avisar con un mensaje claro; el servidor decide de verdad. El GIF NO se re-codifica (se perdería la animación).
 (function (root) {
   'use strict';
-  const LIMITS = { days: 7, exercises: 12, title: 60, dayTitle: 60, name: 60, sets: 30, note: 200, gifName: 60, gifBytes: 3 * 1024 * 1024, gifs: 200 };
+  const LIMITS = { days: 7, exercises: 12, title: 60, dayTitle: 60, name: 60, sets: 30, note: 200, gifName: 60, gifBytes: 3 * 1024 * 1024, gifs: 200, templates: 50, perClient: 20, assignAtOnce: 100 };
   const GIF_TYPES = ['image/gif', 'image/webp'];
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -63,7 +64,8 @@
     const c = row.content && typeof row.content === 'object' ? row.content : { days: row.days };
     return {
       id: row.id || null, coachId: row.coachId || row.coach_id || null, clientId: row.clientId || row.client_id || null,
-      title: trim(row.title), updatedAt: row.updatedAt || row.updated_at || null,
+      title: trim(row.title), updatedAt: row.updatedAt || row.updated_at || null, createdAt: row.createdAt || row.created_at || null,
+      visible: row.visible !== false,
       days: (Array.isArray(c.days) ? c.days : []).map((d) => ({
         title: trim(d && d.title),
         exercises: (d && Array.isArray(d.exercises) ? d.exercises : []).map((e) => ({ name: trim(e && e.name), sets: trim(e && e.sets), note: trim(e && e.note), gif: trim(e && e.gif) })),
@@ -112,7 +114,28 @@
   const gifIds = (r) => { const out = []; for (const d of (r && r.days) || []) for (const e of (d && d.exercises) || []) if (e && e.gif) out.push(e.gif); return out; };
   const fmtSize = (n) => (n >= 1048576 ? `${mb(n)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 
-  const api = { LIMITS, GIF_TYPES, sniff, toHex, checkGif, suggestName, blankExercise, blankDay, blankRoutine, toContent, fromServer, validate, summary, dayLine, gifIds, fmtSize, UUID_RE };
+  // «Rutina de hoy» tal como la guarda el servidor { coach_id, template_id, title, content, day, published_at } (sin id propio).
+  function dailyFromServer(row) {
+    if (!row || typeof row !== 'object' || !row.day) return null;
+    const r = fromServer({ ...row, id: null });
+    return { ...r, templateId: row.templateId || row.template_id || null, day: String(row.day).slice(0, 10), publishedAt: row.publishedAt || row.published_at || null };
+  }
+  // ¿La rutina de hoy publicada vale para el día `today` ('AAAA-MM-DD' del dispositivo)? Solo el MISMO día calendario.
+  const dailyActive = (daily, today) => !!(daily && daily.day && today && String(daily.day).slice(0, 10) === String(today).slice(0, 10));
+  // El día 'AAAA-MM-DD' del dispositivo (zona del propio dispositivo, igual que Hábitos y Medidas).
+  const localDay = (d) => { const x = d || new Date(); return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  const fmtDay = (iso) => (iso ? new Date(String(iso).slice(0, 10) + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short' }) : '');
+  // Texto de la tarjeta de Inicio del cliente: una rutina → «Título · 2 días · 3 ejercicios»; varias → «Tienes 3 rutinas: A, B y C».
+  function homeLine(list) {
+    const l = Array.isArray(list) ? list : [];
+    if (!l.length) return '';
+    if (l.length === 1) return `${l[0].title} · ${summary(l[0])}`;
+    const names = l.map((x) => x.title);
+    const tail = names.length > 3 ? `${names.slice(0, 3).join(', ')} y ${names.length - 3} más` : names.length === 3 ? `${names[0]}, ${names[1]} y ${names[2]}` : `${names[0]} y ${names[1]}`;
+    return `Tienes ${l.length} rutinas: ${tail}.`;
+  }
+
+  const api = { dailyFromServer, dailyActive, localDay, fmtDay, homeLine, LIMITS, GIF_TYPES, sniff, toHex, checkGif, suggestName, blankExercise, blankDay, blankRoutine, toContent, fromServer, validate, summary, dayLine, gifIds, fmtSize, UUID_RE };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Rutinas = api;
 })(typeof window !== 'undefined' ? window : globalThis);

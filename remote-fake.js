@@ -88,7 +88,9 @@
       this.copyMode = 'ok';       // Sprint 10: 'ok' | 'unavailable' (la función de borde no está desplegada/configurada) | 'rate_limited'
       this.blobs = {};          // path → Blob (no se persiste)
       this.gifs = {};           // Etapa 2 (r1 v1.7): id → { id, coachId, name, mime, size, createdAt, b64 } (los bytes SÍ se guardan en base64: los E2E pasan el «servidor» de un teléfono a otro)
-      this.routines = {};       // Etapa 2: `${coachId}|${clientId}` → { id, coachId, clientId, title, days, createdAt, updatedAt }
+      this.routines = {};       // Etapa 2 (v1.8): rutinas ASIGNADAS, id → { id, coachId, clientId, title, days, visible, createdAt, updatedAt } (varias por cliente)
+      this.templates = {};      // v1.8: «Mis rutinas» del coach, id → { id, coachId, title, days, createdAt, updatedAt }
+      this.daily = {};          // v1.8: «Rutina de hoy», coachId → { coachId, templateId, title, days, day:'AAAA-MM-DD', publishedAt } (una copia por coach)
       this.revoked = {};        // userId → ms desde el que las sesiones anteriores no valen
       this._online = true;
       // Sprint 9 (solo pruebas, no se persiste): simula Supabase Auth con CAPTCHA activado. account.js lo enciende cuando
@@ -194,13 +196,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -344,6 +346,8 @@
         for (const [id, c] of Object.entries(be.comments)) if (c.clientId === u.id || c.coachId === u.id) delete be.comments[id];
         for (const [id, g] of Object.entries(be.gifs)) if (g.coachId === u.id) delete be.gifs[id];
         for (const [k, r] of Object.entries(be.routines)) if (r.coachId === u.id || r.clientId === u.id) delete be.routines[k];
+        for (const [k, t] of Object.entries(be.templates)) if (t.coachId === u.id) delete be.templates[k];
+        delete be.daily[u.id];
         // Sprint 6: antes de borrar, copia mínima y seudonimizada (sin uuid, correo ni nombre), como core.delete_my_account().
         const pseudo = (id) => pseudoHash('fake-salt:' + id);
         for (const x of be.consentEvents.filter((e) => e.userId === u.id)) {
@@ -472,6 +476,29 @@
       return { id, ...co };
     };
 
+    // v1.8: salidas de rutinas (misma forma que remote.js) y ayudas comunes.
+    const routineOut = (r) => ({ id: r.id, coachId: r.coachId, clientId: r.clientId || null, title: r.title, updatedAt: r.updatedAt, createdAt: r.createdAt, visible: r.visible !== false, days: clone(r.days) });
+    const dailyOut = (d) => ({ id: null, coachId: d.coachId, clientId: null, templateId: d.templateId || null, title: d.title, days: clone(d.days), day: d.day, publishedAt: d.publishedAt, updatedAt: d.publishedAt, createdAt: d.publishedAt, visible: true });
+    const routineList = (pred) => Object.values(be.routines).filter(pred).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)).map(routineOut);
+    const usesGif = (days, id) => days.some((d) => d.exercises.some((e) => e.gif === id));
+    const gifUses = (coachId, id) => Object.values(be.templates).filter((t) => t.coachId === coachId && usesGif(t.days, id)).length
+      + Object.values(be.routines).filter((r) => r.coachId === coachId && usesGif(r.days, id)).length
+      + (be.daily[coachId] && usesGif(be.daily[coachId].days, id) ? 1 : 0);
+    const clean = (routine) => {
+      const R = rutinas();
+      const v = R.validate(routine);
+      if (!v.ok) { const e = new RemoteError('invalid', v.errors[0].message); e.detail = v.errors[0].message; throw e; }
+      return { title: String(routine.title).trim(), days: R.toContent(routine).days };
+    };
+    const checkGifs = (coachId, days) => {
+      for (const d of days) for (const e of d.exercises) if (e.gif && !(be.gifs[e.gif] && be.gifs[e.gif].coachId === coachId)) { const x = new RemoteError('invalid', 'Datos no válidos'); x.detail = 'gif_not_found'; throw x; }
+    };
+    const invalid = (detail) => { const e = new RemoteError('invalid', 'Datos no válidos'); e.detail = detail; throw e; };
+    // Rutinas (v1.7/v1.8): vínculo activo con coach activo; NO depende de A3/A4 del cliente (no son datos de salud del cliente).
+    const activeLinkCoachOnly = (coachId, clientId) => {
+      if (!be.coaches[coachId] || !be.coaches[coachId].active || !be.links.some((x) => x.coachId === coachId && x.clientId === clientId && x.status === 'active')) fail('forbidden', 'Sin vínculo activo con ese cliente');
+    };
+
     const client = {
       async previewCode(code) {
         const u = await authed();
@@ -526,11 +553,20 @@
         return done(undefined);
       },
       // Etapa 2: la rutina de su coach (solo lectura; se ve aunque el acceso esté en pausa) y las animaciones de ese coach.
-      async myRoutine() {
+      async myRoutines() {
         const u = await authed();
         const l = be.activeLink(u.id);
-        const r = l && be.coaches[l.coachId] && be.coaches[l.coachId].active ? be.routines[`${l.coachId}|${u.id}`] : null;
-        return r ? { id: r.id, coachId: r.coachId, clientId: r.clientId, title: r.title, updatedAt: r.updatedAt, days: clone(r.days) } : null;
+        if (!l || !be.coaches[l.coachId] || !be.coaches[l.coachId].active) return [];
+        return routineList((r) => r.coachId === l.coachId && r.clientId === u.id && r.visible !== false);
+      },
+      async myRoutine() { return (await client.myRoutines())[0] || null; },
+      // La rutina de hoy de su coach: solo si el día publicado es EXACTAMENTE `today` (la fecha de su dispositivo), con vínculo activo y coach activo.
+      async myDaily(today) {
+        const u = await authed();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(today))) fail('invalid', 'Fecha no válida');
+        const l = be.activeLink(u.id);
+        const d = l && be.coaches[l.coachId] && be.coaches[l.coachId].active ? be.daily[l.coachId] : null;
+        return d && d.day === String(today) ? dailyOut(d) : null;
       },
       async gifBlob(coachId, gifId) {
         const u = await authed();
@@ -655,9 +691,8 @@
       // Etapa 2: biblioteca de animaciones del coach y rutinas por cliente (mismas reglas que grasa.register_gif, save_routine, etc.).
       async listGifs() {
         const u = await asCoach();
-        const uses = (id) => Object.values(be.routines).filter((r) => r.coachId === u.id && r.days.some((d) => d.exercises.some((e) => e.gif === id))).length;
         return Object.values(be.gifs).filter((g) => g.coachId === u.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-          .map((g) => ({ id: g.id, name: g.name, mime: g.mime, size: g.size, createdAt: g.createdAt, uses: uses(g.id) }));
+          .map((g) => ({ id: g.id, name: g.name, mime: g.mime, size: g.size, createdAt: g.createdAt, uses: gifUses(u.id, g.id) }));
       },
       async uploadGif(file, name) {
         const u = await asCoach();
@@ -677,7 +712,7 @@
         const u = await asCoach({ agreement: false });
         const g = be.gifs[gifId];
         if (!g || g.coachId !== u.id) fail('not_found', 'Animación no encontrada');
-        if (Object.values(be.routines).some((r) => r.coachId === u.id && r.days.some((d) => d.exercises.some((e) => e.gif === gifId)))) { const e = new RemoteError('invalid', 'Datos no válidos'); e.detail = 'gif_in_use'; throw e; }
+        if (gifUses(u.id, gifId) > 0) invalid('gif_in_use');
         delete be.gifs[gifId];
         return done(undefined);
       },
@@ -687,30 +722,116 @@
         if (!g || g.coachId !== u.id) fail('not_found', 'Animación no encontrada');
         return new Blob([fromB64(g.b64)], { type: g.mime });
       },
+      // v1.7 (compatibilidad): actúan sobre la PRIMERA rutina del cliente.
       async getRoutine(clientId) {
         const u = await asCoach();
-        if (!be.links.some((x) => x.coachId === u.id && x.clientId === clientId && x.status === 'active') || !be.coaches[u.id].active) fail('forbidden', 'Sin vínculo activo con ese cliente');
-        const r = be.routines[`${u.id}|${clientId}`];
-        return r ? { id: r.id, coachId: r.coachId, clientId: r.clientId, title: r.title, updatedAt: r.updatedAt, days: clone(r.days) } : null;
+        activeLinkCoachOnly(u.id, clientId);
+        return routineList((r) => r.coachId === u.id && r.clientId === clientId)[0] || null;
       },
       async saveRoutine(clientId, routine) {
-        const u = await asCoach();
-        const R = rutinas();
-        if (!be.links.some((x) => x.coachId === u.id && x.clientId === clientId && x.status === 'active') || !be.coaches[u.id].active) fail('forbidden', 'Sin vínculo activo con ese cliente');
-        const v = R.validate(routine);
-        if (!v.ok) { const e = new RemoteError('invalid', v.errors[0].message); e.detail = v.errors[0].message; throw e; }
-        const days = R.toContent(routine).days;
-        for (const d of days) for (const e of d.exercises) if (e.gif && !(be.gifs[e.gif] && be.gifs[e.gif].coachId === u.id)) { const x = new RemoteError('invalid', 'Datos no válidos'); x.detail = 'gif_not_found'; throw x; }
-        const key = `${u.id}|${clientId}`;
-        const cur = be.routines[key];
-        const now = iso(be.clock.now());
-        be.routines[key] = { id: cur ? cur.id : randUUID(), coachId: u.id, clientId, title: String(routine.title).trim(), days, createdAt: cur ? cur.createdAt : now, updatedAt: now };
-        const r = be.routines[key];
-        return done({ id: r.id, coachId: r.coachId, clientId: r.clientId, title: r.title, updatedAt: r.updatedAt, days: clone(r.days) });
+        const first = await coach.getRoutine(clientId);
+        return coach.saveClientRoutine(clientId, first ? first.id : null, routine);
       },
       async deleteRoutine(clientId) {
         const u = await asCoach({ agreement: false });
-        delete be.routines[`${u.id}|${clientId}`];
+        const first = routineList((r) => r.coachId === u.id && r.clientId === clientId)[0];
+        if (first) delete be.routines[first.id];
+        return done(undefined);
+      },
+      // v1.8: «Mis rutinas» (plantillas), asignar (copias independientes), rutinas de un asesorado, mostrar/ocultar y «Rutina de hoy».
+      async listTemplates() {
+        const u = await asCoach();
+        return Object.values(be.templates).filter((t) => t.coachId === u.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)).map(routineOut);
+      },
+      async saveTemplate(id, routine) {
+        const u = await asCoach();
+        const c = clean(routine);
+        checkGifs(u.id, c.days);
+        const now = iso(be.clock.now());
+        let t;
+        if (!id) {
+          if (Object.values(be.templates).filter((x) => x.coachId === u.id).length >= rutinas().LIMITS.templates) invalid('template_limit');
+          const nid = randUUID();
+          t = be.templates[nid] = { id: nid, coachId: u.id, ...c, createdAt: now, updatedAt: now };
+        } else {
+          t = be.templates[id];
+          if (!t || t.coachId !== u.id) fail('not_found', 'Rutina no encontrada');
+          Object.assign(t, c, { updatedAt: now });
+        }
+        return done(routineOut(t));
+      },
+      async deleteTemplate(id) {
+        const u = await asCoach({ agreement: false });
+        if (be.templates[id] && be.templates[id].coachId === u.id) delete be.templates[id];
+        return done(undefined);
+      },
+      async assignTemplate(templateId, clientIds) {
+        const u = await asCoach();
+        const t = be.templates[templateId];
+        if (!t || t.coachId !== u.id) fail('not_found', 'Rutina no encontrada');
+        const ids = [...new Set(Array.isArray(clientIds) ? clientIds : [])].sort();
+        if (!ids.length || ids.length > rutinas().LIMITS.assignAtOnce) invalid('elige entre 1 y 100 asesorados');
+        for (const c of ids) {
+          activeLinkCoachOnly(u.id, c);
+          if (Object.values(be.routines).filter((r) => r.coachId === u.id && r.clientId === c).length >= rutinas().LIMITS.perClient) invalid('routine_limit');
+        }
+        const now = iso(be.clock.now());
+        const out = ids.map((c) => { const id = randUUID(); be.routines[id] = { id, coachId: u.id, clientId: c, title: t.title, days: clone(t.days), visible: true, createdAt: now, updatedAt: now }; return routineOut(be.routines[id]); });
+        return done(out);
+      },
+      async listClientRoutines(clientId) {
+        const u = await asCoach();
+        activeLinkCoachOnly(u.id, clientId);
+        return routineList((r) => r.coachId === u.id && r.clientId === clientId);
+      },
+      async saveClientRoutine(clientId, id, routine) {
+        const u = await asCoach();
+        activeLinkCoachOnly(u.id, clientId);
+        const c = clean(routine);
+        checkGifs(u.id, c.days);
+        const now = iso(be.clock.now());
+        let r;
+        if (!id) {
+          if (Object.values(be.routines).filter((x) => x.coachId === u.id && x.clientId === clientId).length >= rutinas().LIMITS.perClient) invalid('routine_limit');
+          const nid = randUUID();
+          r = be.routines[nid] = { id: nid, coachId: u.id, clientId, ...c, visible: true, createdAt: now, updatedAt: now };
+        } else {
+          r = be.routines[id];
+          if (!r || r.coachId !== u.id || r.clientId !== clientId) fail('not_found', 'Rutina no encontrada');
+          Object.assign(r, c, { updatedAt: now });
+        }
+        return done(routineOut(r));
+      },
+      async deleteClientRoutine(id) {
+        const u = await asCoach({ agreement: false });
+        if (be.routines[id] && be.routines[id].coachId === u.id) delete be.routines[id];
+        return done(undefined);
+      },
+      async setRoutineVisible(id, visible) {
+        const u = await asCoach({ agreement: !!visible });   // ocultar reduce acceso: no exige acuerdo
+        const r = be.routines[id];
+        if (!r || r.coachId !== u.id) fail('not_found', 'Rutina no encontrada');
+        if (visible) activeLinkCoachOnly(u.id, r.clientId);
+        r.visible = !!visible;
+        return done(routineOut(r));
+      },
+      async publishDaily(templateId, day) {
+        const u = await asCoach();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(day)) || Number.isNaN(Date.parse(day + 'T00:00:00Z'))) invalid('bad_day');
+        const diff = (Date.parse(day + 'T00:00:00Z') - Date.parse(be.todayBogota() + 'T00:00:00Z')) / 86400000;
+        if (diff < -2 || diff > 2) invalid('bad_day');
+        const t = be.templates[templateId];
+        if (!t || t.coachId !== u.id) fail('not_found', 'Rutina no encontrada');
+        be.daily[u.id] = { coachId: u.id, templateId: t.id, title: t.title, days: clone(t.days), day: String(day), publishedAt: iso(be.clock.now()) };
+        return done(dailyOut(be.daily[u.id]));
+      },
+      async getDaily() {
+        const u = await asCoach();
+        return be.daily[u.id] ? dailyOut(be.daily[u.id]) : null;
+      },
+      async clearDaily() {
+        const u = await asCoach({ agreement: false });
+        delete be.daily[u.id];
         return done(undefined);
       },
       async deleteComment(commentId) {
