@@ -1,4 +1,4 @@
-// Etapa 2 y 2b (v1.8): rutinas de ejercicios con animaciones. El coach arma rutinas (de su biblioteca «Mis rutinas» o directo para un asesorado),
+// Etapa 2, 2b (v1.8) y 2c (v1.9, videos cortos): rutinas de ejercicios con animaciones. El coach arma rutinas (de su biblioteca «Mis rutinas» o directo para un asesorado),
 // las asigna (copias), las muestra u oculta y publica la «Rutina de hoy»; el cliente las ve en «Mi rutina» (solo lectura) y la animación se
 // pide al abrir cada ejercicio. Servidor FALSO; producto 'coach'.
 const { test, expect } = require('@playwright/test');
@@ -648,6 +648,221 @@ test('claro y oscuro, letra ancha a 390 px: Mis rutinas, «Asignar a…», la fi
     if (scheme === 'dark') await H.shot(ana.p, 's12-cliente-rutina-de-hoy-oscuro.png', { fullPage: true });
     expect(ana.errors).toEqual([]);
     expect(coach.errors).toEqual([]);
+  }
+});
+
+// ============================== v1.9: videos cortos ==============================
+// Un webm real y pequeño, grabado en el propio navegador de la prueba (canvas + MediaRecorder). Chromium de Playwright no decodifica H.264,
+// así que mp4/mov se cubren con las pruebas unitarias, del servidor falso y de la base; aquí se prueba el flujo completo con webm.
+async function makeWebm(p, ms = 700) {
+  const b64 = await p.evaluate(async (ms) => {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+    const ctx = c.getContext('2d');
+    const rec = new MediaRecorder(c.captureStream(15), { mimeType: 'video/webm' });
+    const chunks = []; rec.ondataavailable = (e) => chunks.push(e.data);
+    const stopped = new Promise((r) => { rec.onstop = r; });
+    rec.start(100);
+    const t0 = performance.now(); let i = 0;
+    await new Promise((res) => { const tick = () => { ctx.fillStyle = `hsl(${(i++ * 25) % 360},80%,50%)`; ctx.fillRect(0, 0, 64, 64); if (performance.now() - t0 < ms) setTimeout(tick, 40); else res(); }; tick(); });
+    rec.stop(); await stopped;
+    const buf = new Uint8Array(await new Blob(chunks, { type: 'video/webm' }).arrayBuffer());
+    let bin = ''; for (const b of buf) bin += String.fromCharCode(b);
+    return btoa(bin);
+  }, ms);
+  return Buffer.from(b64, 'base64');
+}
+const webmFile = (buf, name = 'sentadilla.webm') => ({ name, mimeType: 'video/webm', buffer: buf });
+// Siembra por la API: una animación GIF y un video webm del coach, y la rutina de Ana con el video en el ejercicio 1 y el GIF en el 2.
+async function seedVideoRoutine(page, webm) {
+  return page.evaluate(async ({ gif, vid }) => {
+    const be = window.__pgFakeBackend;
+    const m = {}; const mem = { getItem: (k) => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } };
+    const r = RemoteFake.createFake({ backend: be, storage: mem });
+    await r.auth.sendCode('laura@coach.co');
+    await r.auth.verifyCode('laura@coach.co', be.lastCode('laura@coach.co'));
+    const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const g = await r.coach.uploadGif(new Blob([bytes(gif)], { type: 'image/gif' }), 'Press de banca');
+    const v = await r.coach.uploadGif(new Blob([bytes(vid)], { type: 'video/webm' }), 'Sentadilla');
+    const ana = Object.values(be.users).find((u) => u.email === 'ana@c.co').id;
+    await r.coach.saveRoutine(ana, { title: 'Piernas con video', days: [
+      { title: 'Día 1 – Piernas', exercises: [{ name: 'Sentadilla', sets: '4 × 10', note: 'Espalda recta', gif: v.id }, { name: 'Press de banca', sets: '4 × 12', note: '', gif: g.id }, { name: 'Zancadas', sets: '3 × 12', note: '', gif: '' }] }] });
+    return { gif: g.id, video: v.id };
+  }, { gif: GIF_B64, vid: webm.toString('base64') });
+}
+const videoProps = (loc) => loc.evaluate((v) => ({ muted: v.muted, loop: v.loop, autoplay: v.autoplay, playsInline: v.playsInline, controls: v.controls, ready: v.readyState, w: v.videoWidth, tag: v.tagName }));
+
+test('coach: sube un video corto (webm), lo ve en vista previa, lo asigna a un ejercicio y el GIF sigue funcionando; rechaza tipo, peso, firma y duración', async ({ browser }, testInfo) => {
+  const { p, errors } = await coachPhone(browser, testInfo);
+  await p.addStyleTag({ content: H.WIDE });
+  const webm = await makeWebm(p);
+  expect(webm.length).toBeGreaterThan(200);
+  expect(webm.length).toBeLessThan(200 * 1024);
+  await openFicha(p, 'Ana Martínez');
+  await p.getByRole('button', { name: '＋ Crear una rutina nueva' }).click();
+  // Texto de ayuda y selector de archivo: video y GIF/WebP (iPad/iPhone: tipos explícitos y extensiones)
+  await expect(p.locator('#gif-help')).toContainText('Sube un video corto (hasta 15 segundos y 10 MB) o un GIF liviano (hasta 3 MB)');
+  const accept = await p.locator('#gif-file').getAttribute('accept');
+  for (const t of ['image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', '.mov']) expect(accept).toContain(t);
+  // --- Rechazos con mensajes claros ---
+  const up = () => p.getByRole('button', { name: 'Subir animación' }).click();
+  await p.locator('#gif-file').setInputFiles({ name: 'clase.avi', mimeType: 'video/x-msvideo', buffer: Buffer.alloc(100) });
+  await up();
+  await expect(p.locator('#gif-error')).toContainText('Ese tipo de archivo no sirve');
+  await p.locator('#gif-file').setInputFiles({ name: 'doc.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 hola mundo') });
+  await up();
+  await expect(p.locator('#gif-error')).toContainText('Ese tipo de archivo no sirve');
+  await p.locator('#gif-file').setInputFiles({ name: 'falso.mp4', mimeType: 'video/mp4', buffer: Buffer.from('89504e470d0a1a0a0000000000', 'hex') });
+  await up();
+  await expect(p.locator('#gif-error')).toContainText('de verdad');
+  const fake = Buffer.concat([Buffer.from([0, 0, 0, 0x20, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d]), Buffer.alloc(11 * 1024 * 1024)]);
+  await p.locator('#gif-file').setInputFiles({ name: 'enorme.mp4', mimeType: 'video/mp4', buffer: fake });
+  await up();
+  await expect(p.locator('#gif-error')).toContainText('Ese video pesa 11 MB; el máximo es 10 MB');
+  await p.locator('#gif-file').setInputFiles({ name: 'grande.gif', mimeType: 'image/gif', buffer: Buffer.concat([Buffer.from('GIF89a'), Buffer.alloc(4 * 1024 * 1024)]) });
+  await up();
+  await expect(p.locator('#gif-error')).toContainText('Esa animación pesa 4 MB; el máximo es 3 MB');
+  // Duración: el navegador informa 20 s (se simula solo para el <video> temporal de la revisión) → «dura 20 s; el máximo son 15»
+  await p.evaluate(() => {
+    const d = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'duration');
+    window.__fakeDur = 20;
+    Object.defineProperty(HTMLMediaElement.prototype, 'duration', { configurable: true, get() { return window.__fakeDur && !this.className ? window.__fakeDur : d.get.call(this); } });
+  });
+  await p.locator('#gif-name').fill('Largo');
+  await p.locator('#gif-file').setInputFiles(webmFile(webm, 'largo.webm'));
+  await up();
+  await expect(p.locator('#gif-error')).toContainText('dura 20 s; el máximo son 15');
+  await expect(p.getByRole('button', { name: 'Subir animación' })).toBeEnabled();
+  await p.evaluate(() => { window.__fakeDur = 0; });
+  // Un archivo que el navegador no puede leer como video (cabecera mp4 con basura) tampoco pasa: no se puede comprobar la duración
+  await p.locator('#gif-file').setInputFiles({ name: 'roto.mp4', mimeType: 'video/mp4', buffer: Buffer.concat([Buffer.from([0, 0, 0, 0x20, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d]), Buffer.alloc(300, 7)]) });
+  await up();
+  await expect(p.locator('#gif-error')).toContainText('No pudimos leer este video');
+  expect(Object.keys((await H.backend(p)).gifs)).toHaveLength(0);   // nada de lo anterior llegó al servidor
+  // --- El video bueno ---
+  await p.locator('#gif-name').fill('');
+  await p.locator('#gif-file').setInputFiles(webmFile(webm));
+  await expect(p.locator('#gif-name')).toHaveValue('sentadilla');
+  await p.locator('#gif-name').fill('Sentadilla');
+  await up();
+  await expect(p.locator('#gif-status')).toContainText('«Sentadilla» ya está en tu biblioteca');
+  await expect(p.locator('#gif-error')).toBeHidden();
+  const item = p.locator('#gif-list li').first();
+  await expect(item.locator('.gif-kind-video')).toHaveText('▶ Video');
+  await expect(item).toContainText('sin usar todavía');
+  const stored = Object.values((await H.backend(p)).gifs)[0];
+  expect([stored.mime, stored.size]).toEqual(['video/webm', webm.length]);   // tal cual, sin re-codificar
+  // Vista previa: <video muted loop playsinline autoplay>
+  await item.getByRole('button', { name: 'Ver el video Sentadilla' }).click();
+  const vid = item.locator('video');
+  await expect(vid).toBeVisible();
+  await expect(item.locator('img')).toHaveCount(0);
+  await expect.poll(async () => (await videoProps(vid)).ready, { timeout: 8000 }).toBeGreaterThanOrEqual(2);
+  expect(await videoProps(vid)).toMatchObject({ muted: true, loop: true, autoplay: true, playsInline: true, controls: false, tag: 'VIDEO', w: 64 });
+  await expect(vid).toHaveAttribute('playsinline', '');
+  await expect(vid).toHaveAttribute('muted', '');
+  await H.layout(p);
+  await item.getByRole('button', { name: 'Ver el video Sentadilla' }).click();   // «Ocultar»: se suelta
+  await expect(item.locator('video')).toHaveCount(0);
+  // --- El GIF sigue funcionando: se sube, se ve con <img> y la etiqueta es «GIF» ---
+  await p.locator('#gif-name').fill('Press de banca');
+  await p.locator('#gif-file').setInputFiles(gifFile('press.gif'));
+  await up();
+  await expect(p.locator('#gif-list li')).toHaveCount(2);
+  const gifItem = p.locator('#gif-list li').filter({ hasText: 'Press de banca' });
+  await expect(gifItem.locator('.gif-kind')).toHaveText('GIF');
+  await gifItem.getByRole('button', { name: 'Ver la animación Press de banca' }).click();
+  await expect(gifItem.locator('img')).toBeVisible();
+  await expect(gifItem.locator('video')).toHaveCount(0);
+  // --- Asignar el video a un ejercicio y guardar ---
+  await p.locator('#redit-name').fill('Piernas con video');
+  await p.getByLabel('Nombre del día').first().fill('Día 1 – Piernas');
+  await p.getByLabel('Nombre del ejercicio').first().fill('Sentadilla');
+  await p.locator('#d0e0-sets').fill('4 × 10');
+  await p.getByLabel('Animación (opcional)').first().selectOption({ label: 'Sentadilla (video)' });
+  await p.getByRole('button', { name: 'Guardar rutina' }).click();
+  await expect(p.locator('#coach-detail-title')).toHaveText('Ana Martínez');
+  const saved = Object.values((await H.backend(p)).routines);
+  expect(saved).toHaveLength(1);
+  expect(saved[0].days[0].exercises[0].gif).toBe(stored.id);
+  expect(errors).toEqual([]);
+});
+
+test('cliente: el ejercicio con video se ve como <video muted loop playsinline autoplay>, cargado al abrirlo y soltado al cerrarlo; el GIF sigue con <img>; otro cliente no lo ve', async ({ browser }, testInfo) => {
+  const coach = await coachPhone(browser, testInfo);
+  const webm = await makeWebm(coach.p);
+  await seedVideoRoutine(coach.p, webm);
+  const ana = await clientPhone(browser, testInfo, coach, 'ana@c.co', 'Ana Martínez');
+  const a = ana.p;
+  await a.addStyleTag({ content: H.WIDE });
+  await a.evaluate(() => { window.__gifCalls = 0; window.__revoked = []; const rv = URL.revokeObjectURL.bind(URL); URL.revokeObjectURL = (u) => { window.__revoked.push(u); return rv(u); }; const c = PGAccount.remote.client; const o = c.gifBlob.bind(c); c.gifBlob = (...x) => { window.__gifCalls++; return o(...x); }; });
+  await a.locator('#tab-mas').click();
+  await a.locator('#row-rutina').click();
+  await expect(a.locator('#rutina-body .rut-title')).toHaveText('Piernas con video');
+  expect(await a.evaluate(() => window.__gifCalls)).toBe(0);                       // nada se pide hasta abrir un ejercicio
+  await expect(a.locator('#rutina-body video, #rutina-body img')).toHaveCount(0);
+  const sq = a.locator('.rut-ex').filter({ hasText: 'Sentadilla' });
+  await sq.locator('summary').click();
+  const v = sq.locator('video');
+  await expect(v).toBeVisible();
+  await expect(sq.locator('img')).toHaveCount(0);
+  await expect(v).toHaveAttribute('aria-label', 'Video del ejercicio: Sentadilla');
+  await expect.poll(async () => (await videoProps(v)).ready, { timeout: 8000 }).toBeGreaterThanOrEqual(2);
+  expect(await videoProps(v)).toMatchObject({ muted: true, loop: true, autoplay: true, playsInline: true, controls: false, w: 64 });
+  await expect(v).toHaveAttribute('loop', ''); await expect(v).toHaveAttribute('muted', ''); await expect(v).toHaveAttribute('playsinline', ''); await expect(v).toHaveAttribute('autoplay', '');
+  expect(await v.evaluate((x) => x.src.startsWith('blob:'))).toBe(true);           // se descargó como blob (URL firmada de 60 s), no se enlaza directo
+  expect(await a.evaluate(() => window.__gifCalls)).toBe(1);
+  const src1 = await v.getAttribute('src');
+  await expect.poll(() => v.evaluate((x) => !x.paused), { timeout: 8000 }).toBe(true);   // se reproduce solo
+  await H.layout(a);
+  // Cerrar: el <video> desaparece y la URL del blob queda revocada
+  await sq.locator('summary').click();
+  await expect(sq.locator('video')).toHaveCount(0);
+  expect(await a.evaluate(() => window.__revoked)).toContain(src1);
+  // Reabrir: se pide otra vez y la URL es nueva
+  await sq.locator('summary').click();
+  await expect(sq.locator('video')).toBeVisible();
+  expect(await a.evaluate(() => window.__gifCalls)).toBe(2);
+  expect(await sq.locator('video').getAttribute('src')).not.toBe(src1);
+  // El GIF del otro ejercicio sigue siendo <img>
+  const pb = a.locator('.rut-ex').filter({ hasText: 'Press de banca' });
+  await pb.locator('summary').click();
+  await expect(pb.locator('img')).toBeVisible();
+  await expect(pb.locator('video')).toHaveCount(0);
+  await expect.poll(() => pb.locator('img').evaluate((i) => i.naturalWidth)).toBe(1);
+  // Otro cliente del mismo coach sin rutina no ve nada; sin vínculo la pantalla no se abre
+  const beto = await clientPhone(browser, testInfo, coach, 'beto@c.co', 'Beto Ruiz');
+  await beto.p.locator('#tab-panel').click();
+  await expect(beto.p.locator('#hr-text')).toHaveText('Tu coach todavía no te armó una rutina.');
+  expect(ana.errors).toEqual([]); expect(beto.errors).toEqual([]); expect(coach.errors).toEqual([]);
+});
+
+test('claro y oscuro, letra ancha a 390 px: biblioteca con video y GIF, vista previa y rutina del cliente con video, sin desborde', async ({ browser }, testInfo) => {
+  for (const scheme of ['light', 'dark']) {
+    const coach = await coachPhone(browser, testInfo);
+    await coach.p.emulateMedia({ colorScheme: scheme });
+    const webm = await makeWebm(coach.p);
+    await seedVideoRoutine(coach.p, webm);
+    await coach.p.reload(); await H.ready(coach.p);
+    await coach.p.addStyleTag({ content: H.WIDE });
+    await openFicha(coach.p, 'Ana Martínez');
+    await coach.p.getByRole('button', { name: /Entrar y modificar la rutina Piernas con video/ }).click();
+    await expect(coach.p.locator('#gif-list li')).toHaveCount(2);
+    await coach.p.locator('#gif-list').getByRole('button', { name: 'Ver el video Sentadilla' }).click();
+    await expect(coach.p.locator('#gif-list video')).toBeVisible();
+    await coach.p.locator('#gif-list').getByRole('button', { name: 'Ver la animación Press de banca' }).click();
+    await expect(coach.p.locator('#gif-list img')).toBeVisible();
+    await H.layout(coach.p); await H.tall(coach.p, '#view-rutina-edit');
+    expect(await coach.p.evaluate(() => [...document.querySelectorAll('#gif-list video, #gif-list img')].every((m) => m.getBoundingClientRect().right <= 390.5))).toBe(true);
+    const ana = await clientPhone(browser, testInfo, coach, 'ana@c.co', 'Ana Martínez');
+    await ana.p.emulateMedia({ colorScheme: scheme });
+    await ana.p.addStyleTag({ content: H.WIDE });
+    await ana.p.locator('#tab-mas').click();
+    await ana.p.locator('#row-rutina').click();
+    await ana.p.locator('.rut-ex').filter({ hasText: 'Sentadilla' }).locator('summary').click();
+    await expect(ana.p.locator('.rut-ex video')).toBeVisible();
+    await H.layout(ana.p); await H.tall(ana.p, '#view-rutina');
+    expect(await ana.p.evaluate(() => { const v = document.querySelector('.rut-ex video').getBoundingClientRect(); return v.left >= 0 && v.right <= 390.5 && v.height > 20; })).toBe(true);
+    expect(ana.errors).toEqual([]); expect(coach.errors).toEqual([]);
   }
 });
 

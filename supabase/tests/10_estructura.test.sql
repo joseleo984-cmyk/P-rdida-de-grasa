@@ -45,8 +45,8 @@ select tests.ok((select display_name from core.profiles where id = tests.uid('an
   'el registro en auth.users crea core.profiles con display_name');
 select tests.ok(exists (select 1 from storage.buckets where id = 'grasa-photos' and not public),
   'bucket grasa-photos existe y es privado');
-select tests.ok(exists (select 1 from storage.buckets where id = 'ejercicios' and not public and file_size_limit = 3145728
-                        and allowed_mime_types = array['image/gif', 'image/webp']),
-  'bucket ejercicios existe, es privado, de 3 MB y solo gif/webp');
+select tests.ok(exists (select 1 from storage.buckets where id = 'ejercicios' and not public and file_size_limit = 10485760
+                        and allowed_mime_types = array['image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm']),
+  'bucket ejercicios existe, es privado, de 10 MB y gif/webp/mp4/mov/webm (v1.9)');
 
 rollback;

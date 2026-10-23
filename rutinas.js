@@ -1,41 +1,64 @@
 // Etapa 2 («App para coaches»): rutinas de ejercicios y GIFs. Lógica PURA (sin DOM; pruebas en tests/rutinas.test.js).
 // v1.8: el coach tiene una biblioteca de rutinas («Mis rutinas», plantillas), las ASIGNA (se crea una copia por asesorado; un asesorado puede tener
 // varias y cada una se puede mostrar u ocultar) y publica una «Rutina de hoy» para todos. Cada rutina: título + días («Día 1 – Pecho y tríceps») + ejercicios (nombre, series × repeticiones,
-// nota y animación opcionales). Las animaciones (GIF o WebP, máx. 3 MB) se suben UNA vez a la biblioteca del coach y se reutilizan.
+// nota y animación opcionales). Las animaciones (GIF o WebP, máx. 3 MB; o video corto MP4/MOV/WebM, máx. 10 MB y 15 s, v1.9) se suben UNA vez a la biblioteca del coach y se reutilizan.
 // Los límites y la firma de bytes son los mismos que impone el servidor (grasa.routine_content_ok y grasa.register_gif, r1 v1.7):
 // aquí solo se validan antes para avisar con un mensaje claro; el servidor decide de verdad. El GIF NO se re-codifica (se perdería la animación).
 (function (root) {
   'use strict';
-  const LIMITS = { days: 7, exercises: 12, title: 60, dayTitle: 60, name: 60, sets: 30, note: 200, gifName: 60, gifBytes: 3 * 1024 * 1024, gifs: 200, templates: 50, perClient: 20, assignAtOnce: 100 };
+  const LIMITS = { days: 7, exercises: 12, title: 60, dayTitle: 60, name: 60, sets: 30, note: 200, gifName: 60, gifBytes: 3 * 1024 * 1024, videoBytes: 10 * 1024 * 1024, videoSeconds: 15, gifs: 200, templates: 50, perClient: 20, assignAtOnce: 100 };
   const GIF_TYPES = ['image/gif', 'image/webp'];
+  const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  // Valor del atributo accept del selector de archivo (iPad/iPhone: tipos explícitos + extensiones, para que Fotos ofrezca los videos).
+  const ACCEPT = 'image/gif,image/webp,video/mp4,video/quicktime,video/webm,.gif,.webp,.mp4,.mov,.webm';
 
   const str = (v) => (typeof v === 'string' ? v : '');
   const trim = (v) => str(v).trim();
   const mb = (n) => (n / 1048576).toLocaleString('es', { maximumFractionDigits: 1 });
 
-  // ---------- GIF / WebP: tipo, tamaño y firma de bytes ----------
+  // ---------- GIF / WebP / video: tipo, tamaño y firma de bytes ----------
   const toHex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
   const ascii = (bytes, from, to) => String.fromCharCode(...Array.from(bytes).slice(from, to));
-  // Mira los primeros 12 bytes: «GIF87a» / «GIF89a» → image/gif; «RIFF….WEBP» → image/webp; otra cosa → null.
+  const isVideo = (mime) => VIDEO_TYPES.includes(mime);
+  const maxBytes = (mime) => (isVideo(mime) ? LIMITS.videoBytes : LIMITS.gifBytes);
+  // Mira los primeros 12 bytes: «GIF87a» / «GIF89a» → image/gif; «RIFF….WEBP» → image/webp; «ftyp» en los bytes 4–7 → video/mp4
+  // (con la marca «qt  » en los bytes 8–11 → video/quicktime, el .mov del iPhone); EBML 1A45DFA3 → video/webm; otra cosa → null.
   function sniff(head) {
     if (!head || head.length < 12) return null;
     const g = ascii(head, 0, 6);
     if (g === 'GIF87a' || g === 'GIF89a') return 'image/gif';
     if (ascii(head, 0, 4) === 'RIFF' && ascii(head, 8, 12) === 'WEBP') return 'image/webp';
+    if (ascii(head, 4, 8) === 'ftyp') return ascii(head, 8, 12) === 'qt  ' ? 'video/quicktime' : 'video/mp4';
+    if (head[0] === 0x1a && head[1] === 0x45 && head[2] === 0xdf && head[3] === 0xa3) return 'video/webm';
     return null;
   }
   // file = { type, size }, head = los primeros bytes. Devuelve { ok, mime, message }. Un archivo con tipo vacío (algunos teléfonos) vale si los bytes son válidos.
+  // mp4 y quicktime comparten contenedor (ftyp): un .mov declarado como video/mp4 (o al revés) vale; el tipo que se registra es el que dicen los bytes.
+  // La DURACIÓN no se ve aquí (hace falta un <video>): la comprueba checkDuration en la pantalla. Es un límite blando.
   function checkGif(file, head) {
     const f = file || {};
     const size = Number(f.size);
     if (!Number.isFinite(size) || size <= 0) return { ok: false, message: 'Ese archivo está vacío. Elige otro.' };
-    if (size > LIMITS.gifBytes) return { ok: false, message: `Esa animación pesa ${mb(size)} MB y el máximo es ${mb(LIMITS.gifBytes)} MB. Elige una más liviana.` };
     const type = str(f.type).toLowerCase();
-    if (type && !GIF_TYPES.includes(type)) return { ok: false, message: 'Solo se pueden subir animaciones GIF o WebP. Las fotos y los videos no sirven aquí.' };
+    if (type && !GIF_TYPES.includes(type) && !VIDEO_TYPES.includes(type)) return { ok: false, message: 'Ese tipo de archivo no sirve. Sube un video MP4, MOV o WebM, o una animación GIF o WebP. Las fotos no se pueden usar aquí.' };
     const mime = sniff(head);
-    if (!mime || (type && type !== mime)) return { ok: false, message: 'Ese archivo no parece una animación GIF o WebP de verdad. Elige otro.' };
+    const sameFamily = (a, b) => a === b || (a && b && a.startsWith('video/') && b.startsWith('video/') && a !== 'video/webm' && b !== 'video/webm');
+    if (!mime || (type && !sameFamily(type, mime))) return { ok: false, message: 'Ese archivo no parece un video MP4, MOV o WebM ni una animación GIF o WebP de verdad. Elige otro.' };
+    if (size > maxBytes(mime)) {
+      return { ok: false, message: isVideo(mime)
+        ? `Ese video pesa ${mb(size)} MB; el máximo es ${mb(LIMITS.videoBytes)} MB. Grábalo más corto o en menor calidad.`
+        : `Esa animación pesa ${mb(size)} MB; el máximo es ${mb(LIMITS.gifBytes)} MB. Elige una más liviana o sube un video corto.` };
+    }
     return { ok: true, mime };
+  }
+  // Duración (segundos) que informó un <video> temporal. Límite blando: solo la app la comprueba.
+  function checkDuration(seconds) {
+    const s = Number(seconds);
+    if (!Number.isFinite(s) || s <= 0) return { ok: false, message: 'No pudimos leer este video en tu navegador. Prueba con otro o grábalo de nuevo.' };
+    if (Math.round(s * 10) / 10 > LIMITS.videoSeconds) return { ok: false, message: `Ese video dura ${Number(s.toFixed(1)).toLocaleString('es')} s; el máximo son ${LIMITS.videoSeconds}. Recórtalo antes de subirlo.` };
+    return { ok: true };
   }
   // Nombre sugerido para la biblioteca a partir del nombre del archivo («press-banca.gif» → «press banca»).
   const suggestName = (fileName) => trim(trim(fileName).replace(/\.[a-z0-9]{1,5}$/i, '').replace(/[_-]+/g, ' ')).slice(0, LIMITS.gifName);
@@ -135,7 +158,7 @@
     return `Tienes ${l.length} rutinas: ${tail}.`;
   }
 
-  const api = { dailyFromServer, dailyActive, localDay, fmtDay, homeLine, LIMITS, GIF_TYPES, sniff, toHex, checkGif, suggestName, blankExercise, blankDay, blankRoutine, toContent, fromServer, validate, summary, dayLine, gifIds, fmtSize, UUID_RE };
+  const api = { dailyFromServer, dailyActive, localDay, fmtDay, homeLine, LIMITS, GIF_TYPES, VIDEO_TYPES, ACCEPT, isVideo, maxBytes, checkDuration, sniff, toHex, checkGif, suggestName, blankExercise, blankDay, blankRoutine, toContent, fromServer, validate, summary, dayLine, gifIds, fmtSize, UUID_RE };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Rutinas = api;
 })(typeof window !== 'undefined' ? window : globalThis);

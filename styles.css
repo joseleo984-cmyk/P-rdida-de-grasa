@@ -660,6 +660,9 @@ body.producto-coach .pay-summary { display: flex; }
 .rut-note { margin: 4px 0 8px; overflow-wrap: anywhere; }
 .rut-gif { min-height: 24px; font-size: .9rem; color: var(--muted); }
 .rut-gif .btn { width: 100%; margin-top: 8px; }
+.rut-gif-video { max-height: 70vh; object-fit: contain; }
+.gif-kind { display: inline-block; padding: 0 6px; margin-right: 4px; border: 1px solid var(--line); border-radius: 6px; font-size: .75rem; font-weight: 600; letter-spacing: .02em; }
+.gif-kind-video { border-color: var(--accent, currentColor); }
 .rut-gif-img { display: block; width: 100%; max-width: 420px; height: auto; margin: 4px auto 0; border-radius: 12px; background: var(--bg); }
 #rutina-trained .btn { width: 100%; }
 body.paused #rutina-trained { display: none !important; }
