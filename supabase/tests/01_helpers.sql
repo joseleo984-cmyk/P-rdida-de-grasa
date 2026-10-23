@@ -70,4 +70,12 @@ create function tests.agree(p_name text) returns void language sql as $$
   select tests.consent(p_name, 'coach_agreement')
 $$;
 
+-- Sprint 11 (r1 v1.6): el cliente vinculado debe estar al día para sincronizar. tests.paid('ana') deja su vínculo ACTIVO pagado
+-- hasta hoy + p_days (p_days negativo = vencido; null = sin fecha). Como superusuario (no pasa por set_client_payment).
+create function tests.paid(p_name text, p_days int default 30) returns void
+language sql security definer set search_path = '' as $$
+  update grasa.coach_links set paid_until = case when p_days is null then null else grasa.today_bogota() + p_days end,
+    paid_marked_at = now() where client_id = tests.uid(p_name) and status = 'active'
+$$;
+
 grant execute on all functions in schema tests to authenticated, anon, service_role;

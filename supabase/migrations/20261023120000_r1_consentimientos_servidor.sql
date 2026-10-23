@@ -117,7 +117,9 @@ begin
 end $$;
 
 -- Pasa de SQL a plpgsql para poder exigir el acuerdo. Mismas columnas y mismo resultado que en r1_fix_seguridad (O4).
-create or replace function grasa.coach_clients()
+-- v1.6: el tipo de salida cambió en 20261024120000_r1_pagos_coach.sql; se borra antes para que r1.sql siga siendo idempotente (se vuelve a conceder al final).
+drop function if exists grasa.coach_clients();
+create function grasa.coach_clients()
 returns table (client_id uuid, display_name text, link_id uuid, since timestamptz, shares jsonb,
                last_activity timestamptz, over_free_limit boolean)
 language plpgsql stable security definer set search_path = '' as $$
