@@ -1,6 +1,7 @@
 // S3-2: implementación falsa de Remote (remote-fake.js) y Remote.config() (equipo/r1-contrato.md §3-§4).
 const test = require('node:test');
 const assert = require('node:assert');
+const Pagos = require('../pagos.js');
 const Fake = require('../remote-fake.js');
 const Remote = require('../remote.js');
 
@@ -116,6 +117,8 @@ test('cliente ↔ coach: código, vínculo único, filtros del coach (sin note, 
   const link = await cli.client.joinCoach(inviteCode, { body: true, notes: false, nutrition: true, habits: false, photos: false, ...SH });
   assert.strictEqual(link.businessName, 'Fit Ana');
   assert.strictEqual(backend.consentEvents.filter((e) => e.kind.startsWith('share_')).length, 5);
+  await rejects(cli.sync.push({ records: [] }), 'payment_required');   // Sprint 11: vinculado y sin fecha de pago = en pausa
+  await coach.coach.setPayment((await cli.auth.session()).user.id, backend.todayBogota());
   await cli.sync.push({ records: [
     { id: 'r1', kind: 'entry', nkey: '2026-10-20', date: '2026-10-20', data: { weight: 70, note: 'privada' }, updatedAt: T0 },
     { id: 'r2', kind: 'library', nkey: 'pan', data: { name: 'Pan', kcal: 100 }, updatedAt: T0 },
@@ -224,6 +227,7 @@ test('Sprint 7: el acuerdo del coach manda (revocarlo bloquea), el código de un
   await login(cli, backend, 'cl@x.co'); await cli.account.joinApp(); await cloud(cli);
   const uid = (await cli.auth.session()).user.id;
   await cli.client.joinCoach(inviteCode, { body: true, ...SH });
+  backend.setPaidUntil('cl@x.co', backend.todayBogota());   // Sprint 11: al día (el día límite cuenta)
   await cli.sync.push({ records: [{ id: 'r1', kind: 'entry', nkey: '2026-10-20', date: '2026-10-20', data: { weight: 70 }, updatedAt: T0 }] });
   assert.strictEqual((await coach.coach.clientData(uid)).records.length, 1);
   await coach.account.recordConsents([ev('coach_agreement', false)]);   // revoca
@@ -271,4 +275,48 @@ test('sendAgreementCopy (doble): solo con el acuerdo vigente, 1 por versión y h
   be.copyMode = 'unavailable';
   await rejects(r.account.sendAgreementCopy(), 'unavailable');
   assert.strictEqual(Fake.FakeBackend.fromJSON(JSON.parse(JSON.stringify(be))).agreementCopies.length, 2);
+});
+
+// ---------- Sprint 11: cobros manuales y bloqueo por pago (mismas reglas que supabase/tests/100_pagos_coach.test.sql) ----------
+test('Sprint 11 (fake): el coach marca el pago, otro coach y el cliente no; vencido bloquea push y foto pero no pull ni borrar la cuenta', async () => {
+  const { backend, dev } = setup();
+  const coach = dev(), otro = dev(), cli = dev(), solo = dev();
+  await login(coach, backend, 'pc@x.co'); await coach.account.joinApp(); await agree(coach);
+  const { inviteCode } = await coach.coach.becomeCoach('Coach P');
+  await login(otro, backend, 'po@x.co'); await otro.account.joinApp(); await agree(otro); await otro.coach.becomeCoach('Otro P');
+  await login(cli, backend, 'pcl@x.co'); await cli.account.joinApp(); await cloud(cli);
+  await login(solo, backend, 'ps@x.co'); await solo.account.joinApp(); await cloud(solo);
+  const uid = (await cli.auth.session()).user.id;
+  await solo.sync.push({ records: [] });   // sin vínculo nunca se bloquea
+  await cli.client.joinCoach(inviteCode, { body: true, ...SH });
+  let l = await cli.client.myLink();
+  assert.deepStrictEqual([l.paidUntil, l.paid, l.daysLeft], [null, false, null]);
+  await rejects(cli.sync.push({ records: [] }), 'payment_required');
+  await rejects(cli.sync.uploadPhoto('p1', new Blob(['x'])), 'payment_required');
+  await cli.sync.pull('1970-01-01T00:00:00Z');                       // bajar sigue permitido
+  await rejects(otro.coach.setPayment(uid, backend.todayBogota()), 'forbidden');
+  assert.strictEqual(typeof cli.coach.setPayment, 'function');
+  await rejects(cli.coach.setPayment(uid, backend.todayBogota()), 'forbidden');
+  const t = backend.todayBogota();
+  await rejects(coach.coach.setPayment(uid, '2999-01-01'), 'invalid');
+  await rejects(coach.coach.setPayment(uid, 'mañana'), 'invalid');
+  const r = await coach.coach.setPayment(uid, Pagos.addDays(t, 30));
+  assert.deepStrictEqual([r.paid, r.daysLeft], [true, 30]);
+  const [row] = await coach.coach.clients();
+  assert.deepStrictEqual([row.paid, row.daysLeft, row.paidUntil], [true, 30, Pagos.addDays(t, 30)]);
+  l = await cli.client.myLink();
+  assert.deepStrictEqual([l.paid, l.daysLeft], [true, 30]);
+  await cli.sync.push({ records: [{ id: 'r1', kind: 'entry', nkey: '2026-10-20', date: '2026-10-20', data: { neck: 34.5 }, updatedAt: T0 }] });
+  await coach.coach.setPayment(uid, t);                               // día límite: sigue al día
+  await cli.sync.push({ records: [] });
+  await coach.coach.setPayment(uid, Pagos.unpaidDate(t));            // «No pagó»: vencido desde ayer
+  l = await cli.client.myLink();
+  assert.deepStrictEqual([l.paid, l.daysLeft], [false, -1]);
+  await rejects(cli.sync.push({ records: [{ id: 'r2', kind: 'entry', nkey: '2026-10-21', date: '2026-10-21', data: { neck: 35 }, updatedAt: T0 }] }), 'payment_required');
+  assert.ok(!Object.values(backend.records).some((x) => x.nkey === '2026-10-21'), 'no se guardó nada');
+  assert.strictEqual((await cli.sync.pull('1970-01-01T00:00:00Z')).records.length, 1);
+  await coach.coach.setPayment(uid, null);
+  assert.strictEqual((await coach.coach.clients())[0].paidUntil, null);
+  await cli.account.deleteAccount();                                  // borrar la cuenta siempre se puede
+  assert.strictEqual(Object.values(backend.users).some((u) => u.id === uid), false);
 });

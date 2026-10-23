@@ -229,6 +229,10 @@
           rejected.records.push(...(res.rejected.records || []));
           rejected.photos.push(...(res.rejected.photos || []));
         }
+        // Sprint 11: una foto borrada en el teléfono también se borra del almacenamiento privado (el borrado no se bloquea por pago).
+        if (cloud && remote.sync.deletePhotoFile) {
+          for (const [t, x] of chunk) if (t === 'p' && x.deletedAt && x.storagePath) { try { await remote.sync.deletePhotoFile(x.storagePath); } catch { /* ya no está o sin permiso: se reintenta con la lápida */ } }
+        }
       }
       // pushedUpTo = mayor updatedAt ENVIADO (no "ahora": así no se salta ediciones hechas durante el envío). Se guarda
       // ya: si el pull falla, el siguiente ciclo no vuelve a subir lo mismo.
@@ -302,6 +306,9 @@
         // Sprint 7: el servidor dice que faltan A3/A4 vigentes (p. ej. la aceptación aún no había llegado o se retiró en otro
         // teléfono). No es un error técnico: es "falta aceptar". Sin reintentos automáticos; la app envía lo pendiente y reintenta una vez.
         if (code === 'consent_required') { setStatus({ state: 'consent', lastError: null, nextRetryAt: null }); return { status: 'consent' }; }
+        // Sprint 11: el cliente con coach no está al día (payment_required). Tampoco es un error técnico: el acceso está «en pausa».
+        // Sin reintentos automáticos: la app vuelve a mirar su vínculo y, cuando el coach marque el pago, sincroniza sola.
+        if (code === 'payment_required') { setStatus({ state: 'paused', lastError: null, nextRetryAt: null }); return { status: 'paused' }; }
         const meta = store.getMeta() || {};
         store.setMeta({ ...meta, lastError: code });
         if (code === 'auth') { setStatus({ state: 'auth', lastError: code, nextRetryAt: null }); return { status: 'auth' }; }
