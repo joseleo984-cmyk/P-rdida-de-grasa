@@ -169,3 +169,16 @@ test('en la app instalada: cinco toques en el círculo de Más encienden y apaga
   for (let i = 0; i < 5; i++) await page.locator('#more-avatar').click();
   await expect(page.locator('body > pre')).toHaveCount(0);
 });
+
+test('«Pegar código»: toma los 6 dígitos del portapapeles y entra sola; sin código copiado avisa', async ({ app, page, context }) => {
+  await app.open({ path: FAKE, state: EMPTY() });
+  await toCodeStep(page, 'ana@ejemplo.com');
+  const code = await lastCode(page, 'ana@ejemplo.com');
+  await page.evaluate(() => { window.__clip = 'hola'; navigator.clipboard.readText = async () => window.__clip; });
+  await page.getByRole('button', { name: 'Pegar código' }).click();
+  await expect(page.locator('#acc-code-error')).toContainText('No encontré un código de 6 dígitos');
+  await page.evaluate((c) => { window.__clip = `Tu código para entrar: ${c}\n`; }, code);
+  await page.getByRole('button', { name: 'Pegar código' }).click();
+  await answerOwnerIfAsked(page);
+  await expect(page.locator('#acc-step-code')).toBeHidden();
+});
