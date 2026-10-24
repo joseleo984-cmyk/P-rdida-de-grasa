@@ -826,3 +826,20 @@ Una sola migración aditiva e idempotente: `supabase/migrations/20261028120000_r
 **Remote (real y fake):** `client.photoViews()` → `[{ id, viewedAt, photoId, photoDate, pose, coachName }]` (las 100 más recientes).
 
 **Compatibilidad:** el SQL se aplica antes que la app; con la app nueva y SQL viejo la bitácora muestra un error de red amable (la función no existe) y nada más se rompe.
+
+## 20. Cambios v1.11 (UX Etapa 2: pregunta de salud L4, meta de proteína L5, retos del coach y modo autónomo en pausa P1)
+
+Una sola migración aditiva e idempotente encima de v1.10: `supabase/migrations/20261029120000_r1_etapa2_coach.sql` (regenera `supabase/r1.sql`). Pruebas: `supabase/tests/150_etapa2_coach.test.sql` (nueva), conteo de tablas de `10_estructura` y lista blanca de `60_qa_seguridad`. Detalle: `equipo/handoffs/ux-etapa2.md`.
+
+| # | Cambio | Error / resultado |
+|---|---|---|
+| 20.1 | `grasa.health_answers (user_id, question 'condition'\|'pregnancy', answer 'yes'\|'no'\|'skip', version, text_hash, answered_at)`. RLS: solo la dueña lee/inserta/actualiza (sin DELETE). `grasa.set_health_answer(p_question, p_answer, p_version, p_text_hash)` y `grasa.my_health()` son SECURITY INVOKER. Exige A3 + A4. | `consent_required`, `invalid` |
+| 20.2 | `coach_clients()` añade `protein_goal_g int, health_restriction boolean, pregnancy_state boolean, pauses jsonb`. Los dos booleanos solo son true si la respuesta es 'yes' y el cliente mantiene A3 + A4 (coach_can_see). El coach nunca recibe la respuesta, la versión ni la fecha. | |
+| 20.3 | `grasa.coach_links.protein_goal_g` (20–400, null = sin meta). `grasa.set_protein_goal(p_client, p_grams)`: solo el coach activo con acuerdo y vínculo activo. `my_link()` añade `protein_goal_g` y `pauses`. | `forbidden`, `invalid` |
+| 20.4 | **P1.** `grasa.records.pause_private` lo pone un disparador: true si la dueña está en pausa al escribir o si la fecha cae en una pausa cerrada de su vínculo activo; una vez true no vuelve a false. En pausa, `sync_push` acepta un lote con ≥ 1 registro y SOLO de kind 'habit' (sin fotos); cualquier otra cosa sigue con `payment_required`. `coach_pull` y la «última actividad» de `coach_clients` excluyen las filas privadas siempre. | `payment_required` |
+| 20.5 | `grasa.link_pauses (link_id, from_day, to_day)`: `set_client_payment` guarda la pausa que termina (desde `paid_until + 1` hasta ayer) al pasar de vencido a pagado. `pauses` = `[{from, to}]` cerradas + la actual (`to: null`). | |
+| 20.6 | Retos: `grasa.challenges`, `challenge_members`, `challenge_marks` (sin acceso por la API de tablas). Coach: `create_challenge(p_id, p_title, p_habit 'water'\|'steps'\|'sleep'\|'trained'\|'foods', p_target, p_start, p_end, p_clients uuid[])` (≤ 31 días, meta ≤ días, 1–100 asesorados suyos, máx. 20 activos), `list_challenges()` (miembros con `done` sin las marcas de pausa), `delete_challenge(p_id)`. Asesorado: `my_challenges()` (solo sus marcas, sin otros miembros) y `mark_challenge(p_id, p_day, p_done)` (día dentro del reto y ≤ mañana; en pausa la marca queda privada). | `forbidden`, `not_found`, `invalid` |
+
+**Remote (real y fake):** `client.myHealth()`, `client.setHealthAnswer(question, answer, { version, textHash })`, `client.myChallenges()`, `client.markChallenge(id, day, done)`; `coach.setProteinGoal(clientId, grams|null)`, `coach.createChallenge({...})`, `coach.listChallenges()`, `coach.deleteChallenge(id)`. `myLink()` y `coach.clients()` traen `proteinGoal`, `pauses` y (coach) `healthRestriction`, `pregnancyState`.
+
+**Compatibilidad:** pegar el SQL antes de publicar la app. Con la app nueva y el SQL viejo, la pregunta de salud y los retos muestran un error amable y la meta no aparece; nada más se rompe.
