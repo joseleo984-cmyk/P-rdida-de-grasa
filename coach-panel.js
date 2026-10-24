@@ -16,7 +16,7 @@
   const fmtStamp = (iso) => (iso ? new Date(iso).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
   const COMMENTS_KEY = PGNS.key('comments'); // contrato §5.3: comentarios del cliente, aparte del estado
   const PROD = window.Producto || { coach: false };   // Sprint 11: producto 'coach' (solo la copia de pruebas)
-  const SHARE_NAMES = PROD.coach ? { body: 'medidas', habits: 'hábitos', photos: 'fotos' } : { body: 'peso, medidas y perfil', nutrition: 'comidas', habits: 'hábitos', notes: 'notas', photos: 'fotos' };
+  const SHARE_NAMES = PROD.coach ? { body: 'medidas', nutrition: 'comidas', habits: 'hábitos', photos: 'fotos' } : { body: 'peso, medidas y perfil', nutrition: 'comidas', habits: 'hábitos', notes: 'notas', photos: 'fotos' };
   const todayBo = () => Pagos.todayBogota();   // los cobros se miden con el día de Bogotá
 
   let A = null;           // PGAccount (remote + metadatos)
@@ -392,10 +392,29 @@
       $('#coach-detail-habits-line').textContent = w.line;
     } else { hb.innerHTML = ''; $('#coach-detail-habits-line').textContent = Habitos.notSharedText(displayName(c)) + '. Si quiere, puede compartirlos en Más → Mis datos y permisos.'; }
   }
+  // Etapa 2: «Comidas» (producto coach): los últimos 7 días, con el total de kcal aproximadas por día y lo que comió (plato, porción, tipo y hora si existe).
+  function renderDetailComidas(c, sh) {
+    const box = $('#coach-detail-comidas'), line = $('#coach-detail-comidas-line');
+    if (!sh.nutrition) {
+      box.innerHTML = '';
+      line.textContent = `${displayName(c)} todavía no comparte sus comidas. Aparecen cuando confirme lo que comparte en la app.`;
+      return;
+    }
+    const days = Platos.lastDays(c.state.foods, todayBo(), 7);
+    const withFood = days.filter((d) => d.count);
+    line.textContent = withFood.length ? `Últimos 7 días: ${withFood.length} día${withFood.length === 1 ? '' : 's'} con comidas. Las calorías son aproximadas.` : `${displayName(c)} todavía no registra comidas en los últimos 7 días.`;
+    const dayName = (d, i) => (i === 0 ? 'Hoy' : i === 1 ? 'Ayer' : new Date(d + 'T12:00:00').toLocaleDateString('es', { weekday: 'long' }).replace(/^./, (c) => c.toUpperCase())) + ' · ' + fmtDay(d);
+    box.innerHTML = days.map((d, i) => `<section class="cm-day" aria-label="${esc(dayName(d.date, i))}"><div class="cm-head"><strong>${esc(dayName(d.date, i))}</strong><span class="${d.count ? '' : 'muted small'}">${d.count ? `<b>${esc(d.kcalText)} kcal</b> aprox.` : 'Sin comidas'}</span></div>`
+      + (d.count ? `<ul class="cm-list">${d.items.map((x) => {
+        const p = x.dish ? Platos.portionOf(x.portion) : null;
+        const sub = [p ? p.label : '', x.meal, x.time || ''].filter(Boolean).join(' · ');
+        return `<li><span class="cm-t">${esc(x.name)}<small>${esc(sub)}</small></span><b>${esc(Platos.n0(x.kcal))} kcal</b></li>`;
+      }).join('')}</ul>` : '') + '</section>').join('');
+  }
   function renderDetail(c) {
     const sh = c.info.shares || {};
     $('#coach-detail-title').textContent = displayName(c);
-    if (PROD.coach) renderDetailPay(c, sh);
+    if (PROD.coach) { renderDetailPay(c, sh); renderDetailComidas(c, sh); }
     else $('#coach-detail-light').innerHTML = `${statusChip(c.st)} ${esc(c.st.line)}`;
     const yes = Object.keys(SHARE_NAMES).filter((k) => sh[k]).map((k) => SHARE_NAMES[k]);
     const no = Object.keys(SHARE_NAMES).filter((k) => !sh[k]).map((k) => SHARE_NAMES[k]);

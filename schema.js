@@ -222,6 +222,7 @@
     return out;
   }
 
+  const DISH_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/, TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/, PORTION_KEYS = ['half', 'normal', 'large', 'double'];
   function normalizeFood(x, d, warn, uid, ids) {
     if (!isObj(x)) { warn(`Comidas ${d}: elemento no válido, se descarta`); return null; }
     const name = text(x.name, 80);
@@ -233,6 +234,10 @@
       if (Number.isNaN(v)) warn(`Comidas ${d}: "${k}" no válido en "${name}", se usa 0`);
       item[k] = Number.isFinite(v) ? v : 0;
     }
+    // Etapa 2 (comidas, producto coach): lo que viene del catálogo de platos (platos.js) guarda su plato, su porción y la hora. Todo opcional.
+    if (typeof x.dish === 'string' && DISH_RE.test(x.dish)) item.dish = x.dish;
+    if (typeof x.portion === 'string' && PORTION_KEYS.includes(x.portion)) item.portion = x.portion;
+    if (typeof x.time === 'string' && TIME_RE.test(x.time)) item.time = x.time;
     if (typeof item.id !== 'string' || !ID_RE.test(item.id) || ids.has(item.id)) item.id = uid();
     ids.add(item.id);
     return item;
@@ -640,7 +645,7 @@
     const copies = [];
     for (const x of picked) {
       // Id vacío fuerza a normalizeFood a generar uno nuevo y único.
-      const item = normalizeFood(isObj(x) ? { ...x, id: '' } : x, toISO, () => {}, fresh, ids);
+      const item = normalizeFood(isObj(x) ? { ...x, id: '', time: undefined } : x, toISO, () => {}, fresh, ids);
       if (item) copies.push(item); else skipped++;
     }
     if (copies.length) out[toISO] = (out[toISO] || []).concat(copies);

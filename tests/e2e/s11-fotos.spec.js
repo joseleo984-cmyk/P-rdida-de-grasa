@@ -148,7 +148,7 @@ test('coach: ficha con fotos que el cliente marcó, una por una (cada apertura r
     const { user: u } = await rc.auth.verifyCode('laura@coach.co', be.lastCode('laura@coach.co'));
     const ok = (v) => ({ granted: true, version: v, textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' });
     localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: u.id, email: u.email, roles: ['client', 'coach'], onboarded: true, coach: await rc.coach.myCoach(), cloudAsked: true,
-      consents: { sensitive_health: ok('0.1-AU-prueba'), cloud_transfer: ok('0.1-AU-prueba'), coach_agreement: ok(ConsentTexts.version('A7')) } }));
+      consents: { sensitive_health: ok('0.2-AU'), cloud_transfer: ok('0.2-AU'), coach_agreement: ok(ConsentTexts.version('A7')) } }));
     localStorage.setItem('perdida-grasa:owner', u.id);
   });
   await c.reload(); await H.ready(c);

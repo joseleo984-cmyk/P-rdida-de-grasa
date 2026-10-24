@@ -731,3 +731,61 @@ body.paused #rutina-trained { display: none !important; }
 .da-item span, .da-all span { min-width: 0; overflow-wrap: anywhere; }
 .da-body .row-actions .btn { flex: 1 1 140px; min-height: 48px; }
 #home-daily .btn { width: 100%; }
+
+/* ===== Etapa 2: comidas (producto 'coach') ===== */
+.sheet-tall { max-height: 94vh; max-height: 94dvh; }
+.sc-body { padding: 0 16px 24px; }
+#sc-q { min-height: 48px; }
+.sc-cats { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.sc-cats button { min-height: 48px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.sc-cats button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.sc-cats button:focus-visible, .sc-item:focus-visible, .mc-actions .btn-link:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.sc-sub { margin: 14px 0 6px; font-size: 1rem; }
+.sc-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 8px; }
+.sc-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 56px; text-align: left; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; cursor: pointer; }
+.sc-t { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.sc-t small, .mc-t small { color: var(--muted); font-size: .85rem; font-weight: 400; }
+.sc-item b { flex: none; text-align: right; }
+#sheet-comida .btn { width: 100%; margin-top: 8px; min-height: 48px; }
+.sc-dish { margin: 12px 0 2px; font-size: 1.25rem; overflow-wrap: anywhere; }
+.sc-portions { border: 0; margin: 12px 0 0; padding: 0; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sc-portions legend { font-weight: 600; padding: 0; margin-bottom: 6px; }
+.sc-portion { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-height: 64px; padding: 8px 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--bg); cursor: pointer; min-width: 0; }
+.sc-portion input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.sc-portion:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.sc-portion:has(input:focus-visible) { outline: 3px solid var(--goal); outline-offset: 2px; }
+.sc-pl { font-weight: 700; overflow-wrap: anywhere; }
+.sc-pk { color: var(--muted); font-size: .9rem; }
+.sc-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 12px; }
+.sc-row input, .sc-row select, .sc-free input { min-height: 48px; }
+.sc-total { margin: 14px 0 4px; font-size: 1.3rem; font-weight: 800; }
+.mc-daynav { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.mc-daynav .btn { flex: none; min-width: 48px; min-height: 48px; font-size: 1.4rem; line-height: 1; padding: 0 12px; }
+.mc-date { flex: 1; min-width: 0; margin: 0; }
+.mc-date input { min-height: 48px; }
+.mc-day-title { margin: 4px 0 6px; font-size: 1.1rem; overflow-wrap: anywhere; }
+#view-micomidas .card > .btn { width: 100%; margin-top: 8px; min-height: 48px; }
+.mc-meal { margin: 0 0 14px; }
+.mc-meal-head { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-bottom: 4px; }
+.mc-items { list-style: none; margin: 0; padding: 0; }
+.mc-item { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.mc-item:last-child { border-bottom: 0; }
+.mc-line { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.mc-t { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.mc-k { flex: none; white-space: nowrap; }
+.mc-actions { display: flex; gap: 8px; }
+.mc-actions .btn-link { min-height: 48px; min-width: 64px; padding: 6px 12px; }
+body.paused #btn-mc-add, body.paused #btn-mc-repeat, body.paused #btn-hm-add, body.paused .mc-actions { display: none !important; }
+.cm-day { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.cm-day:last-child { border-bottom: 0; }
+.cm-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.cm-head strong { overflow-wrap: anywhere; }
+.cm-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; }
+.cm-list li { display: flex; justify-content: space-between; gap: 10px; }
+.cm-list .cm-t { min-width: 0; overflow-wrap: anywhere; }
+.cm-list .cm-t small { display: block; color: var(--muted); }
+.cm-list b { flex: none; white-space: nowrap; }
+@media (max-width: 380px) { .sc-portions { grid-template-columns: 1fr; } }
+#sc-close { width: 48px; height: 48px; }
+body.producto-coach .share-switch { flex-wrap: wrap; }
+.sw-state { margin-left: auto; padding-left: 8px; font-size: .9rem; }

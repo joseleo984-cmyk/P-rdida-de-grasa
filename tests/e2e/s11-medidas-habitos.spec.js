@@ -104,7 +104,7 @@ test('hábitos: agua en vasos, pasos, sueño y entrenó; avance de la semana con
   await p.locator('#tab-panel').click();
   const hoy = (await p.locator('#hc-habits .habit').allInnerTexts()).map((x) => x.replace(/\s+/g, ' ').trim());
   expect(hoy).toEqual(['Agua 5 de 8 vasos', 'Pasos 6.200 de 8.000', 'Sueño 7 h', 'Entrenó Sí']);
-  expect(await p.locator('#view-panel').innerText()).not.toMatch(/kcal|Hoy llevas/i);
+  expect(await p.locator('#view-panel').innerText()).not.toMatch(/Hoy llevas/i);   // Etapa 2: la tarjeta «Mis comidas de hoy» sí muestra kcal aproximadas
   // Llegan al servidor (el coach los ve porque Ana los compartió)
   await expect.poll(async () => Object.values((await H.backend(p)).records).filter((r) => r.kind === 'habit').length).toBe(3);
   expect(errors).toEqual([]);
@@ -127,7 +127,7 @@ test('ficha del coach: medidas Inicio/Hoy/Cambio, hábitos de la semana con barr
     const { user } = await r.auth.verifyCode('laura@coach.co', be.lastCode('laura@coach.co'));
     const ok = (v) => ({ granted: true, version: v, textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' });
     localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: ['client', 'coach'], onboarded: true, coach: await r.coach.myCoach(), cloudAsked: true,
-      consents: { sensitive_health: ok('0.1-AU-prueba'), cloud_transfer: ok('0.1-AU-prueba'), coach_agreement: ok(ConsentTexts.version('A7')) } }));
+      consents: { sensitive_health: ok('0.2-AU'), cloud_transfer: ok('0.2-AU'), coach_agreement: ok(ConsentTexts.version('A7')) } }));
     localStorage.setItem('perdida-grasa:owner', user.id);
   });
   await c.reload(); await H.ready(c);

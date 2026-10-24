@@ -274,6 +274,16 @@
         </section>
       </div>
 
+      <!-- Etapa 2 (comidas, producto 'coach'): total de hoy y atajo para agregar. Fuera de #home-coach: con el acceso en pausa también se ve (sin el botón de agregar). -->
+      <section id="home-comidas" class="home-card pc-only hidden" aria-labelledby="hm-title">
+        <div class="home-row"><h3 id="hm-title" class="home-label">Mis comidas de hoy</h3><span id="hm-sub" class="home-sub"></span></div>
+        <p class="home-big"><span id="hm-kcal">0</span> <span class="home-unit">kcal aprox.</span></p>
+        <p id="hm-text" class="small muted"></p>
+        <button type="button" class="btn btn-tall" id="btn-hm-add">Agregar comida</button>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-hm-see" data-goto="micomidas">Ver mis comidas</button>
+        <button type="button" class="btn btn-tall hidden" id="btn-hm-gate" data-goto="perfil:coach">Revisar lo que comparto</button>
+      </section>
+
       <div id="onboarding" class="card hidden home-legacy">
         <h2>¡Bienvenido!</h2>
         <p>Completa tu <strong>perfil</strong> para calcular tus calorías, macros y proyección.</p>
@@ -430,6 +440,35 @@
         <h2>Mis registros</h2>
         <ul id="medidas-history" class="med-history"></ul>
         <p class="muted small" id="medidas-empty">Aún no hay medidas.</p>
+      </div>
+    </section>
+
+    <!-- Etapa 2 (comidas, producto 'coach'): MIS COMIDAS. Usa el mismo registro de siempre (state.foods) y su sincronización. -->
+    <section id="view-micomidas" class="view" aria-labelledby="micomidas-title">
+      <div class="back-row"><button type="button" class="btn-link back-btn" data-goto="mas">← Más</button><h2 class="back-title" id="micomidas-title" tabindex="-1">Mis comidas</h2></div>
+      <p class="pause-banner" role="note">Tu acceso está en pausa: por ahora solo puedes ver tus comidas.</p>
+      <div class="card hidden" id="mc-gate" role="region" aria-labelledby="mc-gate-title">
+        <h2 id="mc-gate-title">Falta un paso</h2>
+        <p>Para usar tus comidas, confirma lo que compartes con tu coach: tus comidas son necesarias mientras estés vinculado/a, igual que tus medidas.</p>
+        <button type="button" class="btn btn-tall acc-main" id="btn-mc-gate" data-goto="perfil:coach">Revisar lo que comparto</button>
+      </div>
+      <div id="mc-main">
+        <div class="card">
+          <div class="mc-daynav">
+            <button type="button" class="btn btn-ghost" id="mc-prev" aria-label="Día anterior">‹</button>
+            <label class="mc-date"><span class="sr-only">Día</span><input type="date" id="mc-date" aria-label="Día de las comidas"></label>
+            <button type="button" class="btn btn-ghost" id="mc-next" aria-label="Día siguiente">›</button>
+          </div>
+          <h2 id="mc-day-title" class="mc-day-title" tabindex="-1"></h2>
+          <p class="home-big"><span id="mc-kcal">0</span> <span class="home-unit">kcal aprox.</span></p>
+          <p class="small muted">Calorías aproximadas: es una estimación, no una medida exacta.</p>
+          <button type="button" class="btn btn-tall" id="btn-mc-add">Agregar comida</button>
+          <button type="button" class="btn btn-ghost btn-tall hidden" id="btn-mc-repeat">Repetir la de ayer</button>
+        </div>
+        <div class="card">
+          <h2 id="mc-list-title" tabindex="-1">Lo que comí</h2>
+          <div id="mc-list"></div>
+        </div>
       </div>
     </section>
 
@@ -638,6 +677,11 @@
           <h2>Hábitos de la semana</h2>
           <p id="coach-detail-habits-line" class="small muted"></p>
           <div id="coach-detail-habits" class="habit-list"></div>
+        </div>
+        <div class="card pc-only" id="coach-detail-comidas-card">
+          <h2>Comidas</h2>
+          <p id="coach-detail-comidas-line" class="small muted"></p>
+          <div id="coach-detail-comidas"></div>
         </div>
         <div class="card home-legacy">
           <h2>Progreso</h2>
@@ -953,6 +997,7 @@
         <li class="coach-only hidden home-legacy"><button type="button" class="more-row" id="row-c-comidas"><span class="more-text"><strong>Mis comidas</strong><span class="more-sub">Tu diario de comidas y hábitos</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="home-legacy"><button type="button" class="more-row" id="row-plan"><span class="more-text"><strong>Mi plan y perfil</strong><span class="more-sub">Tus datos, tu meta y tus calorías del día</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="home-legacy"><button type="button" class="more-row" id="row-fotos"><span class="more-text"><strong>Mis fotos</strong><span class="more-sub">Fotos de progreso y comparación</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="pc-only hidden" id="li-micomidas"><button type="button" class="more-row" id="row-micomidas"><span class="more-text"><strong>Mis comidas</strong><span class="more-sub">Lo que comes cada día, con calorías aproximadas</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="coach-only pc-only hidden"><button type="button" class="more-row" id="row-c-rutinas"><span class="more-text"><strong>Mis rutinas</strong><span class="more-sub">Crea rutinas, asígnalas y publica la de hoy</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="coach-only hidden"><button type="button" class="more-row" id="row-c-acuerdo"><span class="more-text"><strong>Mi acuerdo</strong><span class="more-sub">El Acuerdo del coach que aceptaste, con copia</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-link hidden"><button type="button" class="more-row" id="row-coach"><span class="more-text"><strong>Mi coach</strong><span class="more-sub">Qué puede ver y cómo dejar de compartir</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
@@ -1056,6 +1101,52 @@
       <button type="button" class="btn btn-ghost btn-tall hidden" id="opt-repetir">Repetir la de ayer</button>
       <button type="button" class="sheet-opt" id="opt-habitos"><strong>Cómo me fue hoy</strong><span>Agua, pasos, sueño y entrenamiento</span></button>
       <div class="sheet-opt sheet-soon" id="opt-foto"><strong>Foto de mi plato</strong><span>Próximamente</span></div>
+    </div>
+  </dialog>
+
+  <!-- Etapa 2 (comidas, producto 'coach'): agregar o editar una comida. Paso 1: elegir del catálogo (o escribir una libre). Paso 2: porción, tipo de comida y día. -->
+  <dialog id="sheet-comida" class="sheet sheet-tall" aria-labelledby="sc-title">
+    <div class="sheet-head">
+      <h2 id="sc-title" tabindex="-1">Agregar comida</h2>
+      <button type="button" class="sheet-x" id="sc-close" aria-label="Cerrar">×</button>
+    </div>
+    <div class="sc-body">
+      <div id="sc-pick">
+        <label class="acc-label" for="sc-q">Busca un plato</label>
+        <input type="search" id="sc-q" placeholder="Ej.: arepa, sancocho, jugo" autocomplete="off" autocapitalize="off" enterkeyhint="search">
+        <div class="sc-cats" id="sc-cats" role="group" aria-label="Categorías"></div>
+        <p class="small muted">Calorías aproximadas, para una porción normal.</p>
+        <h3 id="sc-recent-title" class="sc-sub">Recientes</h3>
+        <ul id="sc-recent" class="sc-list"></ul>
+        <h3 id="sc-res-title" class="sc-sub" aria-live="polite"></h3>
+        <ul id="sc-results" class="sc-list"></ul>
+        <button type="button" class="btn btn-ghost btn-tall" id="sc-free-open">Escribir otra comida</button>
+      </div>
+      <form id="form-comida" class="hidden" novalidate>
+        <h3 id="sc-step2-title" class="sc-dish" tabindex="-1"></h3>
+        <p id="sc-dish-sub" class="small muted"></p>
+        <div id="sc-free" class="sc-free hidden">
+          <label class="acc-label" for="sc-name">¿Qué comiste?</label>
+          <input type="text" id="sc-name" name="name" maxlength="80" autocomplete="off" placeholder="Ej.: Pollo con papas">
+          <label class="acc-label" for="sc-kcal-in">Calorías aproximadas (kcal)</label>
+          <input type="text" id="sc-kcal-in" name="kcal" inputmode="numeric" autocomplete="off" placeholder="Ej.: 450">
+        </div>
+        <fieldset id="sc-portions" class="sc-portions"><legend>¿Cuánto comiste?</legend></fieldset>
+        <div class="sc-row">
+          <label class="acc-label" for="sc-meal">Tipo de comida
+            <select id="sc-meal" name="meal"><option>Desayuno</option><option>Almuerzo</option><option>Cena</option><option>Snack</option></select></label>
+          <label class="acc-label" for="sc-date">Día
+            <input type="date" id="sc-date" name="date" required></label>
+          <label class="acc-label" for="sc-time">Hora (opcional)
+            <input type="time" id="sc-time" name="time"></label>
+        </div>
+        <p id="sc-total" class="sc-total" aria-live="polite"></p>
+        <p id="sc-error" class="acc-error hidden" role="alert"></p>
+        <div class="row-actions">
+          <button type="submit" class="btn btn-tall" id="sc-save">Agregar</button>
+          <button type="button" class="btn btn-ghost btn-tall" id="sc-back">Volver a la lista</button>
+        </div>
+      </form>
     </div>
   </dialog>
 
@@ -1206,6 +1297,7 @@
   <script src="pagos.js"></script>
   <script src="medidas.js"></script>
   <script src="habitos.js"></script>
+  <script src="platos.js"></script>
   <script src="rutinas.js"></script>
   <script src="sync.js"></script>
   <script src="cloud-view.js"></script>

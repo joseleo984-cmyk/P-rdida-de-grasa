@@ -525,7 +525,7 @@
             return;
           }
           const chk = (n) => !!(form.elements[n] && form.elements[n].checked);
-          const shares = { body: true, nutrition: chk('share_nutrition'), habits: chk('share_habits'), notes: chk('share_notes'), photos: false,
+          const shares = { body: true, nutrition: PROD.coach || chk('share_nutrition'), habits: chk('share_habits'), notes: chk('share_notes'), photos: false,
             ...(await shareMeta(previewed.businessName)) };
           meta.link = await remote.client.joinCoach(code, shares);
           meta.shareVersion = CT.version(SHARE_ID);
@@ -699,12 +699,22 @@
       const input = document.createElement('input');
       input.type = 'checkbox';
       input.name = 'share_' + k;
-      if (k === 'body') { input.checked = true; input.disabled = true; }
+      if (k === 'body' || (k === 'nutrition' && PROD.coach)) { input.checked = true; input.disabled = true; }   // Etapa 2: en el producto coach las comidas son necesarias, como las medidas
       else if (k === 'photos') { input.disabled = true; if (PROD.coach) input.checked = !!(shares && shares.photos); } // las fotos se piden aparte (A6)
       else input.checked = !!(shares && shares[k]);
       const span = document.createElement('span');
       span.textContent = t.categories[k];
       label.append(input, span);
+      // Producto coach: los hábitos se activan o desactivan con un interruptor (el estado va junto, fuera del texto aprobado).
+      if (PROD.coach && k === 'habits') {
+        input.setAttribute('role', 'switch');
+        const st = document.createElement('b');
+        st.className = 'sw-state';
+        const sync = () => { st.textContent = input.checked ? 'Activado' : 'Desactivado'; input.setAttribute('aria-checked', String(input.checked)); };
+        input.addEventListener('change', sync); sync();
+        label.classList.add('share-switch');
+        label.append(st);
+      }
       return label;
     });
     const out = document.createElement('p');
@@ -751,7 +761,8 @@
       $('#shares-title').textContent = `Tu coach: «${meta.link.businessName}», desde el ${new Date(meta.link.since).toLocaleDateString('es')}.`;
       // No se vuelve a dibujar mientras la persona está tocando las casillas (se perdería lo que acaba de marcar).
       if (!sf.contains(document.activeElement) || !sf.elements.share_habits) renderShareFields($('#shares-fieldset'), meta.link.businessName, meta.link.shares);
-      $('#shares-migrate').classList.toggle('hidden', !CT.shareMigrationNeeded(meta));
+      $('#shares-migrate').classList.toggle('hidden', !(CT.shareMigrationNeeded(meta) || (PROD.coach && !(meta.link.shares && meta.link.shares.nutrition))));
+      if (PROD.coach) $('#shares-migrate').textContent = 'Ahora tus comidas también son necesarias para usar la app con tu coach, igual que tus medidas. Revisa lo que compartes y pulsa «Guardar lo que comparto» para confirmarlo. Mientras tanto tus comidas no se ven.';
       const SEE = { nutrition: 'tus comidas', habits: 'tus hábitos', notes: 'tus notas', photos: 'las fotos que marques' };
       const sees = [PROD.coach ? 'tus medidas' : 'tu peso y tus medidas', ...Object.keys(SEE).filter((k) => meta.link.shares && meta.link.shares[k]).map((k) => SEE[k])];
       $('#shares-summary').textContent = `Tu coach puede ver ${sees.length > 1 ? sees.slice(0, -1).join(', ') + ' y ' + sees[sees.length - 1] : sees[0]}.`;
@@ -777,7 +788,7 @@
     if (!meta || !meta.link) return;
     const old = meta.link.shares || {};
     const chk = (n) => !!(f.elements[n] && f.elements[n].checked);
-    const shares = { body: true, nutrition: chk('share_nutrition'), habits: chk('share_habits'),
+    const shares = { body: true, nutrition: PROD.coach || chk('share_nutrition'), habits: chk('share_habits'),
       notes: chk('share_notes'), photos: PROD.coach ? !!old.photos : false, ...(await shareMeta(meta.link.businessName)) };
     showError('#shares-error', '');
     // A8: quitar una categoría es retirar una autorización.
@@ -793,7 +804,7 @@
         writeMeta(next);
         const was = (k) => !!old[k], now = (k) => !!(link.shares || {})[k];
         for (const k of ['body', 'notes', 'nutrition', 'habits']) {
-          if (k === 'body' || was(k) === now(k)) await logConsent('A5', 'share_' + k, k === 'body' ? true : now(k), { coach: meta.link.businessName }, { coachId: link.coachId });
+          if (k === 'body' || was(k) === now(k)) await logConsent(SHARE_ID, 'share_' + k, k === 'body' ? true : now(k), { coach: meta.link.businessName }, { coachId: link.coachId });
         }
         next = { ...readMeta(), link };
         await flushConsents();
