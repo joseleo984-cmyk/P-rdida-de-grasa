@@ -520,6 +520,7 @@ body:not(.has-remote) .needs-account { display: none; }
 .a8-actions .btn { width: 100%; }
 .a7-gate .acc-main { width: 100%; }
 .a7-ended { margin: 0 0 12px; }
+.a7-clause { white-space: pre-line; margin: 0 0 12px; padding: 10px 12px; border-left: 4px solid var(--line); background: var(--bg); border-radius: 8px; }
 #view-coach.a7-locked > :not(.a7-gate), #view-invitar.a7-locked > :not(.a7-gate):not(.view-title) { display: none !important; }
 .acc-main, .a8-actions .btn, .a7-gate .btn { min-height: 48px; }
 #acc-brevo a, .share-outro a, .a7-gate a { display: inline-flex; align-items: center; min-height: 48px; }
@@ -789,3 +790,12 @@ body.paused #btn-mc-add, body.paused #btn-mc-repeat, body.paused #btn-hm-add, bo
 #sc-close { width: 48px; height: 48px; }
 body.producto-coach .share-switch { flex-wrap: wrap; }
 .sw-state { margin-left: auto; padding-left: 8px; font-size: .9rem; }
+
+/* Textos legales 24/10/2026 (producto coach): aviso destacado de fotos, bitácora «Quién vio mis fotos», campos obligatorios de Medidas y aviso previo a importar. */
+.notice-photos { margin: 0 0 12px; padding: 12px 14px; border: 2px solid var(--goal); border-left-width: 6px; border-radius: 10px; background: var(--bg); font-weight: 600; }
+.fv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fv-item { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); overflow-wrap: anywhere; }
+.fv-item span { color: var(--muted); font-size: .9rem; }
+.grid-form .req { color: var(--text); font-weight: 600; font-size: .75rem; }
+#photo-file-help { font-size: .8rem; }
+#sheet-import .a8-body p { margin: 0 0 12px; }

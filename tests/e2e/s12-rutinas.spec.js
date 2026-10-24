@@ -699,10 +699,9 @@ test('coach: sube un video corto (webm), lo ve en vista previa, lo asigna a un e
   expect(webm.length).toBeLessThan(200 * 1024);
   await openFicha(p, 'Ana Martínez');
   await p.getByRole('button', { name: '＋ Crear una rutina nueva' }).click();
-  // Texto de ayuda y selector de archivo: video y GIF/WebP (iPad/iPhone: tipos explícitos y extensiones)
+  // Texto de ayuda y selector de archivo: GIF/WebP y «video/*» (así el teléfono ofrece grabar con la cámara; la validación de verdad sigue en JS, abajo)
   await expect(p.locator('#gif-help')).toContainText('Sube un video corto (hasta 15 segundos y 10 MB) o un GIF liviano (hasta 3 MB)');
-  const accept = await p.locator('#gif-file').getAttribute('accept');
-  for (const t of ['image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', '.mov']) expect(accept).toContain(t);
+  await expect(p.locator('#gif-file')).toHaveAttribute('accept', 'image/gif,image/webp,video/*');
   // --- Rechazos con mensajes claros ---
   const up = () => p.getByRole('button', { name: 'Subir animación' }).click();
   await p.locator('#gif-file').setInputFiles({ name: 'clase.avi', mimeType: 'video/x-msvideo', buffer: Buffer.alloc(100) });

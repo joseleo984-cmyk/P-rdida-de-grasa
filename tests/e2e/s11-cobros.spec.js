@@ -113,6 +113,9 @@ test('cliente: «Faltan N días» (resaltado si ≤ 7), bloqueo M4 con ver, desc
   await H.shot(a, 's11-cliente-proximo-pago.png', { fullPage: true });
   // Ana guarda una medida estando al día
   await a.locator('#tab-medidas').click();
+  await a.locator('#form-medidas input[name=weight]').fill('70');   // peso, abdomen y cadera: obligatorios en lo nuevo
+  await a.locator('#form-medidas input[name=abdomen]').fill('90');
+  await a.locator('#form-medidas input[name=hip]').fill('100');
   await a.locator('#form-medidas input[name=waist]').fill('84,5');
   await a.getByRole('button', { name: 'Guardar mis medidas' }).click();
   await expect(a.locator('#toast')).toHaveText('Medidas guardadas');

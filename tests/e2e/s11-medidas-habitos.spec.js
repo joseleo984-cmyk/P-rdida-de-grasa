@@ -24,29 +24,40 @@ const saveMed = async (p, date, vals) => {
   await p.getByRole('button', { name: 'Guardar mis medidas' }).click();
 };
 
-test('medidas: sin peso obligatorio, con decimales, gráfica por medida, tabla Inicio/Hoy/Cambio y validación', async ({ browser }, testInfo) => {
+test('medidas: peso, abdomen y cadera obligatorios en lo nuevo, con decimales, gráfica por medida, tabla Inicio/Hoy/Cambio y validación', async ({ browser }, testInfo) => {
   const { p, errors } = await clientApp(browser, testInfo);
   await p.locator('#tab-medidas').click();
   await expect(p.locator('#medidas-title')).toBeVisible();
   await H.layout(p); await H.tall(p, '#view-medidas');
   // Validaciones: vacío y fuera de rango
   await p.getByRole('button', { name: 'Guardar mis medidas' }).click();
-  await expect(p.locator('#medidas-error')).toHaveText('Escribe al menos una medida.');
-  await saveMed(p, D(-20), { neck: '99' });
+  await expect(p.locator('#medidas-error')).toHaveText('Faltan «Peso» (kg), «Abdomen» (cm) y «Cadera» (cm): son obligatorias.');
+  await saveMed(p, D(-20), { neck: '99', weight: '70', abdomen: '92', hip: '101' });
   await expect(p.locator('#medidas-error')).toContainText('Revisa «Cuello»: debe estar entre 15 y 80 cm');
   await p.locator('#form-medidas input[name=neck]').fill('');
-  // Dos días de medidas (sin peso), con coma decimal
-  await saveMed(p, D(-20), { neck: '34', armR: '29', armL: '28,5', back: '38', waist: '84', thighR: '58', thighL: '58' });
+  // Peso, abdomen y cadera: si falta alguno no deja guardar y dice cuál falta (aunque haya otras medidas)
+  await saveMed(p, D(-20), { neck: '34', waist: '84', weight: '', abdomen: '92', hip: '101' });
+  await expect(p.locator('#medidas-error')).toHaveText('Falta «Peso» (kg): es obligatoria.');
+  await expect(p.locator('#form-medidas input[name=weight]')).toBeFocused();
+  await saveMed(p, D(-20), { weight: '70', abdomen: '', hip: '101' });
+  await expect(p.locator('#medidas-error')).toHaveText('Falta «Abdomen» (cm): es obligatoria.');
+  await saveMed(p, D(-20), { abdomen: '92', hip: '' });
+  await expect(p.locator('#medidas-error')).toHaveText('Falta «Cadera» (cm): es obligatoria.');
+  await saveMed(p, D(-20), { weight: '', abdomen: '', hip: '' });
+  await expect(p.locator('#medidas-error')).toHaveText('Faltan «Peso» (kg), «Abdomen» (cm) y «Cadera» (cm): son obligatorias.');
+  expect((await p.evaluate(() => JSON.parse(localStorage.getItem('perdida-grasa:v1')))).entries).toEqual([]);   // nada se guardó
+  // Dos días de medidas, con coma decimal
+  await saveMed(p, D(-20), { weight: '70', neck: '34', armR: '29', armL: '28,5', back: '38', waist: '84', abdomen: '92', hip: '101', thighR: '58', thighL: '58' });
   await expect(p.locator('#toast')).toHaveText('Medidas guardadas');
-  await saveMed(p, D(0), { neck: '33,5', armR: '28', armL: '27,5', back: '37', waist: '80', thighR: '56', thighL: '56,5' });
+  await saveMed(p, D(0), { weight: '68,5', neck: '33,5', armR: '28', armL: '27,5', back: '37', waist: '80', abdomen: '88', hip: '99', thighR: '56', thighL: '56,5' });
   await expect(p.locator('#toast')).toHaveText('Medidas guardadas');
   const st = await p.evaluate(() => JSON.parse(localStorage.getItem('perdida-grasa:v1')));
   expect(st.schemaVersion).toBe(5);
-  expect(st.entries.map((e) => [e.date, e.weight, e.neck, e.armL, e.thighL])).toEqual([[D(-20), undefined, 34, 28.5, 58], [D(0), undefined, 33.5, 27.5, 56.5]]);
+  expect(st.entries.map((e) => [e.date, e.weight, e.abdomen, e.hip, e.neck, e.armL, e.thighL])).toEqual([[D(-20), 70, 92, 101, 34, 28.5, 58], [D(0), 68.5, 88, 99, 33.5, 27.5, 56.5]]);
   // Tabla (como la maqueta M2) y cambios en verde cuando bajan
   const rows = await p.locator('#medidas-table tbody tr').allInnerTexts();
-  expect(rows.map((r) => r.replace(/\s+/g, ' ').trim())).toEqual(['Cuello 34 33,5 −0,5', 'Brazo der. 29 28 −1', 'Brazo izq. 28,5 27,5 −1', 'Espalda 38 37 −1', 'Cintura 84 80 −4', 'Muslo der. 58 56 −2', 'Muslo izq. 58 56,5 −1,5']);
-  await expect(p.locator('#medidas-table tbody tr').first().locator('td.dn')).toHaveText('−0,5');
+  expect(rows.map((r) => r.replace(/\s+/g, ' ').trim())).toEqual(['Peso 70 68,5 −1,5', 'Cuello 34 33,5 −0,5', 'Brazo der. 29 28 −1', 'Brazo izq. 28,5 27,5 −1', 'Espalda 38 37 −1', 'Cintura 84 80 −4', 'Abdomen 92 88 −4', 'Cadera 101 99 −2', 'Muslo der. 58 56 −2', 'Muslo izq. 58 56,5 −1,5']);
+  await expect(p.locator('#medidas-table tbody tr').first().locator('td.dn')).toHaveText('−1,5');
   // Gráfica sencilla por medida
   await p.locator('#medidas-pick button', { hasText: 'Cintura' }).click();
   await expect(p.locator('#medidas-pick button[aria-pressed=true]')).toHaveText('Cintura');
@@ -56,15 +67,18 @@ test('medidas: sin peso obligatorio, con decimales, gráfica por medida, tabla I
   await expect(p.locator('#medidas-chart-sub')).toHaveText('Cintura: inicio 84 cm · hoy 80 cm · cambio −4 cm');
   await p.locator('#medidas-pick button', { hasText: 'Cuello' }).click();
   await expect(p.locator('#medidas-chart svg')).toHaveAttribute('aria-label', /^Cuello: de 34 cm a 33,5 cm/);
+  await p.locator('#medidas-pick button', { hasText: 'Peso' }).click();   // el peso va en kg
+  await expect(p.locator('#medidas-chart svg')).toHaveAttribute('aria-label', 'Peso: de 70 kg a 68,5 kg en 2 registros');
+  await expect(p.locator('#medidas-chart-sub')).toHaveText('Peso: inicio 70 kg · hoy 68,5 kg · cambio −1,5 kg');
   await H.layout(p); await H.shot(p, 's11-medidas-cliente.png', { fullPage: true });
-  // Mismo día: se actualiza el registro y se suma lo que falta
-  await saveMed(p, D(0), { neck: '33' });
+  // Mismo día: se actualiza el registro y se suma lo que falta (ese día ya tiene peso, abdomen y cadera: no se vuelven a exigir)
+  await saveMed(p, D(0), { weight: '', abdomen: '', hip: '', neck: '33' });
   await expect(p.locator('#toast')).toHaveText('Medidas actualizadas');
   await expect(p.locator('#medidas-history li')).toHaveCount(2);
   // Llega al servidor (al día): el coach las verá
   await expect.poll(async () => Object.values((await H.backend(p)).records).filter((r) => r.kind === 'entry').length).toBe(2);
   const srv = Object.values((await H.backend(p)).records).find((r) => r.nkey === D(0));
-  expect(srv.data).toMatchObject({ neck: 33, armR: 28, thighL: 56.5 });
+  expect(srv.data).toMatchObject({ weight: 68.5, abdomen: 88, hip: 99, neck: 33, armR: 28, thighL: 56.5 });
   // Borrar un registro
   await p.locator('#medidas-history li').first().getByRole('button').click();
   await expect(p.locator('#medidas-history li')).toHaveCount(1);
@@ -143,7 +157,8 @@ test('ficha del coach: medidas Inicio/Hoy/Cambio, hábitos de la semana con barr
   await expect(c.locator('#coach-detail-pay-line')).toHaveText('Pagó hasta el 5 nov · vence en 15 días');
   await expect(c.locator('#btn-detail-pay')).toHaveText('Pagó');
   const med = (await c.locator('#coach-detail-medidas tbody tr').allInnerTexts()).map((x) => x.replace(/\s+/g, ' ').trim());
-  expect(med).toEqual(['Cuello 34 33,5 −0,5', 'Brazo der. 29 28 −1', 'Brazo izq. 28,5 27,5 −1', 'Espalda 38 37 −1', 'Cintura 84 80 −4', 'Muslo der. 58 56 −2', 'Muslo izq. 58 56,5 −1,5']);
+  // Registros viejos (sin peso, abdomen ni cadera): exentos, quedan con «—»
+  expect(med).toEqual(['Peso — — —', 'Cuello 34 33,5 −0,5', 'Brazo der. 29 28 −1', 'Brazo izq. 28,5 27,5 −1', 'Espalda 38 37 −1', 'Cintura 84 80 −4', 'Abdomen — — —', 'Cadera — — —', 'Muslo der. 58 56 −2', 'Muslo izq. 58 56,5 −1,5']);
   await expect(c.locator('#coach-detail-medidas td.dn').first()).toBeVisible();
   const hb = (await c.locator('#coach-detail-habits .habit').allInnerTexts()).map((x) => x.replace(/\s+/g, ' ').trim());
   expect(hb).toEqual(['Agua 3 de 7 días', 'Pasos 3 de 7 días', 'Durmió 7 h o más 3 de 7 días', 'Entrenó 2 de 7 días']);
@@ -159,7 +174,7 @@ test('ficha del coach: medidas Inicio/Hoy/Cambio, hábitos de la semana con barr
   await rows.filter({ hasText: 'Juan Gómez' }).locator('.cli-main').click();
   await expect(c.locator('#coach-detail-habits-line')).toContainText('Juan Gómez todavía no comparte sus hábitos');
   await expect(c.locator('#coach-detail-habits .habit')).toHaveCount(0);
-  await expect(c.locator('#coach-detail-medidas tbody tr').first()).toHaveText('Cuello3434—');
+  await expect(c.locator('#coach-detail-medidas tbody tr').nth(1)).toHaveText('Cuello3434—');
   await H.shot(c, 's11-coach-ficha-sin-habitos.png', { fullPage: true });
   expect(coach.errors).toEqual([]);
 });

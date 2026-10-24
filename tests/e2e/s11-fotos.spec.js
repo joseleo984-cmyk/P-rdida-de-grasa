@@ -56,13 +56,13 @@ test('cliente: fotos bloqueadas hasta A6a; sube a la nube; el coach solo las ve 
   // El coach todavía no puede ver ninguna: no hay A6b ni el vínculo comparte fotos
   await expect(p.locator('#photos-coach-card')).toBeVisible();
   await expect(p.locator('#photos-coach-state')).toContainText('todavía no puede ver tus fotos');
-  await expect(p.locator('#photos-a6b-text')).toContainText('Autorizo que Laura Fit vea las fotos de progreso que yo suba');
+  await expect(p.locator('#photos-a6b-text')).toContainText('Autorizo que Laura Fit acceda a las fotos de progreso que he subido y a las que suba a partir de este momento');
   await H.shot(p, 's11-fotos-cliente.png', { fullPage: true });
   await p.getByRole('button', { name: 'Permitir que Laura Fit vea mis fotos' }).click();
   await expect(p.locator('#photos-coach-state')).toContainText('Laura Fit puede ver tus fotos');
   const be1 = await H.backend(p);
   const a6b = be1.consentEvents.filter((e) => e.kind === 'photo_view_coach').pop();
-  expect([a6b.granted, a6b.version]).toEqual([true, '0.3-A6b-coach']);
+  expect([a6b.granted, a6b.version]).toEqual([true, '0.4-A6b-coach']);
   expect(Object.values(be1.links).find((l) => l.status === 'active').shares.photos).toBe(true);
   // Al dar el permiso, las fotos que ya estaban pasan a verse (sin marcar una por una); la persona puede ocultar UNA: la de hoy
   await expect.poll(() => photosInServer(p).then((x) => x.filter((y) => y.shared).length)).toBe(2);

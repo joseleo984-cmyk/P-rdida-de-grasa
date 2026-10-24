@@ -344,6 +344,7 @@
         for (const k of Object.keys(be.records)) if (k.startsWith(u.id + '|')) delete be.records[k];
         for (const [id, p] of Object.entries(be.photos)) if (p.userId === u.id) delete be.photos[id];
         for (const [id, c] of Object.entries(be.comments)) if (c.clientId === u.id || c.coachId === u.id) delete be.comments[id];
+        be.photoViews = be.photoViews.filter((v) => v.clientId !== u.id && v.coachId !== u.id);   // FK en cascada, como grasa.photo_views
         for (const [id, g] of Object.entries(be.gifs)) if (g.coachId === u.id) delete be.gifs[id];
         for (const [k, r] of Object.entries(be.routines)) if (r.coachId === u.id || r.clientId === u.id) delete be.routines[k];
         for (const [k, t] of Object.entries(be.templates)) if (t.coachId === u.id) delete be.templates[k];
@@ -574,6 +575,13 @@
         const g = be.gifs[gifId];
         if (!l || l.coachId !== coachId || !be.coaches[coachId] || !be.coaches[coachId].active || !g || g.coachId !== coachId) fail('not_found', 'Animación no encontrada');
         return new Blob([fromB64(g.b64)], { type: g.mime });
+      },
+      // Bitácora «Quién vio mis fotos» (r1 v1.10, grasa.my_photo_views): SOLO las aperturas de sus fotos, las 100 más recientes primero. Sin conexión falla como el resto.
+      async photoViews() {
+        const u = await authed();
+        return be.photoViews.filter((v) => v.clientId === u.id)
+          .sort((a, b) => Date.parse(b.viewedAt) - Date.parse(a.viewedAt) || (a.id < b.id ? 1 : -1)).slice(0, 100)
+          .map((v) => { const p = be.photos[v.photoId], c = be.coaches[v.coachId]; return { id: v.id, viewedAt: v.viewedAt, photoId: v.photoId, photoDate: p ? p.date : null, pose: p ? p.pose : null, coachName: c ? c.businessName : '' }; });
       },
       async setPhotoShared(photoId, shared) {
         const u = await authed();

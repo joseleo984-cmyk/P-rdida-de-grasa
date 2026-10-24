@@ -6,7 +6,12 @@
 // Uso: npm run build:funcion      (o `node scripts/build-funcion-acuerdo.js --check` para comprobar que están al día)
 const fs = require('fs');
 const path = require('path');
+// Los textos del acuerdo del producto «coach» (consent-texts-solo.js) solo existen con ese producto: se simula aquí para que la función
+// de borde conozca TODAS las versiones que un coach pudo aceptar (0.3-A7 de siempre y la 0.4-A7-coach con la cláusula 13).
+globalThis.PG_CONFIG = { producto: 'coach', soloNube: true };
+globalThis.Producto = require('../producto.js');
 const CT = require('../consent-texts.js');
+require('../consent-texts-solo.js');
 
 const ROOT = path.join(__dirname, '..');
 const FN = path.join(ROOT, 'supabase', 'functions');
@@ -15,7 +20,7 @@ const OUT_BUNDLE = path.join(FN, 'acuerdo-coach-copia', 'pegar-en-el-panel.ts');
 
 function textos() {
   const body = JSON.stringify(CT.agreementTexts(), null, 2);
-  return `// GENERADO por scripts/build-funcion-acuerdo.js a partir de consent-texts.js: NO editar a mano (npm run build:funcion).\n// versión → texto exacto del Acuerdo del coach (A7), el que se muestra y cuyo SHA-256 se registra al aceptar.\nexport const TEXTOS = ${body};\n`;
+  return `// GENERADO por scripts/build-funcion-acuerdo.js a partir de consent-texts.js y consent-texts-solo.js: NO editar a mano (npm run build:funcion).\n// versión → texto exacto del Acuerdo del coach (A7), el que se muestra y cuyo SHA-256 se registra al aceptar.\nexport const TEXTOS = ${body};\n`;
 }
 
 // Une los módulos en un solo archivo: quita los imports locales y los `export`; deja los imports externos arriba.

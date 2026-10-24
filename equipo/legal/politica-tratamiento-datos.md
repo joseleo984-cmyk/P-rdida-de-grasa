@@ -151,11 +151,20 @@ Cuando la app tenga **cuentas e inicio de sesión**, esta política se reemplaza
 - **Registro de autorizaciones** en el servidor que no se puede modificar, como prueba ante ti y ante la SIC.
 - **Eliminación de cuenta** desde la app, con borrado en el servidor en un plazo definido.
 
+## Adenda 24/10/2026
+
+Esta adenda se **añade** a la política y no reemplaza ningún apartado anterior. Es el texto aprobado por la asesoría jurídica el 24 de octubre de 2026 para el producto con cuentas, comidas y medidas ampliadas.
+
+§6. Categorías de Datos Sensibles Recolectados: Se recolectan y tratan medidas antropométricas corporales (incluyendo peso, cuello, brazos, espalda, cintura, abdomen, cadera y muslos) y registros descriptivos de ingestas alimentarias con estimación de aporte calórico aproximado provisto por catálogo de referencia.
+
+§7.1. Finalidad y Alcance Técnico: Las estimaciones calóricas y los registros de comidas se procesan con fines exclusivos de autogestión y seguimiento de hábitos deportivos. La plataforma no ofrece asesoría nutricional, prescripción dietética ni diagnóstico clínico. Las cifras del catálogo son aproximaciones referenciales y no reemplazan la consulta con profesionales de la salud.
+
 ## Historial de versiones
 
 | Versión | Fecha | Cambio |
 |---|---|---|
 | 0.1 | 2026-10-21 | Primer borrador (describía la versión con servidor) |
 | 0.1 (edición piloto, rev. 2) | 2026-10-21 | Describe solo la fase piloto sin servidor (datos en el teléfono, envío por WhatsApp, coach como encargado). Supabase y la transmisión internacional pasan a §13 (R1). La versión se subirá cuando el abogado apruebe el texto definitivo. |
+| 0.1 (edición piloto, rev. 3) | 2026-10-24 | **Adenda 24/10/2026**: se añaden, literales, los párrafos §6 (categorías de datos sensibles: medidas y comidas) y §7.1 (finalidad y alcance técnico) del concepto jurídico del 24 de octubre de 2026. No se borra nada anterior. Sin cambio del número de versión (aún no es el texto definitivo). |
 
 *NOTA de versión para Dev: el test tests/legal.test.js exige que la Versión de este archivo coincida con LEGAL_VERSIONS en schema.js (hoy 0.1). Cuando el abogado apruebe el texto definitivo, para subir la versión hay que cambiar a la vez este archivo, LEGAL_VERSIONS, LEGAL_CHANGES (resumen de cambios para la re-aceptación) y la expectativa de buildConsent en el test.*

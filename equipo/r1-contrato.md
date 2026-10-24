@@ -812,3 +812,17 @@ Una sola migración aditiva e idempotente: `supabase/migrations/20261027120000_r
 **App / Remote (sin cambios de interfaz):** `uploadGif(file, name)` y `gifBlob(...)` aceptan los videos; `rutinas.js`: `checkGif` (tipo, tamaño por tipo, firma; mensajes en español), `checkDuration(segundos)`, `isVideo`, `maxBytes`, `ACCEPT`, `LIMITS.videoBytes` y `LIMITS.videoSeconds`. Mensajes: «Ese video pesa X MB; el máximo es 10 MB.», «Esa animación pesa X MB; el máximo es 3 MB.», «Ese video dura X s; el máximo son 15.», «Ese tipo de archivo no sirve…».
 
 **Compatibilidad:** el SQL se aplica antes que la app; la app vieja (v1.8) sigue subiendo y leyendo GIF/WebP. Con la app nueva y SQL viejo, subir un video falla en `register_gif` con `invalid` (solo GIF o WebP).
+
+## 19. Cambios v1.10 (textos legales del 24/10/2026: bitácora «Quién vio mis fotos»; medidas con peso, abdomen y cadera)
+
+Una sola migración aditiva e idempotente: `supabase/migrations/20261028120000_r1_bitacora_fotos.sql` (regenera `supabase/r1.sql`). Pruebas: `supabase/tests/140_bitacora_fotos.test.sql` (nueva; incluye aplicar la migración dos veces con `\ir`) y la lista blanca de `60_qa_seguridad`. Detalle y pasos: `equipo/handoffs/legal-textos.md`.
+
+| # | Cambio | Error / resultado |
+|---|---|---|
+| 19.1 | `grasa.my_photo_views(p_limit int default 100)` (SECURITY DEFINER, `search_path` fijo; solo `authenticated`): devuelve `id, viewed_at, photo_id, photo_date, pose, coach_name` de las filas de `grasa.photo_views` con `client_id = auth.uid()`, la más reciente primero, **máx. 100** (`p_limit` se acota a 1–100; `null` = 100). `photo_date`, `pose` y `coach_name` pueden ser `null` si la foto o el coach ya no existen. Sigue disponible tras terminar el vínculo y con el acceso en pausa. | `auth` (sin sesión) · anónimo: `permission denied` |
+| 19.2 | **Sin SQL para las medidas:** peso (`weight`), abdomen (`abdomen`, nuevo) y cadera (`hip`) viajan dentro de `data` (jsonb, ≤ 4 KB) del registro `entry`, como el resto de medidas; el servidor no valida campos. La obligatoriedad (peso, abdomen y cadera en lo NUEVO) es regla del formulario de la app; los registros viejos y el historial importado quedan exentos. | |
+| 19.3 | `core.consent_is_granted` y las funciones del coach NO miran la versión del texto aceptado (siempre fue así): que una versión nueva de A6b o A7 «exija volver a aceptar» lo impone la app (A7: bloquea Asesorados/Invitar hasta aceptar; A6b: retira el permiso anterior al ver una versión vieja). | límite conocido |
+
+**Remote (real y fake):** `client.photoViews()` → `[{ id, viewedAt, photoId, photoDate, pose, coachName }]` (las 100 más recientes).
+
+**Compatibilidad:** el SQL se aplica antes que la app; con la app nueva y SQL viejo la bitácora muestra un error de red amable (la función no existe) y nada más se rompe.

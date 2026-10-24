@@ -9,9 +9,39 @@ const E = [
   { id: 'b', date: '2026-10-01', neck: 33.5, armR: 28, waist: 80 },
   { id: 'c', date: '2026-10-20', weight: 70 },
 ];
-test('las 7 medidas de la maqueta, en su orden', () => {
-  assert.deepStrictEqual(M.MEASURES.map((m) => m.label), ['Cuello', 'Brazo der.', 'Brazo izq.', 'Espalda', 'Cintura', 'Muslo der.', 'Muslo izq.']);
-  assert.deepStrictEqual(M.KEYS, ['neck', 'armR', 'armL', 'back', 'waist', 'thighR', 'thighL']);
+test('las 7 medidas de la maqueta siguen en su orden, ahora con peso al inicio y abdomen y cadera junto a la cintura', () => {
+  assert.deepStrictEqual(M.MEASURES.map((m) => m.label), ['Peso', 'Cuello', 'Brazo der.', 'Brazo izq.', 'Espalda', 'Cintura', 'Abdomen', 'Cadera', 'Muslo der.', 'Muslo izq.']);
+  assert.deepStrictEqual(M.KEYS, ['weight', 'neck', 'armR', 'armL', 'back', 'waist', 'abdomen', 'hip', 'thighR', 'thighL']);
+  assert.deepStrictEqual(M.KEYS.filter((k) => !['weight', 'abdomen', 'hip'].includes(k)), ['neck', 'armR', 'armL', 'back', 'waist', 'thighR', 'thighL'], 'las otras siete, como estaban');
+  assert.deepStrictEqual(M.REQUIRED, ['weight', 'abdomen', 'hip']);
+  assert.deepStrictEqual([M.unitOf('weight'), M.unitOf('abdomen'), M.unitOf('hip'), M.unitOf('neck')], ['kg', 'cm', 'cm', 'cm']);
+});
+test('missing / missingText: solo peso, abdomen y cadera son obligatorios; lo que ya tiene el registro de ese día no se vuelve a exigir', () => {
+  assert.deepStrictEqual(M.missing({ neck: 34 }).map((m) => m.key), ['weight', 'abdomen', 'hip']);
+  assert.deepStrictEqual(M.missing({ weight: 70, abdomen: 90 }).map((m) => m.key), ['hip']);
+  assert.deepStrictEqual(M.missing({ weight: 70, abdomen: 90, hip: 100 }), []);
+  assert.deepStrictEqual(M.missing({ hip: 100 }, { weight: 70, abdomen: 90 }), [], 'el registro del día ya los tiene');
+  assert.deepStrictEqual(M.missing({}, { date: '2026-10-01', weight: 70 }).map((m) => m.key), ['abdomen', 'hip']);
+  assert.strictEqual(M.missingText(M.missing({ weight: 70, hip: 100 })), 'Falta «Abdomen» (cm): es obligatoria.');
+  assert.strictEqual(M.missingText(M.missing({})), 'Faltan «Peso» (kg), «Abdomen» (cm) y «Cadera» (cm): son obligatorias.');
+  assert.strictEqual(M.missingText([]), '');
+});
+test('el historial importado y los registros viejos (sin peso, abdomen ni cadera) siguen siendo válidos en el esquema', () => {
+  const { state, warnings } = Schema.normalize({ schemaVersion: 5, entries: [
+    { id: '11111111-1111-4111-8111-111111111111', date: '2026-09-01', neck: 34 },
+    { id: '22222222-2222-4222-8222-222222222222', date: '2026-09-02', abdomen: 91.5 },
+    { id: '33333333-3333-4333-8333-333333333333', date: '2026-09-03', weight: 70, abdomen: 5 },
+  ], foods: {}, habits: {}, library: {} });
+  assert.deepStrictEqual(state.entries.map((e) => [e.date, e.weight, e.abdomen]), [['2026-09-01', undefined, undefined], ['2026-09-02', undefined, 91.5], ['2026-09-03', 70, undefined]]);
+  assert.ok(warnings.some((w) => /abdomen/.test(w)), 'un abdomen fuera de rango (5 cm) se descarta con aviso');
+  assert.deepStrictEqual(Schema.RANGES.abdomen, [30, 250]);
+});
+test('summary con peso (kg), abdomen y cadera: inicio, hoy y cambio con su unidad', () => {
+  const rows = M.summary([{ id: 'a', date: '2026-09-01', weight: 80, abdomen: 100, hip: 105 }, { id: 'b', date: '2026-10-01', weight: 78.5, abdomen: 96, hip: 104 }]);
+  const r = Object.fromEntries(rows.map((x) => [x.key, x]));
+  assert.deepStrictEqual([r.weight.unit, r.weight.startText, r.weight.todayText, r.weight.changeText], ['kg', '80', '78,5', '−1,5']);
+  assert.deepStrictEqual([r.abdomen.changeText, r.hip.changeText, r.abdomen.unit], ['−4', '−1', 'cm']);
+  assert.match(M.chartLabel('Peso', M.chart(M.series([{ date: '2026-09-01', weight: 80 }, { date: '2026-10-01', weight: 78.5 }], 'weight')), 'kg'), /^Peso: de 80 kg a 78,5 kg en 2 registros$/);
 });
 test('series: ordenada y sin registros que no la traen', () => {
   assert.deepStrictEqual(M.series([...E].reverse(), 'neck'), [{ date: '2026-09-01', value: 34 }, { date: '2026-10-01', value: 33.5 }]);
@@ -36,7 +66,7 @@ test('chart: línea dentro del lienzo; un punto = punto centrado; sin datos = nu
   assert.strictEqual(M.chart([]), null);
   assert.match(M.chartLabel('Cuello', c), /de 34 cm a 33,5 cm/);
 });
-test('Schema v5: guarda las medidas nuevas, el peso no es obligatorio y los rangos se respetan', () => {
+test('Schema v5: guarda las medidas nuevas, el peso no es obligatorio en el esquema y los rangos se respetan', () => {
   const { state, warnings } = Schema.normalize({ schemaVersion: 5, entries: [
     { id: '11111111-1111-4111-8111-111111111111', date: '2026-10-01', armR: 29.5, armL: 28, back: 38, thighR: 58, thighL: 57.5 },
     { id: '22222222-2222-4222-8222-222222222222', date: '2026-10-02', armR: 500 },

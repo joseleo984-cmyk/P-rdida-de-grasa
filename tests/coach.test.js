@@ -91,3 +91,16 @@ test('Resumen: copia vacía o sin perfil no lanza', () => {
   assert.strictEqual(r2.weight.change, -1);
   assert.throws(() => Coach.summarize(s), /referencia/);
 });
+
+test('CSV: la columna «Abdomen (cm)» solo aparece si algún registro trae abdomen (la app oficial sigue igual), tras «Cintura»', () => {
+  const base = fixtureState();
+  const official = parse(Coach.toCSV(base))[0].map((h) => h.replace(/"/g, ''));
+  assert.deepStrictEqual(official, Coach.CSV_HEADERS, 'sin abdomen, las cabeceras de siempre');
+  const s = { ...base, entries: [...base.entries, { id: 'zz', date: '2026-10-30', weight: 70, waist: 80, abdomen: 91.5, hip: 100 }] };
+  const rows = parse(Coach.toCSV(s));
+  const head = rows[0].map((h) => h.replace(/"/g, ''));
+  assert.deepStrictEqual(head, [...Coach.CSV_HEADERS.slice(0, 3), 'Abdomen (cm)', ...Coach.CSV_HEADERS.slice(3)]);
+  const last = rows.find((r) => r[0] === '2026-10-30');
+  assert.deepStrictEqual([last[1], last[2], last[3], last[5]], ['70', '80', '91,5', '100'], 'peso, cintura, abdomen y cadera');
+  assert.strictEqual(rows.slice(1).find((r) => r[0] !== '2026-10-30')[3], '', 'los días viejos quedan con el abdomen vacío');
+});

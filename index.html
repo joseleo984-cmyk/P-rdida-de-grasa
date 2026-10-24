@@ -181,6 +181,7 @@
             <p id="acc-business-help" class="small muted">Es el nombre que verán tus clientes cuando usen tu código (de 2 a 60 letras).</p>
             <div class="acc-share" id="acc-a7-box">
               <p class="small" id="acc-a7-intro"></p>
+              <p class="small a7-clause hidden" id="acc-a7-clause"></p>
               <div class="auth-row"><label class="check"><input type="checkbox" name="a7" id="acc-a7"> <span id="acc-a7-text"></span></label><span class="auth-links" id="acc-a7-links"></span></div>
             </div>
           </div>
@@ -407,7 +408,7 @@
       </div>
     </section>
 
-    <!-- Sprint 11 (producto 'coach'): MEDIDAS de cuerpo del cliente (tipo sastre; sin peso obligatorio) -->
+    <!-- Sprint 11 (producto 'coach'): MEDIDAS de cuerpo del cliente (tipo sastre; peso, abdomen y cadera obligatorios en lo nuevo) -->
     <section id="view-medidas" class="view" aria-labelledby="medidas-title">
       <h2 id="medidas-title" class="view-title" tabindex="-1">Mis medidas</h2>
       <p class="pause-banner" role="note">Tu acceso está en pausa: por ahora solo puedes ver tus datos.</p>
@@ -415,15 +416,18 @@
         <h2>Registrar mis medidas</h2>
         <form id="form-medidas" class="grid-form" novalidate>
           <label class="span-2">Fecha<input type="date" name="date" required></label>
+          <label>Peso (kg)<small class="req">Obligatorio</small><input type="text" name="weight" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
           <label>Cuello (cm)<input type="text" name="neck" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
           <label>Brazo derecho (cm)<input type="text" name="armR" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
           <label>Brazo izquierdo (cm)<input type="text" name="armL" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
           <label>Espalda (cm)<input type="text" name="back" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
           <label>Cintura (cm)<input type="text" name="waist" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
+          <label>Abdomen (cm)<small class="req">Obligatorio</small><input type="text" name="abdomen" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
+          <label>Cadera (cm)<small class="req">Obligatorio</small><input type="text" name="hip" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
           <label>Muslo derecho (cm)<input type="text" name="thighR" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
           <label>Muslo izquierdo (cm)<input type="text" name="thighL" inputmode="decimal" autocomplete="off" pattern="[0-9]+([.,][0-9])?" placeholder=""></label>
           <p id="medidas-error" class="span-2 acc-error hidden" role="alert"></p>
-          <div class="span-2 form-actions"><button class="btn btn-tall" type="submit">Guardar mis medidas</button><span class="muted small">Con decimales, por ejemplo 33,5. Si no mides alguna, déjala en blanco.</span></div>
+          <div class="span-2 form-actions"><button class="btn btn-tall" type="submit">Guardar mis medidas</button><span class="muted small">Peso, abdomen y cadera son obligatorios. Con decimales, por ejemplo 33,5. Las demás, si no las mides, déjalas en blanco.</span></div>
         </form>
       </div>
       <div class="card">
@@ -574,8 +578,16 @@
         <p id="photos-coach-error" class="acc-error hidden" role="alert"></p>
         <button type="button" class="btn btn-ghost btn-tall" id="btn-photos-coach"></button>
       </div>
+      <!-- Textos legales 24/10/2026 (producto coach): la bitácora que promete el texto A6b y la entrada a ella -->
+      <div class="card pc-only hidden" id="photos-log-card">
+        <h2>Quién vio mis fotos</h2>
+        <p class="small">Cada vez que tu coach abre una de tus fotos queda anotado aquí, con la fecha y la hora.</p>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-fotovistas">Ver quién vio mis fotos</button>
+      </div>
       <div class="card">
         <h2>Nueva foto de progreso</h2>
+        <!-- Aviso prominente exigido por el abogado (concepto 24/10/2026, punto 3.3). NO es un texto de consentimiento: no lleva huella. Solo con el permiso A6b vigente. -->
+        <p class="notice-photos hidden" id="photo-share-notice" role="note">Cada foto que guardes será visible para tu coach de forma automática. Puedes ocultar una foto abriéndola o quitar el permiso en cualquier momento.</p>
         <form id="form-photo" class="grid-form">
           <label>Fecha<input type="date" name="date" required></label>
           <label>Pose
@@ -585,7 +597,7 @@
               <option value="espalda">Espalda</option>
             </select>
           </label>
-          <label class="span-2">Foto<input type="file" name="file" accept="image/*" required></label>
+          <label class="span-2"><span id="photo-file-text">Foto</span><small class="pc-only" id="photo-file-help">Elige de tu galería o toca «Tomar foto» para usar la cámara</small><input type="file" name="file" accept="image/*" required></label>
           <div class="span-2 form-actions">
             <button class="btn" type="submit">Guardar foto</button>
             <span class="muted small">Para comparar mejor: misma luz, mismo lugar y misma hora, cada 2–4 semanas.</span>
@@ -616,11 +628,24 @@
       </div>
     </section>
 
+    <!-- Textos legales 24/10/2026 (producto coach): QUIÉN VIO MIS FOTOS. Bitácora del cliente: cada vez que su coach abrió una foto (r1 v1.10, grasa.my_photo_views). -->
+    <section id="view-fotovistas" class="view" aria-labelledby="fotovistas-title">
+      <div class="back-row"><button type="button" class="btn-link back-btn" data-goto="fotos">← Fotos</button><h2 class="back-title" id="fotovistas-title" tabindex="-1">Quién vio mis fotos</h2></div>
+      <div class="card">
+        <p class="small">Aquí aparece cada vez que tu coach abrió una de tus fotos: cuándo, cuál y quién. Se muestran las 100 más recientes.</p>
+        <p id="fv-status" class="small muted" role="status" aria-live="polite"></p>
+        <ul id="fv-list" class="fv-list"></ul>
+        <p id="fv-empty" class="muted hidden">Nadie ha mirado tus fotos todavía.</p>
+        <button type="button" class="btn btn-ghost btn-tall hidden" id="btn-fv-retry">Volver a intentar</button>
+      </div>
+    </section>
+
     <!-- S3-4: PANEL DEL COACH (solo rol coach; datos de clientes solo en memoria) -->
     <section id="view-coach" class="view" aria-labelledby="tab-coach">
       <div class="card a7-gate hidden" role="region" aria-label="Acuerdo del coach">
         <h2 class="a7-title" tabindex="-1">Antes de ver a tus clientes</h2>
         <p class="small a7-intro"></p>
+        <p class="small a7-clause hidden"></p>
         <form class="a7-form" novalidate>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
           <p class="acc-error a7-error hidden" role="alert"></p>
@@ -742,6 +767,7 @@
       <div class="card a7-gate hidden" role="region" aria-label="Acuerdo del coach">
         <h2 class="a7-title" tabindex="-1">Antes de ver a tus clientes</h2>
         <p class="small a7-intro"></p>
+        <p class="small a7-clause hidden"></p>
         <form class="a7-form" novalidate>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
           <p class="acc-error a7-error hidden" role="alert"></p>
@@ -837,6 +863,13 @@
           <button type="button" class="btn btn-danger" id="btn-leave-coach">Dejar de compartir con mi coach</button>
         </div>
       </form>
+
+      <!-- Textos legales 24/10/2026 (producto coach): entrada a la bitácora desde Más → Mi coach. Oculta salvo en el producto coach. -->
+      <div class="card hidden" id="coach-log-card" data-pane="coach">
+        <h2>Quién vio mis fotos</h2>
+        <p class="small">Cada vez que tu coach abre una de tus fotos queda anotado, con la fecha y la hora.</p>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-fotovistas-coach">Ver quién vio mis fotos</button>
+      </div>
 
       <div class="card needs-health" data-pane="plan">
         <h2>Tu perfil</h2>
@@ -952,7 +985,7 @@
         <p class="small muted" id="gif-help">Sube un video corto (hasta 15 segundos y 10 MB) o un GIF liviano (hasta 3 MB) una sola vez y úsalo en todos los ejercicios y clientes que quieras. Los videos se ven solos, en bucle y sin sonido. No son datos de tus clientes: solo los ven tus asesorados.</p>
         <form id="form-gif" novalidate>
           <label class="acc-label" for="gif-file">Video o animación (MP4, MOV, WebM, GIF o WebP)</label>
-          <input type="file" id="gif-file" accept="image/gif,image/webp,video/mp4,video/quicktime,video/webm,.gif,.webp,.mp4,.mov,.webm" aria-describedby="gif-help">
+          <input type="file" id="gif-file" accept="image/gif,image/webp,video/*" aria-describedby="gif-help">
           <label class="acc-label" for="gif-name">Nombre</label>
           <input type="text" id="gif-name" maxlength="60" autocomplete="off" placeholder="Por ejemplo: Press de banca">
           <p id="gif-error" class="acc-error hidden" role="alert"></p>
@@ -1192,6 +1225,18 @@
         <button type="button" class="btn btn-ghost btn-tall" id="a8-export">Exportar mis datos</button>
         <button type="button" class="btn btn-danger btn-tall" id="a8-ok">Continuar</button>
         <button type="button" class="btn btn-tall" id="a8-cancel">Cancelar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Textos legales 24/10/2026 (producto coach, concepto punto 3.6): aviso previo a elegir el archivo de «Importar JSON». Texto LITERAL aprobado. -->
+  <dialog id="sheet-import" class="sheet" aria-labelledby="import-title">
+    <div class="sheet-head"><h2 id="import-title" tabindex="-1">Antes de importar tu historial:</h2></div>
+    <div class="a8-body">
+      <p id="import-text">Asegúrate de que el archivo contenga únicamente tus registros personales de peso, medidas corporales y fechas. No subas copias de historias clínicas, análisis de laboratorio, diagnósticos médicos ni datos de otras personas. Al continuar, confirmas que eres el titular legítimo de esta información y que la incorporas a tu cuenta bajo la Política de Tratamiento de Datos aceptada.</p>
+      <div class="row-actions a8-actions">
+        <button type="button" class="btn btn-tall" id="import-ok">Continuar</button>
+        <button type="button" class="btn btn-ghost btn-tall" id="import-cancel">Cancelar</button>
       </div>
     </div>
   </dialog>
