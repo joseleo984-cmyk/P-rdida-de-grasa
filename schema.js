@@ -17,7 +17,10 @@
   //   Un respaldo v5 no se puede abrir en una app de versión 4 (dice «versión más nueva»), como siempre.
   //   Producto «coach» (textos legales del 24/10/2026): se suma el abdomen (`abdomen`, cm), también OPCIONAL en el esquema. Es campo nuevo sin
   //   cambio de versión: un respaldo anterior es válido tal cual y la obligatoriedad de peso, abdomen y cadera es solo del formulario nuevo de Medidas.
-  const CURRENT_VERSION = 5;
+  // v6 (UX Etapa 1, producto «coach»): el hábito del día admite dos campos OPCIONALES: `effort` (cómo se sintió al entrenar: facil | normal | duro | no_termine)
+  //   y `close` (cierre del día de comidas: si | casi | no). Viajan dentro del mismo registro de hábitos que ya se sincroniza (jsonb sin columnas nuevas: sin SQL).
+  //   La migración v5→v6 no cambia ningún dato. Un respaldo v6 no se abre en una app v5 (dice «versión más nueva»), como siempre.
+  const CURRENT_VERSION = 6;
   const EPOCH = '1970-01-01T00:00:00.000Z';
 
   // Cada migración recibe el estado de la versión N-1 (y `ctx.uid`) y devuelve uno nuevo de la versión N (sin mutar).
@@ -26,6 +29,7 @@
     3: (s) => ({ ...s, consent: s.consent === undefined ? null : s.consent }),
     4: (s, ctx) => migrateTo4(s, ctx.uid),
     5: (s) => ({ ...s }),   // medidas nuevas opcionales en `entry`: nada que convertir
+    6: (s) => ({ ...s }),   // `effort` y `close` opcionales en el hábito del día: nada que convertir
   };
 
   // LEGAL-01: versiones vigentes de los textos legales (deben coincidir con "**Versión:**" de los .md;
@@ -36,6 +40,8 @@
   const AGE_MIN = 18;
   const AGE_UNDER_MSG = `Esta app es solo para personas de ${AGE_MIN} años o más. Si escribiste mal tu edad, corrígela; si eres menor de edad, por ahora no podemos guardar tu perfil.`;
 
+  const EFFORTS = ['facil', 'normal', 'duro', 'no_termine'];   // esfuerzo al entrenar (v6)
+  const CLOSES = ['si', 'casi', 'no'];                          // «¿Registraste todo lo de hoy?» (v6)
   const MEALS = ['Desayuno', 'Almuerzo', 'Cena', 'Snack'];
   const POSES = ['frente', 'perfil', 'espalda'];
   const ACTIVITY = [1.2, 1.375, 1.55, 1.725, 1.9];
@@ -302,6 +308,8 @@
       habits: normalizeByDate(raw.habits, 'Hábitos', warn, (h, d) => {
         if (!isObj(h)) { warn(`Hábitos ${d}: formato no válido, se descarta`); return undefined; }
         const out = { trained: h.trained === true };
+        if (EFFORTS.includes(h.effort)) out.effort = h.effort;
+        if (CLOSES.includes(h.close)) out.close = h.close;
         for (const k of ['steps', 'water', 'sleep']) {
           const v = num(h[k], RANGES[k]);
           if (Number.isNaN(v)) warn(`Hábitos ${d}: "${k}" no válido, se descarta`);
@@ -654,7 +662,7 @@
     return { foods: out, copied: copies.length, skipped };
   }
 
-  const api = { ENTRY_FIELDS, RANGES, AGE_MIN, AGE_UNDER_MSG, CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, normalizeStoredPhoto, isSafeKey,
+  const api = { ENTRY_FIELDS, RANGES, AGE_MIN, AGE_UNDER_MSG, CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, EFFORTS, CLOSES, normalizeStoredPhoto, isSafeKey,
     LEGAL_VERSIONS, normalizeConsent, consentStatus, buildConsent, setConsentFlag,
     EPOCH, uuid, isUUID, stampChanges, purgeDeleted, mergeRecords, toRecords, fromRecords, mergeState, clampStamp, MAX_SKEW_MS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

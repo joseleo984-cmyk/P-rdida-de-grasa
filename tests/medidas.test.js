@@ -77,14 +77,14 @@ test('Schema v5: guarda las medidas nuevas, el peso no es obligatorio en el esqu
   assert.strictEqual(state.entries[0].weight, undefined);
   assert.ok(warnings.some((w) => /armR/.test(w)) && warnings.some((w) => /sin medidas/.test(w)));
 });
-test('Schema v5: un respaldo v4 se migra sin cambiar ningún dato y un v6 se rechaza', () => {
+test('Schema v6: un respaldo v4 se migra sin cambiar ningún dato y un v7 se rechaza', () => {
   const v4 = { schemaVersion: 4, profile: null, entries: [{ id: '11111111-1111-4111-8111-111111111111', date: '2026-10-01', weight: 70, waist: 80, updatedAt: '2026-10-01T10:00:00.000Z' }], foods: {}, habits: {}, library: {}, deleted: { entries: [], foods: [], habits: [], photos: [] } };
   const m = Schema.migrate(v4);
-  assert.strictEqual(m.schemaVersion, 5);
+  assert.strictEqual(m.schemaVersion, 6);
   assert.deepStrictEqual(m.entries, v4.entries);
   const { state } = Schema.normalize(m);
   assert.deepStrictEqual(state.entries[0], v4.entries[0]);
-  assert.throws(() => Schema.migrate({ ...v4, schemaVersion: 6 }), /más nueva/);
+  assert.throws(() => Schema.migrate({ ...v4, schemaVersion: 7 }), /más nueva/);
 });
 test('las medidas nuevas viajan por la frontera de sincronización (data del entry)', () => {
   const Sync = require('../sync.js');
@@ -93,4 +93,24 @@ test('las medidas nuevas viajan por la frontera de sincronización (data del ent
   assert.deepStrictEqual(wire[0].data, { date: '2026-10-01', armR: 29.5 });
   const back = Sync.remoteState(wire);
   assert.strictEqual(back.entries[0].armR, 29.5);
+});
+
+test('Schema v6: esfuerzo y cierre del día son opcionales, se validan y viajan por la frontera de sincronización; un respaldo v5 los deja sin valor', () => {
+  const H = (h) => Schema.normalize({ schemaVersion: 6, entries: [], foods: {}, habits: { '2026-10-20': { id: '11111111-1111-4111-8111-111111111111', trained: true, updatedAt: '2026-10-20T10:00:00.000Z', ...h } }, library: {} }).state.habits['2026-10-20'];
+  assert.strictEqual(H({ effort: 'duro', close: 'casi' }).effort, 'duro');
+  assert.strictEqual(H({ effort: 'duro', close: 'casi' }).close, 'casi');
+  for (const e of ['facil', 'normal', 'duro', 'no_termine']) assert.strictEqual(H({ effort: e }).effort, e);
+  for (const c of ['si', 'casi', 'no']) assert.strictEqual(H({ close: c }).close, c);
+  assert.ok(!('effort' in H({ effort: 'extremo' })) && !('close' in H({ close: 'tal vez' })), 'los valores desconocidos se descartan');
+  assert.ok(!('effort' in H({})) && !('close' in H({})));
+  const v5 = Schema.migrate({ schemaVersion: 5, entries: [], foods: {}, habits: { '2026-10-20': { id: '11111111-1111-4111-8111-111111111111', trained: true, water: 2, updatedAt: '2026-10-20T10:00:00.000Z' } }, library: {} });
+  assert.strictEqual(v5.schemaVersion, 6);
+  assert.deepStrictEqual(v5.habits['2026-10-20'], { id: '11111111-1111-4111-8111-111111111111', trained: true, water: 2, updatedAt: '2026-10-20T10:00:00.000Z' });
+  const Sync = require('../sync.js');
+  const st = Schema.normalize({ schemaVersion: 6, entries: [], foods: {}, habits: { '2026-10-20': { id: '11111111-1111-4111-8111-111111111111', trained: true, effort: 'normal', close: 'si', updatedAt: '2026-10-20T10:00:00.000Z' } }, library: {} }).state;
+  const wire = Sync.toWire(st, {});
+  assert.deepStrictEqual(wire[0].data, { trained: true, effort: 'normal', close: 'si', date: '2026-10-20' });
+  const back = Sync.remoteState(wire);
+  assert.strictEqual(back.habits['2026-10-20'].effort, 'normal');
+  assert.strictEqual(back.habits['2026-10-20'].close, 'si');
 });
