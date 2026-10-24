@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Arma _site/ (app oficial en la raíz + copia de pruebas en _site/pruebas/). Uso: npm run build:site [-- --out dir]
-// - Raíz: config.js tal cual (vacío, solo local). NUNCA incluye la URL ni la clave de pruebas.
+// Arma _site/ (app oficial en la raíz + copia de pruebas en _site/pruebas/ + copia DEMO en _site/demo/). Uso: npm run build:site [-- --out dir]
+// - Raíz: config.js tal cual (vacío, solo local). NUNCA incluye la URL ni la clave de pruebas ni nada de la demo.
 // - /pruebas/: config.js generado desde config.pruebas.js, noindex en index.html y manifest propio.
-// - robots.txt en la raíz con Disallow de /P-rdida-de-grasa/pruebas/.
+// - /demo/: config.js generado desde config.demo.js (SIN url ni clave: servidor falso en el navegador, datos ficticios), noindex, manifest propio,
+//   y los archivos de la demo (demo.js, demo-data.js, demo.css, remote-fake.js) que SOLO existen aquí; su sw.js los precachea. Ver equipo/handoffs/demo.md.
+// - robots.txt en la raíz con Disallow de /P-rdida-de-grasa/pruebas/ y /P-rdida-de-grasa/demo/.
 const fs = require('fs');
 const path = require('path');
 
@@ -11,6 +13,7 @@ const arg = process.argv.indexOf('--out');
 const OUT = path.resolve(ROOT, arg > 0 ? process.argv[arg + 1] : '_site');
 const FILES = ['index.html', 'styles.css', 'ns.js', 'calc.js', 'schema.js', 'consent-texts.js', 'producto.js', 'consent-texts-solo.js', 'pagos.js', 'medidas.js', 'habitos.js', 'platos.js', 'rutinas.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'app.js', 'config.js',
   'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'rutinas-view.js', 'sw.js', 'manifest.webmanifest', 'icon.svg'];
+const DEMO_FILES = ['remote-fake.js', 'demo-data.js', 'demo.js', 'demo.css'];   // solo en /demo/
 const DIRS = [['legal', 'legal'], ['vendor/supabase-2.117.2.js', 'vendor/supabase-2.117.2.js']];
 const { checkCaptcha } = require('./check-conexion.js');
 const SITE_PATH = '/P-rdida-de-grasa/';
@@ -72,5 +75,37 @@ manifest.scope = './';
 fs.writeFileSync(path.join(P, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2) + '\n');
 checkComplete(P);
 
-fs.writeFileSync(path.join(OUT, 'robots.txt'), `User-agent: *\nDisallow: ${SITE_PATH}pruebas/\n`);
-console.log('build-site: ' + path.relative(ROOT, OUT) + '/ listo (raíz + pruebas/)');
+// --- copia DEMO: sin servidor, datos ficticios en el navegador ---
+const dcfg = read('config.demo.js');
+const dcode = dcfg.replace(/^\s*\/\/.*$/gm, '');   // sin los comentarios
+if (/supabase|sb_publishable_|sb_secret_|service_role|captchaSiteKey|https?:\/\//i.test(dcode)) die('config.demo.js no puede llevar ninguna url, clave ni captcha');
+if (!/env:\s*'demo'/.test(dcfg) || !/demo:\s*true/.test(dcfg)) die("config.demo.js debe definir env: 'demo' y demo: true");
+if (!/url:\s*''/.test(dcfg) || !/key:\s*''/.test(dcfg)) die("config.demo.js debe llevar url: '' y key: ''");
+const DM = path.join(OUT, 'demo');
+copyApp(DM);
+for (const f of DEMO_FILES) {
+  if (!fs.existsSync(path.join(ROOT, f))) die('falta ' + f);
+  fs.copyFileSync(path.join(ROOT, f), path.join(DM, f));
+}
+fs.writeFileSync(path.join(DM, 'config.js'), dcfg);
+let dhtml = fs.readFileSync(path.join(DM, 'index.html'), 'utf8');
+if (!dhtml.includes('<meta charset="utf-8">') || !dhtml.includes('<link rel="stylesheet" href="styles.css">') || !dhtml.includes('<script src="remote.js"></script>')) die('index.html no tiene los puntos donde inyectar la demo');
+dhtml = dhtml.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n  <meta name="robots" content="noindex,nofollow">')
+  .replace('<link rel="stylesheet" href="styles.css">', '<link rel="stylesheet" href="styles.css">\n  <link rel="stylesheet" href="demo.css">')
+  .replace('<script src="remote.js"></script>', '<script src="remote.js"></script>\n' + DEMO_FILES.filter((f) => f.endsWith('.js')).map((f) => `  <script src="${f}"></script>`).join('\n'))
+  .replace('<title>Pérdida de Grasa</title>', '<title>Pérdida de Grasa (demo)</title>');
+fs.writeFileSync(path.join(DM, 'index.html'), dhtml);
+let dsw = fs.readFileSync(path.join(DM, 'sw.js'), 'utf8');
+if (!dsw.includes('const ASSETS = [')) die('no se encontró ASSETS en sw.js');
+dsw = dsw.replace('const ASSETS = [', `const ASSETS = [${DEMO_FILES.map((f) => `'${f}'`).join(', ')}, `);
+fs.writeFileSync(path.join(DM, 'sw.js'), dsw);
+const dman = JSON.parse(read('manifest.webmanifest'));
+dman.name = 'Pérdida de Grasa (demo)';
+dman.short_name = 'Grasa (demo)';
+dman.start_url = './';
+dman.scope = './';
+fs.writeFileSync(path.join(DM, 'manifest.webmanifest'), JSON.stringify(dman, null, 2) + '\n');
+checkComplete(DM);
+
+fs.writeFileSync(path.join(OUT, 'robots.txt'), `User-agent: *\nDisallow: ${SITE_PATH}pruebas/\nDisallow: ${SITE_PATH}demo/\n`);
+console.log('build-site: ' + path.relative(ROOT, OUT) + '/ listo (raíz + pruebas/ + demo/)');

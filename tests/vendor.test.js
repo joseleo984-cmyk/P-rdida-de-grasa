@@ -40,7 +40,11 @@ test('vendor: se carga en index.html antes de remote.js, se precachea en sw.js y
   assert.ok(read('.github/workflows/pages.yml').includes('npm run build:site'), 'pages.yml no usa build:site');
   assert.ok(pages.includes(`vendor/${V.file}`), 'build-site.js no publica el vendor');
   assert.ok(/'sync\.js'/.test(pages), 'build-site.js no copia sync.js');
-  assert.ok(!/remote-fake\.js/.test(pages), 'el fake nunca se publica');
+  // El servidor falso solo se publica en la copia DEMO (/demo/, sin servidor real): una única mención en código, en DEMO_FILES; la raíz y /pruebas/ no lo llevan (tests/site.test.js).
+  const code = pages.split('\n').filter((l) => !/^\s*\/\//.test(l));
+  const mentions = code.filter((l) => /remote-fake\.js/.test(l));
+  assert.strictEqual(mentions.length, 1, 'el fake solo puede publicarse en la demo');
+  assert.ok(/DEMO_FILES\s*=/.test(mentions[0]), 'el fake solo se publica en DEMO_FILES');
 });
 
 test('config.js sigue vacío en el repo (sin URL ni clave hasta que lo decida el Stakeholder)', () => {
