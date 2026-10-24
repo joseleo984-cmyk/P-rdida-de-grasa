@@ -1242,7 +1242,7 @@
     const kg = (v) => (v == null ? '—' : fmt(v) + ' kg');
     const sign = (v, d = 1) => (v == null ? '—' : (v > 0 ? '+' : '') + fmt(v, d));
     const w = r.weight;
-    const prot = (a) => (a.proteinAvg == null ? '—' : `${esc(a.proteinAvg)} g${r.target ? ' / ' + esc(r.target.protein) + ' g' : ''}`);
+    const prot = (a) => (a.proteinAvg == null ? '—' : `${esc(a.proteinAvg)} g${r.target && !PROD.coach ? ' / ' + esc(r.target.protein) + ' g' : ''}`);
     $('#coach-title').textContent = r.name ? `Copia de ${r.name}` : 'Copia de cliente';
     $('#coach-file').textContent = `${file.name} · referencia ${fmtDate(r.reference)}${refLabel}`;
     const discarded = copy.warnings.length;
@@ -2112,12 +2112,12 @@
   function render() {
     renderConsent();
     $('#today-label').textContent = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
-    renderPanel();
+    // Producto «coach» (UX etapa 1): la plataforma NO formula ni prescribe (concepto jurídico, L5): nada de plan, «objetivo diario», consejos de calorías
+    // ni «~N semanas para la meta». Las pantallas heredadas que los pintan no se dibujan en absoluto (ni siquiera ocultas).
+    if (!PROD.coach) { renderPanel(); }
     renderProfileIssue();
     renderBackup();
-    renderEntries();
-    renderFoods();
-    renderPlan();
+    if (!PROD.coach) { renderEntries(); renderFoods(); renderPlan(); }
     renderPhotos();
     renderMas();
     renderHabitos();

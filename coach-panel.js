@@ -414,16 +414,7 @@
         return `<li><span class="cm-t">${esc(x.name)}<small>${esc(sub)}</small></span><b>${esc(Platos.n0(x.kcal))} kcal</b></li>`;
       }).join('')}</ul>` : '') + '</section>').join('');
   }
-  function renderDetail(c) {
-    const sh = c.info.shares || {};
-    $('#coach-detail-title').textContent = displayName(c);
-    if (PROD.coach) { renderDetailPay(c, sh); renderDetailComidas(c, sh); }
-    else $('#coach-detail-light').innerHTML = `${statusChip(c.st)} ${esc(c.st.line)}`;
-    const yes = Object.keys(SHARE_NAMES).filter((k) => sh[k]).map((k) => SHARE_NAMES[k]);
-    const no = Object.keys(SHARE_NAMES).filter((k) => !sh[k]).map((k) => SHARE_NAMES[k]);
-    $('#coach-detail-shares').textContent = `Te muestra: ${yes.join(', ') || '—'}. No te muestra: ${no.join(', ') || '—'}. Es tu cliente desde el ${new Date(c.info.since).toLocaleDateString('es')}.`;
-
-    // Progreso (categoría body, obligatoria). Nunca notas ni biblioteca.
+  function renderDetailLegacy(c, sh) {
     const s = c.sum, w = s.weight;
     const rows = [
       ['Peso actual', w.current != null ? `${num(w.current)} kg` : '—'],
@@ -445,6 +436,20 @@
     if (sh.habits) cols.push(['Días con hábitos', (a) => a.habitDays]);
     $('#coach-detail-adherence').innerHTML = `<thead><tr><th scope="col">Periodo</th>${cols.map(([h]) => `<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>` +
       s.adherence.map((a) => `<tr><th scope="row">${a.days / 7} sem</th>${cols.map(([, f]) => `<td>${esc(f(a))}</td>`).join('')}</tr>`).join('') + '</tbody>';
+  }
+  function renderDetail(c) {
+    const sh = c.info.shares || {};
+    $('#coach-detail-title').textContent = displayName(c);
+    if (PROD.coach) { renderDetailPay(c, sh); renderDetailComidas(c, sh); }
+    else $('#coach-detail-light').innerHTML = `${statusChip(c.st)} ${esc(c.st.line)}`;
+    const yes = Object.keys(SHARE_NAMES).filter((k) => sh[k]).map((k) => SHARE_NAMES[k]);
+    const no = Object.keys(SHARE_NAMES).filter((k) => !sh[k]).map((k) => SHARE_NAMES[k]);
+    $('#coach-detail-shares').textContent = `Te muestra: ${yes.join(', ') || '—'}. No te muestra: ${no.join(', ') || '—'}. Es tu cliente desde el ${new Date(c.info.since).toLocaleDateString('es')}.`;
+
+    // Progreso (categoría body, obligatoria). Nunca notas ni biblioteca.
+    // Producto «coach»: estas dos tarjetas son las heredadas (ocultas) y traen «Objetivo diario» y metas de proteína calculadas por la plataforma:
+    // la plataforma no prescribe (concepto jurídico, L5), así que ni se dibujan.
+    if (!PROD.coach) renderDetailLegacy(c, sh);
 
     // Fotos (solo si las compartió; metadatos de coach_pull). La imagen se pide al abrirla: URL firmada de corta
     // duración + registro photo_views en cada apertura. No se guarda ni la URL ni el blob.
