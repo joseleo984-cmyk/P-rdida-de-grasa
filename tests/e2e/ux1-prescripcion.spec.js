@@ -101,3 +101,36 @@ test('control: la app OFICIAL (sin producto coach) sí conserva su plan (la prue
   expect(await page.evaluate(() => typeof Calc.plan)).toBe('function');
   await expect(page.locator('body.producto-coach')).toHaveCount(0);
 });
+
+// UX Etapa 2 (L5): la meta de proteína SOLO existe si la propuso el coach. Sin meta no hay barra con meta ni texto de meta; con meta, el texto aprobado
+// junto a la cifra (cambiando solo el número). La app nunca calcula ni sugiere la meta (aunque haya perfil con peso).
+test('L5: Comidas sin meta del coach no muestra barra ni meta; con la meta del coach, la barra y el texto aprobado (y nada prescriptivo)', async ({ browser }, testInfo) => {
+  const H1 = require('./ux1-helpers');
+  const { p, errors } = await H1.clientApp(browser, testInfo);
+  await H1.seedState(p, { foods: { [H1.TODAY]: [{ name: 'Pollo asado', kcal: 400, protein: 38 }] } });
+  await p.evaluate((perfil) => { const s = JSON.parse(localStorage.getItem('perdida-grasa:v1')); s.profile = { ...perfil, updatedAt: '2026-10-20T10:00:00.000Z' }; localStorage.setItem('perdida-grasa:v1', JSON.stringify(s)); }, PERFIL);
+  await p.reload(); await H.ready(p);
+  await p.locator('#tab-comidas').click();
+  await expect(p.locator('#mc-prot')).toHaveText('~38 g');
+  await expect(p.locator('#mc-prot-bar')).toBeHidden();
+  await expect(p.locator('#mc-prot-goal')).toBeHidden();
+  expect(await todoElTexto(p)).not.toMatch(/Meta orientativa|de ~\d+ g/);
+  await sinPrescripcion(p, 'comidas sin meta');
+  // El coach propone 110 g
+  await p.evaluate(async () => {
+    const be = window.__pgFakeBackend;
+    const m = {}; const mem = { getItem: (k) => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } };
+    const r = RemoteFake.createFake({ backend: be, storage: mem });
+    await r.auth.sendCode('laura@coach.co');
+    await r.auth.verifyCode('laura@coach.co', be.lastCode('laura@coach.co'));
+    await r.coach.setProteinGoal(Object.values(be.users).find((u) => u.email === 'ana@c.co').id, 110);
+  });
+  await p.evaluate(() => PGAccount.refreshLink());
+  await expect(p.locator('#mc-prot-goal')).toHaveText('de ~110 g');
+  await expect(p.locator('#mc-prot-bar')).toBeVisible();
+  await expect(p.locator('#mc-prot-bar')).toHaveAttribute('aria-valuenow', '35');
+  await expect(p.locator('#mc-prot-note')).toHaveText('Meta orientativa propuesta exclusivamente por tu coach (~110 g). La plataforma no formula, valida ni prescribe requerimientos nutricionales.');
+  await sinPrescripcion(p, 'comidas con meta del coach');
+  expect(await todoElTexto(p)).not.toMatch(/te faltan|faltan \d+ g/i);
+  expect(errors).toEqual([]);
+});

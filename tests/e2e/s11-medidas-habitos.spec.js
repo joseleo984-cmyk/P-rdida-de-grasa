@@ -79,6 +79,7 @@ test('medidas: solo lo que toca hoy es obligatorio, con coma decimal; gráfica p
   await expect(p.locator('#medidas-history li')).toHaveCount(2);
   // Llega al servidor (al día): el coach las verá
   await expect.poll(async () => Object.values((await H.backend(p)).records).filter((r) => r.kind === 'entry').length).toBe(2);
+  await expect.poll(async () => (Object.values((await H.backend(p)).records).find((r) => r.nkey === D(0)) || { data: {} }).data.neck).toBe(33);   // espera la edición (sube a los 2 s)
   const srv = Object.values((await H.backend(p)).records).find((r) => r.nkey === D(0));
   expect(srv.data).toMatchObject({ weight: 68.5, hip: 99, neck: 33, armR: 28, thighL: 56.5 });
   // Borrar un registro

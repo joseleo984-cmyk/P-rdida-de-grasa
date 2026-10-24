@@ -282,9 +282,9 @@ test('cliente en pausa por pago: sigue viendo su rutina y sus animaciones (es le
   await expect(a.locator('body')).toHaveClass(/paused/);
   await a.locator('#tab-panel').click();
   await expect(a.locator('#pause-title')).toBeVisible();
-  await expect(a.locator('#home-coach')).toBeHidden();   // lo demás sí se esconde...
-  await expect(a.locator('#home-daily')).toBeVisible(); // ...pero la rutina se ve
-  await a.getByRole('button', { name: 'Empezar' }).click();
+  await expect(a.locator('#home-dia')).toBeVisible();      // UX Etapa 2 (P1): Mi día en modo autónomo
+  await expect(a.locator('#home-daily')).toBeHidden();     // imagen A12: la rutina pasa a «Rutina y notas: solo lectura»...
+  await a.locator('#pause-rutina').click();                // ...y se sigue viendo
   await expect(a.locator('#rutina-body .rut-title')).toHaveText('Fuerza en 2 días');
   await a.locator('.rut-ex').filter({ hasText: 'Press de banca' }).locator('summary').click();
   await expect(a.locator('.rut-ex img')).toBeVisible();
@@ -581,11 +581,8 @@ test('en pausa por pago el cliente sigue viendo sus rutinas asignadas y la rutin
   await a.evaluate(() => PGAccount.refreshLink());
   await expect(a.locator('body')).toHaveClass(/paused/);
   await a.locator('#tab-panel').click();
-  await expect(a.locator('#home-coach')).toBeHidden();
-  await expect(a.locator('#home-daily')).toBeVisible();
-  await expect(a.locator('#hd-title')).toHaveText('Rutina de hoy: Piernas');
-  await expect(a.locator('#hd-text')).toHaveText('1 ejercicio');   // una sola tarjeta; la de «Pecho» está oculta
-  await a.getByRole('button', { name: 'Empezar' }).click();
+  await expect(a.locator('#home-daily')).toBeHidden();   // UX Etapa 2 (A12): en pausa la rutina se abre desde «Rutina y notas: solo lectura»
+  await a.locator('#pause-rutina').click();
   await expect(a.locator('#rutina-body .rut-title')).toHaveText(['Piernas']);   // la de hoy y la asignada son la misma: no se repite
   await expect(a.locator('#rutina-body .rut-more')).toHaveCount(0);
   await expect(a.locator('#rutina-trained')).toBeHidden();   // en pausa no se anota nada nuevo

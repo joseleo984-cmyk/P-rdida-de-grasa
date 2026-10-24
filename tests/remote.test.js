@@ -307,7 +307,7 @@ test('cliente: previewCode 0 filas e join_coach null = invalid_code; shares con 
   assert.strictEqual(await r.client.myLink(), null);
   m.h.rpc = (s, fn) => ({ data: { preview_invite_code: [{ business_name: 'Coach X' }], join_coach: { id: 'L', coach_id: 'C' }, my_link: [link], update_shares: {} }[fn] ?? null, error: null });
   assert.deepStrictEqual(await r.client.previewCode('abc234'), { businessName: 'Coach X' });
-  const expected = { id: 'L', coachId: 'C', businessName: 'Coach X', shares: { body: true, notes: false, nutrition: true, habits: false, photos: false }, since: '2026-10-21T00:00:00Z', paidUntil: null, paidMarkedAt: null, paid: false, daysLeft: null };
+  const expected = { id: 'L', coachId: 'C', businessName: 'Coach X', shares: { body: true, notes: false, nutrition: true, habits: false, photos: false }, since: '2026-10-21T00:00:00Z', paidUntil: null, paidMarkedAt: null, paid: false, daysLeft: null, proteinGoal: null, pauses: [] };
   assert.deepStrictEqual(await r.client.joinCoach('ABC234', { body: true, habits: false, version: '0.1', textHash: H }), expected);
   await r.client.updateShares({ notes: true, version: '0.2', textHash: H });
   assert.deepStrictEqual(m.calls.find((c) => c[2] === 'update_shares')[3].p_shares, { body: true, notes: true, nutrition: true, habits: false, photos: false, version: '0.2', text_hash: H });

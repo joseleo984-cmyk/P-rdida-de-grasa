@@ -1345,7 +1345,7 @@ button.fc-link { width: 100%; font: inherit; background: none; border: 0; border
 .meta-field .muted { white-space: nowrap; }
 #meta-help { margin: 10px 0 0; }
 .meta-prev-title { margin: 18px 2px 8px; color: var(--accent); font-weight: 800; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; }
-.meta-prev { border: 1.5px dashed var(--accent); border-radius: 18px; }
+.meta-prev { padding: 16px; border: 1.5px dashed var(--accent); border-radius: 18px; }
 .meta-acts { display: grid; gap: 10px; margin-top: 18px; }
 .meta-acts .btn { width: 100%; margin: 0; min-height: 52px; }
 .meta-quitar { color: var(--muted); border-color: var(--line); }

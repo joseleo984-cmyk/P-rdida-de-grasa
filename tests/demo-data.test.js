@@ -206,3 +206,28 @@ test('demo: el semáforo del coach es variado (rojo, ámbar y verde) con motivos
   assert.strictEqual(levels.hugo.level, 'aldia');
   assert.ok(new Set(Object.values(levels).map((l) => l.level)).size === 3);
 });
+
+test('UX Etapa 2: Ana con indicador de salud y meta de 110 g, un reto en curso, y Diego en pausa con registros autónomos que el coach NO ve', async () => {
+  const be = new RF.FakeBackend({ clock: RF.FakeClock(TODAY + 'T17:00:00.000Z') });
+  const r = await DD.seed(be, { today: TODAY });
+  const coach = DD.asUser(be, r.coach, DD.deps());
+  const list = await coach.coach.clients();
+  const ana = list.find((c) => c.clientId === r.clients.ana.id), diego = list.find((c) => c.clientId === r.clients.diego.id);
+  assert.deepStrictEqual([ana.healthRestriction, ana.pregnancyState, ana.proteinGoal], [true, false, 110]);
+  assert.strictEqual(list.find((c) => c.clientId === r.clients.elena.id).pregnancyState, true);
+  assert.strictEqual(list.filter((c) => c.healthRestriction || c.pregnancyState).length, 2);
+  const retos = await coach.coach.listChallenges();
+  assert.strictEqual(retos.length, 1);
+  assert.strictEqual(retos[0].members.length, 7, 'todos menos Diego');
+  assert.ok(retos[0].members.some((m) => m.done >= 3));
+  // Diego: en pausa, con hábitos autónomos privados (los ve él, no su coach)
+  assert.strictEqual(diego.paid, false);
+  assert.ok(diego.pauses.length && diego.pauses[diego.pauses.length - 1].to === null);
+  const priv = Object.values(be.records).filter((x) => x.userId === r.clients.diego.id && x.pausePrivate);
+  assert.strictEqual(priv.length, DD.AUTONOMOUS.length);
+  const seen = (await coach.coach.clientData(r.clients.diego.id)).records.filter((x) => x.kind === 'habit').map((x) => x.nkey);
+  for (const x of priv) assert.ok(!seen.includes(x.nkey), 'el coach no ve ' + x.nkey);
+  const own = await DD.localFor(be, r.clients.diego);
+  for (const x of priv) assert.ok(own.state.habits[x.nkey], 'Diego sí ve ' + x.nkey);
+  assert.strictEqual(own.meta.link.pauses.length, 1);
+});
