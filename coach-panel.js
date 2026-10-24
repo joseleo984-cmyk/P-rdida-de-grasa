@@ -194,29 +194,52 @@
   function statusChip(st) { return `<span class="chip chip-${esc(st.key)}">${esc(st.label)}</span>`; }
   const lastPay = new Map();
   const payOf = (c) => Pagos.status(c.info, todayBo());
-  // Sprint 11 (producto 'coach'): lista de asesorados con «Pagó / No pagó», «pagado hasta», días para vencer y cumplimiento de hábitos.
+  // UX Etapa 1 (producto 'coach'): lista ordenada por «Necesitan atención», con semáforo que SIEMPRE dice el motivo en texto y lleva forma (▲ ● ✓), no solo color.
+  // Umbrales (decisión D8): ámbar a los 3 días sin registrar, rojo a los 7. El pago es un dato secundario (y un botón para cambiarlo). Filtros: Necesitan atención · Todos · Vencen pronto · Sin pagar.
+  const SEM_ICON = { atencion: '▲', revisar: '●', aldia: '✓' };
+  let filter = 'atencion';
+  let shownOrder = [];   // ids en el orden de la pantalla (para «Anterior / Siguiente» en la ficha)
+  const rowsNow = () => [...cache.values()].map((c) => ({ c, at: Coach.atencion(c.state, { today: todayBo(), shares: c.info.shares }), p: payOf(c) }));
+  const FILTERS = [['atencion', 'Necesitan atención'], ['todos', 'Todos'], ['vencen', 'Vencen pronto'], ['sinpagar', 'Sin pagar']];
+  // «Necesitan atención» es la vista de entrada: TODOS los asesorados, con quienes necesitan atención primero (el número cuenta solo a esos). «Todos» los ordena por nombre.
+  const inFilter = (r, f) => (f === 'vencen' ? r.p.paid && r.p.daysLeft <= Pagos.SOON_DAYS : f === 'sinpagar' ? !r.p.paid : true);
+  const countOf = (all, f) => (f === 'atencion' ? all.filter((r) => r.at.level !== 'aldia').length : all.filter((r) => inFilter(r, f)).length);
+  function orderedRows(f) {
+    const byName = (a, b) => displayName(a.c).localeCompare(displayName(b.c), 'es');
+    const all = rowsNow().sort(f === 'todos' ? byName : (a, b) => Coach.byAtencion(a.at, b.at) || byName(a, b));
+    const list = all.filter((r) => inFilter(r, f));
+    if (f === 'vencen') list.sort((a, b) => a.p.daysLeft - b.p.daysLeft || byName(a, b));
+    return list;
+  }
   function renderListPay() {
     const ul = $('#coach-clients');
-    const all = [...cache.values()];
-    const sort = $('#coach-sort').value;
-    const items = all.sort((a, b) => (sort === 'name' ? 0 : Pagos.byDue(payOf(a), payOf(b))) || displayName(a).localeCompare(displayName(b), 'es'));
-    const sm = Pagos.summary(items.map(payOf));
-    const box = $('#coach-pay-summary');
-    box.innerHTML = `<div class="a">${sm.paid}<small>${sm.paid === 1 ? 'pagó' : 'pagaron'}</small></div><div class="b">${sm.unpaid}<small>sin pagar</small></div>`;
-    box.setAttribute('aria-label', `${sm.paid} ${sm.paid === 1 ? 'pagó' : 'pagaron'} y ${sm.unpaid} sin pagar`);
-    $('#coach-subtitle').textContent = items.length ? `${items.length} asesorado${items.length === 1 ? '' : 's'}` : 'Aún no tienes asesorados';
-    if (!items.length) {
+    const all = rowsNow();
+    const counts = Object.fromEntries(FILTERS.map(([k]) => [k, countOf(all, k)]));
+    $('#coach-filters').innerHTML = FILTERS.map(([k, t]) => `<button type="button" data-filter="${k}" aria-pressed="${filter === k}">${t} · ${counts[k]}</button>`).join('');
+    const need = counts.atencion;
+    $('#coach-subtitle').textContent = all.length ? `${all.length} asesorado${all.length === 1 ? '' : 's'}${need ? ` · ${need} ${need === 1 ? 'necesita' : 'necesitan'} atención` : ' · todos al día'}` : 'Aún no tienes asesorados';
+    if (!all.length) {
       const code = (A.meta() || {}).coach;
       ul.innerHTML = `<li class="small muted">Aún no tienes asesorados. Comparte tu código${code ? ` <strong>${esc(code.inviteCode)}</strong>` : ''} para que se conecten contigo.</li>`;
+      shownOrder = [];
       return;
     }
-    ul.innerHTML = items.map((c) => {
-      const name = displayName(c), p = payOf(c), id = esc(c.info.clientId);
-      const habits = Habitos.listLine(c.state, todayBo(), !!(c.info.shares && c.info.shares.habits));
-      return `<li><div class="cli-pay-row">
-        <button type="button" class="cli-main" data-client="${id}" aria-label="${esc(name)}. ${esc(Pagos.coachLine(p))}. ${esc(habits)}. Abrir su ficha">
+    const items = orderedRows(filter);
+    shownOrder = items.map((r) => r.c.info.clientId);
+    if (!items.length) {
+      ul.innerHTML = `<li class="small cli-empty">${filter === 'vencen' ? 'Nadie vence en los próximos 7 días.' : 'Todos están al día con el pago.'}</li>`;
+      return;
+    }
+    ul.innerHTML = items.map(({ c, at, p }) => {
+      const name = displayName(c), id = esc(c.info.clientId);
+      const habitsOff = !(c.info.shares && c.info.shares.habits);
+      return `<li><div class="cli-pay-row" data-level="${at.level}">
+        <button type="button" class="cli-main" data-client="${id}" aria-label="${esc(name)}. ${esc(at.label)}: ${esc(at.reason)}. ${esc(Pagos.coachLine(p))}. Abrir su ficha">
           <span class="cli-av av${ClientStatus.hue(name)}" aria-hidden="true">${esc(ClientStatus.initials(name))}</span>
-          <span class="cli-text"><span class="cli-name who">${esc(name)}</span><span class="cli-line">${esc(Pagos.coachLine(p))}</span><span class="cli-line">${esc(habits)}</span></span>
+          <span class="cli-text"><span class="cli-top"><span class="cli-name who">${esc(name)}</span><span class="sem sem-${at.level}"><span aria-hidden="true">${SEM_ICON[at.level]}</span> ${esc(at.label)}</span></span>
+            <span class="cli-line cli-motivo">${esc(at.reason)}</span>
+            ${habitsOff ? '<span class="cli-line">🔒 No comparte sus hábitos</span>' : ''}
+            <span class="cli-line cli-pago">${esc(Pagos.coachLine(p))}</span></span>
         </button>
         <button type="button" class="chip-pay ${p.paid ? 'ok' : 'bad'}" data-pay="${id}" aria-label="${esc(name)}: ${p.paid ? 'pagó' : 'no pagó'}. Tocar para cambiar">${esc(Pagos.chipText(p))}</button>
       </div></li>`;
@@ -264,7 +287,7 @@
     $('#pago-cancel').addEventListener('click', () => $('#sheet-pago').close());
     $('#sheet-pago').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) ev.currentTarget.close(); });
     $('#sheet-pago').addEventListener('close', () => { const o = payOpener; payOpener = null; if (o && o.isConnected) o.focus(); });
-    $('#coach-sort').addEventListener('change', renderList);
+    $('#coach-filters').addEventListener('click', (ev) => { const b = ev.target.closest('[data-filter]'); if (!b) return; filter = b.dataset.filter; renderList(); const nb = $(`#coach-filters [data-filter="${filter}"]`); if (nb) nb.focus(); });
     $('#btn-coach-add').addEventListener('click', () => $('#tab-invitar').click());
     $('#btn-coach-qr').addEventListener('click', () => openQr());
   }
@@ -375,6 +398,7 @@
     renderDetail(c);
     $('#coach-detail-title').focus();
     $('#comment-date').value = today();
+    if (PROD.coach) $('#fc-react-status').textContent = '';
     if (PROD.coach) document.dispatchEvent(new CustomEvent('pg:coach-client-open', { detail: { clientId, name: displayName(c) } }));   // Etapa 2: rutinas-view.js arma su tarjeta de rutina
   }
 
@@ -414,6 +438,81 @@
         return `<li><span class="cm-t">${esc(x.name)}<small>${esc(sub)}</small></span><b>${esc(Platos.n0(x.kcal))} kcal</b></li>`;
       }).join('')}</ul>` : '') + '</section>').join('');
   }
+  // ---------- UX Etapa 1: ficha con RESUMEN SEMANAL arriba, reacciones de un toque y constancia / insignias ----------
+  const fmtRange = (a, b) => `${new Date(a + 'T12:00:00').getDate()}–${fmtDay(b)}`;
+  const agoText = (iso) => { if (!iso) return 'todavía no registra nada'; const n = Math.round((Date.parse(todayBo() + 'T00:00:00Z') - Date.parse(iso + 'T00:00:00Z')) / 86400000); return n <= 0 ? 'hoy' : n === 1 ? 'ayer' : `hace ${n} días`; };
+  function renderDetailSemana(c, sh) {
+    const at = Coach.atencion(c.state, { today: todayBo(), shares: sh });
+    const w = at.ws;
+    $('#coach-detail-last').textContent = `Último registro: ${agoText(at.lastDate)}`;
+    $('#coach-detail-light').innerHTML = `<span class="sem sem-${at.level}"><span aria-hidden="true">${SEM_ICON[at.level]}</span> ${esc(at.label)}</span> ${esc(at.reason)}`;
+    $('#fc-semana-title').textContent = `Esta semana (${fmtRange(w.from, w.to)})`;
+    const t = [];
+    if (sh.body !== false) { t.push([w.weight ? w.weight.text : '—', 'tendencia de peso']); t.push([w.waist ? w.waist.text : '—', 'cintura']); }
+    t.push([w.daysLoggedText, 'adherencia']);
+    t.push(sh.habits ? [w.trainedText, 'esta semana'] : ['No comparte', 'sus hábitos']);
+    if (sh.nutrition) t.push([w.proteinText || '—', 'proteína promedio']);
+    if (sh.habits) t.push([w.closeText || '—', 'cierre del día']);
+    $('#fc-sum').innerHTML = t.map(([a, b]) => `<div><b>${esc(a)}</b><small>${esc(b)}</small></div>`).join('');
+    $('#fc-esfuerzo').textContent = sh.habits ? (w.effortText || 'Esfuerzo: sin respuestas esta semana') : '';
+    const REACT = [['¡Bien esta semana!', '¡Bien esta semana!'], ['Sigue así', 'Sigue así'], ['Te falta medirte', 'Te falta medirte esta semana. Cuando puedas, anótalo.'], ['Te escribo', 'Te escribo hoy para hablar de tu semana.']];
+    $('#fc-react-btns').innerHTML = REACT.map(([l, b], i) => `<button type="button" data-react="${i}">${esc(l)}</button>`).join('');
+    reactBodies = REACT.map((r) => r[1]);
+    reactLabels = REACT.map((r) => r[0]);
+    const rv = readReviewed()[c.info.clientId] === todayBo();
+    const b = $('#btn-fc-revisado');
+    b.textContent = rv ? 'Revisado hoy ✓' : 'Revisado ✓';
+    b.setAttribute('aria-pressed', String(rv));
+    const hasPrev = shownOrder.length > 1 || cache.size > 1;
+    $('#btn-coach-prev').disabled = !hasPrev; $('#btn-coach-next').disabled = !hasPrev;
+  }
+  let reactBodies = [], reactLabels = [];
+  const REVIEWED_KEY = PGNS.key('revisados');   // «Revisado ✓»: solo en el teléfono del coach
+  const readReviewed = () => { try { const x = JSON.parse(localStorage.getItem(REVIEWED_KEY) || '{}'); return x && typeof x === 'object' ? x : {}; } catch { return {}; } };
+  function renderDetailConst(c, sh) {
+    void sh;
+    const today = todayBo();
+    const sm = Constancia.summary(c.state, today), list = Constancia.badges(c.state, today), bc = Constancia.badgeCount(list);
+    $('#fc-const-sum').innerHTML = [[sm.constantWeeks, sm.constantWeeks === 1 ? 'semana constante' : 'semanas constantes'], [`${sm.week.comodines} de 2`, 'comodines esta semana'], [`${bc.earned} de ${bc.total}`, 'insignias']]
+      .map(([a, b]) => `<div><b>${esc(a)}</b><small>${esc(b)}</small></div>`).join('');
+    const weeks = [...sm.history.slice(-5), sm.week];
+    $('#fc-weeks').innerHTML = weeks.map((w) => `<li aria-label="Semana del ${esc(fmtDay(w.start))}: ${w.registered} días con registro">${w.registered}</li>`).join('');
+    $('#fc-ins').innerHTML = list.map((b) => `<li class="insig ${b.earned ? 'earned' : 'pending'}"><span class="insig-n" aria-hidden="true">${esc(b.n)}</span><span class="insig-t"><strong>${esc(b.name)}</strong><small>${esc(b.earned ? fmtDay(b.date) : b.hint)}</small></span><span class="sr-only">${b.earned ? 'Ganada' : 'Aún no'}</span></li>`).join('');
+    const first = displayName(c).split(/\s+/)[0];
+    $('#btn-fc-felicitar').textContent = `Felicitar a ${first}`;
+  }
+  async function sendReaction(body, label, { undo = true } = {}) {
+    const c = cache.get(current);
+    if (!c) return;
+    const id = Schema.uuid();
+    try {
+      await A.remote.coach.addComment(current, { id, refDate: today(), body: body.slice(0, 1000) });
+      await reloadCurrent();
+      toast(`Enviado: «${label}»`);
+      void undo;
+    } catch (err) { toast(errText(err), true); }
+  }
+  function wireFicha() {
+    $('#fc-react-btns').addEventListener('click', (ev) => { const b = ev.target.closest('[data-react]'); if (b) sendReaction(reactBodies[b.dataset.react], reactLabels[b.dataset.react]); });
+    $('#btn-fc-felicitar').addEventListener('click', () => { const c = cache.get(current); if (c) sendReaction(`¡Felicitaciones, ${displayName(c).split(/\s+/)[0]}! Tu constancia se nota.`, 'Felicitaciones'); });
+    $('#btn-fc-revisado').addEventListener('click', () => {
+      const m = readReviewed(), id = current;
+      if (m[id] === todayBo()) delete m[id]; else m[id] = todayBo();
+      try { localStorage.setItem(REVIEWED_KEY, JSON.stringify(m)); } catch { /* sin espacio */ }
+      const c = cache.get(id);
+      if (c) renderDetailSemana(c, c.info.shares || {});
+      $('#fc-react-status').textContent = m[id] ? 'Marcado como revisado hoy.' : 'Quitamos la marca de revisado.';
+    });
+    const step = (d) => {
+      const ids = shownOrder.includes(current) ? shownOrder : orderedRows('todos').map((r) => r.c.info.clientId);
+      if (ids.length < 2) return;
+      const i = ids.indexOf(current);
+      openClient(ids[(i + d + ids.length) % ids.length]);
+    };
+    $('#btn-coach-prev').addEventListener('click', () => step(-1));
+    $('#btn-coach-next').addEventListener('click', () => step(1));
+  }
+
   function renderDetailLegacy(c, sh) {
     const s = c.sum, w = s.weight;
     const rows = [
@@ -440,7 +539,7 @@
   function renderDetail(c) {
     const sh = c.info.shares || {};
     $('#coach-detail-title').textContent = displayName(c);
-    if (PROD.coach) { renderDetailPay(c, sh); renderDetailComidas(c, sh); }
+    if (PROD.coach) { renderDetailPay(c, sh); renderDetailComidas(c, sh); renderDetailSemana(c, sh); renderDetailConst(c, sh); }
     else $('#coach-detail-light').innerHTML = `${statusChip(c.st)} ${esc(c.st.line)}`;
     const yes = Object.keys(SHARE_NAMES).filter((k) => sh[k]).map((k) => SHARE_NAMES[k]);
     const no = Object.keys(SHARE_NAMES).filter((k) => !sh[k]).map((k) => SHARE_NAMES[k]);
@@ -545,6 +644,7 @@
     $('#btn-coach-back').addEventListener('click', () => showList(current));
     $('#btn-coach-compare').addEventListener('click', compareNow);
     wirePay();
+    if (PROD.coach) wireFicha();
     $('#form-rotate').addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const f = ev.currentTarget;
@@ -640,15 +740,25 @@
   function renderNotes(userId) {
     const list = readComments().filter((c) => userId && c.clientId === userId && !c.deletedAt).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     const card = $('#coach-notes');
-    card.classList.toggle('hidden', !list.length);
     const unread = list.filter((c) => !c.readAt).length;
+    // UX Etapa 1 (producto coach): arriba en Inicio solo van las notas SIN LEER; las leídas bajan a «Mensajes anteriores» (al final).
+    const shown = PROD.coach ? list.filter((c) => !c.readAt) : list;
+    card.classList.toggle('hidden', !shown.length);
     const badge = $('#coach-notes-unread');
     badge.textContent = unread ? `${unread} sin leer` : '';
     badge.classList.toggle('hidden', !unread);
-    $('#coach-notes-list').innerHTML = list.map((c) => `<li class="${c.readAt ? '' : 'unread'}">
+    if (PROD.coach && $('#coach-notes-title').firstChild) $('#coach-notes-title').firstChild.textContent = 'Tu coach te escribió ';
+    const li = (c, withBtn) => `<li class="${c.readAt ? '' : 'unread'}">
       <p class="note-body">${esc(c.body)}</p>
       <div class="note-meta"><span>Sobre el ${esc(fmtDay(c.refDate))} · ${esc(fmtStamp(c.createdAt))}</span>
-      ${c.readAt ? '<span>Leído</span>' : `<button type="button" class="btn-link small" data-read-comment="${esc(c.id)}">Marcar como leído</button>`}</div></li>`).join('');
+      ${c.readAt ? '<span>Leído</span>' : withBtn ? `<button type="button" class="btn-link small" data-read-comment="${esc(c.id)}">Marcar como leído</button>` : ''}</div></li>`;
+    $('#coach-notes-list').innerHTML = shown.map((c) => li(c, true)).join('');
+    if (PROD.coach) {
+      const old = list.filter((c) => c.readAt);
+      $('#coach-notes-old').classList.toggle('hidden', !old.length);
+      $('#coach-notes-old-sum').textContent = `Mensajes anteriores de tu coach (${old.length})`;
+      $('#coach-notes-old-list').innerHTML = old.map((c) => li(c, false)).join('');
+    }
   }
   function wireClient() {
     $('#coach-notes-list').addEventListener('click', async (ev) => {
@@ -660,8 +770,9 @@
         writeComments(readComments().map((c) => (c.id === id ? { ...c, readAt: new Date().toISOString() } : c)));
         const s = await A.remote.auth.session();
         renderNotes(s && s.user.id);
-        $('#coach-notes-title').setAttribute('tabindex', '-1');
-        $('#coach-notes-title').focus();
+        const nt = PROD.coach ? $('#home-greeting') : $('#coach-notes-title');
+        nt.setAttribute('tabindex', '-1');
+        nt.focus();
       } catch (err) { toast(A.errorText(err, 'notes'), true); }
     });
     $('#tab-panel').addEventListener('click', refreshNotes);

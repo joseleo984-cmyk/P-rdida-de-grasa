@@ -254,7 +254,7 @@ body.no-health #view-panel > :not(.health-gate), body.no-health #view-registro >
 body.no-health #view-comidas > :not(.health-gate), body.no-health #view-fotos > :not(.health-gate),
 body.no-health .needs-health { display: none !important; }
 body.no-photos:not(.no-health) .photos-gate { display: block; }
-body.no-photos:not(.no-health) #view-fotos > :not(.photos-gate):not(.back-row) { display: none !important; }
+body.no-photos:not(.no-health) #view-fotos > :not(.photos-gate):not(.back-row):not(.prog-seg) { display: none !important; }
 .legal-dialog { border: 0; padding: 0; width: 100%; max-width: 760px; height: 100%; max-height: 100%; background: var(--card); color: var(--text); }
 .legal-dialog::backdrop { background: rgba(0,0,0,.6); }
 .legal-dialog[open] { display: flex; flex-direction: column; }
@@ -799,3 +799,238 @@ body.producto-coach .share-switch { flex-wrap: wrap; }
 .grid-form .req { color: var(--text); font-weight: 600; font-size: .75rem; }
 #photo-file-help { font-size: .8rem; }
 #sheet-import .a8-body p { margin: 0 0 12px; }
+
+/* ===== UX Etapa 1 (producto 'coach'): contraste, letra grande, nueva barra, «Mi día», Entrenar, Progreso, Medirme, Comidas, Fotos y panel del coach ===== */
+/* --- Contraste y letra --- */
+/* Texto sobre turquesa: en oscuro el turquesa es CLARO (#2dd4bf) y el texto blanco daba 1,9:1. Con --on-accent (#06201c en oscuro, blanco sobre el turquesa profundo #0f766e en claro) pasa de 4,5:1. */
+body.producto-coach .topbar, body.producto-coach .btn:not(.btn-ghost):not(.btn-danger), body.producto-coach .seg button.on, body.producto-coach .badge, body.producto-coach .rut-badge { color: var(--on-accent); }
+body.producto-coach .topbar .muted { color: var(--on-accent); opacity: .88; }
+/* Dynamic Type de iOS (texto más grande en Ajustes): la tipografía sigue el tamaño elegido por la persona. */
+@supports (font: -apple-system-body) { html:has(body.producto-coach) { font: -apple-system-body; } }
+/* La barra de arriba se acomoda con letra grande (nada se corta: el título pasa a otra línea) y las pestañas dejan de truncarse. */
+body.producto-coach .topbar { flex-wrap: wrap; align-items: baseline; row-gap: 2px; }
+body.producto-coach .topbar h1 { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+body.producto-coach .topbar .muted { flex: 0 1 auto; text-transform: none; white-space: nowrap; }
+body.producto-coach .tabbar button { font-size: min(.75rem, 14px); }
+body.producto-coach .tabbar .tb-label { overflow: visible; text-overflow: clip; max-width: none; }
+body.producto-coach .tabbar { align-items: stretch; }
+body.producto-coach #tab-entrenar, body.producto-coach #tab-rutinas { order: initial; }
+/* Lo heredado que ya no aplica en este producto */
+body.producto-coach #row-micomidas, body.producto-coach #li-micomidas, body.producto-coach .rutina-row, body.producto-coach #row-c-rutinas { display: none !important; }
+body.producto-coach #view-rutina .back-row, body.producto-coach #view-rutinas .back-row { display: none; }
+body.producto-coach #view-rutinas .back-row + *, body.producto-coach #view-rutina .back-row + * { margin-top: 0; }
+body.producto-coach #view-fotos .back-row { display: none; }
+body.paused #home-semana, body.paused #pay-countdown, body.paused #home-toca { display: none !important; }
+
+/* --- Inicio «Mi día» --- */
+.home-subline { margin: 2px 0 0; color: var(--muted); font-size: 1rem; }
+.dia-card { padding: 16px; }
+.dia-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: 10px; margin-top: 10px; }
+.dia-tile { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-height: 76px; padding: 12px 14px; text-align: left; font: inherit; color: var(--text); background: var(--card);
+  border: 1px solid var(--line); border-radius: 16px; cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
+.dia-tile b { font-size: 1.05rem; }
+.dia-tile span { color: var(--muted); font-size: .85rem; }
+.dia-tile.on { background: var(--accent-soft); border-color: var(--accent); }
+.dia-tile.on span { color: var(--text); }
+.dia-tile:focus-visible, .dia-act:focus-visible, .dia-chips button:focus-visible, .dia-opts button:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.dia-pasos { cursor: default; }
+.dia-pasos, #dia-entrene { grid-column: 1 / -1; }
+.dia-card .home-label, #home-daily .home-label, .semana-card .home-label, .home-toca .home-label { color: var(--text); font-size: 1.05rem; }
+#home-daily .home-label { font-size: 1.15rem; }
+.dia-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.dia-chips button, .dia-opts button { min-height: 48px; padding: 6px 12px; font: inherit; font-size: .85rem; font-weight: 600; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; cursor: pointer; }
+.dia-chips button[aria-pressed="true"], .dia-opts button[aria-pressed="true"], .esf-chips button[aria-pressed="true"], .mc-chips button[aria-pressed="true"], .sc-tabs button[aria-pressed="true"], .prog-seg button.on, #medidas-pick button.on {
+  background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.dia-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.dia-acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: 10px; margin-top: 10px; }
+.dia-act { min-height: 52px; padding: 8px 12px; font: inherit; font-weight: 700; color: var(--accent); background: transparent; border: 1px solid var(--accent); border-radius: 14px; cursor: pointer; }
+.dia-act[aria-disabled="true"] { opacity: .5; }
+.dia-status { margin: 10px 0 0; }
+.dia-links { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 2px; }
+.dia-links .btn-link { min-height: 48px; }
+.home-toca { border-left: 4px solid var(--accent); }
+.home-toca .btn { width: 100%; margin-top: 8px; }
+.semana-count { font-size: .95rem; }
+.semana-days { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 8px; padding: 0; }
+.semana-days .sd { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 800; font-size: .9rem; border: 2px solid var(--accent); color: var(--text); }
+.semana-days .sd.on { background: var(--accent); color: var(--on-accent); }
+.semana-days .sd.comodin { border-style: dashed; border-color: var(--muted); color: var(--muted); }
+.semana-days .sd.fut { border-color: var(--line); color: var(--muted); }
+.semana-days .sd.hoy:not(.on) { box-shadow: 0 0 0 3px var(--accent-soft); }
+.pay-line { margin: 0 0 14px; padding: 0 4px; font-size: .85rem; color: var(--muted); }
+
+/* --- Celebración al guardar --- */
+.dia-dialog { max-width: 420px; margin: auto; padding: 0; border: 2px solid var(--accent); border-radius: 22px; background: var(--card); color: var(--text); width: calc(100% - 32px); }
+.dia-dialog::backdrop { background: rgba(0,0,0,.6); }
+.dd-body { padding: 22px 18px 18px; text-align: center; }
+.dd-body h2 { margin: 12px 0 6px; font-size: 1.5rem; overflow-wrap: anywhere; }
+.dd-body p { margin: 4px 0; }
+.dd-ring { position: relative; width: 120px; height: 120px; margin: 0 auto; }
+.dd-ring svg { transform: rotate(-90deg); }
+.dd-ring circle { fill: none; stroke-width: 12; }
+.dd-track { stroke: var(--line); }
+.dd-arc { stroke: var(--accent); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset .8s ease-out; }
+.dd-ring b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+@media (prefers-reduced-motion: reduce) { .dd-arc { transition: none; } .toast { transition: none; } }
+.dd-chips { color: var(--muted); font-weight: 700; font-size: .9rem; }
+.dd-badge { display: flex; align-items: center; gap: 12px; text-align: left; margin: 12px 0; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 14px; background: var(--accent-soft); }
+.dd-badge-n { flex: none; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-weight: 800; }
+.dia-dialog .btn { width: 100%; margin-top: 8px; }
+.dd-foot, #dd-foot { margin-top: 10px; }
+
+/* --- Entrenar --- */
+.rut-ex > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rut-ex-text { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.rut-ex-sets { color: var(--muted); font-weight: 600; }
+.rut-ex > summary .rut-ex-name::after, .rut-ex[open] > summary .rut-ex-name::after { content: none; }
+.rut-ex-how { flex: none; color: var(--accent); font-weight: 700; white-space: nowrap; }
+.rut-ex[open] .rut-ex-how { opacity: .75; }
+#rutina-trained .btn { width: 100%; }
+.esf-chips, .mc-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.esf-chips button, .mc-chips button { flex: 1 1 5.5rem; min-height: 48px; padding: 8px 12px; font: inherit; font-weight: 600; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 14px; cursor: pointer; }
+#rutina-esfuerzo h3 { margin: 14px 0 0; font-size: 1.05rem; }
+body.paused #rutina-esfuerzo { display: none; }
+
+/* --- Progreso (Medidas · Fotos · Insignias) --- */
+.prog-seg { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.prog-seg button, #medidas-pick button { min-height: 48px; padding: 8px 16px; font: inherit; font-weight: 600; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 999px; cursor: pointer; }
+.prog-seg button:focus-visible, #medidas-pick button:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.prog-top { display: flex; justify-content: flex-end; margin: -4px 0 8px; }
+#view-progreso .seg-wrap, #medidas-pick { display: flex; flex-wrap: wrap; gap: 8px; border: 0; border-radius: 0; margin-bottom: 8px; overflow: visible; }
+.med-otra { margin: 0 0 8px; min-height: 48px; }
+.prog-label { margin: 8px 0 0; }
+.prog-big { margin: 2px 0 6px; font-size: 1.1rem; }
+.prog-big b { font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.med-chart .raw { fill: var(--muted); opacity: .55; }
+.med-chart .grid { stroke: var(--line); stroke-width: 1; }
+.prog-note { margin: 10px 0 0; padding: 10px 12px; border-left: 4px solid var(--accent); background: var(--bg); border-radius: 8px; font-size: .92rem; }
+.prog-stats { grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); margin-bottom: 0; }
+.prog-stats .stat { background: var(--bg); }
+.prog-stats .stat-value { order: -1; }
+.prog-cambios { margin: 0; display: grid; gap: 6px; }
+.prog-cambios > div { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.prog-cambios dt { color: var(--text); }
+.prog-cambios dd { margin: 0; font-weight: 700; text-align: right; }
+.insig-list { list-style: none; margin: 8px 0 12px; padding: 0; display: grid; gap: 10px; }
+.insig { display: flex; align-items: center; gap: 12px; padding: 8px 4px; }
+.insig-n { flex: none; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 800; border: 2px dashed var(--muted); color: var(--muted); }
+.insig.earned .insig-n { background: var(--accent); border: 2px solid var(--accent); color: var(--on-accent); }
+.insig-t { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.insig-t small { color: var(--muted); }
+.insig-count { margin: 0 0 4px; font-size: 1.2rem; }
+
+/* --- Medirme --- */
+.med-day { margin: 0 0 10px; color: var(--muted); }
+.med-date { display: block; margin: 0 0 10px; }
+.med-toca { margin: 4px 0 10px; font-size: 1.1rem; }
+.med-card { padding: 14px 16px; }
+.med-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.med-h { font-weight: 700; font-size: 1.05rem; margin: 0; }
+.med-sched { color: var(--muted); font-size: .85rem; }
+.med-req { color: var(--accent); }
+.med-guide { display: flex; align-items: center; gap: 12px; margin: 4px 0 10px; }
+.med-guide p { margin: 0; }
+.med-fig { flex: none; color: var(--muted); }
+.med-belt { stroke: var(--accent); }
+.med-input { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); padding: 0 14px; }
+.med-input input { border: 0; background: transparent; font-size: 1.4rem; font-weight: 800; min-height: 56px; padding: 0; flex: 1; outline: none; font-variant-numeric: tabular-nums; }
+.med-input:focus-within { outline: 3px solid var(--accent); }
+.med-unit { color: var(--muted); font-size: 1rem; }
+.med-card p.small { margin: 6px 0 0; }
+.med-mas > summary { cursor: pointer; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; min-height: 48px; list-style: none; }
+.med-mas > summary::-webkit-details-marker { display: none; }
+.med-mas-t { color: var(--accent); font-weight: 700; }
+.med-mas-s { color: var(--muted); }
+.med-mas[open] > summary { margin-bottom: 8px; }
+.med-mas .med-card { margin: 8px 0 0; background: var(--bg); }
+.med-save { position: sticky; bottom: calc(var(--bar-h) + env(safe-area-inset-bottom) + 8px); padding: 8px 0; background: linear-gradient(to top, var(--bg) 70%, transparent); }
+.med-save .btn { width: 100%; }
+.med-scale { border-left: 4px solid var(--accent); }
+.med-scale .row-actions .btn { flex: 1 1 8rem; }
+
+/* --- Comidas --- */
+.mc-resumen { padding: 16px; }
+.mc-count { font-size: 1.35rem; }
+.mc-prot { margin-top: 10px; align-items: baseline; }
+.mc-prot-n { font-size: 1.7rem; font-variant-numeric: tabular-nums; }
+.mc-bar { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; margin-top: 8px; }
+.mc-bar > div { height: 100%; background: var(--muted); border-radius: 99px; }
+#mc-prot-note { margin: 8px 0 0; }
+.mc-item .mc-line { align-items: flex-start; }
+.mc-k { display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+.mc-k small { color: var(--muted); font-size: .8rem; }
+.mc-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 10px; margin-top: 10px; }
+.mc-btns .btn { margin-top: 0 !important; }
+.mc-cierre h3 { margin: 0 0 8px; font-size: 1.05rem; }
+.mc-cierre .mc-chips button { flex: 0 1 auto; border-radius: 999px; min-width: 4.5rem; }
+.mc-bienestar { margin: 4px 4px 16px; }
+.sc-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.sc-tabs button { min-height: 48px; padding: 8px 14px; font: inherit; font-weight: 600; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; cursor: pointer; }
+.sc-tabs button:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.sc-k { display: flex; flex-direction: column; align-items: flex-end; flex: none; text-align: right; }
+.sc-k small { color: var(--muted); font-size: .8rem; font-weight: 400; }
+
+/* --- Fotos (galería primero, «+ Foto» después, permisos al final) --- */
+body.producto-coach #view-fotos.active { display: flex; flex-direction: column; }
+body.producto-coach #view-fotos > * { order: 50; }
+body.producto-coach #view-fotos > .prog-seg { order: 0; }
+body.producto-coach #view-fotos > .photos-gate { order: 1; }
+body.producto-coach #view-fotos > .pause-banner { order: 2; }
+body.producto-coach #view-fotos > #foto-hero-card { order: 3; }
+body.producto-coach #view-fotos > #foto-nueva { order: 4; }
+body.producto-coach #view-fotos > #galeria-card { order: 5; }
+body.producto-coach #view-fotos > #compare-card { order: 6; }
+body.producto-coach #view-fotos > #photos-coach-card { order: 7; }
+body.producto-coach #view-fotos > #photos-log-card { order: 8; }
+body.producto-coach #view-fotos .back-row { order: 0; }
+body:not(.producto-coach) .foto-nueva > summary { list-style: none; font-weight: 700; font-size: 1rem; margin-bottom: 12px; pointer-events: none; }
+body:not(.producto-coach) .foto-nueva > summary::-webkit-details-marker { display: none; }
+.foto-nueva > summary { cursor: pointer; font-weight: 700; min-height: 48px; display: flex; align-items: center; }
+body.producto-coach .foto-nueva > summary { color: var(--accent); }
+body.producto-coach .foto-nueva[open] > summary { margin-bottom: 8px; }
+.vis-tag { display: inline-block; font-style: normal; font-weight: 800; font-size: .78rem; padding: 3px 10px; border-radius: 999px; background: var(--accent); color: var(--on-accent); }
+.vis-tag.vis-off { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.thumb .vis-tag { position: absolute; left: 6px; top: 6px; font-size: .68rem; padding: 2px 8px; }
+.foto-hero-fig { position: relative; margin: 0; }
+.foto-hero-btn { display: block; width: 100%; padding: 0; border: 0; background: var(--line); border-radius: 14px; overflow: hidden; cursor: zoom-in; }
+.foto-hero-btn img { display: block; width: 100%; max-height: 60vh; object-fit: cover; aspect-ratio: 4 / 3; }
+.foto-hero-fig .vis-tag { position: absolute; left: 10px; top: 10px; }
+.foto-hero-fig figcaption { margin-top: 6px; }
+.foto-hero-acts { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.foto-hero-acts .btn-link { min-height: 48px; }
+.viewer-bar .vis-tag { align-self: center; }
+.thumb .shared-badge { display: none; }
+
+/* --- Panel del coach: «Necesitan atención», ficha con resumen semanal, reacciones e insignias --- */
+.cli-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.cli-filters button { min-height: 48px; padding: 8px 14px; font: inherit; font-weight: 700; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 999px; cursor: pointer; }
+.cli-filters button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.cli-filters button:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.cli-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.sem { flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: .8rem; font-weight: 800; white-space: nowrap; }
+.sem-atencion { background: var(--none-bg); color: var(--none-fg); }
+.sem-revisar { background: var(--late-bg); color: var(--late-fg); }
+.sem-aldia { background: var(--ok-bg); color: var(--ok-fg); }
+.cli-motivo { color: var(--text); font-size: .95rem; }
+.cli-pago { font-size: .82rem; }
+.cli-pay-row .chip-pay { min-height: 48px; min-width: 76px; font-size: .8rem; font-weight: 700; background: transparent; border: 1px solid var(--line); color: var(--muted); }
+.cli-empty { padding: 14px; border: 1px dashed var(--line); border-radius: 14px; }
+.fc-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; }
+.fc-nav .btn-link { min-height: 48px; }
+.fc-nav strong { flex: 1; text-align: center; overflow-wrap: anywhere; }
+.fc-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 8px; margin: 8px 0; }
+.fc-sum > div { background: var(--bg); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.fc-sum b { display: block; font-size: 1.05rem; overflow-wrap: anywhere; }
+.fc-sum small { color: var(--muted); }
+.fc-react { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.fc-react button { min-height: 48px; padding: 8px 14px; font: inherit; font-weight: 600; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; cursor: pointer; }
+.fc-react button:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.fc-ins { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 8px; }
+.fc-weeks { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0; padding: 0; list-style: none; }
+.fc-weeks li { width: 40px; height: 40px; border-radius: 50%; background: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; }
+
+.mc-daynav .mc-day-title { flex: 1; text-align: center; margin: 0; }
+.mc-cambiar { margin: 0 0 6px; text-align: center; }
+.mc-cambiar .btn-link { min-height: 48px; }
+body.producto-coach #view-medidas .back-title, body.producto-coach #view-habitos .back-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+body.producto-coach [tabindex="-1"]:focus { outline: none; }

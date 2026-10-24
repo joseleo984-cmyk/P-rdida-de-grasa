@@ -40,8 +40,8 @@
   // habitDays / foodDays: cuántos días de hábitos y comidas hay (hasta «last»). paid: días de pago que le quedan (negativo = no pagó).
   const PEOPLE = [
     { key: 'ana', name: 'Ana Demo', sex: 'f', w0: 78.4, loss: 5.6, weeks: 10, last: -1, adh: 0.88, habitDays: 28, foodDays: 7, started: -72, paid: 21, notes: true,
-      shares: { body: true, notes: true, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [0, 'perfil', 0], [4, 'frente', 1], [8, 'frente', 1], [10, 'frente', 1], [10, 'perfil', 1]], routines: ['pecho', 'piernas'] },
-    { key: 'beto', name: 'Beto Demo', sex: 'm', w0: 96.2, loss: 6.8, weeks: 10, last: 0, adh: 0.62, habitDays: 28, foodDays: 7, started: -75, paid: 4, notes: true,
+      shares: { body: true, notes: true, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [0, 'perfil', 0], [4, 'frente', 1], [8, 'frente', 1], [10, 'frente', 1], [10, 'perfil', 1]], routines: ['pecho', 'piernas'], pattern: true, early: true, steady: true },
+    { key: 'beto', name: 'Beto Demo', sex: 'm', w0: 96.2, loss: 6.8, weeks: 10, last: 0, adh: 0.62, habitDays: 28, foodDays: 7, started: -75, paid: 4, notes: true, hard: true,
       shares: { body: true, notes: false, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [5, 'frente', 1], [10, 'frente', 1], [10, 'espalda', 1]], routines: ['espalda'] },
     { key: 'carla', name: 'Carla Demo', sex: 'f', w0: 69.5, loss: 3.9, weeks: 10, last: -2, adh: 0.5, habitDays: 28, foodDays: 7, started: -70, paid: 14, notes: true,
       shares: { body: true, notes: true, nutrition: true, habits: false, photos: false }, photos: [[0, 'frente', 0], [9, 'frente', 0]], routines: ['piernas*', 'pecho'] },
@@ -51,9 +51,9 @@
       shares: { body: true, notes: false, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [5, 'frente', 1]], routines: ['piernas'] },
     { key: 'fabio', name: 'Fabio Demo', sex: 'm', w0: 102.4, loss: 3.1, weeks: 4, last: 0, adh: 0.7, habitDays: 10, foodDays: 4, started: -30, paid: 2, notes: false,
       shares: { body: true, notes: false, nutrition: true, habits: true, photos: false }, photos: [], routines: [] },
-    { key: 'gina', name: 'Gina Demo', sex: 'f', w0: 64.8, loss: 1.5, weeks: 3, last: -2, adh: 0.55, habitDays: 7, foodDays: 2, started: -23, paid: 9, notes: false,
+    { key: 'gina', name: 'Gina Demo', sex: 'f', w0: 64.8, loss: 1.5, weeks: 3, last: -3, adh: 0.55, habitDays: 7, foodDays: 2, started: -23, paid: 9, notes: false,
       shares: { body: true, notes: false, nutrition: true, habits: false, photos: false }, photos: [], routines: [] },
-    { key: 'hugo', name: 'Hugo Demo', sex: 'm', w0: 91.0, loss: 0, weeks: 0, last: -2, adh: 0, habitDays: 0, foodDays: 0, started: -2, paid: 28, notes: false,
+    { key: 'hugo', name: 'Hugo Demo', sex: 'm', w0: 91.0, loss: 0, weeks: 0, last: 0, adh: 0, habitDays: 0, foodDays: 0, started: -2, paid: 28, notes: false,
       shares: { body: true, notes: false, nutrition: true, habits: false, photos: false }, photos: [], routines: [] },
   ].map((p) => ({ ...p, email: `${p.key}.demo@example.com` }));
 
@@ -69,7 +69,7 @@
     const weeks = p.weeks;
     const base = BASE[p.sex];
     // Avance semanal acumulado (fracción de lo que baja en total), con semanas de meseta y alguna que sube un poco.
-    const raw = Array.from({ length: weeks }, () => rnd() * 1.6 - 0.2);
+    const raw = Array.from({ length: weeks }, () => (p.steady ? 1 : rnd() * 1.6 - 0.2));   // steady: baja parejo (sin mesetas)
     const sum = raw.reduce((a, b) => a + b, 0) || 1;
     const frac = [0];
     raw.forEach((x) => frac.push(frac[frac.length - 1] + x / sum));
@@ -100,6 +100,10 @@
   }
 
   // ---------- Hábitos ----------
+  // UX Etapa 1: además de agua, pasos, sueño y entreno, cada día de entreno trae su esfuerzo («Cómo te sentiste») y algunos días traen el cierre de comidas
+  // («¿Registraste todo lo de hoy?»). Ana usa un patrón fijo por días seguidos (cualquier semana del calendario tiene 6 de 7 de agua y sueño, 3 de 7 de pasos y 3 entrenos)
+  // para que sus insignias sean las mismas todos los días de la semana: 6 de 8, con «Pata de perro» en camino y «Volviste» sin aplicar.
+  const EFFORT_CYCLE = ['normal', 'normal', 'duro', 'facil'];
   function buildHabits(p, today, rnd) {
     const out = [];
     const anchor = p.habitDays >= 28 ? 0 : p.last;   // los asesorados al día arrancan hoy (con el día a medias)
@@ -107,11 +111,24 @@
       const off = anchor - k;
       const date = addDays(today, off);
       if (off === 0) { out.push({ date, water: 0.75, steps: 3150, sleep: 7.5, trained: false }); continue; }   // hoy: el día va a medias
-      if (k > 6 && rnd() < 0.08) continue;                                                                 // algún día sin anotar
+      if (!p.pattern && k > 6 && rnd() < 0.08) continue;                                                      // algún día sin anotar
       const a = p.adh;
-      const glasses = rnd() < a ? 8 + Math.floor(rnd() * 3) : 3 + Math.floor(rnd() * 5);
-      out.push({ date, water: glasses * 0.25, steps: rnd() < a ? 8000 + Math.floor(rnd() * 4500) : 3000 + Math.floor(rnd() * 4500),
-        sleep: rnd() < a * 0.9 ? 7 + Math.floor(rnd() * 4) / 2 : 5 + Math.floor(rnd() * 4) / 2, trained: rnd() < a * 0.8 });
+      let h;
+      if (p.pattern) {
+        h = { water: (k % 7 !== 3 ? 8 + (k % 3) : 5) * 0.25, steps: k % 7 < 3 ? 8500 + k * 40 : 4200 + (k % 5) * 500, sleep: k % 7 !== 5 ? 7 + (k % 3) / 2 : 6, trained: [0, 2, 4].includes(k % 7) };
+      } else {
+        const glasses = rnd() < a ? 8 + Math.floor(rnd() * 3) : 3 + Math.floor(rnd() * 5);
+        h = { water: glasses * 0.25, steps: rnd() < a ? 8000 + Math.floor(rnd() * 4500) : 3000 + Math.floor(rnd() * 4500),
+          sleep: rnd() < a * 0.9 ? 7 + Math.floor(rnd() * 4) / 2 : 5 + Math.floor(rnd() * 4) / 2, trained: rnd() < a * 0.8 || !!(p.hard && k < 5) };
+      }
+      if (h.trained) h.effort = p.hard && k < 5 ? 'duro' : EFFORT_CYCLE[(k + p.key.length) % EFFORT_CYCLE.length];
+      if (k > 0 && (k % 3 === 0 || k % 5 === 0) && rnd() < 0.9) h.close = k % 5 === 0 ? 'casi' : 'si';
+      out.push({ date, ...h });
+    }
+    // Primeros días con la plataforma (para «Primera semana»): 5 días seguidos de registro al comienzo.
+    if (p.early) {
+      const first = p.last - 7 * p.weeks;
+      for (let k = 1; k <= 5; k++) out.push({ date: addDays(today, first + k), water: 2, steps: 7000, sleep: 7, trained: k % 2 === 0 });
     }
     return out;
   }
