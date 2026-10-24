@@ -101,3 +101,32 @@ test('copyMeals: resultado compatible con normalize (round-trip sin avisos)', ()
   assert.deepStrictEqual(warnings, []);
   assert.strictEqual(state.foods['2026-10-21'].length, 3);
 });
+
+// Etapa 2 (comidas del producto coach): plato, porción y hora son campos opcionales del registro de comida.
+const Coach = require('../coach.js');
+const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const raw = (food) => ({ schemaVersion: Schema.CURRENT_VERSION, profile: null, entries: [], habits: {}, library: {}, foods: { '2026-10-24': [food] } });
+test('normalize conserva plato, porción y hora válidos y descarta los que no lo son', () => {
+  const ok = Schema.normalize(raw({ id: U(1), name: 'Tamal', meal: 'Desayuno', kcal: 250, protein: 9, carbs: 25, fat: 12, dish: 'tamal', portion: 'half', time: '08:30' })).state.foods['2026-10-24'][0];
+  assert.deepStrictEqual([ok.dish, ok.portion, ok.time], ['tamal', 'half', '08:30']);
+  const bad = Schema.normalize(raw({ id: U(2), name: 'X', meal: 'Cena', kcal: 100, dish: '<b>x</b>', portion: 'enorme', time: '25:99' })).state.foods['2026-10-24'][0];
+  assert.deepStrictEqual(['dish' in bad, 'portion' in bad, 'time' in bad], [false, false, false]);
+  const legacy = Schema.normalize(raw({ id: U(3), name: 'Avena', meal: 'Desayuno', kcal: 300, protein: 10, carbs: 50, fat: 6 })).state.foods['2026-10-24'][0];
+  assert.deepStrictEqual(Object.keys(legacy).sort(), ['carbs', 'fat', 'id', 'kcal', 'meal', 'name', 'protein', 'updatedAt'], 'una comida de siempre no gana campos');
+});
+test('las comidas con plato viajan por los registros de sincronización y por la vista del coach', () => {
+  const st = Schema.normalize(raw({ id: U(4), name: 'Ajiaco santafereño', meal: 'Almuerzo', kcal: 475, protein: 30, carbs: 50, fat: 17, dish: 'ajiaco', portion: 'large', time: '13:05' })).state;
+  const recs = Schema.toRecords(st);
+  assert.strictEqual(recs.foods[0].dish, 'ajiaco');
+  const back = Schema.fromRecords(Schema.emptyState(), recs).foods['2026-10-24'][0];
+  assert.deepStrictEqual([back.dish, back.portion, back.time], ['ajiaco', 'large', '13:05']);
+  const wire = [{ id: U(4), kind: 'food', nkey: U(4), date: '2026-10-24', data: { name: 'Ajiaco santafereño', meal: 'Almuerzo', kcal: 475, protein: 30, carbs: 50, fat: 17, dish: 'ajiaco', portion: 'large', time: '13:05' }, updatedAt: '2026-10-24T18:05:00Z', deletedAt: null }];
+  const seen = Coach.stateFromWire(wire).foods['2026-10-24'][0];
+  assert.deepStrictEqual([seen.dish, seen.portion, seen.time, seen.kcal], ['ajiaco', 'large', '13:05', 475]);
+});
+test('copyMeals (repetir la de ayer) conserva plato y porción pero no la hora de ayer', () => {
+  const foods = { '2026-10-23': [{ id: 'a1', name: 'Changua', meal: 'Desayuno', kcal: 180, protein: 12, carbs: 14, fat: 12, dish: 'changua', portion: 'normal', time: '07:40' }] };
+  const r = Schema.copyMeals(foods, '2026-10-23', '2026-10-24', { uid: () => U(9) });
+  const c = r.foods['2026-10-24'][0];
+  assert.deepStrictEqual([c.dish, c.portion, 'time' in c, c.id], ['changua', 'normal', false, U(9)]);
+});

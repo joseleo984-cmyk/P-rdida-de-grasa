@@ -138,7 +138,7 @@
   // ---------- Navegación ----------
   // Barra de abajo. Cliente (y sin cuenta): Inicio | Comidas | ＋ Registrar | Progreso | Más.
   // Coach: Clientes | ＋ Invitar | Más (su propio seguimiento sigue en Más). Las vistas conservan sus ids (#view-…).
-  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas', rutina: 'mas', rutinas: 'mas', 'rutina-edit': 'coach' };
+  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas', micomidas: 'mas', rutina: 'mas', rutinas: 'mas', 'rutina-edit': 'coach' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
   let navCoach = false;
   function show(view, mode) {
@@ -224,7 +224,7 @@
   $('#view-mas').addEventListener('click', (ev) => {
     const b = ev.target.closest('.more-row');
     if (!b) return;
-    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-coach': ['perfil', 'coach'], 'row-rutina': ['rutina'], 'row-c-rutinas': ['rutinas'],
+    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-micomidas': ['micomidas'], 'row-coach': ['perfil', 'coach'], 'row-rutina': ['rutina'], 'row-c-rutinas': ['rutinas'],
       'row-datos': ['perfil', 'datos'], 'row-copia': ['perfil', 'copia'], 'row-ayuda': ['ayuda'] }[b.id];
     if (to) goTo(to[0], to[1], b.id);
     else if (b.id === 'row-salir') { goTo('perfil', 'datos', b.id); $('#btn-account-logout').click(); const f = $('#form-logout'); if (f && f.scrollIntoView) f.scrollIntoView({ block: 'center' }); }
@@ -1778,6 +1778,252 @@
     setText($('#home-greeting'), name ? `Hola, ${name.charAt(0).toUpperCase() + name.slice(1)}` : 'Hola');
   }
 
+
+  // --- Etapa 2: Mis comidas (producto 'coach') ---
+  // Usa el MISMO registro de siempre (`state.foods`, su guardado y su sincronización); solo cambia cómo se elige y se ve.
+  // Cada comida del catálogo (platos.js) guarda además su plato, su porción y la hora (campos opcionales del registro).
+  const mcDate = $('#mc-date');
+  mcDate.value = today();
+  const capFirst = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const longDay = (d) => capFirst(new Date(d + 'T12:00:00').toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', ''));
+  const nowHM = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const mealByHour = (h) => (h < 10 ? 'Desayuno' : h < 15 ? 'Almuerzo' : h < 18 ? 'Snack' : 'Cena');
+  const plural1 = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  // Compartir las comidas con el coach es OBLIGATORIO en este producto: hasta confirmarlo (Más → Mi coach) no se agrega nada.
+  function shareGate() {
+    if (!PROD.coach || navCoach) return false;
+    const l = myLinkNow();
+    return !!l && !(l.shares && l.shares.nutrition === true);
+  }
+  const mcBlock = () => (isPaused() ? 'Tu acceso está en pausa: habla con tu coach' : shareGate() ? 'Antes confirma lo que compartes con tu coach (Más → Mi coach)'
+    : !consentOK() ? 'Acepta los Términos y la Política para continuar' : !can('sensitiveHealth') ? 'Autoriza tus datos de salud para registrar tu seguimiento' : '');
+
+  function renderComidasCoach() {
+    if (!PROD.coach) return;
+    const client = !navCoach;
+    const gate = shareGate(), paused = isPaused();
+    $('#li-micomidas').classList.toggle('hidden', !client);
+    $('#home-comidas').classList.toggle('hidden', !client);
+    if (!client) return;
+    // Inicio
+    const t = Platos.dayTotal(state.foods, today());
+    setText($('#hm-kcal'), Platos.n0(t.kcal));
+    setText($('#hm-sub'), t.count ? 'Hoy' : 'Aún sin registrar');
+    setText($('#hm-text'), gate ? 'Para usar tus comidas, confirma lo que compartes con tu coach.' : t.count ? `${plural1(t.count, 'comida registrada', 'comidas registradas')} hoy. Calorías aproximadas.` : 'Aún no registras comidas hoy. Las calorías son aproximadas.');
+    $('#btn-hm-add').classList.toggle('hidden', gate || paused);
+    $('#btn-hm-see').classList.toggle('hidden', gate);
+    $('#btn-hm-gate').classList.toggle('hidden', !gate);
+    // Pantalla Mis comidas
+    $('#mc-gate').classList.toggle('hidden', !gate);
+    $('#mc-main').classList.toggle('hidden', gate);
+    if (gate) return;
+    const day = Schema.isISODate(mcDate.value) ? mcDate.value : today();
+    const isToday = day === today();
+    const tot = Platos.dayTotal(state.foods, day);
+    setText($('#mc-day-title'), (isToday ? 'Hoy, ' : '') + longDay(day));
+    setText($('#mc-kcal'), Platos.n0(tot.kcal));
+    $('#mc-next').disabled = day >= today();
+    const prev = Schema.addDays(day, -1);
+    const canRepeat = !paused && (state.foods[prev] || []).length > 0;
+    $('#btn-mc-repeat').classList.toggle('hidden', !canRepeat);
+    setText($('#btn-mc-repeat'), isToday ? 'Repetir la de ayer' : 'Repetir el día anterior');
+    const list = state.foods[day] || [];
+    const html = Schema.MEALS.map((m) => {
+      const xs = list.filter((x) => x.meal === m).sort((a, b) => String(a.time || '99').localeCompare(String(b.time || '99')));
+      if (!xs.length) return '';
+      const sum = xs.reduce((n, x) => n + x.kcal, 0);
+      return `<div class="mc-meal"><div class="mc-meal-head"><strong>${esc(m)}</strong><span class="muted">${Platos.n0(sum)} kcal</span></div><ul class="mc-items">${xs.map((x) => {
+        const p = x.dish ? Platos.portionOf(x.portion) : null;
+        const sub = [p ? p.label : '', x.time || ''].filter(Boolean).join(' · ');
+        return `<li class="mc-item"><div class="mc-line"><span class="mc-t"><strong>${esc(x.name)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</span><b class="mc-k">${Platos.n0(x.kcal)} kcal</b></div>
+          <div class="mc-actions"><button type="button" class="btn-link" data-mc-edit="${esc(x.id)}" aria-label="Editar: ${esc(x.name)}">Editar</button><button type="button" class="btn-link" data-mc-del="${esc(x.id)}" aria-label="Borrar: ${esc(x.name)}">Borrar</button></div></li>`;
+      }).join('')}</ul></div>`;
+    }).join('');
+    $('#mc-list').innerHTML = html || '<p class="muted">Nada registrado este día.</p>' + (isToday && !paused ? '<p class="small muted">Toca «Agregar comida» para anotar la primera.</p>' : '');
+  }
+  const mcGoToday = () => { mcDate.value = today(); };
+  mcDate.addEventListener('change', () => { if (!Schema.isISODate(mcDate.value) || mcDate.value > today()) mcGoToday(); render(); });
+  $('#mc-prev').addEventListener('click', () => { mcDate.value = Schema.addDays(mcDate.value || today(), -1); render(); });
+  $('#mc-next').addEventListener('click', () => { const n = Schema.addDays(mcDate.value || today(), 1); mcDate.value = n > today() ? today() : n; render(); });
+  $('#row-micomidas').addEventListener('click', mcGoToday);
+  $('#btn-hm-see').addEventListener('click', mcGoToday);
+  $('#btn-mc-repeat').addEventListener('click', () => {
+    const blocked = mcBlock();
+    if (blocked) { toast(blocked, true); return; }
+    const day = mcDate.value || today();
+    repeatMeals(Schema.addDays(day, -1), day);
+    $('#mc-list-title').focus();
+  });
+  // Borrar (con «Deshacer») y editar
+  $('#mc-list').addEventListener('click', (ev) => {
+    const del = ev.target.closest('[data-mc-del]'), ed = ev.target.closest('[data-mc-edit]');
+    if (!del && !ed) return;
+    const blocked = mcBlock();
+    if (blocked) { toast(blocked, true); return; }
+    const id = (del || ed).dataset.mcDel || (del || ed).dataset.mcEdit;
+    const day = mcDate.value || today();
+    const item = (state.foods[day] || []).find((x) => x.id === id);
+    if (!item) return;
+    if (ed) { openComida({ edit: item, day, opener: ed }); return; }
+    state.foods[day] = state.foods[day].filter((x) => x.id !== id);
+    if (!state.foods[day].length) delete state.foods[day];
+    if (!save()) return;
+    render();
+    $('#mc-list-title').focus();
+    toast(`Se borró «${item.name}»`, { label: 'Deshacer', run: () => {
+      (state.foods[day] ||= []).push({ ...item, id: uid() });
+      if (save()) { render(); toast('Comida recuperada'); }
+    } });
+  });
+
+  // Hoja para agregar o editar
+  const sheetC = $('#sheet-comida'), formC = $('#form-comida');
+  let scCat = 'todas', scSt = null, scOpener = null;
+  const scCats = [{ key: 'todas', label: 'Todos' }, ...Platos.CATEGORIES];
+  const scShow = (step) => { $('#sc-pick').classList.toggle('hidden', step !== 'pick'); formC.classList.toggle('hidden', step !== 'form'); };
+  function scRenderCats() {
+    $('#sc-cats').innerHTML = scCats.map((c) => `<button type="button" data-cat="${esc(c.key)}" aria-pressed="${c.key === scCat}">${esc(c.label)}</button>`).join('');
+  }
+  const scItemHTML = (d) => `<li><button type="button" class="sc-item" data-dish="${esc(d.id)}"><span class="sc-t"><strong>${esc(d.name)}</strong><small>${esc(d.portion)}</small></span><b>${Platos.n0(d.kcal)} kcal</b></button></li>`;
+  const SC_MAX = 60;
+  function scRenderList() {
+    const q = $('#sc-q').value;
+    const rec = !q.trim() && scCat === 'todas' ? Platos.recents(state.foods, 6) : [];
+    $('#sc-recent-title').classList.toggle('hidden', !rec.length);
+    $('#sc-recent').classList.toggle('hidden', !rec.length);
+    $('#sc-recent').innerHTML = rec.map(scItemHTML).join('');
+    const res = Platos.search(q, { category: scCat });
+    const cat = Platos.categoryOf(scCat);
+    setText($('#sc-res-title'), q.trim() ? (res.length ? plural1(res.length, 'resultado', 'resultados') : 'No encontramos ese plato') : cat ? cat.label : 'Todos los platos');
+    $('#sc-results').innerHTML = res.slice(0, SC_MAX).map(scItemHTML).join('') + (res.length > SC_MAX ? `<li class="small muted">Hay ${res.length - SC_MAX} más: escribe un poco más para encontrarlos.</li>` : '')
+      + (!res.length ? '<li class="small muted">Prueba con otra palabra o toca «Escribir otra comida».</li>' : '');
+  }
+  function scPortionsHTML(d, selected) {
+    return Platos.PORTIONS.map((p) => {
+      const v = Platos.scale(d, p.key);
+      return `<label class="sc-portion"><input type="radio" name="portion" value="${p.key}"${p.key === selected ? ' checked' : ''}><span class="sc-pl">${esc(p.label)}</span><span class="sc-pk">${Platos.n0(v.kcal)} kcal</span></label>`;
+    }).join('');
+  }
+  function scUpdateTotal() {
+    if (!scSt || scSt.mode !== 'dish') { setText($('#sc-total'), ''); return; }
+    const v = Platos.scale(scSt.dish, formC.elements.portion.value || 'normal');
+    setText($('#sc-total'), `Total: ${Platos.n0(v.kcal)} kcal aproximadas`);
+  }
+  formC.addEventListener('change', (ev) => { if (ev.target.name === 'portion') scUpdateTotal(); });
+  function scOpenForm({ dish, edit, day }) {
+    const free = !dish;
+    scSt = { mode: free ? 'free' : 'dish', dish: dish || null, edit: edit || null, day };
+    const f = formC.elements;
+    $('#sc-error').classList.add('hidden');
+    $('#sc-free').classList.toggle('hidden', !free);
+    $('#sc-portions').classList.toggle('hidden', free);
+    setText($('#sc-step2-title'), free ? (edit ? 'Editar comida' : 'Escribir otra comida') : dish.name);
+    setText($('#sc-dish-sub'), free ? 'Escribe lo que comiste y sus calorías aproximadas.' : `Porción normal: ${dish.portion} · ${Platos.n0(dish.kcal)} kcal aprox.`);
+    if (!free) $('#sc-portions').innerHTML = '<legend>¿Cuánto comiste?</legend>' + scPortionsHTML(dish, (edit && edit.portion) || 'normal');
+    f.name.value = free && edit ? edit.name : '';
+    f.kcal.value = free && edit ? String(edit.kcal) : '';
+    f.meal.value = edit ? edit.meal : free ? mealByHour(new Date().getHours()) : (Platos.categoryOf(dish.category) || {}).meal || 'Snack';
+    f.date.value = day; f.date.max = today();
+    f.time.value = edit ? edit.time || '' : day === today() ? nowHM() : '';
+    setText($('#sc-save'), edit ? 'Guardar cambios' : 'Agregar');
+    setText($('#sc-back'), edit ? 'Cancelar' : 'Volver a la lista');
+    scUpdateTotal();
+    scShow('form');
+    $('#sc-step2-title').focus();
+  }
+  function openComida({ edit, day, opener } = {}) {
+    scOpener = opener || document.activeElement;
+    day = day || (mcDate.value && Schema.isISODate(mcDate.value) ? mcDate.value : today());
+    scSt = { day };
+    setText($('#sc-title'), edit ? 'Editar comida' : 'Agregar comida');
+    if (edit) {
+      sheetC.showModal();
+      scOpenForm({ dish: edit.dish ? Platos.byId(edit.dish) : null, edit, day });
+      return;
+    }
+    $('#sc-q').value = ''; scCat = 'todas'; scRenderCats(); scRenderList(); scShow('pick');
+    sheetC.showModal();
+    $('#sc-title').focus();
+  }
+  $('#sc-q').addEventListener('input', scRenderList);
+  $('#sc-cats').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-cat]');
+    if (!b) return;
+    scCat = b.dataset.cat; scRenderCats(); scRenderList();
+    $(`#sc-cats [data-cat="${scCat}"]`).focus();
+  });
+  $('#sheet-comida').addEventListener('click', (ev) => {
+    const it = ev.target.closest('[data-dish]');
+    if (it) { scOpenForm({ dish: Platos.byId(it.dataset.dish), day: scSt.day }); return; }
+    if (ev.target === sheetC) sheetC.close(); // toque en el fondo
+  });
+  $('#sc-free-open').addEventListener('click', () => scOpenForm({ dish: null, day: scSt.day }));
+  $('#sc-close').addEventListener('click', () => sheetC.close());
+  $('#sc-back').addEventListener('click', () => {
+    if (scSt && scSt.edit) { sheetC.close(); return; }
+    scShow('pick'); $('#sc-title').focus();
+  });
+  sheetC.addEventListener('close', () => { const o = scOpener; scOpener = null; if (o && o.isConnected && !o.disabled) { try { o.focus(); } catch { /* sin foco */ } } });
+  formC.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const f = formC.elements, errBox = $('#sc-error');
+    const fail = (msg, el) => { setText(errBox, msg); errBox.classList.remove('hidden'); if (el) el.focus(); };
+    const blocked = mcBlock();
+    if (blocked) { fail(blocked); return; }
+    const date = f.date.value;
+    if (!Schema.isISODate(date)) { fail('Elige el día.', f.date); return; }
+    if (date > today()) { fail('Ese día todavía no llega: elige hoy o un día anterior.', f.date); return; }
+    const meal = f.meal.value, time = /^\d{2}:\d{2}$/.test(f.time.value) ? f.time.value : '';
+    let fields;
+    if (scSt.mode === 'dish') {
+      fields = Platos.toFood(scSt.dish, f.portion.value || 'normal', { meal, time: time || undefined });
+    } else {
+      const name = f.name.value.trim();
+      const raw = String(f.kcal.value).replace(',', '.').trim();
+      const kcal = Number(raw);
+      if (!name) { fail('Escribe qué comiste.', f.name); return; }
+      if (raw === '' || !Number.isFinite(kcal) || kcal < 0 || kcal > 5000) { fail('Escribe las calorías aproximadas, entre 0 y 5.000.', f.kcal); return; }
+      fields = { name, meal, kcal: Math.round(kcal) };
+      if (time) fields.time = time;
+    }
+    if (scSt.edit) {
+      const old = scSt.edit;
+      const from = Object.keys(state.foods).find((d) => (state.foods[d] || []).some((x) => x.id === old.id));
+      const item = from ? state.foods[from].find((x) => x.id === old.id) : null;
+      if (!item) { sheetC.close(); render(); return; }
+      delete item.time;
+      Object.assign(item, scSt.mode === 'dish' ? fields : { name: fields.name, meal: fields.meal, kcal: fields.kcal, ...(fields.time ? { time: fields.time } : {}) });
+      if (from !== date) {
+        state.foods[from] = state.foods[from].filter((x) => x.id !== item.id);
+        if (!state.foods[from].length) delete state.foods[from];
+        (state.foods[date] ||= []).push(item);
+      }
+    } else {
+      const item = { id: uid(), protein: 0, carbs: 0, fat: 0, ...fields };
+      (state.foods[date] ||= []).push(item);
+    }
+    if (!save()) return;
+    sheetC.close();
+    scOpener = null;
+    mcDate.value = date;
+    render();
+    toast(scSt.edit ? 'Comida actualizada' : 'Comida agregada');
+    $('#mc-list-title').focus();
+  });
+  // Atajos: «Agregar comida» en Inicio y en la pantalla Mis comidas
+  $('#btn-hm-add').addEventListener('click', () => {
+    const blocked = mcBlock();
+    if (blocked) { toast(blocked, true); return; }
+    mcGoToday();
+    show('micomidas');
+    openComida({ day: today(), opener: $('#btn-mc-add') });
+  });
+  $('#btn-mc-add').addEventListener('click', () => {
+    const blocked = mcBlock();
+    if (blocked) { toast(blocked, true); return; }
+    openComida({ opener: $('#btn-mc-add') });
+  });
+
   // --- Acceso en pausa (M4) ---
   function renderPaused() {
     const paused = isPaused();
@@ -1824,6 +2070,7 @@
     renderHabitos();
     renderMedidas();
     renderHomeCoach();
+    renderComidasCoach();
     renderPaused();
   }
 

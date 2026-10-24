@@ -19,7 +19,7 @@ async function coachWithClients(browser, testInfo) {
     const c = await r.coach.myCoach();
     const ev = (kind) => ({ kind, granted: true, version: 'v', textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' });
     localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: ['client', 'coach'], onboarded: true, coach: c, cloudAsked: true,
-      consents: { sensitive_health: { granted: true, version: '0.1-AU-prueba', textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' }, cloud_transfer: { granted: true, version: '0.1-AU-prueba', textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' }, coach_agreement: { granted: true, version: ConsentTexts.version('A7'), textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' } } }));
+      consents: { sensitive_health: { granted: true, version: '0.2-AU', textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' }, cloud_transfer: { granted: true, version: '0.2-AU', textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' }, coach_agreement: { granted: true, version: ConsentTexts.version('A7'), textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' } } }));
     localStorage.setItem('perdida-grasa:owner', user.id);
     void ev;
   });

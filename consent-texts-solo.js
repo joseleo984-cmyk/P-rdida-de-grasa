@@ -1,8 +1,9 @@
 // Sprint 11: textos de la entrada «solo con cuenta» (soloNube, SOLO en la copia de pruebas). Se añaden a ConsentTexts sin tocar los
-// textos v0.1/v0.3 existentes. BORRADOR DE PRUEBA, PENDIENTE DEL ABOGADO (equipo/legal/borradores/autorizacion-unica-prueba.md).
+// textos v0.1/v0.3 existentes. AU y A5c: redacción LITERAL aprobada por el abogado del dueño (0.2-AU y compartir-c2); no cambiar ni una palabra sin subir la versión.
 //   AU   Autorización única: reemplaza a A3 (datos) + A4 (nube y Brevo) con UNA sola casilla. Registra los MISMOS eventos que exige el
 //        servidor (sensitive_health y cloud_transfer), con la huella de ESTE texto. Las fotos y compartir con el coach siguen aparte.
-//   A5c  Compartir con el coach en el producto «coach»: solo medidas (obligatorio), hábitos (opcional) y fotos (se piden aparte).
+//   A5c  Compartir con el coach en el producto «coach»: peso y medidas y comidas (requeridas), hábitos (interruptor) y fotos (se piden aparte). Textos aprobados por el abogado.
+//        compartir-c2 (Etapa 2, comidas): las comidas pasan de «no se comparten» a «necesarias»; quien tenía compartir-c1 debe confirmarlo (shareMigrationNeeded).
 // Misma regla de siempre: si cambia una palabra, sube la versión; la huella es el SHA-256 del texto EXACTO mostrado.
 (function (root) {
   'use strict';
@@ -10,19 +11,22 @@
   const POLICY = 'legal/privacidad.html';
 
   CT.TEXTS.AU = {
-    version: '0.1-AU-prueba', kinds: ['sensitive_health', 'cloud_transfer'],
-    body: 'Autorizo a José Granados a tratar mis medidas de cuerpo y mis hábitos (agua, pasos, sueño y entrenamiento) para registrar mi progreso, a guardarlos en la nube (Supabase, servidores en EE. UU.) y a procesar mi correo con Brevo. Conozco que es una transmisión internacional a proveedores encargados donde las medidas de protección pueden diferir de las de Colombia. Entiendo que esta autorización es necesaria para usar la app y que puedo retirarla borrando mi cuenta.',
+    version: '0.2-AU', kinds: ['sensitive_health', 'cloud_transfer'],
+    body: 'Autorizo a José Granados a tratar mi peso, medidas corporales, comidas y hábitos (agua, pasos, sueño y entrenamiento) para registrar mi progreso, a alojarlos en la nube (Supabase, servidores en EE. UU.) y a gestionar las comunicaciones del servicio a través de Brevo. Reconozco que esto implica una transmisión internacional de datos a proveedores encargados bajo estándares de seguridad internacionales. Entiendo que, al tratarse de datos sobre mi salud, no estoy obligado/a a autorizar su tratamiento; no obstante, su suministro es indispensable para la apertura y funcionamiento de mi cuenta. Puedo revocar esta autorización eliminando mi cuenta en cualquier momento.',
     links: [{ label: 'Política de datos', href: POLICY }],
   };
+  // Texto aprobado por el abogado del dueño (literal). Peso y medidas y comidas son «requeridos» (sin interruptor); hábitos se muestra con un
+  // interruptor Activar/Desactivar (el «[Opción: Activar/Desactivar]» del abogado indica el control, no es texto); fotos se autorizan aparte (A6a/A6b).
   CT.TEXTS.A5c = {
-    version: 'compartir-c1', kinds: ['share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos'],
-    intro: 'Compartir con {coach} (él es responsable de cómo usa lo que ves):',
+    version: 'compartir-c2', kinds: ['share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos'],
+    intro: 'Compartir con {coach} (quien actúa como responsable independiente del tratamiento de los datos que reciba):',
     categories: {
-      body: 'Medidas de cuerpo (necesario mientras estés vinculado/a)',
+      body: 'Peso y medidas corporales (requerido para el acompañamiento activo).',
+      nutrition: 'Comidas e ingesta calórica (requerido para el acompañamiento activo).',
       habits: 'Hábitos (agua, pasos, sueño y entrenamiento)',
-      photos: 'Fotos (se piden aparte)',
+      photos: 'Fotos de progreso (se autorizan de forma independiente en la sección respectiva).',
     },
-    outro: 'Tu coach no ve tu correo. Puedes quitar los hábitos o terminar el vínculo cuando quieras; deja de verlos al instante.',
+    outro: 'Tu coach nunca tiene acceso a tu correo electrónico. Puedes modificar el permiso de hábitos o desvincularte del coach en cualquier momento; al desvincularte, el acceso a todos tus datos cesará de forma inmediata.',
     links: [{ label: 'Texto completo: Política §7.1', href: POLICY }],
   };
 
@@ -39,7 +43,7 @@
   CT.fullText = function (id, vars = {}) {
     if (id !== 'A5c') return fullText0(id, vars);
     const t = CT.TEXTS.A5c;
-    return [CT.fill(t.intro, vars), ...['body', 'habits', 'photos'].map((k) => '- ' + t.categories[k]), CT.fill(t.outro, vars)].join('\n') + '\n' + t.links.map((l) => `[${l.label}]`).join(' ');
+    return [CT.fill(t.intro, vars), ...['body', 'nutrition', 'habits', 'photos'].map((k) => '- ' + t.categories[k]), CT.fill(t.outro, vars)].join('\n') + '\n' + t.links.map((l) => `[${l.label}]`).join(' ');
   };
   // La copia en la nube también vale con la autorización única (AU) vigente: es A3 + A4 en una.
   const granted = (meta, kind, ver) => !!(meta && meta.consents && meta.consents[kind] && meta.consents[kind].granted === true && meta.consents[kind].version === ver);

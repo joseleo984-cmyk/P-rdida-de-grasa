@@ -44,8 +44,8 @@ async function seedCoach(page, email, biz) {
   }, { email, biz });
 }
 // Un cliente ya vinculado con ese coach por la API (sin pasar por la interfaz). paidDays: null = sin fecha; número = pagado hasta hoy + n.
-async function seedClient(page, email, name, code, { paidDays = null, habits = false, measures = [], habitDays = [] } = {}) {
-  await page.evaluate(async ({ email, name, code, paidDays, habits, measures, habitDays }) => {
+async function seedClient(page, email, name, code, { paidDays = null, habits = false, nutrition = false, measures = [], habitDays = [], foods = [] } = {}) {
+  await page.evaluate(async ({ email, name, code, paidDays, habits, nutrition, measures, habitDays, foods }) => {
     const be = window.__pgFakeBackend;
     const m = {}; const mem = { getItem: (k) => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; } };
     const r = RemoteFake.createFake({ backend: be, storage: mem });
@@ -55,14 +55,16 @@ async function seedClient(page, email, name, code, { paidDays = null, habits = f
     await r.account.setDisplayName(name);
     const ev = (kind) => ({ kind, granted: true, version: 't', textHash: 'b'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' });
     await r.account.recordConsents(['sensitive_health', 'cloud_transfer'].map(ev));
-    await r.client.joinCoach(code, { body: true, habits, version: 'compartir-c1', textHash: 'c'.repeat(64) });
+    await r.client.joinCoach(code, { body: true, habits, nutrition, version: 'compartir-c2', textHash: 'c'.repeat(64) });
     if (paidDays != null) { const t = new Date(be.clock.now() - 5 * 3600000 + paidDays * 86400000).toISOString().slice(0, 10); be.setPaidUntil(email, t); }
     const T = '2026-10-21T10:00:00.000Z';
     const recs = [];
     measures.forEach((x, i) => recs.push({ id: `00000000-0000-4000-8000-0000000001${String(i).padStart(2, '0')}`, kind: 'entry', nkey: x.date, date: x.date, data: x.data, updatedAt: T }));
     habitDays.forEach((x, i) => recs.push({ id: `00000000-0000-4000-8000-0000000002${String(i).padStart(2, '0')}`, kind: 'habit', nkey: x.date, date: x.date, data: x.data, updatedAt: T }));
+    // Etapa 2: comidas { date, id (último bloque del uuid), data } sembradas por la API (solo llegan al coach si nutrition = true)
+    foods.forEach((x, i) => recs.push({ id: `00000000-0000-4000-8000-0000000003${String(i).padStart(2, '0')}`, kind: 'food', nkey: `00000000-0000-4000-8000-0000000003${String(i).padStart(2, '0')}`, date: x.date, data: x.data, updatedAt: T }));
     if (paidDays != null && recs.length) await r.sync.push({ records: recs });
-  }, { email, name, code, paidDays, habits, measures, habitDays });
+  }, { email, name, code, paidDays, habits, nutrition, measures, habitDays, foods });
 }
 // Copia el «servidor» de un teléfono al otro y recarga el destino (equivale a que hablen con el mismo servidor).
 async function transfer(from, to) {

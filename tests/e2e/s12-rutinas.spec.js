@@ -23,7 +23,7 @@ async function coachPhone(browser, testInfo) {
     const c = await r.coach.myCoach();
     const ev = { granted: true, version: 't', textHash: 'a'.repeat(64), clientAt: '2026-10-01T12:00:00.000Z' };
     localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: ['client', 'coach'], onboarded: true, coach: c, cloudAsked: true,
-      consents: { sensitive_health: { ...ev, version: '0.1-AU-prueba' }, cloud_transfer: { ...ev, version: '0.1-AU-prueba' }, coach_agreement: { ...ev, version: ConsentTexts.version('A7') } } }));
+      consents: { sensitive_health: { ...ev, version: '0.2-AU' }, cloud_transfer: { ...ev, version: '0.2-AU' }, coach_agreement: { ...ev, version: ConsentTexts.version('A7') } } }));
     localStorage.setItem('perdida-grasa:owner', user.id);
   });
   await H.seedClient(p, 'ana@c.co', 'Ana Martínez', code, { paidDays: 20 });

@@ -57,7 +57,9 @@ test('soloNube: una pantalla de aceptación, sin «solo en mi teléfono» ni «A
   await expect(p.locator('#acc-share [name=share_body]')).toBeDisabled();
   await expect(p.locator('#acc-share [name=share_habits]')).toBeChecked();
   await expect(p.locator('#acc-share [name=share_photos]')).toBeDisabled();
-  await expect(p.locator('#acc-share [name=share_nutrition]')).toHaveCount(0);
+  // Etapa 2: las comidas son necesarias mientras esté vinculada (marcadas y sin poder quitarse), igual que las medidas
+  await expect(p.locator('#acc-share [name=share_nutrition]')).toBeChecked();
+  await expect(p.locator('#acc-share [name=share_nutrition]')).toBeDisabled();
   await expect(p.locator('#acc-share [name=share_notes]')).toHaveCount(0);
   await H.shot(p, 's11-entrada-conectar.png', { fullPage: true });
   await p.getByRole('button', { name: 'Conectarme y continuar' }).click();
@@ -73,8 +75,8 @@ test('soloNube: una pantalla de aceptación, sin «solo en mi teléfono» ni «A
     expect([e.granted, e.version, e.textHash]).toEqual([true, CT.version('AU'), auHash]);
   }
   const shares = Object.fromEntries(mine.filter((e) => e.kind.startsWith('share_')).map((e) => [e.kind, e.granted]));
-  expect(shares).toEqual({ share_body: true, share_habits: true, share_notes: false, share_nutrition: false, share_photos: false });
-  expect(mine.filter((e) => e.kind.startsWith('share_')).every((e) => e.version === 'compartir-c1' && e.textHash === H.sha(CT.fullText('A5c', { coach: 'Laura Fit' })))).toBe(true);
+  expect(shares).toEqual({ share_body: true, share_habits: true, share_notes: false, share_nutrition: true, share_photos: false });
+  expect(mine.filter((e) => e.kind.startsWith('share_')).every((e) => e.version === 'compartir-c2' && e.textHash === H.sha(CT.fullText('A5c', { coach: 'Laura Fit' })))).toBe(true);
   expect(be.profiles[be.users['ana@cliente.co'].id].displayName).toBe('Ana Martínez');
   // Más: no existe el modo local ni «Ahora no»
   await p.locator('#tab-mas').click();
@@ -99,7 +101,7 @@ test('soloNube: sin código de coach un cliente no entra; con un código inváli
   expect(errors.filter((e) => !/Failed to load resource|40\d/.test(e))).toEqual([]);
 });
 
-test('la barra del cliente en modo coach: Inicio · Hábitos · Medidas · Fotos · Más; sin calorías, comidas, plan ni recomendaciones', async ({ browser }, testInfo) => {
+test('la barra del cliente en modo coach: Inicio · Hábitos · Medidas · Fotos · Más; sin plan ni recomendaciones; con «Mis comidas» (Etapa 2)', async ({ browser }, testInfo) => {
   const { p, errors } = await H.phone(browser, testInfo);
   await p.goto('index.html');
   await H.acceptSolo(p);
@@ -115,7 +117,8 @@ test('la barra del cliente en modo coach: Inicio · Hábitos · Medidas · Fotos
   await p.addStyleTag({ content: H.WIDE });
   const home = p.locator('#view-panel');
   await expect(home).toContainText('Mis hábitos de hoy');
-  expect(await home.innerText()).not.toMatch(/kcal|calor|Hoy llevas|Proteína|Recomendaciones|plan|Comidas/i);   // solo lo que se VE
+  expect(await home.innerText()).not.toMatch(/Hoy llevas|Proteína|Recomendaciones|plan/i);   // solo lo que se VE (Etapa 2: sí hay «Mis comidas de hoy», con calorías aproximadas)
+  await expect(home).toContainText('Mis comidas de hoy');
   await H.allHidden(p, '#home-today, #tips-card, #home-weight, #btn-repeat-breakfast, #panel-summary');
   await H.allHidden(p, '#tab-comidas, #tab-registrar, #tab-registro');
   await expect(p.locator('#pay-countdown')).toHaveText('Faltan 30 días para tu próximo pago');
@@ -125,7 +128,8 @@ test('la barra del cliente en modo coach: Inicio · Hábitos · Medidas · Fotos
   // Más: sin plan ni comidas
   await p.locator('#tab-mas').click();
   const mas = await p.locator('#view-mas').innerText();
-  expect(mas).not.toMatch(/Mi plan y perfil|Mis comidas|Mis fotos/);
+  expect(mas).not.toMatch(/Mi plan y perfil|Mis fotos/);
+  expect(mas).toContain('Mis comidas');   // Etapa 2
   expect(mas).toContain('Mis datos y permisos');
   await H.layout(p);
   expect(errors).toEqual([]);
