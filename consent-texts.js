@@ -103,12 +103,14 @@
       const c = t.categories;
       return [fill(t.intro, vars), ...['body', 'notes', 'nutrition', 'habits', 'photos'].map((k) => '- ' + c[k]), fill(t.outro, vars)].join('\n') + linkLine(t.links);
     }
-    if (id === 'A7') return fill(t.intro, vars) + '\n' + fill(t.body, vars) + linkLine(t.links);
+    // A7: introducción + (solo producto «coach») la cláusula de contenidos cargados + la casilla. Sin `clause` queda como siempre.
+    if (id === 'A7') return fill(t.intro, vars) + (t.clause ? '\n' + t.clause : '') + '\n' + fill(t.body, vars) + linkLine(t.links);
     return fill(t.body, vars) + linkLine(t.links);
   }
 
   // Sprint 10: textos EXACTOS de versiones ANTERIORES del acuerdo del coach (A7) que alguien pudo haber aceptado. Al subir la versión
   // de A7, el texto viejo (fullText completo) se MUEVE aquí sin cambiarle una letra: sirve para «Mi acuerdo» y para la copia por correo.
+  // El producto «coach» (consent-texts-solo.js) guarda aquí el texto de la versión 0.3-A7 al reemplazarla por 0.4-A7-coach.
   const A7_PAST = {};
   // versión → texto exacto (el vigente más los anteriores). Alimenta supabase/functions/_shared/textos-acuerdo.mjs (npm run build:funcion).
   const agreementTexts = () => ({ ...A7_PAST, [version('A7')]: fullText('A7') });
@@ -155,7 +157,7 @@
   // A1/A2 se piden al pedir el código (antes de que el correo salga hacia Brevo). `terms` = lo guardado en este teléfono.
   const termsCurrent = (terms, legal) => !!(terms && terms.a1 === version('A1') && terms.a2 === version('A2') && terms.legal && terms.legal.terms === legal.terms && terms.legal.privacy === legal.privacy);
 
-  const api = { TEXTS, A8, A8text, get, version, kinds, fullText, agreementTexts, agreementText, fill, cloudAllowed, coachAgreementOK, shareMigrationNeeded, applyEvent, mergeServer, dropSent, termsCurrent };
+  const api = { TEXTS, A8, A8text, A7_PAST, get, version, kinds, fullText, agreementTexts, agreementText, fill, cloudAllowed, coachAgreementOK, shareMigrationNeeded, applyEvent, mergeServer, dropSent, termsCurrent };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.ConsentTexts = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -3,7 +3,7 @@
 
 # Acuerdo del coach con la plataforma "Pérdida de Grasa"
 
-**Versión:** 0.3 (borrador) · **Vigente desde:** [FECHA DE VIGENCIA]
+**Versión:** 0.3 (borrador) + Cláusula 13 (texto en la app de pruebas: 0.4-A7-coach, 24/10/2026) · **Vigente desde:** [FECHA DE VIGENCIA]
 **Entre:** José Granados, persona natural, Barranquilla (correo joseleo984@gmail.com) ("la plataforma") y tú, el coach que aceptas este acuerdo.
 
 ## 1. Tu papel
@@ -55,3 +55,12 @@ Tus datos de coach (correo, nombre comercial, clientes vinculados) los trata la 
 
 ## 12. Ley aplicable
 Leyes de Colombia. Contacto: joseleo984@gmail.com.
+
+## 13. Contenidos cargados, propiedad intelectual y derechos de imagen
+*(Cláusula nueva, texto LITERAL aprobado por la asesoría jurídica el 24 de octubre de 2026, concepto punto 3.5. Es la siguiente cláusula libre: el acuerdo llegaba hasta la 12. Su aceptación se registra con la versión 0.4-A7-coach.)*
+
+Cláusula 13. Contenidos Cargados, Propiedad Intelectual y Derechos de Imagen:
+- El Coach declara y garantiza que es el titular exclusivo o cuenta con las licencias y autorizaciones necesarias sobre todos los planes, rutinas, textos, imágenes, animaciones (GIF) y videos que cargue en la plataforma.
+- Queda estrictamente prohibido cargar material que contenga la imagen de terceras personas sin su autorización previa y expresa, o que infrinja derechos de propiedad intelectual, intimidad, o constituya publicidad engañosa.
+- En caso de que el material reproduzca la imagen personal del propio Coach, este autoriza expresamente a José Granados a hospedarla, reproducirla y exhibirla temporalmente dentro del entorno privado de la plataforma exclusivamente para los asesorados vinculados a su cuenta.
+- La plataforma se reserva el derecho de retirar de manera unilateral y sin previo aviso cualquier contenido que sea objeto de reclamo por parte de terceros o que infrinja las políticas del servicio, sin derecho a indemnización. El Coach mantendrá indemne a José Granados frente a cualquier reclamo, demanda, sanción o perjuicio derivado del material subido.

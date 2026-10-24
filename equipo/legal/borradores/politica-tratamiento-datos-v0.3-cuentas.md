@@ -141,9 +141,18 @@ Según el Decreto 090 de 2018, la inscripción obliga a personas jurídicas con 
 
 Esta política rige desde [FECHA DE VIGENCIA] hasta que publiquemos una nueva. Si cambia de forma sustancial, la app **te pedirá aceptarla de nuevo**. La base de datos estará vigente mientras se preste el servicio y por los plazos de §11.
 
+## Adenda 24/10/2026
+
+Esta adenda se **añade** a la política y no reemplaza ningún apartado anterior. Es el texto aprobado por la asesoría jurídica el 24 de octubre de 2026 para el producto con cuentas, comidas y medidas ampliadas.
+
+§6. Categorías de Datos Sensibles Recolectados: Se recolectan y tratan medidas antropométricas corporales (incluyendo peso, cuello, brazos, espalda, cintura, abdomen, cadera y muslos) y registros descriptivos de ingestas alimentarias con estimación de aporte calórico aproximado provisto por catálogo de referencia.
+
+§7.1. Finalidad y Alcance Técnico: Las estimaciones calóricas y los registros de comidas se procesan con fines exclusivos de autogestión y seguimiento de hábitos deportivos. La plataforma no ofrece asesoría nutricional, prescripción dietética ni diagnóstico clínico. Las cifras del catálogo son aproximaciones referenciales y no reemplazan la consulta con profesionales de la salud.
+
 ## Historial de versiones
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 0.3 (borrador, adenda) | 2026-10-24 | **Adenda 24/10/2026**: se añaden, literales, los párrafos §6 (categorías de datos sensibles recolectados) y §7.1 (finalidad y alcance técnico) del concepto jurídico del 24 de octubre de 2026. En este borrador el §6 y el §7.1 tratan otros temas (fotos y coach), por eso van como adenda y no reemplazan nada. |
 | 0.3 (borrador) | 2026-10-23 | Adopta las respuestas P1–P18: roles, retención de 365 días con avisos a los días 335 y 358, prueba del consentimiento 3 años disociada, Brevo nombrado, incidentes 24 h / 15 días hábiles, menores con borrado en 48 h, sin copias automáticas en el piloto, destrucción por el coach en 30 días. No vigente. |
 | 0.2 (borrador) | 2026-10-22 | Primer borrador con cuentas, Supabase, Brevo, coach como responsable independiente, fotos con autorización propia, retención, prueba del consentimiento, incidentes, RNBD. No vigente. |

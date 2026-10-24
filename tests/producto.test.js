@@ -60,3 +60,11 @@ test('A6a y A6b no cambian con la etapa de comidas', () => {
   assert.strictEqual(CT.version('A6a'), '0.2-A6a');
   assert.strictEqual(CT.version('A6b'), '0.2-A6b');
 });
+test('sin producto coach (app oficial) A6b y A7 quedan EXACTAMENTE como antes: sin cláusula nueva ni textos pasados', () => {
+  assert.strictEqual(CT.version('A7'), '0.3-A7');
+  assert.strictEqual(CT.TEXTS.A7.clause, undefined);
+  assert.deepStrictEqual(CT.A7_PAST, {});
+  assert.ok(!/Cláusula|Propiedad Intelectual/.test(CT.fullText('A7')));
+  assert.match(CT.TEXTS.A6b.body, /^Autorizo que \{coach\} vea la foto que marqué, una a una\./);
+  assert.deepStrictEqual(Object.keys(CT.agreementTexts()), ['0.3-A7']);
+});
