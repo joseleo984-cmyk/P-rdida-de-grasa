@@ -96,7 +96,10 @@ test('cruce de medianoche con la app abierta: el diario pasa al nuevo día', asy
   await app.open({ state: seeded(), time: '2026-10-21T23:50:00-05:00' });
   await app.tab('comidas');
   await expect(page.locator('#food-date')).toHaveValue('2026-10-21');
-  await page.clock.fastForward('20:00');
+  // La PWA vuelve de segundo plano con la hora ya cambiada: se fija la hora (setSystemTime), sin depender de que fastForward
+  // alcance a la página (a veces no lo hacía y la prueba fallaba de forma intermitente).
+  await page.clock.setSystemTime(new Date('2026-10-22T00:10:00-05:00'));
+  await expect.poll(() => page.evaluate(() => new Date().getDate())).toBe(22);
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await expect(page.locator('#food-date')).toHaveValue('2026-10-22');
   expect(await app.scrollWidth()).toBeLessThanOrEqual(390);
