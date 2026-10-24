@@ -47,9 +47,9 @@ test('coach: lista de asesorados con filtros (Necesitan atención · Todos · Ve
   expect(await rows.locator('.cli-name').allTextContents()).toEqual(['Ana Martínez', 'Carlos Pérez', 'Juan Gómez']);
   await expect(rows.nth(0)).toContainText('Aún no ha registrado nada');
   await expect(rows.nth(0).locator('.sem')).toHaveText('▲ Atención');
-  await expect(rows.nth(0)).toContainText('Pagó hasta el 10 nov · vence en 20 días');
-  await expect(rows.nth(1)).toContainText('Pagó hasta el 24 oct · vence en 3 días');
-  await expect(rows.nth(2)).toContainText('Sin pago registrado');
+  await expect(rows.nth(0)).toContainText('Pago: al día hasta el 10 nov');
+  await expect(rows.nth(1)).toContainText('Pago: vence en 3 días');
+  await expect(rows.nth(2)).toContainText('Pago: sin registrar');
   await expect(rows.nth(2).locator('.chip-pay')).toHaveText('No pagó');
   await expect(rows.nth(0).locator('.chip-pay')).toHaveText('Pagó');
   await expect(rows.nth(2)).toContainText('No comparte sus hábitos');
@@ -73,14 +73,14 @@ test('coach: lista de asesorados con filtros (Necesitan atención · Todos · Ve
   await p.locator('#pago-date').fill(iso(25));
   await p.getByRole('button', { name: 'Marcar que pagó' }).click();
   await expect(p.locator('#sheet-pago')).toBeHidden();
-  await expect(app(p, 'Juan Gómez')).toContainText('Pagó hasta el 15 nov · vence en 25 días');
+  await expect(app(p, 'Juan Gómez')).toContainText('Pago: al día hasta el 15 nov');
   await expect(p.locator('#coach-filters button', { hasText: 'Sin pagar' })).toHaveText('Sin pagar · 0');
   const be = await H.backend(p);
   expect(Object.values(be.links).find((l) => l.paidUntil === iso(25))).toBeTruthy();
   // «No pagó»: queda vencido desde ayer
   await app(p, 'Ana Martínez').locator('.chip-pay').click();
   await p.getByRole('button', { name: 'Marcar que no pagó' }).click();
-  await expect(app(p, 'Ana Martínez')).toContainText('Venció el 20 oct');
+  await expect(app(p, 'Ana Martínez')).toContainText('Pago: venció el 20 oct');
   await expect(app(p, 'Ana Martínez').locator('.chip-pay')).toHaveText('No pagó');
   await expect(p.locator('#coach-filters button', { hasText: 'Sin pagar' })).toHaveText('Sin pagar · 1');
   // Fecha fuera de rango: mensaje, no se guarda

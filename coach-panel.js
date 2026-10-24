@@ -172,6 +172,7 @@
       limit.classList.toggle('hidden', !over);
       limit.textContent = over ? `Tienes ${list.length} clientes: pasas del límite gratuito de ${mine ? mine.freeClients : 5}. Te contactaremos para el plan fundador; nadie pierde el acceso.` : '';
       status.textContent = list.length ? `Actualizado a las ${new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}.` : '';
+      if (PROD.coach) { document.body.dataset.stamp = list.length ? `Actualizado ${new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false })}` : ''; document.dispatchEvent(new CustomEvent('pg:topbar-label')); }
     } catch (err) {
       status.textContent = errText(err);
     }
@@ -235,11 +236,11 @@
       const habitsOff = !(c.info.shares && c.info.shares.habits);
       return `<li><div class="cli-pay-row" data-level="${at.level}">
         <button type="button" class="cli-main" data-client="${id}" aria-label="${esc(name)}. ${esc(at.label)}: ${esc(at.reason)}. ${esc(Pagos.coachLine(p))}. Abrir su ficha">
-          <span class="cli-av av${ClientStatus.hue(name)}" aria-hidden="true">${esc(ClientStatus.initials(name))}</span>
+          <span class="cli-av" aria-hidden="true">${esc(ClientStatus.initials(name))}</span>
           <span class="cli-text"><span class="cli-top"><span class="cli-name who">${esc(name)}</span><span class="sem sem-${at.level}"><span aria-hidden="true">${SEM_ICON[at.level]}</span> ${esc(at.label)}</span></span>
             <span class="cli-line cli-motivo">${esc(at.reason)}</span>
             ${habitsOff ? '<span class="cli-line">🔒 No comparte sus hábitos</span>' : ''}
-            <span class="cli-line cli-pago">${esc(Pagos.coachLine(p))}</span></span>
+            <span class="cli-line cli-pago">${esc(Pagos.listLine(p))}</span></span>
         </button>
         <button type="button" class="chip-pay ${p.paid ? 'ok' : 'bad'}" data-pay="${id}" aria-label="${esc(name)}: ${p.paid ? 'pagó' : 'no pagó'}. Tocar para cambiar">${esc(Pagos.chipText(p))}</button>
       </div></li>`;
@@ -305,7 +306,7 @@
     ul.innerHTML = items.map((c) => {
       const name = displayName(c);
       return `<li><button type="button" class="cli-row client-btn" data-client="${esc(c.info.clientId)}" aria-label="${esc(name)}: ${esc(c.st.label)}. ${esc(c.st.line)}">
-        <span class="cli-av av${ClientStatus.hue(name)}" aria-hidden="true">${esc(ClientStatus.initials(name))}</span>
+        <span class="cli-av" aria-hidden="true">${esc(ClientStatus.initials(name))}</span>
         <span class="cli-text"><span class="cli-name who">${esc(name)}</span><span class="cli-line meta">${esc(c.st.line)}</span></span>
         ${statusChip(c.st)}
       </button></li>`;
@@ -371,11 +372,25 @@
   }
 
   // ---------- Coach: ficha ----------
+  // Barra superior de la ficha: «‹ Anterior · Nombre · Siguiente ›» (solo en el producto coach). La app oficial no la usa.
+  function fichaBar(on, name) {
+    if (!PROD.coach) return;
+    const bar = document.querySelector('.topbar');
+    bar.classList.toggle('has-back', on);
+    bar.classList.toggle('has-ficha', on);
+    const hb = on && (shownOrder.length > 1 || cache.size > 1);
+    $('#btn-coach-prev').classList.toggle('hidden', !hb);
+    $('#btn-coach-next').classList.toggle('hidden', !hb);
+    $('#btn-coach-prev').disabled = !hb; $('#btn-coach-next').disabled = !hb;
+    if (on && name) $('#topbar-title').textContent = name;
+    else if (!on) $('#topbar-title').textContent = 'Asesorados';
+  }
   function showList(focusId) {
     current = null;
     freePhoto();
     $('#coach-detail-view').classList.add('hidden');
     $('#coach-list-view').classList.remove('hidden');
+    fichaBar(false);
     const btn = focusId && document.querySelector(`#coach-clients [data-client="${CSS.escape(focusId)}"]`);
     (btn || $('#coach-title-list')).focus();
   }
@@ -389,6 +404,7 @@
   }
 
   async function openClient(clientId) {
+    reactSel = 0;
     const c = cache.get(clientId);
     if (!c) return;
     current = clientId;
@@ -396,6 +412,7 @@
     $('#coach-list-view').classList.add('hidden');
     $('#coach-detail-view').classList.remove('hidden');
     renderDetail(c);
+    fichaBar(true, displayName(c));
     $('#coach-detail-title').focus();
     $('#comment-date').value = today();
     if (PROD.coach) $('#fc-react-status').textContent = '';
@@ -454,9 +471,11 @@
     if (sh.nutrition) t.push([w.proteinText || '—', 'proteína promedio']);
     if (sh.habits) t.push([w.closeText || '—', 'cierre del día']);
     $('#fc-sum').innerHTML = t.map(([a, b]) => `<div><b>${esc(a)}</b><small>${esc(b)}</small></div>`).join('');
+    const lastMed = (c.state.entries || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
+    $('#fc-link-med').textContent = lastMed ? `Última ${fmtDay(lastMed.date)} ›` : 'Ver ›';
     $('#fc-esfuerzo').textContent = sh.habits ? (w.effortText || 'Esfuerzo: sin respuestas esta semana') : '';
     const REACT = [['¡Bien esta semana!', '¡Bien esta semana!'], ['Sigue así', 'Sigue así'], ['Te falta medirte', 'Te falta medirte esta semana. Cuando puedas, anótalo.'], ['Te escribo', 'Te escribo hoy para hablar de tu semana.']];
-    $('#fc-react-btns').innerHTML = REACT.map(([l, b], i) => `<button type="button" data-react="${i}">${esc(l)}</button>`).join('');
+    $('#fc-react-btns').innerHTML = REACT.map(([l, b], i) => `<button type="button" data-react="${i}" aria-pressed="${i === reactSel}">${esc(l)}</button>`).join('');
     reactBodies = REACT.map((r) => r[1]);
     reactLabels = REACT.map((r) => r[0]);
     const rv = readReviewed()[c.info.clientId] === todayBo();
@@ -466,7 +485,7 @@
     const hasPrev = shownOrder.length > 1 || cache.size > 1;
     $('#btn-coach-prev').disabled = !hasPrev; $('#btn-coach-next').disabled = !hasPrev;
   }
-  let reactBodies = [], reactLabels = [];
+  let reactBodies = [], reactLabels = [], reactSel = 0;   // la reacción elegida (por defecto la primera); «Enviar» la manda como nota del coach
   const REVIEWED_KEY = PGNS.key('revisados');   // «Revisado ✓»: solo en el teléfono del coach
   const readReviewed = () => { try { const x = JSON.parse(localStorage.getItem(REVIEWED_KEY) || '{}'); return x && typeof x === 'object' ? x : {}; } catch { return {}; } };
   function renderDetailConst(c, sh) {
@@ -477,9 +496,10 @@
       .map(([a, b]) => `<div><b>${esc(a)}</b><small>${esc(b)}</small></div>`).join('');
     const weeks = [...sm.history.slice(-5), sm.week];
     $('#fc-weeks').innerHTML = weeks.map((w) => `<li aria-label="Semana del ${esc(fmtDay(w.start))}: ${w.registered} días con registro">${w.registered}</li>`).join('');
-    $('#fc-ins').innerHTML = list.map((b) => `<li class="insig ${b.earned ? 'earned' : 'pending'}"><span class="insig-n" aria-hidden="true">${esc(b.n)}</span><span class="insig-t"><strong>${esc(b.name)}</strong><small>${esc(b.earned ? fmtDay(b.date) : b.hint)}</small></span><span class="sr-only">${b.earned ? 'Ganada' : 'Aún no'}</span></li>`).join('');
+    $('#fc-ins').innerHTML = list.map((b, i) => `<li class="insig ${b.earned ? 'earned' : 'pending'}"><span class="insig-n" aria-hidden="true">${i + 1}</span><span class="insig-t"><strong>${esc(b.name)}</strong><small>${esc(b.earned ? fmtDay(b.date) : b.hint)}</small><span class="sr-only">${esc(b.desc)}. ${b.earned ? 'Ganada' : 'Aún no'}</span></span></li>`).join('');
     const first = displayName(c).split(/\s+/)[0];
     $('#btn-fc-felicitar').textContent = `Felicitar a ${first}`;
+    $('#fc-link-const').textContent = `${bc.earned} de ${bc.total} ›`;
   }
   async function sendReaction(body, label, { undo = true } = {}) {
     const c = cache.get(current);
@@ -493,7 +513,13 @@
     } catch (err) { toast(errText(err), true); }
   }
   function wireFicha() {
-    $('#fc-react-btns').addEventListener('click', (ev) => { const b = ev.target.closest('[data-react]'); if (b) sendReaction(reactBodies[b.dataset.react], reactLabels[b.dataset.react]); });
+    $('#fc-react-btns').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-react]');
+      if (!b) return;
+      reactSel = Number(b.dataset.react);
+      document.querySelectorAll('#fc-react-btns [data-react]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    });
+    $('#btn-fc-enviar').addEventListener('click', () => sendReaction(reactBodies[reactSel], reactLabels[reactSel]));
     $('#btn-fc-felicitar').addEventListener('click', () => { const c = cache.get(current); if (c) sendReaction(`¡Felicitaciones, ${displayName(c).split(/\s+/)[0]}! Tu constancia se nota.`, 'Felicitaciones'); });
     $('#btn-fc-revisado').addEventListener('click', () => {
       const m = readReviewed(), id = current;
@@ -747,7 +773,7 @@
     const badge = $('#coach-notes-unread');
     badge.textContent = unread ? `${unread} sin leer` : '';
     badge.classList.toggle('hidden', !unread);
-    if (PROD.coach && $('#coach-notes-title').firstChild) $('#coach-notes-title').firstChild.textContent = 'Tu coach te escribió ';
+    if (PROD.coach && $('#coach-notes-title').firstChild) { const mm = A.meta && A.meta(), nm = mm && mm.link && mm.link.businessName; $('#coach-notes-title').firstChild.textContent = nm ? `${nm} te escribió ` : 'Tu coach te escribió '; }
     const li = (c, withBtn) => `<li class="${c.readAt ? '' : 'unread'}">
       <p class="note-body">${esc(c.body)}</p>
       <div class="note-meta"><span>Sobre el ${esc(fmtDay(c.refDate))} · ${esc(fmtStamp(c.createdAt))}</span>

@@ -11,7 +11,7 @@
 (function (root) {
   'use strict';
 
-  const BUSINESS = 'Fit Demo';
+  const BUSINESS = 'Coach Fit Demo';
   const COACH = { key: 'coach', name: 'Coach Demo', email: 'coach.demo@example.com' };
   const INVITE_CODE = 'FTDM72';                       // 6 letras/números válidos del alfabeto de invitaciones (sin I, L, O, 0, 1)
   const BANNER = 'DEMO — datos ficticios; nada se guarda en ningún servidor';
@@ -39,7 +39,7 @@
   // weeks: semanas de historial de medidas (0 = una sola medición); last: día del último registro (0 = hoy, -2 = hace 2 días).
   // habitDays / foodDays: cuántos días de hábitos y comidas hay (hasta «last»). paid: días de pago que le quedan (negativo = no pagó).
   const PEOPLE = [
-    { key: 'ana', name: 'Ana Demo', sex: 'f', w0: 78.4, loss: 5.6, weeks: 10, last: -1, adh: 0.88, habitDays: 28, foodDays: 7, started: -72, paid: 21, notes: true,
+    { key: 'ana', name: 'Ana Demo', sex: 'f', w0: 78.4, loss: 5.6, weeks: 10, last: -1, adh: 0.88, habitDays: 28, foodDays: 7, started: -72, paid: 21, notes: true, waistWeekAgo: true,
       shares: { body: true, notes: true, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [0, 'perfil', 0], [4, 'frente', 1], [8, 'frente', 1], [10, 'frente', 1], [10, 'perfil', 1]], routines: ['pecho', 'piernas'], pattern: true, early: true, steady: true },
     { key: 'beto', name: 'Beto Demo', sex: 'm', w0: 96.2, loss: 6.8, weeks: 10, last: 0, adh: 0.62, habitDays: 28, foodDays: 7, started: -75, paid: 4, notes: true, hard: true,
       shares: { body: true, notes: false, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [5, 'frente', 1], [10, 'frente', 1], [10, 'espalda', 1]], routines: ['espalda'] },
@@ -77,16 +77,15 @@
     const add = (off, data) => { const date = addDays(today, off); if (off <= 0) out.set(date, { date, ...data }); };
     for (let w = 0; w <= weeks; w++) {
       const f = frac[w] || 0, L = p.loss;
-      const e = { weight: r1(p.w0 - L * f + (rnd() - 0.5) * 0.4), abdomen: r1(base.abdomen - L * 1.2 * f + (rnd() - 0.5) * 0.8), hip: r1(base.hip - L * 0.6 * f + (rnd() - 0.5) * 0.7) };
-      if (w % 2 === 0 || w === weeks) {   // las demás medidas cada 2 semanas
-        e.waist = r1(base.waist - L * 0.9 * f + (rnd() - 0.5) * 0.8);
-        e.neck = r1(base.neck - 0.4 * f + (rnd() - 0.5) * 0.3);
-        e.armR = r1(base.armR - L * 0.1 * f + (rnd() - 0.5) * 0.4);
-        e.armL = r1(base.armL - L * 0.1 * f + (rnd() - 0.5) * 0.4);
-        e.back = r1(base.back - L * 0.15 * f + (rnd() - 0.5) * 0.6);
-        e.thighR = r1(base.thighR - L * 0.35 * f + (rnd() - 0.5) * 0.6);
-        e.thighL = r1(base.thighL - L * 0.35 * f + (rnd() - 0.5) * 0.6);
-      }
+      const e = { weight: r1(p.w0 - L * f + (rnd() - 0.5) * 0.4), abdomen: r1(base.abdomen - L * 1.2 * f + (rnd() - 0.5) * 0.8) };
+      const hipNow = r1(base.hip - L * 0.6 * f + (rnd() - 0.5) * 0.7);   // siempre se consume el mismo azar (los datos de la demo no cambian de un día a otro)
+      // Cintura, cadera y las demás medidas cada 2 semanas (waistWeekAgo: la última vez fue hace una semana, así hoy «toca» la cintura).
+      // El azar se consume igual que siempre (solo en las semanas pares y la última): los datos de la demo no cambian de un día a otro.
+      const orig = w % 2 === 0 || w === weeks;
+      const nz = (k) => (orig ? rnd() : 0.5) - 0.5, place = p.waistWeekAgo ? (w % 2 === (weeks - 1) % 2 && w < weeks) : orig;
+      const g = orig || place ? { waist: r1(base.waist - L * 0.9 * f + nz() * 0.8), neck: r1(base.neck - 0.4 * f + nz() * 0.3), armR: r1(base.armR - L * 0.1 * f + nz() * 0.4), armL: r1(base.armL - L * 0.1 * f + nz() * 0.4),
+        back: r1(base.back - L * 0.15 * f + nz() * 0.6), thighR: r1(base.thighR - L * 0.35 * f + nz() * 0.6), thighL: r1(base.thighL - L * 0.35 * f + nz() * 0.6) } : null;
+      if (place) Object.assign(e, g, { hip: hipNow });
       if (p.notes && (w === 3 || w === 7)) e.note = NOTES[(w + p.key.length) % NOTES.length];
       add(dayOf(w), e);
       // Pesajes entre semanas (solo peso), con la fluctuación normal de un día a otro.
@@ -180,13 +179,13 @@
         { name: 'Extensión de tríceps con cuerda', sets: '3 × 15', note: 'Codos pegados al cuerpo.' }] },
       { title: 'Día 2 – Cardio suave', exercises: [{ name: 'Caminata rápida', sets: '30 minutos', note: 'A un ritmo en el que puedas conversar.' }] }] },
     piernas: { title: 'Piernas', days: [
-      { title: 'Día 1 – Piernas y glúteos', exercises: [
-        { name: 'Sentadilla', sets: '4 × 12', note: 'Rodillas en la dirección de los pies.', gif: 'sentadilla' },
-        { name: 'Peso muerto rumano', sets: '3 × 10', note: 'Espalda recta, baja hasta media pierna.' },
-        { name: 'Zancadas', sets: '3 × 12 por pierna', note: '' },
-        { name: 'Puente de glúteos', sets: '3 × 15', note: 'Aprieta arriba un segundo.' },
-        { name: 'Elevación de talones', sets: '4 × 15', note: '' }] },
-      { title: 'Día 2 – Descanso activo', exercises: [{ name: 'Estiramientos suaves', sets: '15 minutos', note: '' }] }] },
+      { title: 'Piernas y glúteos', exercises: [
+        { name: 'Sentadilla goblet', sets: '3×12', note: 'Rodillas en la dirección de los pies.', gif: 'sentadilla' },
+        { name: 'Zancadas', sets: '3×10 c/lado', note: '' },
+        { name: 'Peso muerto rumano', sets: '3×10', note: 'Espalda recta, baja hasta media pierna.' },
+        { name: 'Puente de glúteo', sets: '3×15', note: 'Aprieta arriba un segundo.' },
+        { name: 'Elevación de talones', sets: '3×15', note: '' },
+        { name: 'Plancha', sets: '3×30 s', note: '' }] }] },
     espalda: { title: 'Espalda y bíceps', days: [
       { title: 'Día 1 – Espalda y bíceps', exercises: [
         { name: 'Remo con mancuerna', sets: '4 × 12', note: 'Lleva el codo hacia la cadera.', gif: 'remo' },

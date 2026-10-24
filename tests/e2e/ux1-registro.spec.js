@@ -76,6 +76,7 @@ test('Comidas: cierre del día «¿Registraste todo lo de hoy?» (Sí / Casi tod
   await p.locator('#mc-cierre-chips button', { hasText: 'Sí' }).click();   // otra vez: lo quita
   expect((await H.habitsOf(p) || {}).close).toBeUndefined();
   // Mis platos: guardar localmente y volver a elegirlo
+  await H.openMeal(p, 'Arepa');
   await p.locator('#mc-list [data-mc-fav]').click();
   await expect(p.locator('#mc-list [data-mc-fav]')).toHaveText('★ Guardado');
   expect(await p.evaluate(() => localStorage.getItem('perdida-grasa:platos'))).toContain('d:arepa-con-huevo:normal');
@@ -137,8 +138,7 @@ test('Entrenar: «Cómo se hace ›» en todos los ejercicios y un solo «Ya ent
   await H.layout(p); await H.tall(p, '#view-rutina');
   await p.locator('#btn-rutina-trained').click();
   expect((await H.habitsOf(p)).trained).toBe(true);
-  await expect(p.locator('#btn-rutina-trained')).toBeDisabled();
-  await expect(p.locator('#btn-rutina-trained')).toHaveText('✓ Entrenamiento de hoy anotado');
+  await expect(p.locator('#btn-rutina-trained')).toHaveAttribute('aria-pressed', 'true');
   await expect(p.locator('#rutina-esfuerzo')).toBeVisible();
   await expect(p.locator('#esf-title')).toHaveText('Entrenamiento anotado. ¿Cómo te sentiste?');
   await expect(p.locator('#esf-chips button')).toHaveText(['Fácil', 'Normal', 'Duro', 'No pude terminar']);
@@ -216,6 +216,7 @@ test('Progreso: peso estable unas semanas → mensaje de meseta sin prescripció
   await p.locator('#tab-registro').click();
   await expect(p.locator('#prog-meseta')).toBeVisible();
   await expect(p.locator('#prog-meseta')).toHaveText('El peso lleva unas semanas estable. Es común y no borra lo que has construido. Mira tu cintura y tu constancia; tu coach revisará contigo si hace falta ajustar algo.');
+  await p.locator('#prog-reg > summary').click();
   await expect(p.locator('#medidas-history li')).toHaveCount(5);
   await expect(p.locator('#btn-med-all')).toHaveText('Ver todo (8)');
   await p.locator('#btn-med-all').click();
@@ -303,7 +304,7 @@ test('Medirme: un martes sin nada que toque no se exige nada; el peso solo es ob
 
 // ---------- Fotos (concepto jurídico 2, L1) ----------
 async function upload(p, date, pose = 'frente') {
-  if (!(await p.locator('#foto-nueva').evaluate((d) => d.open))) await p.locator('#foto-nueva-sum').click();
+  await H.openFotoForm(p);
   await p.locator('#form-photo input[name=date]').fill(date);
   await p.locator('#form-photo select[name=pose]').selectOption(pose);
   await p.setInputFiles('#form-photo input[name=file]', { name: 'f.png', mimeType: 'image/png', buffer: PNG });

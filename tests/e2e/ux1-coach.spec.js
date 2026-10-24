@@ -64,11 +64,15 @@ test('Coach C02: ficha con resumen semanal arriba, reacciones de 1 toque (notas 
   await expect(p.locator('#fc-sum')).toContainText('de 7');
   await expect(p.locator('#fc-esfuerzo')).toContainText('Duro');
   // Reacción de 1 toque = una nota del coach que el asesorado ve en su Inicio
+  await expect(p.locator('#fc-react-btns button').first()).toHaveAttribute('aria-pressed', 'true');   // la primera viene elegida
   await p.locator('#fc-react-btns button', { hasText: 'Sigue así' }).click();
+  await expect(p.locator('#fc-react-btns button', { hasText: 'Sigue así' })).toHaveAttribute('aria-pressed', 'true');
+  await p.locator('#btn-fc-enviar').click();
   await expect(p.locator('#toast')).toHaveText('Enviado: «Sigue así»');
   const sent = async () => Object.values((await H.backend(p)).comments).map((c) => c.body);
   await expect.poll(sent).toEqual(['Sigue así']);
   await p.locator('#fc-react-btns button', { hasText: 'Te falta medirte' }).click();
+  await p.locator('#btn-fc-enviar').click();
   await expect.poll(async () => (await sent()).length).toBe(2);
   // Revisado: queda marcado en este teléfono
   await p.locator('#btn-fc-revisado').click();

@@ -19,6 +19,7 @@
     const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
     return z.toISOString().slice(0, 10);
   }
+  const fmtShort = (iso) => (iso ? new Date(iso + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short' }).replace('.', '') : '');
   function fmtDate(iso) {
     return new Date(iso + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short', year: '2-digit' });
   }
@@ -143,7 +144,7 @@
   const TAB_COACH_CLIENT = { panel: 'panel', habitos: 'panel', micomidas: 'comidas', rutina: 'entrenar', progreso: 'registro', medidas: 'registro', fotos: 'registro', insignias: 'registro', fotovistas: 'registro' };
   const TAB_COACH_COACH = { coach: 'coach', rutinas: 'rutinas', invitar: 'invitar' };
   // Título de la barra de arriba en el producto coach (la fecha corta va a la derecha).
-  const TITLE_COACH = { panel: 'Inicio', habitos: 'Corregir otro día', micomidas: 'Comidas', rutina: 'Entrenar', progreso: 'Progreso', medidas: 'Medirme', fotos: 'Fotos', insignias: 'Progreso', fotovistas: 'Quién vio mis fotos',
+  const TITLE_COACH = { panel: 'Inicio', habitos: 'Corregir otro día', micomidas: 'Comidas', rutina: 'Entrenar', progreso: 'Progreso', medidas: 'Medirme', fotos: 'Fotos', insignias: 'Insignias', fotovistas: 'Quién vio mis fotos',
     mas: 'Más', ayuda: 'Ayuda', acuerdo: 'Mi acuerdo', coach: 'Asesorados', invitar: 'Invitar', rutinas: 'Rutinas', 'rutina-edit': 'Editar rutina' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
   let navCoach = false;
@@ -172,7 +173,20 @@
   function topTitle(view, mode) {
     const t = view === 'perfil' ? PERFIL_TITLES[mode] || 'Mi coach' : TITLE_COACH[view] || 'Pérdida de Grasa';
     const h = $('#topbar-title');
+    const fichaOpen = navCoach && view === 'coach' && !$('#coach-detail-view').classList.contains('hidden');   // la ficha pone su propia barra («‹ Anterior · Nombre · Siguiente ›»)
+    if (fichaOpen) return;
     if (h.textContent !== t) h.textContent = t;
+    for (const id of ['btn-coach-prev', 'btn-coach-next']) $('#' + id).classList.add('hidden');
+    // Barra superior de las pantallas de Progreso: «‹ Progreso» a la izquierda en Medirme, Fotos e Insignias; acción a la derecha («Medirme ›», «+ Foto»).
+    const client = !navCoach;
+    const back = client && ['medidas', 'fotos', 'insignias'].includes(view);
+    const bar = $('.topbar');
+    $('#topbar-back').classList.toggle('hidden', !back);
+    $('#btn-medirme').classList.toggle('hidden', !(client && view === 'progreso'));
+    $('#btn-foto-add').classList.toggle('hidden', !(client && view === 'fotos'));
+    bar.classList.toggle('has-back', back);
+    bar.classList.remove('has-ficha');
+    bar.classList.toggle('has-act', client && (view === 'progreso' || view === 'fotos'));
   }
   // Como show(), pero para las filas de Más: el foco va al título de la pantalla nueva.
   let moreReturn = null;
@@ -875,7 +889,12 @@
     const card = $('#foto-hero-card');
     card.classList.toggle('hidden', !on || !list.length);
     const det = $('#foto-nueva');
-    if (on && det.dataset.init !== String(list.length > 0)) { det.dataset.init = String(list.length > 0); det.open = list.length === 0; }
+    if (on && det.dataset.init !== String(list.length > 0)) { det.dataset.init = String(list.length > 0); det.open = false; }
+    $('#foto-vacio').classList.toggle('hidden', !on || list.length > 0);
+    const cs0 = on && coachPhotosOn();
+    $('#foto-perm').classList.toggle('hidden', !on || !photoCloudOn());
+    setText($('#foto-perm-st'), cs0 ? 'activo' : 'sin compartir con tu coach');
+    $('#view-fotos').classList.toggle('has-photos', on && list.length > 0);
     setText($('#foto-nueva-sum'), on ? (list.length ? '+ Foto' : 'Tomar mi primera foto') : 'Nueva foto de progreso');
     if (!on || !list.length) return;
     const p = list[list.length - 1];
@@ -889,7 +908,7 @@
     tag.classList.toggle('hidden', !cs);
     setText(tag, p.sharedWithCoach ? 'Visible para tu coach' : 'Oculta');
     tag.classList.toggle('vis-off', !p.sharedWithCoach);
-    setText($('#foto-hero-cap'), `${POSES[p.pose]} · ${fmtDate(p.date)}`);
+    setText($('#foto-hero-cap'), `${POSES[p.pose]} · ${fmtShort(p.date)}`);
     const hide = $('#btn-hero-hide');
     hide.classList.toggle('hidden', !cs || isPaused());
     setText(hide, p.sharedWithCoach ? 'Ocultar esta foto a mi coach' : 'Mostrar esta foto a mi coach');
@@ -924,7 +943,7 @@
         <div class="meal-head"><strong>${fmtDate(d)}</strong><span class="muted">${w ? fmt(w.weight) + ' kg' : ''}</span></div>
         <div class="thumbs">${byDate[d].map((p) => `
           <button class="thumb" data-photo="${esc(p.id)}" aria-label="Ver foto ${esc(POSES[p.pose])} del ${esc(fmtDate(d))}${p.sharedWithCoach ? '. Tu coach puede verla' : ''}">
-            <img src="${esc(photoUrl(p))}" alt="" loading="lazy"><span>${esc(POSES[p.pose])}</span>${visTag(p)}
+            <img src="${esc(photoUrl(p))}" alt="" loading="lazy"><span>${esc(PROD.coach ? fmtShort(p.date) : POSES[p.pose])}</span>${visTag(p)}
           </button>`).join('')}</div>
       </div>`;
     }).join('') : '<p class="muted small">Aún no hay fotos.</p>';
@@ -1890,12 +1909,17 @@
     const same = Habitos.optOfSleep(cur) && Habitos.optOfSleep(cur).key === opt.key;
     if (setHabit({ sleep: same ? null : opt.value })) { $('#dia-sueno-opts').classList.add('hidden'); $('#dia-sueno').setAttribute('aria-expanded', 'false'); $('#dia-sueno').focus(); }
   });
-  $('#dia-pasos').addEventListener('click', (ev) => {
+  $('#dia-pasos').addEventListener('click', () => {
+    const box = $('#dia-pasos-opts'), open = box.classList.toggle('hidden') === false;
+    $('#dia-pasos').setAttribute('aria-expanded', String(open));
+    if (open) { const on = box.querySelector('[aria-pressed="true"]') || box.querySelector('button'); on.focus(); }
+  });
+  $('#dia-pasos-opts').addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-steps]');
     if (!b) return;
     const t = Habitos.STEP_TIERS.find((x) => x.key === b.dataset.steps);
     const cur = Habitos.tierOfSteps((state.habits[today()] || {}).steps);
-    setHabit({ steps: cur && cur.key === t.key ? null : t.value });
+    if (setHabit({ steps: cur && cur.key === t.key ? null : t.value })) { $('#dia-pasos-opts').classList.add('hidden'); $('#dia-pasos').setAttribute('aria-expanded', 'false'); $('#dia-pasos').focus(); }
   });
   $('#dia-entrene').addEventListener('click', () => {
     const on = !!(state.habits[today()] || {}).trained;
@@ -1923,7 +1947,7 @@
     sub.classList.toggle('hidden', !client);
     const since = Constancia.daysSince(state, d);
     const doneToday = Constancia.dayDone(state, d), regToday = Constancia.hasRecord(state, d);
-    setText(sub, doneToday.complete ? 'Día completo. Gracias por registrar.' : regToday ? 'Ya registraste algo hoy. Todo lo que sumas cuenta.'
+    setText(sub, doneToday.complete ? 'Día completo. Gracias por registrar.' : regToday ? 'Hoy solo hay una tarea: registrar tu día.'
       : since == null ? 'Hoy solo hay una tarea: registrar tu día. Te toma menos de un minuto.'
         : since >= 5 ? 'Volver también es parte del proceso. Empecemos con lo más fácil: ¿cuántos vasos de agua llevas?'
           : since >= 2 ? 'Qué bueno verte. ¿Registramos hoy? Lo de ayer ya pasó; cuenta lo que haces desde aquí.' : 'Hoy solo hay una tarea: registrar tu día.');
@@ -1942,7 +1966,9 @@
     sueno.classList.toggle('on', !!sleepOpt);
     $('#dia-sueno-opts').innerHTML = Habitos.SLEEP_OPTS.map((o) => `<button type="button" data-sleep="${o.key}" aria-pressed="${!!sleepOpt && sleepOpt.key === o.key}">${esc(o.label)}</button>`).join('');
     $('#dia-pasos').classList.toggle('on', !!tier);
-    $$('#dia-pasos [data-steps]').forEach((b) => { const on = !!tier && tier.key === b.dataset.steps; b.setAttribute('aria-pressed', String(on)); });
+    setText($('#dia-pasos-t'), tier ? `Pasos ${tier.label}` : 'Pasos');
+    setText($('#dia-pasos-s'), tier ? 'Toca para cambiar' : '<4 mil · 4–8 mil · 8 mil+');
+    $$('#dia-pasos-opts [data-steps]').forEach((b) => { const on = !!tier && tier.key === b.dataset.steps; b.setAttribute('aria-pressed', String(on)); });
     const ent = $('#dia-entrene');
     ent.classList.toggle('on', trained);
     ent.setAttribute('aria-pressed', String(trained));
@@ -2001,15 +2027,17 @@
   function bascula() { const v = getPref(BASCULA_KEY); return v === 'si' || v === 'no' ? v : null; }
   const medComma = (v) => (v == null ? '' : String(Math.round(v * 10) / 10).replace('.', ','));
   const WAIST_FIG = '<svg class="med-fig" width="44" height="64" viewBox="0 0 44 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="22" cy="7" r="5"/><path d="M13 16h18l3 22-4 24M31 16 34 38M13 16 10 38l4 24"/><path d="M12 33h20" stroke-dasharray="3 3" class="med-belt"/></svg>';
-  function medCard(it, prior, { guideFig = false } = {}) {
+  function medCard(it, prior, { guideFig = false, title = '' } = {}) {
     const id = 'med-' + it.key;
     const last = it.last ? `La última fue ${Medidas.fmt(it.last.value)} ${it.unit} (${Medidas.dayShort(it.last.date)})` : 'Aún no tienes una medida anterior';
-    const tag = it.required ? '<small class="req med-req">Toca hoy</small>' : it.key === 'weight' ? '<small class="med-sched">lun · mié · vie</small>' : it.due ? '' : it.when ? `<small class="med-sched">${esc(it.when === 'mañana' || it.when === 'hoy' ? it.when : it.when)}</small>` : '';
+    const tag = it.required ? '<small class="req med-req">Toca hoy</small>' : it.key === 'weight' ? '<small class="med-sched">lun · mié · vie</small>' : it.due ? '' : it.when ? `<small class="med-sched">${esc(it.when)}</small>` : '';
     const prefill = prior && typeof prior[it.key] === 'number' ? medComma(prior[it.key]) : '';
-    return `<div class="card med-card" data-key="${it.key}"><div class="med-head"><label for="${id}" class="med-h">${it.key === 'waist' ? 'Cintura' : esc(it.label)}</label>${tag}</div>
-      <div class="med-guide">${guideFig ? WAIST_FIG : ''}<p class="small">${esc(it.guide)}</p></div>
+    // El peso lleva su guía bajo el campo, junto a «la última fue…»; la cintura la lleva arriba, con su dibujo.
+    const guideBelow = it.key === 'weight';
+    return `<div class="card med-card${title ? ' is-toca' : ''}" data-key="${it.key}"><div class="med-head"><label for="${id}" class="med-h"${title ? ' id="med-toca"' : ''}>${esc(title || (it.key === 'waist' ? 'Cintura' : it.label))}</label>${tag}</div>
+      ${guideBelow ? '' : `<div class="med-guide">${guideFig ? WAIST_FIG : ''}<p class="small">${esc(it.guide)}</p></div>`}
       <div class="med-input"><input id="${id}" name="${it.key}" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" pattern="[0-9]+([.,][0-9])?" value="${esc(prefill)}" aria-describedby="${id}-ult"><span class="med-unit" aria-hidden="true">${it.unit}</span></div>
-      <p id="${id}-ult" class="small muted">${esc(last)}</p></div>`;
+      <p id="${id}-ult" class="small muted">${esc(last)}${guideBelow ? `. ${esc(it.guide)}` : ''}</p></div>`;
   }
   let medSig = '';
   function renderMedirme() {
@@ -2027,15 +2055,19 @@
     if (sig === medSig || typing) return;
     medSig = sig;
     const by = Object.fromEntries(due.items.map((i) => [i.key, i]));
-    const main = ['waist', 'weight', 'hip'].filter((k) => by[k].due && (k !== 'weight' || sc !== 'no'));
+    const dueMain = ['waist', 'weight', 'hip'].filter((k) => by[k].due && (k !== 'weight' || sc !== 'no'));
+    // Con báscula, el peso se muestra siempre (con sus días: lun · mié · vie) aunque hoy no toque.
+    const main = ['waist', 'weight', 'hip'].filter((k) => dueMain.includes(k) || (k === 'weight' && sc === 'si'));
     const rest = Medidas.FORM_KEYS.filter((k) => !main.includes(k) && !(k === 'weight' && sc === 'no'));
-    const toca = main.length ? `Toca hoy: ${Constancia.joinEs(main.map((k) => by[k].label.toLowerCase()))}` : 'Hoy no te toca medir nada';
+    const toca = dueMain.length ? `Toca hoy: ${Constancia.joinEs(dueMain.map((k) => by[k].label.toLowerCase()))}` : 'Hoy no te toca medir nada';
     // Lo próximo que toca, para la fila de «Más medidas»
     const next = due.items.filter((i) => !i.due && i.when && ['waist', 'hip'].includes(i.key)).sort((a, b) => 0)[0];
     let html = '';
     if (sc == null) html += `<div class="card med-scale" role="group" aria-labelledby="med-scale-t"><h3 id="med-scale-t" class="med-h">¿Tienes báscula en casa?</h3><p class="small muted">Si la tienes, te pedimos el peso lunes, miércoles y viernes. Si no, el peso queda opcional.</p><div class="row-actions"><button type="button" class="btn btn-ghost btn-tall" id="btn-scale-si">Sí, tengo</button><button type="button" class="btn btn-ghost btn-tall" id="btn-scale-no">No tengo</button></div></div>`;
-    html += `<h3 class="med-toca" id="med-toca">${esc(toca)}</h3>`;
-    html += main.map((k) => medCard(by[k], prior, { guideFig: k === 'waist' })).join('');
+    // Si hoy solo toca una medida, «Toca hoy: cintura» es el título de su tarjeta; si tocan varias, va como encabezado.
+    const single = dueMain.length === 1 ? dueMain[0] : null;
+    if (!single) html += `<h3 class="med-toca" id="med-toca">${esc(toca)}</h3>`;
+    html += main.map((k) => medCard(by[k], prior, { guideFig: k === 'waist', title: k === single ? toca : '' })).join('');
     html += `<details class="card med-mas" id="med-mas"><summary><span class="med-mas-t">+ Más medidas (opcional)</span>${next ? `<small class="med-mas-s">${esc(next.label)} ${esc(next.when)}</small>` : ''}</summary>${rest.map((k) => medCard(by[k], prior)).join('')}</details>`;
     $('#med-fields').innerHTML = html;
   }
@@ -2175,7 +2207,11 @@
     const rows = Medidas.summary(state.entries).filter((r) => r.key !== 'weight' && r.count > 1);
     const from = rows.length ? rows.map((r) => Medidas.series(state.entries, r.key)[0].date).sort()[0] : null;
     setText($('#prog-cambios-title'), from ? `Cambios desde el ${Medidas.dayShort(from)}` : 'Cambios');
-    $('#medidas-table').innerHTML = rows.length ? `<dl class="prog-cambios">${rows.map((r) => `<div><dt>${esc(r.label)}</dt><dd>${esc(Medidas.neutralChange(r.change, r.unit))}</dd></div>`).join('')}</dl>` : '<p class="small muted">Cuando tengas dos medidas de la misma parte del cuerpo, aquí verás cómo cambió.</p>';
+    // Lo principal es cintura y cadera; el resto de las medidas queda en «Ver todas las medidas».
+    const dl = (list) => `<dl class="prog-cambios">${list.map((r) => `<div><dt>${esc(r.label)}</dt><dd>${esc(Medidas.neutralChange(r.change, r.unit))}</dd></div>`).join('')}</dl>`;
+    const mainRows = rows.filter((r) => r.key === 'waist' || r.key === 'hip'), restRows = rows.filter((r) => !mainRows.includes(r));
+    $('#medidas-table').innerHTML = !rows.length ? '<p class="small muted">Cuando tengas dos medidas de la misma parte del cuerpo, aquí verás cómo cambió.</p>'
+      : !mainRows.length ? dl(rows) : dl(mainRows) + (restRows.length ? `<details class="prog-mas"><summary>Ver todas las medidas</summary>${dl(restRows)}</details>` : '');
     // Registros: los 5 últimos y «Ver todo»
     const list = state.entries.filter((e) => Medidas.KEYS.some((k) => e[k] != null)).sort((a, b) => b.date.localeCompare(a.date));
     const shown = medAll ? list : list.slice(0, 5);
@@ -2191,19 +2227,23 @@
     if (!PROD.coach || navCoach) return;
     const list = Constancia.badges(state, today()), c = Constancia.badgeCount(list);
     setText($('#insig-count'), `${c.earned} de ${c.total} insignias`);
-    $('#insig-list').innerHTML = list.map((b) => `<li class="insig ${b.earned ? 'earned' : 'pending'}"><span class="insig-n" aria-hidden="true">${esc(b.n)}</span><span class="insig-t"><strong>${esc(b.name)}</strong><small>${esc(b.earned ? `${b.desc} · ${fmtDate(b.date)}` : `${b.desc} · ${b.hint}`)}</small></span><span class="sr-only">${b.earned ? 'Ganada' : 'Aún no'}</span></li>`).join('');
+    $('#insig-list').innerHTML = list.map((b, i) => `<li class="insig ${b.earned ? 'earned' : 'pending'}"><span class="insig-n" aria-hidden="true">${i + 1}</span><span class="insig-t"><strong>${esc(b.name)}</strong><small>${esc(b.earned ? fmtShort(b.date) : b.hint)}</small><span class="sr-only">${esc(b.desc)}. ${b.earned ? 'Ganada' : 'Aún no'}</span></span></li>`).join('');
   }
   // Barra Medidas · Fotos · Insignias al inicio de las tres pantallas de Progreso
   if (PROD.coach) {
-    for (const [view, on] of [['progreso', 'progreso'], ['fotos', 'fotos'], ['insignias', 'insignias']]) {
-      const nav = document.createElement('nav');
-      nav.className = 'prog-seg';
-      nav.setAttribute('aria-label', 'Progreso');
-      nav.innerHTML = [['progreso', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias']].map(([v, t]) => `<button type="button" data-goto="${v}"${v === on ? ' aria-current="page" class="on"' : ''}>${t}</button>`).join('');
-      const sec = $('#view-' + view);
-      const anchor = view === 'fotos' ? sec.querySelector('.back-row') : null;
-      if (anchor) anchor.after(nav); else sec.prepend(nav);
-    }
+    // Progreso lleva Medidas · Fotos · Insignias; Fotos e Insignias son pantallas hijas (con «‹ Progreso» en la barra superior).
+    const nav = document.createElement('nav');
+    nav.className = 'prog-seg';
+    nav.setAttribute('aria-label', 'Progreso');
+    nav.innerHTML = [['progreso', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias']].map(([v, t]) => `<button type="button" data-goto="${v}"${v === 'progreso' ? ' aria-current="page" class="on"' : ''}>${t}</button>`).join('');
+    $('#view-progreso').prepend(nav);
+    $('#btn-foto-add').addEventListener('click', () => {
+      const det = $('#foto-nueva');
+      det.open = true;
+      det.scrollIntoView({ block: 'start' });
+      const f = det.querySelector('input[name=date]');
+      if (f) f.focus({ preventScroll: true });
+    });
   }
 
   // --- Inicio del cliente (modo coach) ---
@@ -2233,6 +2273,8 @@
   const FAV_KEY = PGNS.key('platos');   // «Mis platos»: guardados solo en este teléfono
   const favs = () => { let raw = null; try { raw = JSON.parse(getPref(FAV_KEY) || 'null'); } catch { raw = null; } return Platos.favsClean(raw); };
   const saveFavs = (list) => setPref(FAV_KEY, JSON.stringify(Platos.favsClean(list)));
+  const mcOpen = new Set();   // comidas con sus opciones (editar, borrar, guardar) desplegadas
+  $('#mc-list').addEventListener('toggle', (ev) => { const d = ev.target; if (d.classList && d.classList.contains('mc-det')) { if (d.open) mcOpen.add(d.dataset.id); else mcOpen.delete(d.dataset.id); } }, true);
   function renderComidasCoach() {
     if (!PROD.coach) return;
     const client = !navCoach;
@@ -2265,8 +2307,9 @@
       const p = x.dish ? Platos.portionOf(x.portion) : null;
       const sub = [p ? p.label : '', x.time || ''].filter(Boolean).join(' · ');
       const isFav = saved.has(Platos.favKey(x));
-      return `<li class="mc-item"><div class="mc-line"><span class="mc-t"><strong>${esc(x.meal)} · ${esc(x.name)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</span><span class="mc-k"><b>${esc(Platos.protText(x))}</b><small>${esc(Platos.kcalApprox(x.kcal))}</small></span></div>
-        <div class="mc-actions"><button type="button" class="btn-link" data-mc-edit="${esc(x.id)}" aria-label="Editar: ${esc(x.name)}">Editar</button><button type="button" class="btn-link" data-mc-del="${esc(x.id)}" aria-label="Borrar: ${esc(x.name)}">Borrar</button>${paused ? '' : `<button type="button" class="btn-link" data-mc-fav="${esc(x.id)}" aria-pressed="${isFav}" aria-label="${isFav ? 'Quitar de Mis platos' : 'Guardar en Mis platos'}: ${esc(x.name)}">${isFav ? '★ Guardado' : '☆ Guardar'}</button>`}</div></li>`;
+      const open = mcOpen.has(x.id);
+      return `<li class="mc-item"><details class="mc-det" data-id="${esc(x.id)}"${open ? ' open' : ''}><summary class="mc-line" aria-label="${esc(x.meal)}: ${esc(x.name)}. Ver opciones"><span class="mc-t"><strong>${esc(x.meal)}</strong> · ${esc(x.name)}</span><span class="mc-k"><b>${esc(Platos.protText(x))}</b><small>${esc(Platos.kcalApprox(x.kcal))}</small></span></summary>
+        <div class="mc-actions">${sub ? `<small class="mc-sub">${esc(sub)}</small>` : ''}<button type="button" class="btn-link" data-mc-edit="${esc(x.id)}" aria-label="Editar: ${esc(x.name)}">Editar</button><button type="button" class="btn-link" data-mc-del="${esc(x.id)}" aria-label="Borrar: ${esc(x.name)}">Borrar</button>${paused ? '' : `<button type="button" class="btn-link" data-mc-fav="${esc(x.id)}" aria-pressed="${isFav}" aria-label="${isFav ? 'Quitar de Mis platos' : 'Guardar en Mis platos'}: ${esc(x.name)}">${isFav ? '★ Guardado' : '☆ Guardar'}</button>`}</div></details></li>`;
     }).join('')}</ul>` : '<p class="muted">Nada registrado este día.</p>' + (isToday && !paused ? '<p class="small muted">Toca «+ Comida» para anotar la primera.</p>' : '');
     // Cierre del día
     const close = (state.habits[day] || {}).close;
@@ -2540,11 +2583,26 @@
   setInterval(() => { if (isPaused() && document.visibilityState === 'visible') checkPayment(false); }, 60000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && PROD.coach && myLinkNow()) checkPayment(false); });
 
+  // Texto de la derecha de la barra superior: fecha corta («sáb 24 oct»); en Comidas «Hoy, sáb 24 oct» (o el día que se mira); en la lista del coach, «Actualizado 08:10».
+  function topLabel() {
+    const short = (d) => new Date(d ? d + 'T12:00:00' : Date.now()).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/[,.]/g, '');
+    let t;
+    if (!PROD.coach) t = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
+    else {
+      const act = document.querySelector('.view.active');
+      const id = act ? act.id : '';
+      if (navCoach && id === 'view-coach' && $('#coach-detail-view').classList.contains('hidden') && document.body.dataset.stamp) t = document.body.dataset.stamp;
+      else if (!navCoach && id === 'view-micomidas') { const day = Schema.isISODate(mcDate.value) ? mcDate.value : today(); t = (day === today() ? 'Hoy, ' : '') + short(day === today() ? null : day); }
+      else t = short();
+    }
+    if ($('#today-label').textContent !== t) $('#today-label').textContent = t;
+  }
+  document.addEventListener('pg:topbar-label', () => topLabel());
   // ---------- Render ----------
   function render() {
     renderConsent();
     // Producto coach: fecha corta a la derecha de la barra («sáb 24 oct»); la app oficial conserva la larga.
-    $('#today-label').textContent = PROD.coach ? new Date().toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/[,.]/g, '') : new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
+    topLabel();
     // Producto «coach» (UX etapa 1): la plataforma NO formula ni prescribe (concepto jurídico, L5): nada de plan, «objetivo diario», consejos de calorías
     // ni «~N semanas para la meta». Las pantallas heredadas que los pintan no se dibujan en absoluto (ni siquiera ocultas).
     if (!PROD.coach) { renderPanel(); }

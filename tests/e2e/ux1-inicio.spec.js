@@ -27,11 +27,18 @@ test('barra del asesorado: Inicio · Comidas · Entrenar · Progreso · Más; H�
   await seg.nth(1).click();
   await expect(p.locator('#view-fotos')).toBeVisible();
   await expect(p.locator('#tab-registro')).toHaveAttribute('aria-current', 'page');
-  await expect(p.locator('#view-fotos .prog-seg button.on')).toHaveText('Fotos');
-  await p.locator('#view-fotos .prog-seg button').nth(2).click();
+  // Fotos e Insignias son pantallas hijas: «‹ Progreso» a la izquierda de la barra superior; «+ Foto» a la derecha en Fotos
+  await expect(p.locator('#topbar-title')).toHaveText('Fotos');
+  await expect(p.locator('#topbar-back')).toHaveText('‹ Progreso');
+  await expect(p.locator('#btn-foto-add')).toHaveCount(1);   // aparece con las fotos autorizadas
+  await p.locator('#topbar-back').click();
+  await expect(p.locator('#view-progreso')).toBeVisible();
+  await expect(p.locator('#btn-foto-add')).toBeHidden();
+  await seg.nth(2).click();
   await expect(p.locator('#view-insignias')).toBeVisible();
   await expect(p.locator('#tab-registro')).toHaveAttribute('aria-current', 'page');
-  await p.locator('#view-insignias .prog-seg button').first().click();
+  await expect(p.locator('#topbar-back')).toBeVisible();
+  await p.locator('#topbar-back').click();
   await p.locator('#btn-medirme').click();
   await expect(p.locator('#view-medidas')).toBeVisible();
   await expect(p.locator('#tab-registro')).toHaveAttribute('aria-current', 'page');
@@ -156,7 +163,7 @@ test('Inicio «Mi día»: nota del coach sin leer arriba; agua +1 por toque, sue
     document.dispatchEvent(new Event('visibilitychange'));
   });
   await expect(p.locator('#coach-notes')).toBeVisible();
-  await expect(p.locator('#coach-notes-title')).toContainText('Tu coach te escribió');
+  await expect(p.locator('#coach-notes-title')).toContainText('te escribió');
   const y = (sel) => p.locator(sel).evaluate((e) => e.getBoundingClientRect().top);
   expect(await y('#coach-notes')).toBeLessThan(await y('#home-dia'));
   await H.layout(p); await H.tall(p, '#home-dia');
@@ -182,13 +189,17 @@ test('Inicio «Mi día»: nota del coach sin leer arriba; agua +1 por toque, sue
   expect((await H.habitsOf(p)).sleep).toBe(7.5);
   await expect(p.locator('#dia-sueno-opts')).toBeHidden();
   // Pasos en tramos <4k / 4–8k / 8k+ (de nuevo el mismo tramo lo quita)
-  await expect(p.locator('#dia-pasos button')).toHaveText(['<4 mil', '4–8 mil', '8 mil+']);
-  await p.locator('#dia-pasos button', { hasText: '4–8 mil' }).click();
+  await p.locator('#dia-pasos').click();
+  await expect(p.locator('#dia-pasos-opts button')).toHaveText(['<4 mil', '4–8 mil', '8 mil+']);
+  await p.locator('#dia-pasos-opts button', { hasText: '4–8 mil' }).click();
   expect((await H.habitsOf(p)).steps).toBe(6000);
-  await expect(p.locator('#dia-pasos button', { hasText: '4–8 mil' })).toHaveAttribute('aria-pressed', 'true');
-  await p.locator('#dia-pasos button', { hasText: '8 mil+' }).click();
+  await expect(p.locator('#dia-pasos-opts')).toBeHidden();
+  await p.locator('#dia-pasos').click();
+  await expect(p.locator('#dia-pasos-opts button', { hasText: '4–8 mil' })).toHaveAttribute('aria-pressed', 'true');
+  await p.locator('#dia-pasos-opts button', { hasText: '8 mil+' }).click();
   expect((await H.habitsOf(p)).steps).toBe(8000);
-  await p.locator('#dia-pasos button', { hasText: '8 mil+' }).click();
+  await p.locator('#dia-pasos').click();
+  await p.locator('#dia-pasos-opts button', { hasText: '8 mil+' }).click();
   expect((await H.habitsOf(p)).steps).toBeUndefined();
   // Entrené
   await p.locator('#dia-entrene').click();
@@ -292,7 +303,7 @@ test('celebración: al completar los 4 hábitos sale «Día completo» (aro 4/4,
   await H.seedState(p, { habits: { [H.iso(-2)]: { water: 2, trained: true }, [H.iso(-1)]: { water: 2, trained: true } } });
   for (let i = 0; i < 8; i++) await p.locator('#dia-agua').click();
   await p.locator('#dia-sueno').click(); await p.locator('#dia-sueno-opts button', { hasText: '7–8 h' }).click();
-  await p.locator('#dia-pasos button', { hasText: '8 mil+' }).click();
+  await p.locator('#dia-pasos').click(); await p.locator('#dia-pasos-opts button', { hasText: '8 mil+' }).click();
   await expect(p.locator('#dlg-dia')).toBeHidden();   // aún faltan: sin celebración, solo el mensaje amable
   await p.locator('#dia-entrene').click();
   const d = p.locator('#dlg-dia');

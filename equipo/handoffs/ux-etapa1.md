@@ -42,3 +42,21 @@ La app oficial (config.js sin `producto`) no cambia: todo lo nuevo cuelga de `Pr
 - Celebración con «Reducir movimiento» activado: no debe haber animación.
 - Instalar la PWA y verificar que la caché v48 reemplaza a la v47 (cerrar y abrir dos veces).
 - Subir una foto real con el permiso A6b activo: modal, etiqueta, y retirar/volver a dar el permiso.
+
+## Pasada de fidelidad (contra las imágenes aprobadas A01–A14 y C01–C07)
+
+Se compararon, en Demo, modo oscuro y 390 px, Inicio, Comidas (con «Agregar comida»), Entrenar, Progreso, Medirme, Fotos (aviso y galería), Insignias, celebración, lista y ficha del coach. Cambios principales:
+
+- **Barra superior** con tres zonas: «‹ Progreso» a la izquierda en Medirme, Fotos e Insignias; «Medirme ›» y «+ Foto» a la derecha; «‹ Anterior · Nombre · Siguiente ›» en la ficha; «Hoy, sáb 24 oct» en Comidas y «Actualizado 08:10» en la lista del coach.
+- **Inicio:** nota del coach como aviso con barra de acento (con «Marcar como leído», que ya existía y se conserva); Pasos como ficha que despliega sus tres tramos (igual que Sueño); semana con círculos de comodín (línea discontinua) y días por venir con borde; rutina con «N ejercicios».
+- **Comidas:** lista de una línea por comida (las opciones Editar, Borrar y Guardar se despliegan al tocar la fila); el cambio de día pasa al final; «Repetir la de ayer» queda como enlace.
+- **Entrenar:** una sola tarjeta con los ejercicios, círculo para marcar cada uno (solo en el teléfono, no sincroniza) y «Cómo se hace ›»; «Ya entrené» grande; las demás rutinas, plegadas en «Mis otras rutinas». La rutina de hoy no se repite si es idéntica a una asignada.
+- **Progreso:** «Cambios» muestra cintura y cadera, el resto en «Ver todas las medidas»; «Mis registros» plegado; marcas del gráfico enteras.
+- **Medirme:** con báscula, el peso se muestra siempre (con «lun · mié · vie»); si hoy solo toca una medida, «Toca hoy: cintura» es el título de la tarjeta.
+- **Fotos:** vista previa con la fecha dentro, galería de dos columnas sin encabezados de fecha, fila «Permiso de fotos: activo · Mi perfil ›», estado vacío con «Tomar mi primera foto».
+- **Insignias:** dos columnas numeradas de 1 a 8, con la fecha o lo que falta.
+- **Lista del coach:** semáforo a la derecha, avatares neutros, pago como línea tenue («Pago: al día hasta el 3 nov», «Pago: vence en 2 días», «Pago: venció el 15 oct»), chip Pagó/No pagó conservado.
+- **Ficha:** reacciones con elección y «Enviar» (la primera viene elegida), enlaces a Medidas, Comidas y Constancia, constancia con tres fichas y últimas seis semanas.
+- **Demo:** «Coach Fit Demo», Piernas de un solo día con seis ejercicios, cintura medida hace una semana (hoy toca) y báscula marcada.
+
+Diferencias que quedan (y por qué): ver el informe de la pasada. En corto: alerta de seguridad y aviso de restricción de salud (Etapa 2/3), meta de proteína y su barra (L5), «¿Alguna molestia?» y el registro de kg y repeticiones (sin diseño de datos), «Escribirle ›» (no hay teléfono del asesorado), «+7 puntos de constancia» (los puntos no se implementaron), «La constancia se congela en pausa» (P1), Constancia como pantalla propia (sigue como sección de la ficha), las secciones largas de la ficha (medidas, hábitos, comidas, fotos, rutinas y comentarios) siguen debajo porque guardan funciones que se usan, y «Agregar comida» sigue siendo una hoja inferior (no una pantalla completa).

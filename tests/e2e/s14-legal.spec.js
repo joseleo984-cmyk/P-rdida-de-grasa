@@ -29,7 +29,7 @@ const AVISO_L1 = 'Cada foto que guardes será visible para tu coach de forma aut
 const goFotos = async (p) => { await p.locator('#tab-registro').click(); await p.locator('#view-progreso .prog-seg button', { hasText: 'Fotos' }).click(); };
 
 const upload = async (p, date, pose) => {
-  if (!(await p.locator('#foto-nueva').evaluate((d) => d.open))) await p.locator('#foto-nueva-sum').click();
+  await H.openFotoForm(p);
   await p.locator('#form-photo input[name=date]').fill(date);
   await p.locator('#form-photo select[name=pose]').selectOption(pose);
   await p.setInputFiles('#form-photo input[name=file]', { name: 'f.png', mimeType: 'image/png', buffer: PNG });
@@ -74,6 +74,7 @@ test('A6b nuevo: texto aprobado literal, aviso visible solo con el permiso y «A
   expect(info.v).toBe('0.4-A6b-coach');
   await goFotos(p);
   await p.getByRole('button', { name: 'Autorizar fotos' }).click();
+  await H.openFotoForm(p);
   await expect(p.locator('#form-photo')).toBeVisible();
   // Cámara: sin botones nuevos; la etiqueta dice «Adjuntar foto» y la ayuda explica la galería y «Tomar foto»
   await expect(p.locator('#photo-file-text')).toHaveText('Adjuntar foto');

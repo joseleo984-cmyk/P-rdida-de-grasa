@@ -12,8 +12,13 @@
 </head>
 <body>
   <header class="topbar">
+    <button type="button" id="topbar-back" class="topbar-btn hidden" data-goto="progreso">‹ Progreso</button>
+    <button type="button" id="btn-coach-prev" class="topbar-btn hidden">‹ Anterior</button>
     <h1 id="topbar-title">Pérdida de Grasa</h1>
     <span id="today-label" class="muted"></span>
+    <button type="button" id="btn-medirme" class="topbar-btn hidden" data-goto="medidas">Medirme ›</button>
+    <button type="button" id="btn-foto-add" class="topbar-btn hidden">+ Foto</button>
+    <button type="button" id="btn-coach-next" class="topbar-btn hidden">Siguiente ›</button>
   </header>
 
   <!-- LEGAL-01: consentimiento (pantalla completa al primer uso o si cambian los textos) -->
@@ -258,11 +263,11 @@
           <div class="dia-grid">
             <button type="button" class="dia-tile" id="dia-agua"><b id="dia-agua-t">Agua 0 / 8</b><span id="dia-agua-s">Toca: +1 vaso</span></button>
             <button type="button" class="dia-tile" id="dia-sueno" aria-expanded="false" aria-controls="dia-sueno-opts"><b id="dia-sueno-t">Sueño</b><span id="dia-sueno-s">Toca para cambiar</span></button>
-            <div class="dia-tile dia-pasos" id="dia-pasos" role="group" aria-labelledby="dia-pasos-t"><b id="dia-pasos-t">Pasos</b>
-              <span class="dia-chips"><button type="button" data-steps="low">&lt;4 mil</button><button type="button" data-steps="mid">4–8 mil</button><button type="button" data-steps="high">8 mil+</button></span></div>
+            <button type="button" class="dia-tile" id="dia-pasos" aria-expanded="false" aria-controls="dia-pasos-opts"><b id="dia-pasos-t">Pasos</b><span id="dia-pasos-s">&lt;4 mil · 4–8 mil · 8 mil+</span></button>
             <button type="button" class="dia-tile" id="dia-entrene" aria-pressed="false"><b id="dia-entrene-t">Entrené</b><span id="dia-entrene-s">Toca al terminar</span></button>
           </div>
           <div id="dia-sueno-opts" class="dia-opts hidden" role="group" aria-label="¿Cuánto dormiste?"></div>
+          <div id="dia-pasos-opts" class="dia-opts hidden" role="group" aria-label="¿Cuántos pasos llevas?"><button type="button" data-steps="low">&lt;4 mil</button><button type="button" data-steps="mid">4–8 mil</button><button type="button" data-steps="high">8 mil+</button></div>
           <div class="dia-acts">
             <button type="button" class="dia-act" id="dia-comida">+ Comida</button>
             <button type="button" class="dia-act" id="dia-igual">Igual que ayer</button>
@@ -437,7 +442,6 @@
     <section id="view-progreso" class="view" aria-labelledby="progreso-title">
       <h2 id="progreso-title" class="sr-only" tabindex="-1">Progreso</h2>
       <p class="pause-banner" role="note">Tu acceso está en pausa: por ahora solo puedes ver tus datos.</p>
-      <div class="prog-top"><button type="button" class="btn btn-ghost" id="btn-medirme" data-goto="medidas">Medirme ›</button></div>
       <div class="card">
         <div class="seg seg-wrap" id="medidas-pick" role="group" aria-label="Elige una medida"></div>
         <label class="sr-only" for="medidas-otra">Otra medida</label>
@@ -456,12 +460,12 @@
         <h2 id="prog-cambios-title">Cambios</h2>
         <div id="medidas-table"></div>
       </div>
-      <div class="card">
-        <h2>Mis registros</h2>
+      <details class="card prog-reg" id="prog-reg">
+        <summary>Mis registros</summary>
         <ul id="medidas-history" class="med-history"></ul>
         <p class="muted small" id="medidas-empty">Aún no hay medidas.</p>
         <button type="button" class="btn btn-ghost btn-tall hidden" id="btn-med-all">Ver todo</button>
-      </div>
+      </details>
     </section>
 
     <!-- UX Etapa 1 (producto 'coach'): INSIGNIAS (8 del MVP, calculadas en el teléfono; nunca por peso, calorías ni centímetros) -->
@@ -636,6 +640,8 @@
           <button type="button" class="btn-link" id="btn-hero-compare">Comparar ›</button>
         </div>
       </div>
+      <div class="card foto-vacio pc-only hidden" id="foto-vacio"><h2>Aún no tienes fotos</h2><p class="small muted">Son opcionales. Te sirven para ver cambios que la báscula no muestra.</p></div>
+      <div class="foto-perm pc-only hidden" id="foto-perm"><span>Permiso de fotos: <b id="foto-perm-st">activo</b></span><button type="button" class="btn-link" data-goto="perfil:coach">Mi perfil ›</button></div>
       <details class="card foto-nueva" id="foto-nueva" open>
         <summary id="foto-nueva-sum">Nueva foto de progreso</summary>
         <form id="form-photo" class="grid-form">
@@ -734,16 +740,12 @@
       </div>
 
       <div id="coach-detail-view" class="hidden">
-        <div class="card">
-          <div class="fc-nav pc-only">
-            <button type="button" class="btn-link" id="btn-coach-prev">‹ Anterior</button>
-            <button type="button" class="btn-link" id="btn-coach-back">← Mis clientes</button>
-            <button type="button" class="btn-link" id="btn-coach-next">Siguiente ›</button>
-          </div>
-          <h2 id="coach-detail-title" tabindex="-1"></h2>
+        <div class="fc-head">
+          <div class="fc-nav pc-only"><button type="button" class="btn-link" id="btn-coach-back">← Mis clientes</button></div>
+          <h2 id="coach-detail-title" class="sr-only" tabindex="-1"></h2>
+          <div class="fc-meta"><p id="coach-detail-last" class="small pc-only"></p>
+            <div id="coach-detail-pay" class="detail-pay pc-only"><p id="coach-detail-pay-line" class="small muted"></p><button type="button" class="chip-pay" id="btn-detail-pay"></button></div></div>
           <p id="coach-detail-light" class="small"></p>
-          <p id="coach-detail-last" class="small pc-only"></p>
-          <div id="coach-detail-pay" class="detail-pay pc-only"><p id="coach-detail-pay-line" class="small"></p><button type="button" class="chip-pay" id="btn-detail-pay"></button></div>
           <p id="coach-detail-shares" class="small muted"></p>
         </div>
         <!-- UX Etapa 1: RESUMEN SEMANAL arriba (tendencia de peso y cintura, días con registro, entrenos y esfuerzo, proteína promedio, cierre del día) y reacciones de un toque -->
@@ -755,8 +757,13 @@
         <div class="card pc-only" id="fc-react">
           <h2>Reaccionar con 1 toque</h2>
           <div class="fc-react" id="fc-react-btns"></div>
-          <button type="button" class="btn btn-ghost btn-tall" id="btn-fc-revisado">Revisado ✓</button>
+          <div class="fc-react-acts"><button type="button" class="btn btn-tall" id="btn-fc-enviar">Enviar</button><button type="button" class="btn btn-ghost btn-tall" id="btn-fc-revisado">Revisado ✓</button></div>
           <p id="fc-react-status" class="small muted" role="status" aria-live="polite"></p>
+        </div>
+        <div class="card pc-only fc-links" id="fc-links">
+          <a class="fc-link" href="#coach-detail-medidas-card"><span>Medidas: peso, cintura, cadera</span><b id="fc-link-med">Ver ›</b></a>
+          <a class="fc-link" href="#coach-detail-comidas-card"><span>Comidas día por día</span><b>Ver ›</b></a>
+          <a class="fc-link" href="#fc-const"><span>Constancia e insignias</span><b id="fc-link-const">Ver ›</b></a>
         </div>
         <div class="card pc-only" id="coach-detail-medidas-card">
           <h2>Medidas (cm)</h2>
@@ -770,6 +777,7 @@
         <div class="card pc-only" id="fc-const">
           <h2>Constancia e insignias</h2>
           <div class="fc-sum" id="fc-const-sum"></div>
+          <p class="small muted fc-weeks-cap">Últimas 6 semanas (días con registro)</p>
           <ul class="fc-weeks" id="fc-weeks" aria-label="Días con registro en las últimas semanas"></ul>
           <ul class="fc-ins" id="fc-ins"></ul>
           <button type="button" class="btn btn-tall" id="btn-fc-felicitar">Felicitar</button>

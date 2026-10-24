@@ -9,7 +9,7 @@ const D = (n) => new Date(Date.UTC(2026, 9, 21 + n)).toISOString().slice(0, 10);
 // PNG de 8×8 válido (la app lo reduce y lo guarda como JPEG).
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAEklEQVR4nGNgYGD4z4AKMAUBAEnYAQHPh3bnAAAAAElFTkSuQmCC', 'base64');
 const upload = async (p, date, pose) => {
-  if (!(await p.locator('#foto-nueva').evaluate((d) => d.open))) await p.locator('#foto-nueva-sum').click();   // «+ Foto»
+  await H.openFotoForm(p);   // «+ Foto»
   await p.locator('#form-photo input[name=date]').fill(date);
   await p.locator('#form-photo select[name=pose]').selectOption(pose);
   await p.setInputFiles('#form-photo input[name=file]', { name: 'f.png', mimeType: 'image/png', buffer: PNG });
@@ -48,6 +48,8 @@ test('cliente: fotos bloqueadas hasta A6a; sube a la nube; el coach solo las ve 
   expect(await photosInServer(p)).toEqual([]);
   await p.getByRole('button', { name: 'Autorizar fotos' }).click();
   await expect(p.locator('#toast')).toHaveText('Fotos autorizadas');
+  await expect(p.locator('#foto-nueva-sum')).toHaveText('Tomar mi primera foto');
+  await H.openFotoForm(p);
   await expect(p.locator('#form-photo')).toBeVisible();
   const be0 = await H.backend(p);
   const a6a = be0.consentEvents.find((e) => e.kind === 'photos_cloud');

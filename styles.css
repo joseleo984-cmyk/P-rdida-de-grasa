@@ -832,9 +832,10 @@ body.paused #home-semana, body.paused #pay-countdown, body.paused #home-toca { d
 .dia-tile span { color: var(--muted); font-size: .85rem; }
 .dia-tile.on { background: var(--accent-soft); border-color: var(--accent); }
 .dia-tile.on span { color: var(--text); }
+.dia-tile { min-height: 70px; }
+.dia-tile b { font-size: 1rem; }
+.dia-tile span { font-size: .8rem; }
 .dia-tile:focus-visible, .dia-act:focus-visible, .dia-chips button:focus-visible, .dia-opts button:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
-.dia-pasos { cursor: default; }
-.dia-pasos, #dia-entrene { grid-column: 1 / -1; }
 .dia-card .home-label, #home-daily .home-label, .semana-card .home-label, .home-toca .home-label { color: var(--text); font-size: 1.05rem; }
 #home-daily .home-label { font-size: 1.15rem; }
 .dia-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
@@ -846,17 +847,17 @@ body.paused #home-semana, body.paused #pay-countdown, body.paused #home-toca { d
 .dia-act { min-height: 52px; padding: 8px 12px; font: inherit; font-weight: 700; color: var(--accent); background: transparent; border: 1px solid var(--accent); border-radius: 14px; cursor: pointer; }
 .dia-act[aria-disabled="true"] { opacity: .5; }
 .dia-status { margin: 10px 0 0; }
-.dia-links { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 2px; }
-.dia-links .btn-link { min-height: 48px; }
+.dia-links { display: flex; flex-wrap: wrap; gap: 0 16px; margin-top: 2px; }
+.dia-links .btn-link { min-height: 48px; font-size: .85rem; color: var(--muted); font-weight: 600; }
+.dia-status { font-size: .8rem; }
 .home-toca { border-left: 4px solid var(--accent); }
 .home-toca .btn { width: 100%; margin-top: 8px; }
 .semana-count { font-size: .95rem; }
 .semana-days { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 8px; padding: 0; }
-.semana-days .sd { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 800; font-size: .9rem; border: 2px solid var(--accent); color: var(--text); }
+.semana-days .sd { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 800; font-size: .9rem; border: 2px solid var(--line); color: var(--muted); }
 .semana-days .sd.on { background: var(--accent); color: var(--on-accent); }
 .semana-days .sd.comodin { border-style: dashed; border-color: var(--muted); color: var(--muted); }
-.semana-days .sd.fut { border-color: var(--line); color: var(--muted); }
-.semana-days .sd.hoy:not(.on) { box-shadow: 0 0 0 3px var(--accent-soft); }
+.semana-days .sd.fut, .semana-days .sd.hoy:not(.on) { border-color: var(--accent); color: var(--text); }
 .pay-line { margin: 0 0 14px; padding: 0 4px; font-size: .85rem; color: var(--muted); }
 
 /* --- Celebración al guardar --- */
@@ -1034,3 +1035,199 @@ body.producto-coach .foto-nueva[open] > summary { margin-bottom: 8px; }
 .mc-cambiar .btn-link { min-height: 48px; }
 body.producto-coach #view-medidas .back-title, body.producto-coach #view-habitos .back-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 body.producto-coach [tabindex="-1"]:focus { outline: none; }
+
+/* --- Fidelidad (pasada 2): nota del coach como aviso con barra de acento --- */
+body.producto-coach #coach-notes { padding: 12px 14px; border: 0; border-left: 4px solid var(--accent); border-radius: 14px; background: var(--accent-soft); }
+body.producto-coach #coach-notes h2 { font-size: .95rem; margin: 0 0 4px; }
+body.producto-coach #coach-notes .badge { display: none; }
+body.producto-coach #coach-notes ul { gap: 0; }
+body.producto-coach #coach-notes li, body.producto-coach #coach-notes li.unread { padding: 0; border: 0; }
+body.producto-coach #coach-notes .note-body::before { content: '«'; }
+body.producto-coach #coach-notes .note-body::after { content: '»'; }
+body.producto-coach #coach-notes .note-meta { margin-top: 2px; }
+body.producto-coach #coach-notes .note-meta > span { font-size: .75rem; }
+body.producto-coach #coach-notes .btn-link { color: var(--accent); font-weight: 700; }
+.dd-body { display: flex; flex-direction: column; }
+.dd-body > * { order: 5; }
+.dd-ring { order: 1; } .dd-body h2 { order: 2; } #dd-text { order: 3; } #dd-chips { order: 4; } #dd-badge { order: 4; }
+.dia-dialog:not(.dd-complete) #dd-foot { order: 4; margin: 4px 0 14px; }
+.dia-dialog:not(.dd-complete) #dd-chips { display: none; }
+.dd-complete #dd-foot { order: 9; }
+.dd-chips { display: flex; justify-content: center; }
+.dd-chips:not(:empty) { align-self: center; padding: 6px 12px; border-radius: 999px; background: var(--bg); font-size: .85rem; }
+.dd-ring { align-self: center; }
+/* Aviso de la primera foto: hoja inferior con asa */
+#sheet-foto-aviso::before { content: ''; display: block; width: 44px; height: 5px; margin: 10px auto 0; border-radius: 3px; background: var(--line); }
+#sheet-foto-aviso .sheet-head h2 { font-size: 1.5rem; }
+#sheet-foto-aviso #fa-text { font-size: 1.05rem; }
+#sheet-foto-aviso #fa-cancel { color: var(--muted); border-color: var(--line); }
+
+/* ===== Fidelidad (pasada 2): barra superior, Comidas, Entrenar, Progreso, Medirme, Fotos, Insignias, lista y ficha del coach ===== */
+.topbar-btn { background: none; border: 0; color: inherit; font: inherit; font-size: .95rem; font-weight: 600; min-height: 48px; padding: 0 4px; cursor: pointer; white-space: nowrap; }
+body.producto-coach .topbar-btn { color: var(--on-accent); }
+body.producto-coach .topbar-btn:focus-visible { outline: 3px solid var(--on-accent); outline-offset: 2px; }
+body.producto-coach .topbar.has-act #today-label { display: none; }
+body.producto-coach .topbar.has-back { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 8px; }
+body.producto-coach .topbar.has-back h1 { grid-column: 2; text-align: center; flex: none; }
+body.producto-coach .topbar.has-back #today-label { display: none; }
+body.producto-coach .topbar.has-back #topbar-back, body.producto-coach .topbar.has-back #btn-coach-prev { grid-column: 1; justify-self: start; }
+body.producto-coach .topbar.has-back #btn-foto-add, body.producto-coach .topbar.has-back #btn-coach-next { grid-column: 3; justify-self: end; }
+body.no-photos #btn-foto-add { display: none; }
+body.producto-coach #btn-medirme { margin-left: auto; }
+body.producto-coach #view-medidas .back-row { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Comidas: resumen, lista limpia, «+ Comida / Mis platos», cierre y bienestar; el cambio de día va al final */
+body.producto-coach #mc-main { display: flex; flex-direction: column; }
+body.producto-coach #mc-main > * { order: 9; }
+body.producto-coach #mc-main > .mc-resumen { order: 1; }
+body.producto-coach #mc-main > .mc-lista { order: 2; }
+body.producto-coach #mc-main > .mc-cierre { order: 3; }
+body.producto-coach #mc-main > #mc-bienestar { order: 4; }
+body.producto-coach #mc-main > .mc-daynav { order: 5; margin-top: 4px; }
+body.producto-coach #mc-main > .mc-cambiar { order: 6; }
+body.producto-coach #mc-main > #mc-date-row { order: 7; }
+.mc-count { font-size: 1.2rem; }
+.mc-prot-n { font-size: 1.5rem; }
+.mc-det > summary { list-style: none; cursor: pointer; }
+.mc-det > summary::-webkit-details-marker { display: none; }
+.mc-det > summary:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; border-radius: 8px; }
+.mc-actions { flex-wrap: wrap; align-items: center; gap: 0 8px; padding-top: 2px; }
+.mc-sub { flex: 1 0 100%; color: var(--muted); }
+.mc-det:not([open]) .mc-actions { display: none; }
+.mc-item { padding: 12px 0; }
+#btn-mc-repeat { border: 0; background: none; color: var(--accent); font-weight: 600; font-size: .9rem; min-height: 48px; }
+.mc-cierre .mc-chips button { font-weight: 500; font-size: .95rem; background: transparent; min-width: 3.5rem; padding: 6px 18px; flex: 0 0 auto; }
+.mc-cierre .mc-chips button[aria-pressed="true"] { font-weight: 800; background: var(--accent); }
+.mc-daynav h3 { font-size: .9rem; font-weight: 600; color: var(--muted); }
+.mc-daynav .btn { min-height: 48px; background: transparent; border: 0; color: var(--accent); }
+
+/* Entrenar: una sola tarjeta con los ejercicios (círculo para marcar + «Cómo se hace ›»), «Ya entrené» grande y el esfuerzo */
+.rut-main .rut-card { padding: 14px 16px 6px; }
+.rut-main .rut-title { margin: 0 0 6px; font-size: 1.1rem; }
+.rut-by { font-weight: 600; color: var(--text); }
+.rut-flat { padding: 0; gap: 0; }
+.rut-exrow { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--line); }
+.rut-exrow .rut-ex { flex: 1; min-width: 0; }
+.rut-flat .rut-ex > summary { background: transparent; padding: 10px 0; min-height: 48px; border-radius: 0; }
+.rut-flat .rut-ex-text { flex-direction: row; gap: 6px; flex-wrap: wrap; }
+.rut-flat .rut-ex-sets { font-weight: 500; color: var(--muted); }
+.rut-flat .rut-ex-sets::before { content: '· '; }
+.rut-check { flex: none; width: 48px; height: 48px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 0; cursor: pointer; color: transparent; }
+.rut-check::before { content: ''; position: absolute; }
+.rut-check svg { width: 30px; height: 30px; padding: 4px; border: 2px solid var(--accent); border-radius: 50%; box-sizing: border-box; }
+.rut-check[aria-pressed="true"] { color: var(--on-accent); }
+.rut-check[aria-pressed="true"] svg { background: var(--accent); }
+.rut-check:focus-visible { outline: 3px solid var(--goal); outline-offset: -4px; border-radius: 50%; }
+.rut-more { margin-top: 12px; }
+.rut-more > summary { cursor: pointer; font-weight: 700; min-height: 48px; display: flex; align-items: center; }
+#rutina-trained { background: none; border: 0; padding: 0; box-shadow: none; margin: 12px 0; }
+#btn-rutina-trained { min-height: 56px; font-size: 1.1rem; }
+#rutina-esfuerzo { margin-top: 12px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+#rutina-esfuerzo h3 { margin: 0 0 6px; }
+.esf-chips button { flex: 1 1 4.5rem; font-weight: 500; }
+.esf-chips button[aria-pressed="true"] { font-weight: 800; }
+
+/* Progreso: fichas de constancia planas, «Cambios» con cintura y cadera, registros plegados */
+#view-progreso .seg-wrap { flex-wrap: wrap; gap: 8px; }
+#medidas-pick button { min-height: 48px; padding: 6px 14px; font-size: .95rem; }
+.prog-stats .stat, #prog-stats .stat { background: var(--bg); border: 0; }
+.prog-mas { margin-top: 8px; }
+.prog-mas > summary, .prog-reg > summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; font-weight: 700; color: var(--accent); }
+.prog-reg > summary { color: var(--text); font-size: 1.05rem; }
+
+/* Medirme */
+body.producto-coach .med-scale { border-left: 0; }
+
+/* Fotos: vista previa con fecha dentro, galería de miniaturas grandes, permiso al final */
+body.producto-coach #view-fotos > .foto-vacio { order: 3; text-align: center; }
+body.producto-coach #view-fotos > #foto-nueva { order: 6; }
+body.producto-coach #view-fotos:not(.has-photos) > #foto-nueva { order: 4; }
+body.producto-coach #view-fotos > #galeria-card { order: 5; }
+body.producto-coach #view-fotos > #foto-perm { order: 7; }
+body.producto-coach #view-fotos > #compare-card { order: 9; }
+body.producto-coach #view-fotos > #photos-coach-card { order: 10; }
+body.producto-coach #view-fotos > #photos-log-card { order: 11; }
+body.producto-coach #view-fotos:not(.has-photos) > #foto-nueva > summary { justify-content: center; min-height: 56px; background: var(--accent); color: var(--on-accent); border-radius: 14px; font-size: 1.05rem; }
+body.producto-coach #view-fotos.has-photos > #foto-nueva:not([open]) { display: none; }
+body.producto-coach #foto-hero-card { padding: 0; background: none; border: 0; }
+.foto-hero-fig figcaption { position: absolute; right: 12px; bottom: 10px; margin: 0; color: #fff; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+.foto-hero-btn img { aspect-ratio: 3 / 2; }
+body.producto-coach #galeria-card { padding: 0; background: none; border: 0; }
+body.producto-coach #galeria-card h2, body.producto-coach #galeria-card .meal-head { display: none; }
+body.producto-coach #gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+body.producto-coach #gallery .photo-day, body.producto-coach #gallery .thumbs { display: contents; }
+body.producto-coach #gallery .thumb { border-radius: 14px; }
+body.producto-coach #gallery .thumb img { aspect-ratio: 4 / 3; }
+body.producto-coach #gallery .thumbs .thumb span { left: auto; right: 8px; bottom: 6px; background: none; color: #fff; font-weight: 700; font-size: .8rem; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+.foto-perm { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 4px 16px; margin: 8px 0; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.foto-perm .btn-link { min-height: 48px; }
+body.paused .foto-perm { display: none; }
+
+/* Insignias: dos columnas numeradas (1 a 8), con la fecha o lo que falta */
+.insig-list, .fc-ins { grid-template-columns: 1fr 1fr; gap: 12px 10px; }
+.insig { padding: 4px 0; }
+.insig-n { width: 52px; height: 52px; font-size: 1.15rem; }
+.insig-t strong { font-size: .95rem; }
+.insig-t small { font-size: .85rem; }
+
+/* Lista del coach (C01): título y cuenta en la barra, semáforo a la derecha, avatares neutros, pago como línea tenue */
+body.producto-coach #coach-title-list, body.producto-coach #coach-subtitle, body.producto-coach #coach-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+body.producto-coach .cli-head { margin: 0; }
+body.producto-coach #btn-coach-refresh { order: 20; margin: 12px auto 0; display: flex; background: none; border: 0; color: var(--accent); min-height: 48px; }
+body.producto-coach .cli-panel { display: flex; flex-direction: column; }
+body.producto-coach .cli-panel > .cli-head { order: 20; }
+body.producto-coach .cli-av { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.cli-pay-row { position: relative; align-items: flex-start; padding-bottom: 8px; }
+.cli-pay-row .cli-top { flex-wrap: nowrap; width: 100%; }
+.cli-pay-row .cli-name { flex: 1; min-width: 0; }
+.cli-pay-row .cli-motivo { font-size: .95rem; color: var(--text); }
+.cli-pay-row .cli-pago { font-size: .8rem; color: var(--muted); padding-right: 84px; }
+.cli-pay-row .chip-pay { position: absolute; right: 8px; bottom: 6px; min-width: 72px; }
+
+/* Ficha del coach (C02): nombre y «‹ Anterior · Siguiente ›» en la barra, resumen arriba, reacciones y enlaces */
+.fc-head { margin: 0 0 8px; }
+.fc-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.fc-meta p { margin: 0; }
+.fc-meta .detail-pay { display: flex; align-items: center; gap: 8px; margin: 0; }
+.fc-react button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 800; }
+.fc-react-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.fc-react-acts .btn { margin: 0; }
+.fc-links { padding: 4px 16px; }
+.fc-link { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 48px; color: var(--text); text-decoration: none; }
+.fc-link + .fc-link { border-top: 1px solid var(--line); }
+.fc-link b { color: var(--accent); font-weight: 700; white-space: nowrap; }
+.fc-link:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; border-radius: 8px; }
+.mc-line .mc-t { display: block; }
+.rut-flat .rut-ex-name { font-weight: 500; font-size: .95rem; }
+.rut-flat .rut-ex-sets { font-size: .95rem; }
+.rut-flat .rut-ex-how { font-size: .85rem; }
+.rut-flat .rut-ex-text { flex: 1; }
+.rut-flat .rut-ex > summary { gap: 6px; }
+.rut-exrow { gap: 4px; }
+.rut-check { width: 48px; }
+.rut-check svg { width: 26px; height: 26px; padding: 3px; }
+.topbar-btn { min-height: 44px; margin-block: -8px; }
+#medidas-pick { gap: 6px; }
+#medidas-pick button { padding: 6px 12px; font-size: .9rem; }
+.prog-stats .stat, #prog-stats .stat, .fc-sum > div { background: color-mix(in srgb, var(--text) 6%, var(--card)); }
+.med-card.is-toca .med-req { display: none; }
+.med-card.is-toca .med-h { font-size: 1.15rem; }
+.foto-hero-acts .btn-link { background: none; }
+#btn-hero-hide { font-weight: 700; color: var(--accent); }
+#btn-hero-compare { color: var(--muted); }
+body.producto-coach #coach-list-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.cli-pay-row .cli-motivo { padding-right: 80px; }
+.cli-filters button { font-size: .9rem; padding: 6px 14px; }
+.fc-sum b { font-size: .95rem; }
+.fc-sum > div { padding: 8px 10px; }
+.rut-titlebar { display: flex; flex-wrap: wrap; align-items: baseline; margin: 0 0 6px; }
+.rut-titlebar .rut-title { margin: 0; }
+.insig-n { width: 46px; height: 46px; font-size: 1.05rem; }
+.insig { gap: 10px; }
+#fc-const-sum { grid-template-columns: repeat(3, 1fr); }
+#fc-const-sum b { font-size: 1.05rem; }
+#fc-const-sum small { font-size: .8rem; }
+.fc-weeks-cap { margin: 10px 0 0; }
+.fc-weeks { justify-content: space-between; padding: 6px 4px; }
+.fc-weeks li { background: color-mix(in srgb, var(--text) 8%, var(--card)); color: var(--muted); width: 38px; height: 38px; }
+#btn-fc-felicitar { width: 100%; margin-top: 4px; }

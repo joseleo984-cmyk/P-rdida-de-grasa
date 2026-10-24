@@ -57,3 +57,12 @@ test('summary y orden por vencimiento (sin fecha y vencidos primero)', () => {
   assert.deepStrictEqual(P.summary(st), { paid: 3, unpaid: 2, total: 5 });
   assert.deepStrictEqual([...st].sort(P.byDue).map((x) => x.paidUntil), [null, '2026-10-10', '2026-10-23', '2026-10-28', '2026-11-15']);
 });
+test('listLine: línea corta de la lista de asesorados (dato secundario)', () => {
+  const st = (paidUntil) => P.status({ paidUntil }, '2026-10-24');
+  assert.strictEqual(P.listLine(P.status({}, '2026-10-24')), 'Pago: sin registrar');
+  assert.strictEqual(P.listLine(st('2026-10-15')), 'Pago: venció el 15 oct');
+  assert.strictEqual(P.listLine(st('2026-11-03')), 'Pago: al día hasta el 3 nov');
+  assert.strictEqual(P.listLine(st('2026-10-26')), 'Pago: vence en 2 días');
+  assert.strictEqual(P.listLine(st('2026-10-25')), 'Pago: vence mañana');
+  assert.strictEqual(P.listLine(st('2026-10-24')), 'Pago: vence hoy');
+});

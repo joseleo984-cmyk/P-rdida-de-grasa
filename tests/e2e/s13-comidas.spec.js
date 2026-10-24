@@ -134,6 +134,7 @@ test('cliente: agrega un plato del catálogo con porción y una comida libre, ve
   await p.locator('#sc-close').click();
   await expect(p.locator('#sheet-comida')).toBeHidden();
   // Editar el plato: otra porción y otro tipo de comida
+  await H.openMeal(p, 'Arepa de huevo');
   await p.getByRole('button', { name: 'Editar: Arepa de huevo (costeña)' }).click();
   await expect(p.locator('#sc-title')).toHaveText('Editar comida');
   await expect(p.locator('#sc-portions input:checked')).toHaveValue('large');
@@ -145,12 +146,14 @@ test('cliente: agrega un plato del catálogo con porción y una comida libre, ve
   await expect(p.locator('#mc-list')).toContainText('Media porción');
   expect((await foodsOf(p))[D0][0]).toMatchObject({ kcal: 140, portion: 'half', meal: 'Snack', dish: 'arepa-de-huevo' });
   // Editar la libre
+  await H.openMeal(p, 'Pollo con papas');
   await p.getByRole('button', { name: 'Editar: Pollo con papas' }).click();
   await expect(p.locator('#sc-name')).toHaveValue('Pollo con papas');
   await p.locator('#sc-kcal-in').fill('500');
   await p.getByRole('button', { name: 'Guardar cambios' }).click();
   await expect(p.locator('#mc-kcal')).toHaveText('~640');
   // Borrar y deshacer
+  await H.openMeal(p, 'Pollo con papas');
   await p.getByRole('button', { name: 'Borrar: Pollo con papas' }).click();
   await expect(p.locator('#toast')).toContainText('Se borró «Pollo con papas»');
   await expect(p.locator('#mc-kcal')).toHaveText('~140');
@@ -454,6 +457,7 @@ test('claro y oscuro, letra ancha a 390 px: Inicio, Mis comidas, catálogo, porc
     await H.layout(p); await H.tall(p, '#view-micomidas');
     if (scheme === 'dark') await H.shot(p, 's13-mis-comidas-oscuro.png', { fullPage: true });
     // Editar
+    await H.openMeal(p, 'Pescado');
     await p.getByRole('button', { name: /^Editar: Pescado/ }).click();
     await H.layout(p); await H.tall(p, '#sheet-comida');
     await p.locator('#sc-close').click();

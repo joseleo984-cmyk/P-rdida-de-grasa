@@ -234,8 +234,7 @@ test('cliente: ve «Mi rutina» (solo lectura) con días plegables y la animaci�
   await expect(a.locator('#btn-rutina-trained')).toHaveText('✓ Ya entrené');
   await a.locator('#btn-rutina-trained').click();
   await expect(a.locator('#toast')).toContainText('Entrenamiento anotado');
-  await expect(a.locator('#btn-rutina-trained')).toBeDisabled();
-  await expect(a.locator('#btn-rutina-trained')).toHaveText('✓ Entrenamiento de hoy anotado');
+  await expect(a.locator('#btn-rutina-trained')).toHaveAttribute('aria-pressed', 'true');
   await expect(a.locator('#rutina-esfuerzo')).toBeVisible();
   expect(await a.evaluate(() => Object.values(JSON.parse(localStorage.getItem('perdida-grasa-pruebas:v1') || localStorage.getItem('perdida-grasa:v1')).habits).some((h) => h.trained === true))).toBe(true);
   // Beto (otro cliente del MISMO coach): no ve la rutina de Ana ni su animación
@@ -514,7 +513,7 @@ test('rutina de hoy: el coach publica una de su biblioteca para TODOS sus asesor
     await c.p.addStyleTag({ content: H.WIDE });
     await c.p.locator('#tab-panel').click();
     await expect(c.p.locator('#hd-title')).toHaveText('Rutina de hoy: Pecho');
-    await expect(c.p.locator('#hd-text')).toHaveText('1 día · 2 ejercicios');
+    await expect(c.p.locator('#hd-text')).toHaveText('2 ejercicios');
     expect(await c.p.evaluate(async () => (await PGAccount.remote.client.myRoutines()).length)).toBe(0);
   }
   await H.layout(ana.p);
@@ -585,10 +584,10 @@ test('en pausa por pago el cliente sigue viendo sus rutinas asignadas y la rutin
   await expect(a.locator('#home-coach')).toBeHidden();
   await expect(a.locator('#home-daily')).toBeVisible();
   await expect(a.locator('#hd-title')).toHaveText('Rutina de hoy: Piernas');
-  await expect(a.locator('#hd-text')).toHaveText('1 día · 1 ejercicio');   // una sola tarjeta; la de «Pecho» está oculta
+  await expect(a.locator('#hd-text')).toHaveText('1 ejercicio');   // una sola tarjeta; la de «Pecho» está oculta
   await a.getByRole('button', { name: 'Empezar' }).click();
-  await expect(a.locator('#rutina-body .rut-title')).toHaveText(['Piernas', 'Piernas']);   // la de hoy y la asignada
-  await expect(a.locator('#rutina-body .rut-section')).toHaveText('Mis rutinas');
+  await expect(a.locator('#rutina-body .rut-title')).toHaveText(['Piernas']);   // la de hoy y la asignada son la misma: no se repite
+  await expect(a.locator('#rutina-body .rut-more')).toHaveCount(0);
   await expect(a.locator('#rutina-trained')).toBeHidden();   // en pausa no se anota nada nuevo
   await H.layout(a);
   expect(ana.errors.filter((e) => !/40\d|403/.test(e))).toEqual([]);

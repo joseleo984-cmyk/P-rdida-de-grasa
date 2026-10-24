@@ -43,6 +43,13 @@
     const when = st.daysLeft === 0 ? 'vence hoy' : st.daysLeft === 1 ? 'vence mañana' : `vence en ${nDays(st.daysLeft)}`;
     return `Pagó hasta el ${dayText(st.paidUntil)} · ${when}`;
   }
+  // Línea corta de la lista de asesorados (dato secundario): «Pago: al día hasta el 3 nov», «Pago: vence en 2 días», «Pago: venció el 15 oct».
+  function listLine(st) {
+    if (st.key === 'none') return 'Pago: sin registrar';
+    if (st.key === 'overdue') return `Pago: venció el ${dayText(st.paidUntil)}`;
+    if (st.daysLeft <= SOON_DAYS) return `Pago: ${st.daysLeft === 0 ? 'vence hoy' : st.daysLeft === 1 ? 'vence mañana' : `vence en ${nDays(st.daysLeft)}`}`;
+    return `Pago: al día hasta el ${dayText(st.paidUntil)}`;
+  }
   const chipText = (st) => (st.paid ? 'Pagó' : 'No pagó');
   // Frase del cliente: «Faltan 12 días para tu próximo pago». soon = resaltada (≤ 7 días). null si no hay nada que decir.
   function clientCountdown(st) {
@@ -63,7 +70,7 @@
   const dueKey = (st) => (st.paidUntil ? dayNum(st.paidUntil) : -Infinity);
   const byDue = (a, b) => { const x = dueKey(a), y = dueKey(b); return x === y ? 0 : x < y ? -1 : 1; };
 
-  const api = { todayBogota, daysLeft, status, blocked, defaultPaidUntil, unpaidDate, coachLine, chipText, clientCountdown, summary, byDue, addDays, isISO, dayText, DEFAULT_DAYS, SOON_DAYS, MINUS };
+  const api = { todayBogota, daysLeft, status, blocked, defaultPaidUntil, unpaidDate, coachLine, listLine, chipText, clientCountdown, summary, byDue, addDays, isISO, dayText, DEFAULT_DAYS, SOON_DAYS, MINUS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Pagos = api;
 })(typeof window !== 'undefined' ? window : globalThis);

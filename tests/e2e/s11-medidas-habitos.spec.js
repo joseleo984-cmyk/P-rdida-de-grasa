@@ -53,8 +53,10 @@ test('medidas: solo lo que toca hoy es obligatorio, con coma decimal; gráfica p
   expect(st.schemaVersion).toBe(6);
   expect(st.entries.map((e) => [e.date, e.weight, e.waist, e.hip, e.neck, e.armL, e.thighL])).toEqual([[D(-20), 70, 84, 101, 34, 28.5, 58], [D(0), 68.5, 80, 99, 33.5, 27.5, 56.5]]);
   // Cambios en lenguaje neutro (sin verde): «4 cm menos»
-  const rows = (await p.locator('#medidas-table dl > div').allInnerTexts()).map((r) => r.replace(/\s+/g, ' ').trim());
-  expect(rows).toEqual(['Cuello 0,5 cm menos', 'Brazo der. 1 cm menos', 'Brazo izq. 1 cm menos', 'Espalda 1 cm menos', 'Cintura 4 cm menos', 'Cadera 2 cm menos', 'Muslo der. 2 cm menos', 'Muslo izq. 1,5 cm menos']);
+  const rows = (await p.locator('#medidas-table > dl > div').allInnerTexts()).map((r) => r.replace(/\s+/g, ' ').trim());
+  expect(rows).toEqual(['Cintura 4 cm menos', 'Cadera 2 cm menos']);   // lo principal; el resto, en «Ver todas las medidas»
+  await p.locator('.prog-mas > summary').click();
+  expect((await p.locator('.prog-mas dl > div').allInnerTexts()).map((r) => r.replace(/\s+/g, ' ').trim())).toEqual(['Cuello 0,5 cm menos', 'Brazo der. 1 cm menos', 'Brazo izq. 1 cm menos', 'Espalda 1 cm menos', 'Muslo der. 2 cm menos', 'Muslo izq. 1,5 cm menos']);
   await expect(p.locator('#medidas-table .dn')).toHaveCount(0);
   // Gráfica por medida
   await p.locator('#medidas-pick button', { hasText: 'Cintura' }).click();
@@ -80,6 +82,7 @@ test('medidas: solo lo que toca hoy es obligatorio, con coma decimal; gráfica p
   const srv = Object.values((await H.backend(p)).records).find((r) => r.nkey === D(0));
   expect(srv.data).toMatchObject({ weight: 68.5, hip: 99, neck: 33, armR: 28, thighL: 56.5 });
   // Borrar un registro
+  if (!(await p.locator('#prog-reg').evaluate((d) => d.open))) await p.locator('#prog-reg > summary').click();
   await p.locator('#medidas-history li').first().getByRole('button').click();
   await expect(p.locator('#medidas-history li')).toHaveCount(1);
   expect(errors).toEqual([]);
@@ -120,7 +123,7 @@ test('hábitos: agua en vasos, pasos, sueño y entrenó (de un toque en Inicio y
   await p.locator('#tab-panel').click();
   await expect(p.locator('#dia-agua-t')).toHaveText('Agua 5 / 8');
   await expect(p.locator('#dia-sueno-t')).toHaveText('Sueño 7–8 h');
-  await expect(p.locator('#dia-pasos button', { hasText: '4–8 mil' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(p.locator('#dia-pasos-t')).toHaveText('Pasos 4–8 mil');
   await expect(p.locator('#dia-entrene')).toHaveAttribute('aria-pressed', 'true');
   expect(await p.locator('#view-panel').innerText()).not.toMatch(/Hoy llevas|kcal/i);
   // Llegan al servidor (el coach los ve porque Ana los compartió)

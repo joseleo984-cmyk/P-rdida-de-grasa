@@ -152,6 +152,7 @@
     const vs = pts.flatMap((p) => [p.weight, p.trend]);
     let lo = Math.floor(Math.min(...vs) - 0.3), hi = Math.ceil(Math.max(...vs) + 0.3);
     if (hi - lo < 2) { hi = lo + 2; }
+    if ((hi - lo) % 2) hi += 1;   // tres marcas enteras: mínimo, medio y máximo
     const X = (iso) => Math.round((padX + (t1 > t0 ? (dayNum(iso) - t0) / (t1 - t0) : 0.5) * (w - padX - 10)) * 10) / 10;
     const Y = (v) => Math.round((padTop + (1 - (v - lo) / (hi - lo)) * (h - padTop - padBottom)) * 10) / 10;
     const raw = pts.map((p) => ({ x: X(p.date), y: Y(p.weight), date: p.date, value: p.weight }));

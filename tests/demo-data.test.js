@@ -17,7 +17,7 @@ const by = (k) => plan.clients.find((c) => c.key === k);
 
 test('8 asesorados con nombres y correos inventados (@example.com), sin teléfonos', () => {
   assert.strictEqual(plan.clients.length, 8);
-  assert.strictEqual(plan.business, 'Fit Demo');
+  assert.strictEqual(plan.business, 'Coach Fit Demo');
   for (const e of [DD.COACH.email, ...plan.clients.map((c) => c.email)]) assert.match(e, /^[a-z.]+\.demo@example\.com$/);
   for (const c of plan.clients) { assert.match(c.name, /^[A-Za-zñ]+ Demo$/); assert.ok(!/\d{6,}/.test(c.name + c.email)); }
   assert.strictEqual(new Set(plan.clients.map((c) => c.email)).size, 8);
@@ -148,7 +148,7 @@ test('siembra en el servidor falso: ids únicos, estados de pago, rutinas, una o
   assert.ok(Object.keys(be.users).every((e) => e.endsWith('@example.com')));
   // coach
   const coach = be.coaches[r.coach.id];
-  assert.strictEqual(coach.businessName, 'Fit Demo');
+  assert.strictEqual(coach.businessName, 'Coach Fit Demo');
   assert.strictEqual(coach.inviteCode, DD.INVITE_CODE);
   assert.ok(be.hasConsent(r.coach.id, 'coach_agreement'));
   assert.strictEqual(Object.values(be.templates).length, 3);
