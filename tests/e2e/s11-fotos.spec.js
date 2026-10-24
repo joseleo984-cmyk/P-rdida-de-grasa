@@ -9,12 +9,16 @@ const D = (n) => new Date(Date.UTC(2026, 9, 21 + n)).toISOString().slice(0, 10);
 // PNG de 8×8 válido (la app lo reduce y lo guarda como JPEG).
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAEklEQVR4nGNgYGD4z4AKMAUBAEnYAQHPh3bnAAAAAElFTkSuQmCC', 'base64');
 const upload = async (p, date, pose) => {
+  if (!(await p.locator('#foto-nueva').evaluate((d) => d.open))) await p.locator('#foto-nueva-sum').click();   // «+ Foto»
   await p.locator('#form-photo input[name=date]').fill(date);
   await p.locator('#form-photo select[name=pose]').selectOption(pose);
   await p.setInputFiles('#form-photo input[name=file]', { name: 'f.png', mimeType: 'image/png', buffer: PNG });
   await p.getByRole('button', { name: 'Guardar foto' }).click();
+  // Concepto 2 (L1): con el permiso del coach activo, la primera foto pide el «Entendido y autorizar» (aviso bloqueante)
+  if (await p.locator('#sheet-foto-aviso').isVisible()) await p.locator('#fa-ok').click();
   await expect(p.locator('#toast')).toHaveText('Foto guardada');
 };
+const goFotos = async (p) => { await p.locator('#tab-registro').click(); await p.locator('#view-progreso .prog-seg button', { hasText: 'Fotos' }).click(); };
 async function client(browser, testInfo) {
   const ph = await H.phone(browser, testInfo);
   const { p } = ph;
@@ -35,7 +39,7 @@ const photosInServer = (p) => p.evaluate(() => Object.values(window.__pgFakeBack
 test('cliente: fotos bloqueadas hasta A6a; sube a la nube; el coach solo las ve con A6b y marcándolas una a una; retirar A6b las oculta; en pausa no sube', async ({ browser }, testInfo) => {
   test.setTimeout(90_000);
   const { p, errors } = await client(browser, testInfo);
-  await p.locator('#tab-fotos').click();
+  await goFotos(p);
   await expect(p.locator('#view-fotos .photos-gate')).toBeVisible();
   await expect(p.locator('#form-photo')).toBeHidden();
   await expect(p.locator('#photos-a6a-text')).toHaveText(CT.TEXTS.A6a.body);
@@ -66,19 +70,19 @@ test('cliente: fotos bloqueadas hasta A6a; sube a la nube; el coach solo las ve 
   expect(Object.values(be1.links).find((l) => l.status === 'active').shares.photos).toBe(true);
   // Al dar el permiso, las fotos que ya estaban pasan a verse (sin marcar una por una); la persona puede ocultar UNA: la de hoy
   await expect.poll(() => photosInServer(p).then((x) => x.filter((y) => y.shared).length)).toBe(2);
-  await expect(p.locator('#gallery .shared-badge')).toHaveCount(2);
+  await expect(p.locator('#gallery .vis-tag:not(.vis-off)')).toHaveCount(2);
   await p.locator('#gallery .thumb').first().click();
   await expect(p.locator('#viewer-share-row')).toBeVisible();
   await expect(p.locator('#viewer-share')).toBeChecked();
   await p.locator('#viewer-share').uncheck();
   await expect(p.locator('#toast')).toHaveText('Tu coach ya no ve esta foto');
   await p.locator('#viewer-close').click();
-  await expect(p.locator('#gallery .shared-badge')).toHaveCount(1);
+  await expect(p.locator('#gallery .vis-tag:not(.vis-off)')).toHaveCount(1);
   await expect.poll(() => photosInServer(p).then((x) => x.filter((y) => y.shared).length)).toBe(1);
   // Una foto NUEVA, con el permiso vigente, la ve el coach sin hacer nada más
   await upload(p, D(-5), 'perfil');
   await expect.poll(() => photosInServer(p).then((x) => x.filter((y) => y.shared).length)).toBe(2);
-  await expect(p.locator('#gallery .shared-badge')).toHaveCount(2);
+  await expect(p.locator('#gallery .vis-tag:not(.vis-off)')).toHaveCount(2);
   // Lo que ve el coach (API del coach contra el mismo servidor): solo la marcada, una URL por apertura y queda registrada
   const seen = await p.evaluate(async () => {
     const be = window.__pgFakeBackend;
@@ -104,7 +108,7 @@ test('cliente: fotos bloqueadas hasta A6a; sube a la nube; el coach solo las ve 
     return (await r.coach.clientData(uid)).photos.length;
   });
   expect(after).toBe(0);
-  await expect(p.locator('#gallery .shared-badge')).toHaveCount(0);
+  await expect(p.locator('#gallery .vis-tag')).toHaveCount(0);
   // Borrar una foto: lápida + el archivo se borra de la nube
   await p.locator('#gallery .thumb').first().click();
   await p.locator('#viewer-delete').click();

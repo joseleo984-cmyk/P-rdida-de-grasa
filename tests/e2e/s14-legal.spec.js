@@ -24,13 +24,17 @@ const APPROVED = (() => {
   return out;
 })();
 const A6B = APPROVED['3.3'][0], IMPORT = APPROVED['3.6'][0], CLAUSE = APPROVED['3.5'][0].replace('[X]', '13'), P6 = APPROVED['3.4'][0], P71 = APPROVED['3.4'][1];
-const NOTICE = 'Cada foto que guardes será visible para tu coach de forma automática. Puedes ocultar una foto abriéndola o quitar el permiso en cualquier momento.';
+// Concepto 2 (L1) reemplazó el recuadro fijo por un aviso bloqueante antes de la primera foto (ver ux1-registro.spec.js y legal-literal.test.js).
+const AVISO_L1 = 'Cada foto que guardes será visible para tu coach de forma automática. Puedes ocultar fotos específicas o retirar este permiso en cualquier momento desde tu perfil.';
+const goFotos = async (p) => { await p.locator('#tab-registro').click(); await p.locator('#view-progreso .prog-seg button', { hasText: 'Fotos' }).click(); };
 
 const upload = async (p, date, pose) => {
+  if (!(await p.locator('#foto-nueva').evaluate((d) => d.open))) await p.locator('#foto-nueva-sum').click();
   await p.locator('#form-photo input[name=date]').fill(date);
   await p.locator('#form-photo select[name=pose]').selectOption(pose);
   await p.setInputFiles('#form-photo input[name=file]', { name: 'f.png', mimeType: 'image/png', buffer: PNG });
   await p.getByRole('button', { name: 'Guardar foto' }).click();
+  if (await p.locator('#sheet-foto-aviso').isVisible()) await p.locator('#fa-ok').click();   // L1: «Entendido y autorizar»
   await expect(p.locator('#toast')).toHaveText('Foto guardada');
 };
 // Cliente (Ana) ya vinculada con Laura Fit y al día, con letra ancha.
@@ -68,7 +72,7 @@ test('A6b nuevo: texto aprobado literal, aviso visible solo con el permiso y «A
   const { p, errors } = await client(browser, testInfo);
   const info = await p.evaluate(() => ({ v: ConsentTexts.version('A6b'), full: ConsentTexts.fullText('A6b', { coach: 'Laura Fit' }) }));
   expect(info.v).toBe('0.4-A6b-coach');
-  await p.locator('#tab-fotos').click();
+  await goFotos(p);
   await p.getByRole('button', { name: 'Autorizar fotos' }).click();
   await expect(p.locator('#form-photo')).toBeVisible();
   // Cámara: sin botones nuevos; la etiqueta dice «Adjuntar foto» y la ayuda explica la galería y «Tomar foto»
@@ -77,7 +81,8 @@ test('A6b nuevo: texto aprobado literal, aviso visible solo con el permiso y «A
   await expect(p.locator('#form-photo input[name=file]')).toHaveAttribute('accept', 'image/*');
   await expect(p.locator('#form-photo input[type=file]')).toHaveCount(1);
   // Sin el permiso A6b: ni aviso ni foto visible para el coach; el texto que se ofrece es el aprobado, LITERAL
-  await expect(p.locator('#photo-share-notice')).toBeHidden();
+  await expect(p.locator('#photo-share-notice')).toHaveCount(0);
+  await expect(p.locator('#gallery .vis-tag')).toHaveCount(0);
   await expect(p.locator('#photos-a6b-text')).toHaveText(norm(A6B).replace('{coach}', 'Laura Fit'));
   await H.layout(p); await H.tall(p, '#photos-coach-card');
   await p.getByRole('button', { name: 'Permitir que Laura Fit vea mis fotos' }).click();
@@ -86,14 +91,10 @@ test('A6b nuevo: texto aprobado literal, aviso visible solo con el permiso y «A
   const ev = (await H.backend(p)).consentEvents.filter((e) => e.kind === 'photo_view_coach').pop();
   expect([ev.granted, ev.version, ev.textHash]).toEqual([true, '0.4-A6b-coach', H.sha(info.full)]);
   expect(info.full.startsWith(A6B.replace('{coach}', 'Laura Fit'))).toBe(true);
-  // Aviso prominente y visible, junto al formulario «Nueva foto de progreso» (no es un consentimiento: no lleva huella)
-  const notice = p.locator('#photo-share-notice');
-  await expect(notice).toBeVisible();
-  await expect(notice).toHaveText(NOTICE);
-  expect(await notice.evaluate((el) => el.nextElementSibling && el.nextElementSibling.id)).toBe('form-photo');
-  expect(await notice.evaluate((el) => parseInt(getComputedStyle(el).borderLeftWidth, 10))).toBeGreaterThanOrEqual(4);
-  expect((await H.backend(p)).consentEvents.some((e) => e.textHash === H.sha(NOTICE))).toBe(false);
-  await H.layout(p); await H.shot(p, 's14-fotos-aviso.png', { fullPage: true });
+  // Concepto 2 (L1): el recuadro fijo ya no existe; el aviso es un modal bloqueante antes de la primera foto (no es un consentimiento: no lleva huella)
+  await expect(p.locator('#photo-share-notice')).toHaveCount(0);
+  expect((await H.backend(p)).consentEvents.some((e) => e.textHash === H.sha(AVISO_L1))).toBe(false);
+  await H.layout(p);
   // Bitácora «Quién vio mis fotos»: vacía mientras nadie mire
   await upload(p, D(-20), 'frente');
   await upload(p, D(-5), 'perfil');
@@ -131,7 +132,7 @@ test('A6b nuevo: texto aprobado literal, aviso visible solo con el permiso y «A
 test('quien dio el permiso con el texto anterior (0.3-A6b-coach) queda sin permiso vigente: el coach deja de ver sus fotos y debe volver a darlo', async ({ browser }, testInfo) => {
   test.setTimeout(90_000);
   const { p, errors } = await client(browser, testInfo);
-  await p.locator('#tab-fotos').click();
+  await goFotos(p);
   await p.getByRole('button', { name: 'Autorizar fotos' }).click();
   await upload(p, D(-3), 'frente');
   await p.getByRole('button', { name: 'Permitir que Laura Fit vea mis fotos' }).click();
@@ -151,10 +152,10 @@ test('quien dio el permiso con el texto anterior (0.3-A6b-coach) queda sin permi
   await p.reload(); await H.ready(p);
   await p.addStyleTag({ content: H.WIDE });
   await expect(p.locator('#toast')).toContainText('Actualizamos el permiso de tus fotos');
-  await p.locator('#tab-fotos').click();
+  await goFotos(p);
   await expect(p.locator('#photos-coach-state')).toContainText('todavía no puede ver tus fotos');
   await expect(p.locator('#photos-a6b-text')).toContainText('Autorizo que Laura Fit acceda a las fotos de progreso');
-  await expect(p.locator('#photo-share-notice')).toBeHidden();
+  await expect(p.locator('#gallery .vis-tag')).toHaveCount(0);   // sin permiso vigente no hay etiqueta
   await expect.poll(() => p.evaluate(() => Object.values(window.__pgFakeBackend.photos).filter((x) => x.sharedWithCoach).length)).toBe(0);   // las marcas se limpian en el servidor
   const be = await H.backend(p);
   expect(Object.values(be.links).find((l) => l.status === 'active').shares.photos).toBe(false);   // el servidor ya no le muestra fotos
@@ -163,12 +164,12 @@ test('quien dio el permiso con el texto anterior (0.3-A6b-coach) queda sin permi
   // Vuelve a darlo con el texto nuevo: todo funciona otra vez
   await p.getByRole('button', { name: 'Permitir que Laura Fit vea mis fotos' }).click();
   await expect(p.locator('#photos-coach-state')).toContainText('Laura Fit puede ver tus fotos');
-  await expect(p.locator('#photo-share-notice')).toBeVisible();
+  await expect(p.locator('#foto-hero-tag')).toHaveText('Visible para tu coach');
   expect((await H.backend(p)).consentEvents.filter((e) => e.kind === 'photo_view_coach').pop()).toMatchObject({ granted: true, version: '0.4-A6b-coach' });
   expect(errors).toEqual([]);
 });
 
-test('importar historial: el aviso aprobado se muestra ANTES del selector; «Continuar» abre el selector y «Cancelar» no; el historial sin peso, abdomen ni cadera entra', async ({ browser }, testInfo) => {
+test('importar historial: el aviso aprobado se muestra ANTES del selector; «Continuar» abre el selector y «Cancelar» no; el historial sin peso ni cadera entra', async ({ browser }, testInfo) => {
   test.setTimeout(90_000);
   const { p, errors } = await client(browser, testInfo);
   await p.locator('#tab-mas').click();
@@ -198,52 +199,55 @@ test('importar historial: el aviso aprobado se muestra ANTES del selector; «Con
   await fc.setFiles({ name: 'historial.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(hist)) });
   await expect(p.locator('#toast')).toHaveText('Datos importados');
   await expect(dlg).toBeHidden();
-  await p.locator('#tab-medidas').click();
+  await p.locator('#tab-registro').click();
   await expect(p.locator('#medidas-history li')).toHaveCount(2);
-  const rows = (await p.locator('#medidas-table tbody tr').allInnerTexts()).map((r) => r.replace(/\s+/g, ' ').trim());
-  expect(rows[0]).toBe('Peso 74 74 —');
-  expect(rows).toContain('Abdomen — — —');
-  expect(rows).toContain('Cadera — — —');
-  // Un registro NUEVO sí exige los tres
+  await expect(p.locator('#medidas-history')).toContainText('Peso 74 kg');
+  await expect(p.locator('#medidas-history')).toContainText('Cuello 35');
+  // Un registro NUEVO exige solo lo que TOCA hoy (miércoles: cintura y cadera; el cuello es opcional)
+  await p.locator('#btn-medirme').click();
+  await p.locator('#med-mas summary').click();
   await p.locator('#form-medidas input[name=neck]').fill('34');
-  await p.getByRole('button', { name: 'Guardar mis medidas' }).click();
-  await expect(p.locator('#medidas-error')).toHaveText('Faltan «Peso» (kg), «Abdomen» (cm) y «Cadera» (cm): son obligatorias.');
+  await p.getByRole('button', { name: 'Guardar medidas' }).click();
+  await expect(p.locator('#medidas-error')).toHaveText('Hoy toca: faltan «Cintura» (cm) y «Cadera» (cm).');
   for (const d of [true, false]) { await dark(p, d); await H.layout(p); await H.tall(p, '#view-medidas'); }
   expect(chooser).toBe(1);
   expect(errors).toEqual([]);
 });
 
-test('medidas nuevas: peso, abdomen y cadera llegan al coach en la ficha y al CSV de exportación', async ({ browser }, testInfo) => {
+test('medidas nuevas: peso, cintura y cadera (D2: solo lo que toca) llegan al coach en la ficha y al CSV de exportación', async ({ browser }, testInfo) => {
   test.setTimeout(90_000);
   const { p, errors } = await client(browser, testInfo);
-  await p.locator('#tab-medidas').click();
+  await p.locator('#tab-registro').click();
   const save = async (date, v) => {
-    await p.locator('#form-medidas input[name=date]').fill(date);
+    await p.locator('#btn-medirme').click();
+    if (date !== D(0)) { await p.locator('#btn-med-cambiar').click(); await p.locator('#form-medidas input[name=date]').fill(date); }
+    if (!(await p.locator('#med-mas').evaluate((d) => d.open))) await p.locator('#med-mas summary').click();
     for (const [k, x] of Object.entries(v)) await p.locator(`#form-medidas input[name=${k}]`).fill(x);
-    await p.getByRole('button', { name: 'Guardar mis medidas' }).click();
+    await p.getByRole('button', { name: 'Guardar medidas' }).click();
+    await expect(p.locator('#view-progreso')).toBeVisible();
   };
-  await save(D(-20), { weight: '70', abdomen: '92', hip: '101', waist: '84' });
-  await expect(p.locator('#toast')).toHaveText('Medidas guardadas');
-  await save(D(0), { weight: '68,5', abdomen: '88', hip: '99', waist: '80' });
-  await expect(p.locator('#toast')).toHaveText('Medidas guardadas');
+  await save(D(-20), { weight: '70', hip: '101', waist: '84' });
+  await expect(p.locator('#toast')).toContainText('Medidas guardadas');
+  await save(D(0), { weight: '68,5', hip: '99', waist: '80' });
+  await expect(p.locator('#toast')).toContainText('Medidas guardadas');
   await expect(p.locator('#medidas-history')).toContainText('Peso 68,5 kg');
-  await H.layout(p); await H.tall(p, '#view-medidas'); await H.shot(p, 's14-medidas-obligatorias.png', { fullPage: true });
+  await H.layout(p); await H.shot(p, 's14-medidas-obligatorias.png', { fullPage: true });
   // CSV de exportación (Más → Descargar una copia): trae la columna del abdomen junto a peso, cintura y cadera
   await p.locator('#tab-mas').click();
   await p.locator('#row-copia').click();
   const [dl] = await Promise.all([p.waitForEvent('download'), p.locator('#btn-export-csv').click()]);
   const csv = fs.readFileSync(await dl.path(), 'utf8');
   const lines = csv.replace(/^﻿/, '').trim().split('\r\n').map((l) => l.split(';').map((c) => c.replace(/"/g, '')));
-  expect(lines[0].slice(0, 6)).toEqual(['Fecha', 'Peso (kg)', 'Cintura (cm)', 'Abdomen (cm)', 'Cuello (cm)', 'Cadera (cm)']);
-  expect(lines.find((l) => l[0] === D(0)).slice(1, 6)).toEqual(['68,5', '80', '88', '', '99']);
+  expect(lines[0].slice(0, 5)).toEqual(['Fecha', 'Peso (kg)', 'Cintura (cm)', 'Cuello (cm)', 'Cadera (cm)']);   // sin columna de abdomen: ya no se pide (solo si hay datos viejos)
+  expect(lines.find((l) => l[0] === D(0)).slice(1, 5)).toEqual(['68,5', '80', '', '99']);
   // JSON de exportación e importación: los tres campos viajan
   const [dj] = await Promise.all([p.waitForEvent('download'), p.locator('#btn-export').click()]);
   const json = JSON.parse(fs.readFileSync(await dj.path(), 'utf8'));
-  expect(json.entries.find((e) => e.date === D(0))).toMatchObject({ weight: 68.5, abdomen: 88, hip: 99 });
+  expect(json.entries.find((e) => e.date === D(0))).toMatchObject({ weight: 68.5, waist: 80, hip: 99 });
   // Llega al servidor y la coach lo ve en la ficha (Peso en kg, Abdomen y Cadera en cm)
   await expect.poll(async () => Object.values((await H.backend(p)).records).filter((r) => r.kind === 'entry').length).toBe(2);
   const srv = Object.values((await H.backend(p)).records).find((r) => r.nkey === D(0));
-  expect(srv.data).toMatchObject({ weight: 68.5, abdomen: 88, hip: 99 });
+  expect(srv.data).toMatchObject({ weight: 68.5, waist: 80, hip: 99 });
   const c = await H.phone(browser, testInfo);
   await c.p.goto('index.html');
   await H.acceptSolo(c.p);
@@ -261,10 +265,11 @@ test('medidas nuevas: peso, abdomen y cadera llegan al coach en la ficha y al CS
   await c.p.reload(); await H.ready(c.p);
   await c.p.locator('#tab-coach').click();
   await c.p.addStyleTag({ content: H.WIDE });
+  await c.p.locator('#coach-filters button', { hasText: 'Todos' }).click();
   await c.p.locator('#coach-clients .cli-main').click();
   const med = (await c.p.locator('#coach-detail-medidas tbody tr').allInnerTexts()).map((x) => x.replace(/\s+/g, ' ').trim());
   expect(med.slice(0, 1)).toEqual(['Peso 70 68,5 −1,5']);
-  expect(med).toContain('Abdomen 92 88 −4');
+  expect(med).toContain('Cintura 84 80 −4');
   expect(med).toContain('Cadera 101 99 −2');
   await H.layout(c.p); await H.shot(c.p, 's14-coach-ficha-medidas.png', { fullPage: true });
   expect(errors).toEqual([]); expect(c.errors).toEqual([]);
@@ -363,7 +368,7 @@ test('app OFICIAL sin cambios: «Foto», sin aviso ni bitácora, textos y select
   await app.tab('fotos');
   await expect(page.locator('#photo-file-text')).toHaveText('Foto');
   await expect(page.locator('#photo-file-help')).toBeHidden();
-  await expect(page.locator('#photo-share-notice')).toBeHidden();
+  await expect(page.locator('#photo-share-notice')).toHaveCount(0);
   await expect(page.locator('#photos-log-card')).toBeHidden();
   await app.goPerfil('coach');
   await expect(page.locator('#coach-log-card')).toBeHidden();

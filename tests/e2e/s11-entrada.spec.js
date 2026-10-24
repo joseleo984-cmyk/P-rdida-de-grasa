@@ -101,7 +101,7 @@ test('soloNube: sin código de coach un cliente no entra; con un código inváli
   expect(errors.filter((e) => !/Failed to load resource|40\d/.test(e))).toEqual([]);
 });
 
-test('la barra del cliente en modo coach: Inicio · Hábitos · Medidas · Fotos · Más; sin plan ni recomendaciones; con «Mis comidas» (Etapa 2)', async ({ browser }, testInfo) => {
+test('la barra del cliente en modo coach: Inicio · Comidas · Entrenar · Progreso · Más; sin plan ni recomendaciones; con «Mi día» (UX Etapa 1)', async ({ browser }, testInfo) => {
   const { p, errors } = await H.phone(browser, testInfo);
   await p.goto('index.html');
   await H.acceptSolo(p);
@@ -113,23 +113,20 @@ test('la barra del cliente en modo coach: Inicio · Hábitos · Medidas · Fotos
   await p.evaluate(() => window.__pgFakeBackend.setPaidUntil('ana@cliente.co', new Date(window.__pgFakeBackend.clock.now() - 5 * 3600000 + 30 * 86400000).toISOString().slice(0, 10)));
   await p.reload(); await H.ready(p);
   const labels = await p.locator('.tabbar button:visible').allTextContents();
-  expect(labels.map((l) => l.trim())).toEqual(['Inicio', 'Hábitos', 'Medidas', 'Fotos', 'Más']);
+  expect(labels.map((l) => l.trim())).toEqual(['Inicio', 'Comidas', 'Entrenar', 'Progreso', 'Más']);
   await p.addStyleTag({ content: H.WIDE });
   const home = p.locator('#view-panel');
-  await expect(home).toContainText('Mis hábitos de hoy');
-  expect(await home.innerText()).not.toMatch(/Hoy llevas|Proteína|Recomendaciones|plan/i);   // solo lo que se VE (Etapa 2: sí hay «Mis comidas de hoy», con calorías aproximadas)
-  await expect(home).toContainText('Mis comidas de hoy');
+  await expect(home).toContainText('Mi día');
+  expect(await home.innerText()).not.toMatch(/Hoy llevas|Proteína|Recomendaciones|plan|kcal/i);   // solo lo que se VE: sin calorías ni plan en Inicio
   await H.allHidden(p, '#home-today, #tips-card, #home-weight, #btn-repeat-breakfast, #panel-summary');
-  await H.allHidden(p, '#tab-comidas, #tab-registrar, #tab-registro');
-  await expect(p.locator('#pay-countdown')).toHaveText('Faltan 30 días para tu próximo pago');
-  await expect(p.locator('#pay-countdown')).not.toHaveClass(/soon/);
+  await H.allHidden(p, '#tab-registrar');
+  await expect(p.locator('#pay-countdown')).toBeHidden();   // faltan 30 días: el pago no aparece en Inicio
   await H.layout(p); await H.tall(p, '#view-panel');
   await H.shot(p, 's11-inicio-cliente.png', { fullPage: true });
-  // Más: sin plan ni comidas
+  // Más: sin plan; lo de la barra ya no se repite
   await p.locator('#tab-mas').click();
   const mas = await p.locator('#view-mas').innerText();
-  expect(mas).not.toMatch(/Mi plan y perfil|Mis fotos/);
-  expect(mas).toContain('Mis comidas');   // Etapa 2
+  expect(mas).not.toMatch(/Mi plan y perfil|Mis fotos|Mis comidas|Mi rutina/);
   expect(mas).toContain('Mis datos y permisos');
   await H.layout(p);
   expect(errors).toEqual([]);
@@ -150,10 +147,10 @@ test('la app OFICIAL (config sin producto ni soloNube) no cambia: barra de siemp
   await page.locator('#tab-panel').click();
   await expect(page.locator('#home-today')).toBeVisible();
   await H.allHidden(page, '#home-coach, #pause-card');
-  await H.allHidden(page, '#tab-habitos, #tab-medidas, #tab-fotos');
+  await H.allHidden(page, '#tab-entrenar, #tab-rutinas');
 });
 
-test('claro y oscuro, letra ancha a 390 px: pantalla de aceptación, Inicio, Hábitos, Medidas y Fotos sin desborde', async ({ browser }, testInfo) => {
+test('claro y oscuro, letra ancha a 390 px: pantalla de aceptación, Inicio, Comidas, Entrenar, Progreso, Hábitos, Medirme y Fotos sin desborde', async ({ browser }, testInfo) => {
   for (const scheme of ['light', 'dark']) {
     const { p, errors } = await H.phone(browser, testInfo);
     await p.emulateMedia({ colorScheme: scheme });
@@ -171,11 +168,16 @@ test('claro y oscuro, letra ancha a 390 px: pantalla de aceptación, Inicio, Há
     await p.evaluate(() => window.__pgFakeBackend.setPaidUntil('ana@c.co', new Date(window.__pgFakeBackend.clock.now() - 5 * 3600000 + 4 * 86400000).toISOString().slice(0, 10)));
     await p.evaluate(() => PGAccount.refreshLink());
     await p.addStyleTag({ content: H.WIDE });
-    for (const [tab, view] of [['panel', '#view-panel'], ['habitos', '#view-habitos'], ['medidas', '#view-medidas'], ['fotos', '#view-fotos'], ['mas', '#view-mas']]) {
+    for (const [tab, view] of [['panel', '#view-panel'], ['comidas', '#view-micomidas'], ['entrenar', '#view-rutina'], ['registro', '#view-progreso'], ['mas', '#view-mas']]) {
       await p.locator(`#tab-${tab}`).click();
       await expect(p.locator(view)).toBeVisible();
       await H.layout(p); await H.tall(p, view);
-      if (scheme === 'dark' && (tab === 'panel' || tab === 'medidas')) await H.shot(p, `s11-${tab}-oscuro.png`, { fullPage: true });
+      if (scheme === 'dark' && (tab === 'panel' || tab === 'registro')) await H.shot(p, `s11-${tab}-oscuro.png`, { fullPage: true });
+    }
+    for (const [v, sel] of [['habitos', '#view-habitos'], ['medidas', '#view-medidas'], ['fotos', '#view-fotos']]) {
+      await p.evaluate((x) => PGNav.show(x), v);
+      await expect(p.locator(sel)).toBeVisible();
+      await H.layout(p); await H.tall(p, sel);
     }
     // El foco se ve: la pestaña activa y los botones tienen contorno al navegar con teclado
     await p.locator('#tab-panel').focus();

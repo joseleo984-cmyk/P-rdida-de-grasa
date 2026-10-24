@@ -18,77 +18,78 @@ async function clientApp(browser, testInfo) {
   await p.addStyleTag({ content: H.WIDE });
   return { ...ph, code };
 }
-const saveMed = async (p, date, vals) => {
-  await p.locator('#form-medidas input[name=date]').fill(date);
+// Medirme (UX Etapa 1): se cambia el día si hace falta, se abre «+ Más medidas» y se escribe cada valor; al guardar vuelve a Progreso.
+const saveMed = async (p, date, vals, { wait = true } = {}) => {
+  if (!(await p.locator('#view-medidas').isVisible())) { await p.locator('#tab-registro').click(); await p.locator('#btn-medirme').click(); }
+  if (date !== D(0)) { if (await p.locator('#med-date-row').isHidden()) await p.locator('#btn-med-cambiar').click(); await p.locator('#form-medidas input[name=date]').fill(date); }
+  if (await p.locator('#med-mas').count() && !(await p.locator('#med-mas').evaluate((d) => d.open))) await p.locator('#med-mas summary').click();
   for (const [k, v] of Object.entries(vals)) await p.locator(`#form-medidas input[name=${k}]`).fill(v);
-  await p.getByRole('button', { name: 'Guardar mis medidas' }).click();
+  await p.getByRole('button', { name: 'Guardar medidas' }).click();
+  if (wait) await expect(p.locator('#view-progreso')).toBeVisible();
 };
 
-test('medidas: peso, abdomen y cadera obligatorios en lo nuevo, con decimales, gráfica por medida, tabla Inicio/Hoy/Cambio y validación', async ({ browser }, testInfo) => {
+test('medidas: solo lo que toca hoy es obligatorio, con coma decimal; gráfica por medida, cambios en lenguaje neutro y validación', async ({ browser }, testInfo) => {
   const { p, errors } = await clientApp(browser, testInfo);
-  await p.locator('#tab-medidas').click();
-  await expect(p.locator('#medidas-title')).toBeVisible();
+  await p.locator('#tab-registro').click();
+  await p.locator('#btn-medirme').click();
+  await expect(p.locator('#medidas-title')).toBeAttached();
   await H.layout(p); await H.tall(p, '#view-medidas');
-  // Validaciones: vacío y fuera de rango
-  await p.getByRole('button', { name: 'Guardar mis medidas' }).click();
-  await expect(p.locator('#medidas-error')).toHaveText('Faltan «Peso» (kg), «Abdomen» (cm) y «Cadera» (cm): son obligatorias.');
-  await saveMed(p, D(-20), { neck: '99', weight: '70', abdomen: '92', hip: '101' });
+  // Hoy es miércoles: toca cintura y cadera (el peso, opcional sin báscula configurada)
+  await p.getByRole('button', { name: 'Guardar medidas' }).click();
+  await expect(p.locator('#medidas-error')).toHaveText('Hoy toca: faltan «Cintura» (cm) y «Cadera» (cm).');
+  await saveMed(p, D(0), { neck: '99', waist: '84', hip: '101' }, { wait: false });
   await expect(p.locator('#medidas-error')).toContainText('Revisa «Cuello»: debe estar entre 15 y 80 cm');
   await p.locator('#form-medidas input[name=neck]').fill('');
-  // Peso, abdomen y cadera: si falta alguno no deja guardar y dice cuál falta (aunque haya otras medidas)
-  await saveMed(p, D(-20), { neck: '34', waist: '84', weight: '', abdomen: '92', hip: '101' });
-  await expect(p.locator('#medidas-error')).toHaveText('Falta «Peso» (kg): es obligatoria.');
-  await expect(p.locator('#form-medidas input[name=weight]')).toBeFocused();
-  await saveMed(p, D(-20), { weight: '70', abdomen: '', hip: '101' });
-  await expect(p.locator('#medidas-error')).toHaveText('Falta «Abdomen» (cm): es obligatoria.');
-  await saveMed(p, D(-20), { abdomen: '92', hip: '' });
-  await expect(p.locator('#medidas-error')).toHaveText('Falta «Cadera» (cm): es obligatoria.');
-  await saveMed(p, D(-20), { weight: '', abdomen: '', hip: '' });
-  await expect(p.locator('#medidas-error')).toHaveText('Faltan «Peso» (kg), «Abdomen» (cm) y «Cadera» (cm): son obligatorias.');
+  await saveMed(p, D(0), { waist: '', hip: '101' }, { wait: false });
+  await expect(p.locator('#medidas-error')).toHaveText('Hoy toca: falta «Cintura» (cm).');
+  await expect(p.locator('#form-medidas input[name=waist]')).toBeFocused();
   expect((await p.evaluate(() => JSON.parse(localStorage.getItem('perdida-grasa:v1')))).entries).toEqual([]);   // nada se guardó
-  // Dos días de medidas, con coma decimal
-  await saveMed(p, D(-20), { weight: '70', neck: '34', armR: '29', armL: '28,5', back: '38', waist: '84', abdomen: '92', hip: '101', thighR: '58', thighL: '58' });
-  await expect(p.locator('#toast')).toHaveText('Medidas guardadas');
-  await saveMed(p, D(0), { weight: '68,5', neck: '33,5', armR: '28', armL: '27,5', back: '37', waist: '80', abdomen: '88', hip: '99', thighR: '56', thighL: '56,5' });
-  await expect(p.locator('#toast')).toHaveText('Medidas guardadas');
+  // Dos días de medidas, con coma decimal (el 1.º de octubre es jueves: solo toca cintura y cadera)
+  await saveMed(p, D(-20), { weight: '70', neck: '34', armR: '29', armL: '28,5', back: '38', waist: '84', hip: '101', thighR: '58', thighL: '58' });
+  await expect(p.locator('#toast')).toContainText('Medidas guardadas');
+  await saveMed(p, D(0), { weight: '68,5', neck: '33,5', armR: '28', armL: '27,5', back: '37', waist: '80', hip: '99', thighR: '56', thighL: '56,5' });
+  await expect(p.locator('#toast')).toContainText('Medidas guardadas');
   const st = await p.evaluate(() => JSON.parse(localStorage.getItem('perdida-grasa:v1')));
-  expect(st.schemaVersion).toBe(5);
-  expect(st.entries.map((e) => [e.date, e.weight, e.abdomen, e.hip, e.neck, e.armL, e.thighL])).toEqual([[D(-20), 70, 92, 101, 34, 28.5, 58], [D(0), 68.5, 88, 99, 33.5, 27.5, 56.5]]);
-  // Tabla (como la maqueta M2) y cambios en verde cuando bajan
-  const rows = await p.locator('#medidas-table tbody tr').allInnerTexts();
-  expect(rows.map((r) => r.replace(/\s+/g, ' ').trim())).toEqual(['Peso 70 68,5 −1,5', 'Cuello 34 33,5 −0,5', 'Brazo der. 29 28 −1', 'Brazo izq. 28,5 27,5 −1', 'Espalda 38 37 −1', 'Cintura 84 80 −4', 'Abdomen 92 88 −4', 'Cadera 101 99 −2', 'Muslo der. 58 56 −2', 'Muslo izq. 58 56,5 −1,5']);
-  await expect(p.locator('#medidas-table tbody tr').first().locator('td.dn')).toHaveText('−1,5');
-  // Gráfica sencilla por medida
+  expect(st.schemaVersion).toBe(6);
+  expect(st.entries.map((e) => [e.date, e.weight, e.waist, e.hip, e.neck, e.armL, e.thighL])).toEqual([[D(-20), 70, 84, 101, 34, 28.5, 58], [D(0), 68.5, 80, 99, 33.5, 27.5, 56.5]]);
+  // Cambios en lenguaje neutro (sin verde): «4 cm menos»
+  const rows = (await p.locator('#medidas-table dl > div').allInnerTexts()).map((r) => r.replace(/\s+/g, ' ').trim());
+  expect(rows).toEqual(['Cuello 0,5 cm menos', 'Brazo der. 1 cm menos', 'Brazo izq. 1 cm menos', 'Espalda 1 cm menos', 'Cintura 4 cm menos', 'Cadera 2 cm menos', 'Muslo der. 2 cm menos', 'Muslo izq. 1,5 cm menos']);
+  await expect(p.locator('#medidas-table .dn')).toHaveCount(0);
+  // Gráfica por medida
   await p.locator('#medidas-pick button', { hasText: 'Cintura' }).click();
   await expect(p.locator('#medidas-pick button[aria-pressed=true]')).toHaveText('Cintura');
   await expect(p.locator('#medidas-chart svg')).toHaveAttribute('aria-label', 'Cintura: de 84 cm a 80 cm en 2 registros');
   await expect(p.locator('#medidas-chart svg path.line')).toHaveCount(1);
   await expect(p.locator('#medidas-chart svg circle')).toHaveCount(2);
-  await expect(p.locator('#medidas-chart-sub')).toHaveText('Cintura: inicio 84 cm · hoy 80 cm · cambio −4 cm');
-  await p.locator('#medidas-pick button', { hasText: 'Cuello' }).click();
+  await expect(p.locator('#prog-big')).toHaveText('80 cm');
+  await expect(p.locator('#prog-delta')).toHaveText('· 4 cm menos desde el 1 oct');
+  await p.locator('#medidas-pick button', { hasText: 'Otra' }).click();
+  await p.locator('#medidas-otra').selectOption('neck');
   await expect(p.locator('#medidas-chart svg')).toHaveAttribute('aria-label', /^Cuello: de 34 cm a 33,5 cm/);
-  await p.locator('#medidas-pick button', { hasText: 'Peso' }).click();   // el peso va en kg
-  await expect(p.locator('#medidas-chart svg')).toHaveAttribute('aria-label', 'Peso: de 70 kg a 68,5 kg en 2 registros');
-  await expect(p.locator('#medidas-chart-sub')).toHaveText('Peso: inicio 70 kg · hoy 68,5 kg · cambio −1,5 kg');
+  await p.locator('#medidas-pick button', { hasText: 'Peso' }).click();   // el peso va en kg, como tendencia de 7 días
+  await expect(p.locator('#medidas-chart svg')).toHaveAttribute('aria-label', 'Peso: tendencia de 7 días, 1,5 kg menos entre el 1 oct y el 21 oct; 2 pesajes');
+  await expect(p.locator('#prog-big')).toHaveText('68,5 kg');
   await H.layout(p); await H.shot(p, 's11-medidas-cliente.png', { fullPage: true });
-  // Mismo día: se actualiza el registro y se suma lo que falta (ese día ya tiene peso, abdomen y cadera: no se vuelven a exigir)
-  await saveMed(p, D(0), { weight: '', abdomen: '', hip: '', neck: '33' });
-  await expect(p.locator('#toast')).toHaveText('Medidas actualizadas');
+  // Mismo día: se actualiza el registro y se suma lo que falta (lo que ese día ya tiene no se vuelve a exigir)
+  await saveMed(p, D(0), { weight: '', hip: '', neck: '33' });
+  await expect(p.locator('#toast')).toContainText('Medidas actualizadas');
   await expect(p.locator('#medidas-history li')).toHaveCount(2);
   // Llega al servidor (al día): el coach las verá
   await expect.poll(async () => Object.values((await H.backend(p)).records).filter((r) => r.kind === 'entry').length).toBe(2);
   const srv = Object.values((await H.backend(p)).records).find((r) => r.nkey === D(0));
-  expect(srv.data).toMatchObject({ weight: 68.5, abdomen: 88, hip: 99, neck: 33, armR: 28, thighL: 56.5 });
+  expect(srv.data).toMatchObject({ weight: 68.5, hip: 99, neck: 33, armR: 28, thighL: 56.5 });
   // Borrar un registro
   await p.locator('#medidas-history li').first().getByRole('button').click();
   await expect(p.locator('#medidas-history li')).toHaveCount(1);
   expect(errors).toEqual([]);
 });
 
-test('hábitos: agua en vasos, pasos, sueño y entrenó; avance de la semana con barras; Inicio muestra los de hoy', async ({ browser }, testInfo) => {
+test('hábitos: agua en vasos, pasos, sueño y entrenó (de un toque en Inicio y, para otro día, en «Corregir otro día»); avance de la semana con barras', async ({ browser }, testInfo) => {
   const { p, errors } = await clientApp(browser, testInfo);
-  await p.locator('#tab-habitos').click();
-  await expect(p.locator('#habitos-title')).toBeVisible();
+  await p.locator('[data-goto="habitos"]').click();
+  await expect(p.locator('#view-habitos')).toBeVisible();
+  await expect(p.locator('#tab-panel')).toHaveAttribute('aria-current', 'page');   // Hábitos vive en Inicio
   await H.layout(p); await H.tall(p, '#view-habitos');
   await p.getByRole('button', { name: 'Guardar mis hábitos' }).click();
   await expect(p.locator('#toast')).toHaveText('Anota al menos un hábito');
@@ -100,7 +101,7 @@ test('hábitos: agua en vasos, pasos, sueño y entrenó; avance de la semana con
     await p.locator('#form-habitos input[name=sleep]').fill(String(sleep));
     await p.locator('#form-habitos input[name=trained]').setChecked(trained);
     await p.getByRole('button', { name: 'Guardar mis hábitos' }).click();
-    await expect(p.locator('#toast')).toHaveText('Hábitos guardados');
+    await expect(p.locator('#toast')).toContainText('Listo, día registrado.');
   };
   await save(D(-2), { glasses: 8, steps: 9000, sleep: 7.5, trained: true });
   await save(D(-1), { glasses: 6, steps: 3000, sleep: 6, trained: false });
@@ -115,10 +116,13 @@ test('hábitos: agua en vasos, pasos, sueño y entrenó; avance de la semana con
   await expect(p.locator('#habitos-week .habit').first().locator('[role=progressbar]')).toHaveAttribute('aria-valuenow', '14');
   await expect(p.locator('#habitos-week-line')).toContainText('6 de 28 hábitos');
   await H.layout(p); await H.shot(p, 's11-habitos-cliente.png', { fullPage: true });
+  // Inicio («Mi día») muestra los de hoy; el esfuerzo y el cierre del día que ya había se conservan al corregir el día
   await p.locator('#tab-panel').click();
-  const hoy = (await p.locator('#hc-habits .habit').allInnerTexts()).map((x) => x.replace(/\s+/g, ' ').trim());
-  expect(hoy).toEqual(['Agua 5 de 8 vasos', 'Pasos 6.200 de 8.000', 'Sueño 7 h', 'Entrenó Sí']);
-  expect(await p.locator('#view-panel').innerText()).not.toMatch(/Hoy llevas/i);   // Etapa 2: la tarjeta «Mis comidas de hoy» sí muestra kcal aproximadas
+  await expect(p.locator('#dia-agua-t')).toHaveText('Agua 5 / 8');
+  await expect(p.locator('#dia-sueno-t')).toHaveText('Sueño 7–8 h');
+  await expect(p.locator('#dia-pasos button', { hasText: '4–8 mil' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(p.locator('#dia-entrene')).toHaveAttribute('aria-pressed', 'true');
+  expect(await p.locator('#view-panel').innerText()).not.toMatch(/Hoy llevas|kcal/i);
   // Llegan al servidor (el coach los ve porque Ana los compartió)
   await expect.poll(async () => Object.values((await H.backend(p)).records).filter((r) => r.kind === 'habit').length).toBe(3);
   expect(errors).toEqual([]);
@@ -149,7 +153,8 @@ test('ficha del coach: medidas Inicio/Hoy/Cambio, hábitos de la semana con barr
   await c.addStyleTag({ content: H.WIDE });
   const rows = c.locator('#coach-clients .cli-pay-row');
   await expect(rows).toHaveCount(2);
-  await expect(rows.filter({ hasText: 'Ana Martínez' })).toContainText('Hábitos de la semana: 39 %');   // 11 de 28
+  await expect(rows.filter({ hasText: 'Ana Martínez' })).toContainText('Al día');   // 4 de 7 días con registro y aún sin pesajes: no es motivo para revisar
+  await expect(rows.filter({ hasText: 'Ana Martínez' })).not.toContainText('No comparte sus hábitos');
   await expect(rows.filter({ hasText: 'Juan Gómez' })).toContainText('No comparte sus hábitos');
   await H.layout(c);
   await rows.filter({ hasText: 'Ana Martínez' }).locator('.cli-main').click();
@@ -159,10 +164,10 @@ test('ficha del coach: medidas Inicio/Hoy/Cambio, hábitos de la semana con barr
   const med = (await c.locator('#coach-detail-medidas tbody tr').allInnerTexts()).map((x) => x.replace(/\s+/g, ' ').trim());
   // Registros viejos (sin peso, abdomen ni cadera): exentos, quedan con «—»
   expect(med).toEqual(['Peso — — —', 'Cuello 34 33,5 −0,5', 'Brazo der. 29 28 −1', 'Brazo izq. 28,5 27,5 −1', 'Espalda 38 37 −1', 'Cintura 84 80 −4', 'Abdomen — — —', 'Cadera — — —', 'Muslo der. 58 56 −2', 'Muslo izq. 58 56,5 −1,5']);
-  await expect(c.locator('#coach-detail-medidas td.dn').first()).toBeVisible();
+  await expect(c.locator('#coach-detail-medidas td.dn')).toHaveCount(0);   // sin verde de «bueno»: los cambios son neutros
   const hb = (await c.locator('#coach-detail-habits .habit').allInnerTexts()).map((x) => x.replace(/\s+/g, ' ').trim());
   expect(hb).toEqual(['Agua 3 de 7 días', 'Pasos 3 de 7 días', 'Durmió 7 h o más 3 de 7 días', 'Entrenó 2 de 7 días']);
-  expect(await c.locator('#view-coach').innerText()).not.toMatch(/kcal|Constancia|Objetivo diario/);
+  expect(await c.locator('#view-coach').innerText()).not.toMatch(/kcal|Objetivo diario/);
   await H.layout(c); await H.tall(c, '#coach-detail-view'); await H.shot(c, 's11-coach-ficha.png', { fullPage: true });
   // Cambiar el cobro desde la ficha
   await c.locator('#btn-detail-pay').click();
