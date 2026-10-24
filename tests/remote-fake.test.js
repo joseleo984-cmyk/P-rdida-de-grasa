@@ -541,3 +541,33 @@ test('biblioteca: persiste en el servidor falso (E2E) y la baja de cuenta se lle
   await coachX.account.deleteAccount();
   assert.deepStrictEqual([Object.keys(backend.templates).length, Object.keys(backend.daily).length], [0, 0]);
 });
+
+// ---------- Textos legales 24/10/2026 (r1 v1.10): bitácora «Quién vio mis fotos» (mismas reglas que supabase/tests/140_bitacora_fotos.test.sql) ----------
+test('v1.10 (fake): photoViews = solo las aperturas de MIS fotos, la más reciente primero, con fecha, pose y nombre del coach; vacía si nadie miró; tope de 100', async () => {
+  const { backend, clock, dev } = setup();
+  const coach = dev(), cli = dev(), otra = dev();
+  await login(coach, backend, 'vc@x.co'); await coach.account.joinApp(); await agree(coach);
+  const { inviteCode } = await coach.coach.becomeCoach('Coach Vista');
+  await login(cli, backend, 'vcl@x.co'); await cli.account.joinApp(); await cloud(cli);
+  await login(otra, backend, 'vo@x.co'); await otra.account.joinApp(); await cloud(otra);
+  const uid = (await cli.auth.session()).user.id;
+  await cli.client.joinCoach(inviteCode, { body: true, photos: true, ...SH });
+  await coach.coach.setPayment(uid, backend.todayBogota());
+  const ph = (id, date, pose) => ({ id, date, pose, width: 8, height: 8, storagePath: `${uid}/${id}.jpg`, sharedWithCoach: true, createdAt: T0, updatedAt: T0 });
+  await cli.sync.push({ records: [], photos: [ph('00000000-0000-4000-8000-0000000000b1', '2026-10-01', 'frente'), ph('00000000-0000-4000-8000-0000000000b2', '2026-10-15', 'perfil')] });
+  assert.deepStrictEqual(await cli.client.photoViews(), [], 'nadie ha mirado: vacía');
+  assert.deepStrictEqual(await coach.client.photoViews(), []);
+  const open = async (id) => { try { await coach.coach.photoBlob(uid, { id }); } catch (e) { if (e.code !== 'not_found') throw e; } };   // sin archivo en el «Storage», pero la apertura ya quedó anotada
+  await open('00000000-0000-4000-8000-0000000000b1');
+  clock.advance(60 * 1000);
+  await open('00000000-0000-4000-8000-0000000000b2');
+  const v = await cli.client.photoViews();
+  assert.deepStrictEqual(v.map((x) => [x.photoId.slice(-2), x.photoDate, x.pose, x.coachName]), [['b2', '2026-10-15', 'perfil', 'Coach Vista'], ['b1', '2026-10-01', 'frente', 'Coach Vista']]);
+  assert.ok(Date.parse(v[0].viewedAt) > Date.parse(v[1].viewedAt));
+  assert.deepStrictEqual(await otra.client.photoViews(), [], 'otra persona no ve aperturas ajenas');
+  await cli.auth.signOut();
+  await rejects(cli.client.photoViews(), 'auth');
+  for (let i = 0; i < 120; i++) backend.photoViews.push({ id: `v${String(i).padStart(3, '0')}`, photoId: '00000000-0000-4000-8000-0000000000b1', coachId: Object.keys(backend.coaches)[0], clientId: uid, viewedAt: new Date(Date.parse(T0) + i * 1000).toISOString() });
+  await login(cli, backend, 'vcl@x.co');
+  assert.strictEqual((await cli.client.photoViews()).length, 100, 'nunca más de 100');
+});

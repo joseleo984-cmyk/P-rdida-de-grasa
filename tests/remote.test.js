@@ -281,6 +281,21 @@ test('coach.photoBlob: registra el acceso ANTES de firmar la URL (60 s); foto de
   await rejects(r.coach.photoBlob(C, { id: 'P', storagePath: `${C}/P.jpg` }), 'forbidden');
 });
 
+test('client.photoViews (v1.10): pide las 100 más recientes y traduce las filas; sin foto ni coach quedan vacíos; sin sesión falla', async () => {
+  const rowsIn = [{ id: 'V1', viewed_at: '2026-10-21T15:00:00Z', photo_id: 'P1', photo_date: '2026-10-01', pose: 'frente', coach_name: 'Coach X' },
+    { id: 'V2', viewed_at: '2026-10-20T10:00:00Z', photo_id: 'P2', photo_date: null, pose: null, coach_name: null }];
+  const m = mock({ rpc: (s, fn) => ({ data: fn === 'my_photo_views' ? rowsIn : null, error: null }) });
+  const r = make(m);
+  assert.deepStrictEqual(await r.client.photoViews(), [
+    { id: 'V1', viewedAt: '2026-10-21T15:00:00.000Z', photoId: 'P1', photoDate: '2026-10-01', pose: 'frente', coachName: 'Coach X' },
+    { id: 'V2', viewedAt: '2026-10-20T10:00:00.000Z', photoId: 'P2', photoDate: null, pose: null, coachName: '' }]);
+  assert.deepStrictEqual(m.calls.find((c) => c[2] === 'my_photo_views').slice(0, 2).concat([m.calls.find((c) => c[2] === 'my_photo_views')[3]]), ['rpc', 'grasa', { p_limit: 100 }]);
+  m.h.rpc = () => ({ data: null, error: null });
+  assert.deepStrictEqual(await r.client.photoViews(), [], 'vacía si nadie ha mirado');
+  m.h.rpc = () => err({ message: 'auth', code: '28000' }, 401);
+  await rejects(r.client.photoViews(), 'auth');
+});
+
 test('cliente: previewCode 0 filas e join_coach null = invalid_code; shares con version y text_hash; myLink con nombre', async () => {
   const H = 'a'.repeat(64);
   const link = { id: 'L', coach_id: 'C', business_name: 'Coach X', share_body: true, share_notes: false, share_nutrition: true, share_habits: false, share_photos: false, since: '2026-10-21T00:00:00Z' };

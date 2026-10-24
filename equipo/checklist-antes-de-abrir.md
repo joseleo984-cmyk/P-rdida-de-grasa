@@ -20,6 +20,7 @@ Estado al 2026-10-23 (Sprint 8). La conexión de la app oficial a `plataforma` q
 - [ ] **SH** Pegar el `supabase/r1.sql` nuevo (r1 v1.5) en **`pruebas`** y en **`plataforma`** y ver `OK r1 v1`; después correr `scripts/qa-live-rls.js` y `scripts/qa-live-recheck.js`. *(Sprint 7)*
 
 - [ ] **SH** *(Sprint 11, «App para coaches»)* Pegar el `supabase/r1.sql` nuevo (**r1 v1.6**, cobros y bloqueo por pago) en **`pruebas`** y después en **`plataforma`** (debe terminar con `OK r1 v1`); correr `scripts/qa-live-rls.js` y `scripts/qa-live-recheck.js`; probar en el iPad con `equipo/handoffs/2026-10-24-sprint11-coach.md`. Los vínculos que ya existían reciben 30 días de gracia una sola vez.
+- [ ] **SH** *(Textos legales 24/10/2026)* Pegar el `supabase/r1.sql` nuevo (**r1 v1.10**: bitácora «Quién vio mis fotos») en **`pruebas`** (debe terminar con `OK r1 v1`) y, cuando esté validada, en **`plataforma`**. Además volver a pegar `supabase/functions/acuerdo-coach-copia/pegar-en-el-panel.ts` en la función de borde (texto nuevo del acuerdo 0.4-A7-coach). Pruebas a mano: `equipo/handoffs/legal-textos.md`.
 - [ ] **SH** El abogado revisa la **autorización única** de prueba (`equipo/legal/borradores/autorizacion-unica-prueba.md`) y los hábitos como dato (¿sensible?). Hasta entonces solo existe en `/pruebas/`.
 
 ## 2. Supabase `plataforma` (replicar lo hecho en `pruebas`)

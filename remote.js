@@ -491,6 +491,13 @@
         if (!R || !R.UUID_RE.test(String(coachId)) || !R.UUID_RE.test(String(gifId))) throw new RemoteError('invalid', 'Animación no válida');
         return signedBlob(`${coachId}/${gifId}.gif`, gifBucket());
       },
+      // Textos legales 24/10/2026 (r1 v1.10): bitácora «Quién vio mis fotos». Las 100 aperturas más recientes de sus fotos por su coach, la más nueva primero:
+      // [{ id, viewedAt, photoId, photoDate, pose, coachName }]. photoDate/pose/coachName pueden venir vacíos si la foto o el coach ya no existen.
+      async photoViews() {
+        await me();
+        return rows(await rpc('grasa', 'my_photo_views', { p_limit: 100 })).map((v) => ({ id: v.id, viewedAt: isoOrNull(v.viewed_at), photoId: v.photo_id,
+          photoDate: v.photo_date || null, pose: v.pose || null, coachName: v.coach_name || '' }));
+      },
       async setPhotoShared(photoId, shared) {
         const u = await me();
         const d = await call(() => table('grasa', 'photos').update({ shared_with_coach: !!shared, updated_at: new Date().toISOString() })
