@@ -7,7 +7,8 @@
 //   · Las semanas constantes se cuentan seguidas hacia atrás. La semana en curso suma si ya es constante; si aún no lo es, no rompe la cuenta.
 //   · Nunca hay «perdiste tu racha»: una semana no constante simplemente corta el conteo y se vuelve a empezar.
 //   · Insignias de proceso (MVP: 8). Nunca por peso, kcal ni centímetros.
-// Pendiente (Etapa 2, necesita servidor): congelar la constancia mientras el acceso esté en pausa por pago, vacaciones o enfermedad.
+//   · UX Etapa 2 (P1): la constancia se CONGELA en los días de pausa por pago (`frozen`: [{ from, to }] de my_link / coach_clients; to = null = sigue).
+//     Esos días no cuentan ni restan: una semana con días en pausa que no llega a constante se salta (no corta la cuenta) y la que sí llega cuenta.
 (function (root) {
   'use strict';
   const MIN_DAYS = 4, COMODINES = 2, MIN_REAL_FOR_COMODIN = 2;
@@ -33,13 +34,15 @@
   const hasRecord = (state, d) => recordDates(state).has(d);
 
   // Una semana (lunes `start`) vista el día `today`: días, comodines aplicados y si es constante.
-  function weekOf(dates, start, today) {
+  function weekOf(dates, start, today, frozen) {
+    const fz = frozen || EMPTY;
     const days = Array.from({ length: 7 }, (_, i) => {
       const date = addDays(start, i);
-      return { date, letter: LETTERS[i], name: DAYNAMES[i], registered: dates.has(date), future: date > today, today: date === today, comodin: false };
+      const ice = fz.has(date) && date <= today;
+      return { date, letter: LETTERS[i], name: DAYNAMES[i], registered: !ice && dates.has(date), frozen: ice, future: date > today, today: date === today, comodin: false };
     });
     const real = days.filter((d) => d.registered).length;
-    const missingPast = days.filter((d) => !d.registered && d.date < today);
+    const missingPast = days.filter((d) => !d.registered && !d.frozen && d.date < today);
     let used = 0;
     if (real >= MIN_REAL_FOR_COMODIN && real < MIN_DAYS) {
       used = Math.min(COMODINES, MIN_DAYS - real, missingPast.length);
@@ -48,27 +51,43 @@
     if (real >= MIN_DAYS) used = Math.min(COMODINES, missingPast.length);
     missingPast.slice(0, used).forEach((d) => { d.comodin = true; });
     const counted = real + (real < MIN_DAYS ? used : 0);
-    return { start, days, registered: real, comodines: used, comodinesLeft: COMODINES - used, counted, constant: counted >= MIN_DAYS };
+    const frozenDays = days.filter((d) => d.frozen).length;
+    return { start, days, registered: real, comodines: used, comodinesLeft: COMODINES - used, counted, constant: counted >= MIN_DAYS, frozen: frozenDays > 0, frozenDays };
+  }
+  const EMPTY = new Set();
+  // Días de pausa (Set de 'AAAA-MM-DD') a partir de [{ from, to }] hasta `today` (to = null: la pausa sigue). Máx. 400 días por pausa.
+  function frozenDays(pauses, today) {
+    const out = new Set();
+    for (const p of Array.isArray(pauses) ? pauses : []) {
+      if (!p || typeof p.from !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(p.from)) continue;
+      const to = p.to && /^\d{4}-\d{2}-\d{2}$/.test(p.to) ? (p.to < today ? p.to : today) : today;
+      for (let d = p.from, i = 0; d <= to && i < 400; d = addDays(d, 1), i++) out.add(d);
+    }
+    return out;
   }
 
   // Resumen de la constancia al día `today`.
-  function summary(state, today) {
+  function summary(state, today, { pauses } = {}) {
     const dates = recordDates(state);
+    const fz = frozenDays(pauses, today);
     const first = [...dates].sort()[0] || null;
-    const cur = weekOf(dates, weekStart(today), today);
+    const cur = weekOf(dates, weekStart(today), today, fz);
     let n = 0;
     const history = [];
     // Semanas anteriores (hasta 52): se cuentan seguidas las constantes, a partir de la última semana completa.
     let wk = addDays(cur.start, -7), counting = true;
     for (let i = 0; i < 52 && first && wk >= weekStart(first); i++, wk = addDays(wk, -7)) {
-      const w = weekOf(dates, wk, today);
+      const w = weekOf(dates, wk, today, fz);
       if (i < 6) history.push(w);
-      if (counting && w.constant) n++; else counting = false;
+      if (counting && w.constant) n++;
+      else if (counting && w.frozen) continue;   // semana con pausa: no rompe la cuenta
+      else counting = false;
     }
     if (cur.constant) n += 1;
-    const line = n === 0 ? 'Cada día que registras cuenta para tu semana' : n === 1 ? '1 semana constante' : `${n} semanas constantes`;
+    const frozenNow = fz.has(today);
+    const line = frozenNow ? 'Tu constancia está congelada: no se pierde' : n === 0 ? 'Cada día que registras cuenta para tu semana' : n === 1 ? '1 semana constante' : `${n} semanas constantes`;
     const comodinLine = cur.comodines ? ` · ${cur.comodines} ${cur.comodines === 1 ? 'comodín usado' : 'comodines usados'}` : '';
-    return { week: cur, constantWeeks: n, daysThisWeek: cur.registered, history: history.reverse(), first, line: line + comodinLine,
+    return { week: cur, constantWeeks: n, daysThisWeek: cur.registered, history: history.reverse(), first, line: line + (frozenNow ? '' : comodinLine), frozenNow,
       weekLine: `${cur.registered} de 7 días`, comodinesLeft: cur.comodinesLeft };
   }
 
@@ -159,7 +178,7 @@
   }
   const badgeCount = (list) => ({ earned: list.filter((b) => b.earned).length, total: list.length });
 
-  const api = { MIN_DAYS, COMODINES, weekStart, addDays, dayNum, recordDates, hasRecord, weekOf, summary, daysSince, dayDone, noted, joinEs, badges, badgeCount, LETTERS, DAYNAMES, GLASSES_GOAL, STEPS_GOAL, SLEEP_GOAL, GLASS_L };
+  const api = { MIN_DAYS, COMODINES, weekStart, addDays, dayNum, recordDates, hasRecord, weekOf, frozenDays, summary, daysSince, dayDone, noted, joinEs, badges, badgeCount, LETTERS, DAYNAMES, GLASSES_GOAL, STEPS_GOAL, SLEEP_GOAL, GLASS_L };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Constancia = api;
 })(typeof window !== 'undefined' ? window : globalThis);

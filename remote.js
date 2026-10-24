@@ -245,7 +245,15 @@
     const linkOut = (l) => (l && l.id ? { id: l.id, coachId: l.coach_id, businessName: l.business_name || '',
       shares: sharesOut({ body: l.share_body, notes: l.share_notes, nutrition: l.share_nutrition, habits: l.share_habits, photos: l.share_photos }),
       since: l.since || l.created_at,
-      paidUntil: l.paid_until || null, paidMarkedAt: isoOrNull(l.paid_marked_at), paid: l.paid === true, daysLeft: l.days_left == null ? null : Number(l.days_left) } : null);
+      paidUntil: l.paid_until || null, paidMarkedAt: isoOrNull(l.paid_marked_at), paid: l.paid === true, daysLeft: l.days_left == null ? null : Number(l.days_left),
+      proteinGoal: l.protein_goal_g == null ? null : Number(l.protein_goal_g), pauses: pausesOut(l.pauses) } : null);
+    // UX Etapa 2 (r1 v1.11): pausas [{ from, to }] (to = null: la pausa sigue) y retos del coach.
+    function pausesOut(p) { return rows(p).filter((x) => x && x.from).map((x) => ({ from: String(x.from), to: x.to ? String(x.to) : null })); }
+    const challengeOut = (c) => (c && c.id ? { id: c.id, coachId: c.coach_id, businessName: c.business_name || '', title: c.title, habit: c.habit,
+      target: Number(c.target_days) || 0, start: c.start_day, end: c.end_day, createdAt: isoOrNull(c.created_at),
+      marks: c.marks == null ? null : rows(c.marks).map(String),
+      members: c.members == null ? null : rows(c.members).map((m) => ({ clientId: m.client_id, displayName: m.display_name || '', done: Number(m.done) || 0 })) } : null);
+    const HEALTH_Q = { condition: true, pregnancy: true }, HEALTH_A = { yes: true, no: true, skip: true };
     // Etapa 2 (r1 v1.7): rutinas y animaciones. snake_case del servidor → camelCase de la app (forma de la rutina: rutinas.js).
     const gifOut = (g) => ({ id: g.id, name: g.name, mime: g.mime, size: Number(g.size_bytes) || 0, createdAt: isoOrNull(g.created_at), uses: Number(g.uses) || 0 });
     const routineOut = (r) => {
@@ -498,6 +506,26 @@
         return rows(await rpc('grasa', 'my_photo_views', { p_limit: 100 })).map((v) => ({ id: v.id, viewedAt: isoOrNull(v.viewed_at), photoId: v.photo_id,
           photoDate: v.photo_date || null, pose: v.pose || null, coachName: v.coach_name || '' }));
       },
+      // UX Etapa 2 (r1 v1.11): pregunta de salud (L4). { condition, pregnancy }: 'yes' | 'no' | 'skip' | null (sin responder).
+      async myHealth() {
+        await me();
+        const out = { condition: null, pregnancy: null };
+        for (const r of rows(await rpc('grasa', 'my_health'))) if (r && HEALTH_Q[r.question]) out[r.question] = r.answer;
+        return out;
+      },
+      async setHealthAnswer(question, answer, { version, textHash } = {}) {
+        await me();
+        if (!HEALTH_Q[question] || !HEALTH_A[answer] || !version || !/^[0-9a-f]{64}$/.test(String(textHash || ''))) throw new RemoteError('invalid', 'Respuesta no válida');
+        const r = await rpc('grasa', 'set_health_answer', { p_question: question, p_answer: answer, p_version: version, p_text_hash: textHash });
+        return { question: r && r.question, answer: r && r.answer };
+      },
+      // Retos de su coach (con SUS marcas; nunca los demás miembros) y marcar o desmarcar un día.
+      async myChallenges() { await me(); return rows(await rpc('grasa', 'my_challenges')).map(challengeOut).filter(Boolean); },
+      async markChallenge(id, day, done) {
+        await me();
+        if (!DAY_RE.test(String(day))) throw new RemoteError('invalid', 'Fecha no válida');
+        return challengeOut(await rpc('grasa', 'mark_challenge', { p_id: id, p_day: String(day), p_done: !!done }));
+      },
       async setPhotoShared(photoId, shared) {
         const u = await me();
         const d = await call(() => table('grasa', 'photos').update({ shared_with_coach: !!shared, updated_at: new Date().toISOString() })
@@ -530,7 +558,9 @@
         await me();
         return rows(await rpc('grasa', 'coach_clients')).map((c) => ({ clientId: c.client_id, displayName: c.display_name || '',
           linkId: c.link_id, since: c.since, shares: sharesOut(c.shares || {}), lastActivity: c.last_activity || null, overFreeLimit: !!c.over_free_limit,
-          paidUntil: c.paid_until || null, paidMarkedAt: isoOrNull(c.paid_marked_at), paid: c.paid === true, daysLeft: c.days_left == null ? null : Number(c.days_left) }));
+          paidUntil: c.paid_until || null, paidMarkedAt: isoOrNull(c.paid_marked_at), paid: c.paid === true, daysLeft: c.days_left == null ? null : Number(c.days_left),
+          proteinGoal: c.protein_goal_g == null ? null : Number(c.protein_goal_g), healthRestriction: c.health_restriction === true, pregnancyState: c.pregnancy_state === true,
+          pauses: pausesOut(c.pauses) }));
       },
       async clientData(clientId, since) {
         await me();
@@ -631,6 +661,24 @@
       async getDaily() { await me(); return dailyOut(await rpc('grasa', 'get_daily')); },
       async clearDaily() { await me(); await rpc('grasa', 'clear_daily'); },
       async deleteComment(commentId) { await me(); await rpc('grasa', 'delete_comment', { p_id: commentId }); },
+      // UX Etapa 2 (r1 v1.11): meta de proteína (la escribe el coach; null la quita) y retos.
+      async setProteinGoal(clientId, grams) {
+        await me();
+        const g = grams == null ? null : Number(grams);
+        if (g != null && !(Number.isInteger(g) && g >= 20 && g <= 400)) throw new RemoteError('invalid', 'La meta va de 20 a 400 g');
+        const r = await rpc('grasa', 'set_protein_goal', { p_client: clientId, p_grams: g });
+        return { proteinGoal: r && r.protein_goal_g != null ? Number(r.protein_goal_g) : null };
+      },
+      async createChallenge({ id, title, habit, target, start, end, clients } = {}) {
+        await me();
+        const ids = Array.isArray(clients) ? [...new Set(clients)] : [];
+        if (!ids.length || ids.length > 100) throw new RemoteError('invalid', 'Elige entre 1 y 100 asesorados');
+        if (!DAY_RE.test(String(start)) || !DAY_RE.test(String(end))) throw new RemoteError('invalid', 'Fecha no válida');
+        return challengeOut(await rpc('grasa', 'create_challenge', { p_id: id || uuid(), p_title: String(title || '').trim(), p_habit: habit, p_target: Number(target),
+          p_start: String(start), p_end: String(end), p_clients: ids }));
+      },
+      async listChallenges() { await me(); return rows(await rpc('grasa', 'list_challenges')).map(challengeOut).filter(Boolean); },
+      async deleteChallenge(id) { await me(); await rpc('grasa', 'delete_challenge', { p_id: id }); },
       async endClient(clientId) { await me(); await rpc('grasa', 'end_client', { p_client: clientId }); },
     };
 

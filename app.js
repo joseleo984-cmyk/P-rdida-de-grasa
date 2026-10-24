@@ -142,10 +142,10 @@
   const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas', micomidas: 'mas', rutina: 'mas', rutinas: 'mas', 'rutina-edit': 'coach', fotovistas: 'fotos' };
   // UX Etapa 1 (producto 'coach'): a qué botón de la barra pertenece cada pantalla. Cliente: Inicio · Comidas · Entrenar · Progreso · Más. Coach: Asesorados · Rutinas · Invitar · Más.
   const TAB_COACH_CLIENT = { panel: 'panel', habitos: 'panel', micomidas: 'comidas', rutina: 'entrenar', progreso: 'registro', medidas: 'registro', fotos: 'registro', insignias: 'registro', fotovistas: 'registro' };
-  const TAB_COACH_COACH = { coach: 'coach', rutinas: 'rutinas', invitar: 'invitar' };
+  const TAB_COACH_COACH = { coach: 'coach', rutinas: 'rutinas', invitar: 'invitar', meta: 'coach' };
   // Título de la barra de arriba en el producto coach (la fecha corta va a la derecha).
   const TITLE_COACH = { panel: 'Inicio', habitos: 'Corregir otro día', micomidas: 'Comidas', rutina: 'Entrenar', progreso: 'Progreso', medidas: 'Medirme', fotos: 'Fotos', insignias: 'Insignias', fotovistas: 'Quién vio mis fotos',
-    mas: 'Más', ayuda: 'Ayuda', acuerdo: 'Mi acuerdo', coach: 'Asesorados', invitar: 'Invitar', rutinas: 'Rutinas', 'rutina-edit': 'Editar rutina' };
+    mas: 'Más', ayuda: 'Ayuda', acuerdo: 'Mi acuerdo', coach: 'Asesorados', invitar: 'Invitar', rutinas: 'Rutinas', 'rutina-edit': 'Editar rutina', retos: 'Retos', meta: 'Meta de proteína' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
   let navCoach = false;
   function show(view, mode) {
@@ -169,19 +169,24 @@
     });
     window.scrollTo({ top: 0 });
     render();
+    document.dispatchEvent(new CustomEvent('pg:view', { detail: { view, mode } }));   // UX Etapa 2: etapa2-view.js dibuja sus pantallas
   }
   function topTitle(view, mode) {
     const t = view === 'perfil' ? PERFIL_TITLES[mode] || 'Mi coach' : TITLE_COACH[view] || 'Pérdida de Grasa';
     const h = $('#topbar-title');
     const fichaOpen = navCoach && view === 'coach' && !$('#coach-detail-view').classList.contains('hidden');   // la ficha pone su propia barra («‹ Anterior · Nombre · Siguiente ›»)
-    if (fichaOpen) return;
+    if (fichaOpen) { document.dispatchEvent(new CustomEvent('pg:ficha-bar')); return; }
     if (h.textContent !== t) h.textContent = t;
     for (const id of ['btn-coach-prev', 'btn-coach-next']) $('#' + id).classList.add('hidden');
     // Barra superior de las pantallas de Progreso: «‹ Progreso» a la izquierda en Medirme, Fotos e Insignias; acción a la derecha («Medirme ›», «+ Foto»).
     const client = !navCoach;
-    const back = client && ['medidas', 'fotos', 'insignias'].includes(view);
+    // UX Etapa 2 (coach): «‹ Más» en Retos y «‹ Nombre» en la meta de proteína (vuelve a la ficha).
+    const backTo = client && ['medidas', 'fotos', 'insignias'].includes(view) ? ['‹ Progreso', 'progreso']
+      : navCoach && view === 'retos' ? ['‹ Más', 'mas'] : navCoach && view === 'meta' ? ['‹ ' + ($('#meta-name').textContent || 'Asesorado'), 'coach'] : null;
+    const back = !!backTo;
     const bar = $('.topbar');
     $('#topbar-back').classList.toggle('hidden', !back);
+    if (backTo) { setText($('#topbar-back'), backTo[0]); $('#topbar-back').dataset.goto = backTo[1]; }
     $('#btn-medirme').classList.toggle('hidden', !(client && view === 'progreso'));
     $('#btn-foto-add').classList.toggle('hidden', !(client && view === 'fotos'));
     bar.classList.toggle('has-back', back);
@@ -252,14 +257,14 @@
     setText($('#more-saved'), signed ? CloudView.savedLine(syncSt) : '');
     $('#btn-more-login').classList.toggle('hidden', !remoteOn || signed);
     $$('#view-mas .coach-only').forEach((el) => el.classList.toggle('hidden', !navCoach));
-    $('#view-mas .needs-link').classList.toggle('hidden', !(signed && !navAcct.isCoach && meta.link));
+    $$('#view-mas .needs-link').forEach((el) => el.classList.toggle('hidden', !(signed && !navAcct.isCoach && meta.link)));
     $('#view-mas .needs-login').classList.toggle('hidden', !signed);
   }
   $('#btn-more-login').addEventListener('click', () => $('#btn-account-login').click());
   $('#view-mas').addEventListener('click', (ev) => {
     const b = ev.target.closest('.more-row');
     if (!b) return;
-    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-micomidas': ['micomidas'], 'row-coach': ['perfil', 'coach'], 'row-rutina': ['rutina'], 'row-c-rutinas': ['rutinas'],
+    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-micomidas': ['micomidas'], 'row-coach': ['perfil', 'coach'], 'row-rutina': ['rutina'], 'row-c-rutinas': ['rutinas'], 'row-c-retos': ['retos'],
       'row-datos': ['perfil', 'datos'], 'row-copia': ['perfil', 'copia'], 'row-ayuda': ['ayuda'] }[b.id];
     if (to) goTo(to[0], to[1], b.id);
     else if (b.id === 'row-salir') { goTo('perfil', 'datos', b.id); $('#btn-account-logout').click(); const f = $('#form-logout'); if (f && f.scrollIntoView) f.scrollIntoView({ block: 'center' }); }
@@ -1790,6 +1795,8 @@
   // Estado del pago del cliente con coach. Un vínculo guardado por una versión anterior (sin la clave paidUntil) no pausa a nadie hasta que se refresque.
   const payNow = () => { const l = myLinkNow(); return l && 'paidUntil' in l ? Pagos.status(l, Pagos.todayBogota()) : null; };
   function isPaused() { const st = payNow(); return PROD.coach && !!st && !st.paid; }
+  // UX Etapa 2 (P1): la constancia se congela en los días de pausa del vínculo (my_link.pauses).
+  const constOpts = () => { const l = myLinkNow(); return { pauses: (l && l.pauses) || [] }; };
   const barHTML = (items) => items.map((i) => `<div class="habit${i.done ? ' done' : ''}"><span>${esc(i.label)}</span><b>${esc(i.text)}</b><div class="bar" role="progressbar" aria-label="${esc(i.label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(i.pct)}"><i style="width:${Math.round(i.pct)}%"></i></div></div>`).join('');
 
   // --- Hábitos ---
@@ -1823,7 +1830,7 @@
     if (!el.trained.checked) delete state.habits[d].effort;
     if (!save()) return;
     render();
-    const wk = Constancia.summary(state, today());
+    const wk = Constancia.summary(state, today(), constOpts());
     toast(`Listo, día registrado.${wk.daysThisWeek ? ` Llevas ${daysWord(wk.daysThisWeek)} esta semana.` : ''}`);
   });
   function renderHabitos() {
@@ -1836,7 +1843,8 @@
 
   // ---------- UX Etapa 1: «Mi día» (registro de UN toque con guardado automático), celebración, Entrenar, Progreso, Medirme e Insignias ----------
   // Todo se calcula en el teléfono con lo que ya existe (hábitos, comidas, medidas): constancia semanal con comodines, insignias de proceso y mensajes sin culpa.
-  const regBlock = () => (isPaused() ? 'Tu acceso está en pausa: habla con tu coach' : !consentOK() ? 'Acepta los Términos y la Política para continuar' : !can('sensitiveHealth') ? 'Autoriza tus datos de salud para registrar tu seguimiento' : '');
+  // UX Etapa 2 (P1): en pausa SÍ se registran los hábitos de Mi día (modo autónomo: el servidor los guarda como privados y el coach no los ve).
+  const regBlock = () => (!consentOK() ? 'Acepta los Términos y la Política para continuar' : !can('sensitiveHealth') ? 'Autoriza tus datos de salud para registrar tu seguimiento' : '');
   const CELEB_KEY = PGNS.key('celebrado');   // último día en que se mostró «Día completo» (una sola vez al día)
   const coachNameNow = () => { const l = myLinkNow(); return (l && l.businessName) || 'tu coach'; };
   const firstName = (n) => String(n || '').trim().split(/\s+/)[0] || '';
@@ -1867,7 +1875,7 @@
   // ---- Celebración: aro de «Día completo» (≤ 1 s; sin animación con «reducir movimiento») o «Registrado. Mañana sumamos». Nunca «fallaste». ----
   const dlgDia = $('#dlg-dia');
   function showCelebration({ d = today(), fresh = [] } = {}) {
-    const done = Constancia.dayDone(state, d), week = Constancia.summary(state, d), noted = Constancia.noted(state, d);
+    const done = Constancia.dayDone(state, d), week = Constancia.summary(state, d, constOpts()), noted = Constancia.noted(state, d);
     const arc = $('#dd-arc');
     $('#dd-frac').textContent = `${done.done}/4`;
     setText($('#dd-title'), done.complete ? 'Día completo' : 'Registrado. Mañana sumamos');
@@ -1952,6 +1960,10 @@
         : since >= 5 ? 'Volver también es parte del proceso. Empecemos con lo más fácil: ¿cuántos vasos de agua llevas?'
           : since >= 2 ? 'Qué bueno verte. ¿Registramos hoy? Lo de ayer ya pasó; cuenta lo que haces desde aquí.' : 'Hoy solo hay una tarea: registrar tu día.');
     if (!client) return;
+    const paused = isPaused();
+    $('#dia-modo').classList.toggle('hidden', !paused);
+    $('#dia-p1').classList.toggle('hidden', !paused);
+    $('#dia-sub').classList.toggle('hidden', paused);
     // Mi día
     const h = state.habits[d] || {};
     const glasses = Math.round((h.water || 0) / Habitos.GLASS_L), sleepOpt = Habitos.optOfSleep(h.sleep), tier = Habitos.tierOfSteps(h.steps), trained = h.trained === true;
@@ -1973,7 +1985,7 @@
     ent.classList.toggle('on', trained);
     ent.setAttribute('aria-pressed', String(trained));
     setText($('#dia-entrene-s'), trained ? 'Anotado ✓' : 'Toca al terminar');
-    const week = Constancia.summary(state, d);
+    const week = Constancia.summary(state, d, constOpts());
     const idle = !Constancia.noted(state, d).length;
     setText($('#dia-status'), idle ? 'Cada toque se guarda solo.' : `Guardado. Llevas ${daysWord(week.daysThisWeek)} esta semana.`);
     setText($('#dia-sub'), idle ? 'Se guarda solo' : 'Guardado ✓');
@@ -1989,6 +2001,8 @@
     $('#semana-days').innerHTML = week.week.days.map((x) => `<li class="sd${x.registered ? ' on' : ''}${x.comodin ? ' comodin' : ''}${x.today ? ' hoy' : ''}${x.future ? ' fut' : ''}" aria-label="${esc(x.name)}: ${x.registered ? 'con registro' : x.comodin ? 'comodín' : x.future ? 'todavía no llega' : x.today ? 'hoy' : 'sin registro'}"><span aria-hidden="true">${esc(x.letter)}</span></li>`).join('');
     setText($('#semana-line'), week.line);
     // Aviso de pago: solo si faltan 7 días o menos (SOON_DAYS), como una línea discreta al final y con tono sereno
+    // UX Etapa 2: tarjeta del reto de su coach (etapa2-view.js) y, en pausa, la constancia congelada.
+    setText($('#pause-const'), week.frozenNow ? 'congelada, no se pierde' : week.line);
     const st = payNow();
     const c = st && !isPaused() ? Pagos.clientCountdown(st) : null;
     const show7 = !!(c && c.soon);
@@ -2114,7 +2128,7 @@
     el.date.value = today();
     $('#med-date-row').classList.add('hidden');
     const rose = vals.weight != null && Medidas.rose(state.entries, d);
-    const wk = Constancia.summary(state, today());
+    const wk = Constancia.summary(state, today(), constOpts());
     render();
     show('progreso');
     $('#progreso-title').focus();
@@ -2198,7 +2212,7 @@
       setText($('#medidas-chart-sub'), '');
     }
     // Constancia
-    const sm = Constancia.summary(state, d), bg = Constancia.badgeCount(Constancia.badges(state, d));
+    const sm = Constancia.summary(state, d, constOpts()), bg = Constancia.badgeCount(Constancia.badges(state, d));
     const ym = d.slice(0, 7);
     const trainedMonth = Object.keys(state.habits).filter((x) => x.startsWith(ym) && x <= d && state.habits[x].trained === true).length;
     $('#prog-stats').innerHTML = [[sm.constantWeeks, sm.constantWeeks === 1 ? 'semana constante' : 'semanas constantes'], [trainedMonth, trainedMonth === 1 ? 'entreno este mes' : 'entrenos este mes'],
@@ -2269,7 +2283,7 @@
     : !consentOK() ? 'Acepta los Términos y la Política para continuar' : !can('sensitiveHealth') ? 'Autoriza tus datos de salud para registrar tu seguimiento' : '');
 
   // UX Etapa 1: lo principal es «comidas anotadas» y la proteína del día; las kcal van pequeñas, redondeadas y con «aprox.». Sin rojo ni «te pasaste».
-  // La META de proteína del coach (concepto jurídico L5) llega en la Etapa 2 (necesita servidor): por ahora NO se muestra ninguna meta ni barra de avance.
+  // UX Etapa 2: la META de proteína la propone el coach (concepto jurídico L5); sin ella no hay barra con meta.
   const FAV_KEY = PGNS.key('platos');   // «Mis platos»: guardados solo en este teléfono
   const favs = () => { let raw = null; try { raw = JSON.parse(getPref(FAV_KEY) || 'null'); } catch { raw = null; } return Platos.favsClean(raw); };
   const saveFavs = (list) => setPref(FAV_KEY, JSON.stringify(Platos.favsClean(list)));
@@ -2291,7 +2305,15 @@
     setText($('#mc-count'), pr.count ? plural1(pr.count, 'comida anotada', 'comidas anotadas') : 'Aún sin comidas anotadas');
     setText($('#mc-kcal'), Platos.approx(tot.kcal, 10));
     setText($('#mc-prot'), pr.any ? `~${pr.grams} g` : '—');
-    setText($('#mc-prot-note'), !pr.count ? 'Cuando anotes una comida del catálogo, aquí verás su proteína aproximada.'
+    // UX Etapa 2 (L5): la barra con meta SOLO existe si el coach propuso la meta. La app nunca la calcula ni la sugiere. Texto aprobado junto a la cifra.
+    const lk = myLinkNow(), bar = Etapa2.proteinBar(pr.any ? pr.grams : 0, lk && lk.proteinGoal);
+    $('#mc-prot-goal').classList.toggle('hidden', !bar);
+    setText($('#mc-prot-goal'), bar ? bar.text : '');
+    $('#mc-prot-bar').classList.toggle('hidden', !bar);
+    if (bar) { $('#mc-prot-bar > div').style.width = bar.pct + '%'; $('#mc-prot-bar').setAttribute('aria-valuenow', String(bar.pct)); $('#mc-prot-bar').setAttribute('aria-label', `Proteína de hoy frente a la meta de tu coach (~${bar.goal} g)`); }
+    $('#mc-prot-note').classList.toggle('mc-l5', !!bar);
+    if (bar) setText($('#mc-prot-note'), bar.note);
+    else setText($('#mc-prot-note'), !pr.count ? 'Cuando anotes una comida del catálogo, aquí verás su proteína aproximada.'
       : !pr.any ? 'Estas comidas no traen dato de proteína: escríbelas desde el catálogo para sumarla.'
         : pr.partial ? `${plural1(pr.without, 'comida sin dato', 'comidas sin dato')} de proteína (las escritas a mano no la traen).` : 'Proteína aproximada de lo que anotaste.');
     $('#mc-next').disabled = day >= today();
@@ -2557,10 +2579,13 @@
     $('#pause-card').classList.toggle('hidden', !paused);
     if (!paused) return;
     const l = myLinkNow(), st = payNow();
-    const who = l.businessName ? `tu coach, ${l.businessName},` : 'tu coach';
-    // Texto de neurociencia #11: sin castigo ni vergüenza. (El registro propio durante la pausa llega en la Etapa 2: necesita servidor.)
-    const since = st.paidUntil ? ` desde el ${Pagos.dayText(Pagos.addDays(st.paidUntil, 1))}` : '';
-    setText($('#pause-text'), `Tu plan con ${l.businessName || 'tu coach'} está en pausa${since}. Tu progreso está guardado y sigue siendo tuyo. Cuando se confirme el pago, todo vuelve a estar como lo dejaste. Habla con ${who} para reactivarlo.`);
+    // Texto de neurociencia #11 (imagen A12): sin castigo ni vergüenza. Con el registro autónomo de hábitos (P1) y la constancia congelada.
+    setText($('#pause-title'), `Tu plan con ${l.businessName || 'tu coach'} está en pausa`);
+    const since = st.paidUntil ? `Desde el ${Pagos.dayText(Pagos.addDays(st.paidUntil, 1))}. ` : '';
+    setText($('#pause-text'), `${since}Tu progreso está guardado. Cuando se confirme el pago, todo vuelve a estar como lo dejaste.`);
+    // «Escribirle a mi coach»: la app no tiene el teléfono del coach, así que abre WhatsApp con el mensaje listo y la persona elige el chat.
+    const msg = `Hola${l.businessName ? ', ' + l.businessName : ''}. Quiero retomar mi plan. ¿Cómo hacemos con el pago?`;
+    $('#btn-pause-write').setAttribute('href', window.Invite ? Invite.whatsappUrl(msg) : 'https://wa.me/?text=' + encodeURIComponent(msg));
   }
   async function checkPayment(manual) {
     if (!window.PGAccount || !PGAccount.refreshLink) return;
@@ -2569,6 +2594,7 @@
     try { await PGAccount.refreshLink(); } catch { if (manual) setText($('#pause-status'), 'No pudimos comprobarlo. Revisa tu internet.'); return; }
     render();
     if (was && !isPaused()) { toast('Listo: tu acceso volvió'); scheduleSync(0); }
+    else if (!was && isPaused()) scheduleSync(0);   // P1: en pausa se siguen subiendo SOLO los hábitos (modo autónomo)
     else if (manual && isPaused()) setText($('#pause-status'), 'Todavía no aparece tu pago. Tu coach debe marcarlo en su lista.');
     else if (manual) setText($('#pause-status'), '');
   }
@@ -2660,6 +2686,7 @@
     // Sprint 6 (A3 + A4): la copia en la nube solo corre si la cuenta tiene vigentes las dos autorizaciones (account.js las guarda).
     cloudAllowed: () => !window.ConsentTexts || ConsentTexts.cloudAllowed(readJSON(ACCOUNT_KEY)),
     healthAllowed: () => !saveBlocked && can('sensitiveHealth'),
+    autonomous: () => isPaused(),   // UX Etapa 2 (P1): con el acceso en pausa solo se suben los hábitos
     ownerId: () => getPref(OWNER_KEY),
     // Sprint 6: A6a/A6b se registran como consentimiento. La SUBIDA de fotos a la nube sigue APAGADA en la app oficial.
     // Sprint 11: solo con producto 'coach' (copia de pruebas) y con A6a vigente (photoCloudOn). La visibilidad para el coach, además, exige A6b y marcar cada foto.

@@ -234,11 +234,13 @@
     ul.innerHTML = items.map(({ c, at, p }) => {
       const name = displayName(c), id = esc(c.info.clientId);
       const habitsOff = !(c.info.shares && c.info.shares.habits);
+      const salud = window.Etapa2 ? Etapa2.coachHealth(c.info) : null;   // UX Etapa 2 (L4): solo el indicador, sin detalle
       return `<li><div class="cli-pay-row" data-level="${at.level}">
-        <button type="button" class="cli-main" data-client="${id}" aria-label="${esc(name)}. ${esc(at.label)}: ${esc(at.reason)}. ${esc(Pagos.coachLine(p))}. Abrir su ficha">
+        <button type="button" class="cli-main" data-client="${id}" aria-label="${esc(name)}. ${esc(at.label)}: ${esc(at.reason)}.${salud ? ' ' + esc(salud.line) + '.' : ''} ${esc(Pagos.coachLine(p))}. Abrir su ficha">
           <span class="cli-av" aria-hidden="true">${esc(ClientStatus.initials(name))}</span>
           <span class="cli-text"><span class="cli-top"><span class="cli-name who">${esc(name)}</span><span class="sem sem-${at.level}"><span aria-hidden="true">${SEM_ICON[at.level]}</span> ${esc(at.label)}</span></span>
             <span class="cli-line cli-motivo">${esc(at.reason)}</span>
+            ${salud ? `<span class="cli-line cli-salud"><span aria-hidden="true">▲</span> ${esc(salud.line)}</span>` : ''}
             ${habitsOff ? '<span class="cli-line">🔒 No comparte sus hábitos</span>' : ''}
             <span class="cli-line cli-pago">${esc(Pagos.listLine(p))}</span></span>
         </button>
@@ -458,6 +460,15 @@
   // ---------- UX Etapa 1: ficha con RESUMEN SEMANAL arriba, reacciones de un toque y constancia / insignias ----------
   const fmtRange = (a, b) => `${new Date(a + 'T12:00:00').getDate()}–${fmtDay(b)}`;
   const agoText = (iso) => { if (!iso) return 'todavía no registra nada'; const n = Math.round((Date.parse(todayBo() + 'T00:00:00Z') - Date.parse(iso + 'T00:00:00Z')) / 86400000); return n <= 0 ? 'hoy' : n === 1 ? 'ayer' : `hace ${n} días`; };
+  // UX Etapa 2: aviso de restricción de salud (L4, sin detalle) y meta de proteína que propone el coach (L5).
+  function renderDetailEtapa2(c) {
+    const salud = window.Etapa2 ? Etapa2.coachHealth(c.info) : null;
+    const box = $('#fc-salud');
+    box.classList.toggle('hidden', !salud);
+    box.innerHTML = salud ? salud.parts.map((x) => `<p><strong>${esc(x.title)}</strong><br><span class="small">${esc(x.sub)}</span></p>`).join('') : '';
+    const g = c.info.proteinGoal;
+    $('#fc-meta-val').textContent = g ? `~${g} g ›` : 'Sin meta ›';
+  }
   function renderDetailSemana(c, sh) {
     const at = Coach.atencion(c.state, { today: todayBo(), shares: sh });
     const w = at.ws;
@@ -491,11 +502,11 @@
   function renderDetailConst(c, sh) {
     void sh;
     const today = todayBo();
-    const sm = Constancia.summary(c.state, today), list = Constancia.badges(c.state, today), bc = Constancia.badgeCount(list);
+    const sm = Constancia.summary(c.state, today, { pauses: c.info.pauses || [] }), list = Constancia.badges(c.state, today), bc = Constancia.badgeCount(list);   // UX Etapa 2: congelada en pausa
     $('#fc-const-sum').innerHTML = [[sm.constantWeeks, sm.constantWeeks === 1 ? 'semana constante' : 'semanas constantes'], [`${sm.week.comodines} de 2`, 'comodines esta semana'], [`${bc.earned} de ${bc.total}`, 'insignias']]
       .map(([a, b]) => `<div><b>${esc(a)}</b><small>${esc(b)}</small></div>`).join('');
     const weeks = [...sm.history.slice(-5), sm.week];
-    $('#fc-weeks').innerHTML = weeks.map((w) => `<li aria-label="Semana del ${esc(fmtDay(w.start))}: ${w.registered} días con registro">${w.registered}</li>`).join('');
+    $('#fc-weeks').innerHTML = weeks.map((w) => `<li class="${w.frozen ? 'fz' : ''}" aria-label="Semana del ${esc(fmtDay(w.start))}: ${w.registered} días con registro${w.frozen ? ' (con días en pausa: no cuentan)' : ''}">${w.registered}</li>`).join('');
     $('#fc-ins').innerHTML = list.map((b, i) => `<li class="insig ${b.earned ? 'earned' : 'pending'}"><span class="insig-n" aria-hidden="true">${i + 1}</span><span class="insig-t"><strong>${esc(b.name)}</strong><small>${esc(b.earned ? fmtDay(b.date) : b.hint)}</small><span class="sr-only">${esc(b.desc)}. ${b.earned ? 'Ganada' : 'Aún no'}</span></span></li>`).join('');
     const first = displayName(c).split(/\s+/)[0];
     $('#btn-fc-felicitar').textContent = `Felicitar a ${first}`;
@@ -512,7 +523,17 @@
       void undo;
     } catch (err) { toast(errText(err), true); }
   }
+  // UX Etapa 2: la barra de la ficha vuelve al regresar de la meta de proteína (app.js avisa con pg:ficha-bar).
+  document.addEventListener('pg:ficha-bar', () => { const c = current && cache.get(current); if (c) { fichaBar(true, displayName(c)); renderDetail(c); } });
+  window.PGCoachPanel = {
+    current: () => { const c = current && cache.get(current); return c ? { clientId: current, name: displayName(c), info: c.info, state: c.state } : null; },
+    setInfo: (clientId, patch) => { const c = cache.get(clientId); if (c) { c.info = { ...c.info, ...patch }; renderList(); } },
+    clients: () => [...cache.values()].map((c) => ({ clientId: c.info.clientId, name: displayName(c), info: c.info })),
+    load: () => loadClients(),
+    toast,
+  };
   function wireFicha() {
+    $('#fc-link-meta').addEventListener('click', () => { const c = current && cache.get(current); if (c) document.dispatchEvent(new CustomEvent('pg:open-meta', { detail: { clientId: current } })); });
     $('#fc-react-btns').addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-react]');
       if (!b) return;
@@ -565,7 +586,7 @@
   function renderDetail(c) {
     const sh = c.info.shares || {};
     $('#coach-detail-title').textContent = displayName(c);
-    if (PROD.coach) { renderDetailPay(c, sh); renderDetailComidas(c, sh); renderDetailSemana(c, sh); renderDetailConst(c, sh); }
+    if (PROD.coach) { renderDetailPay(c, sh); renderDetailComidas(c, sh); renderDetailSemana(c, sh); renderDetailConst(c, sh); renderDetailEtapa2(c); }
     else $('#coach-detail-light').innerHTML = `${statusChip(c.st)} ${esc(c.st.line)}`;
     const yes = Object.keys(SHARE_NAMES).filter((k) => sh[k]).map((k) => SHARE_NAMES[k]);
     const no = Object.keys(SHARE_NAMES).filter((k) => !sh[k]).map((k) => SHARE_NAMES[k]);

@@ -220,6 +220,24 @@
     </div>
   </section>
 
+  <!-- UX Etapa 2 (imágenes A03 y A03b): pregunta de salud (L4, concepto 2 anexo 2) y de embarazo, lactancia o posparto (concepto 3). Textos LITERALES
+       (etapa2.js). Voluntaria: «Prefiero no responder». Al coach solo le llega la existencia de la restricción o el estado, nunca el detalle. -->
+  <section id="salud" class="consent salud hidden" aria-labelledby="salud-title">
+    <div class="card salud-card">
+      <div class="steps3" id="salud-steps" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></div>
+      <p class="small muted salud-step" id="salud-step">Paso 2 de 3 · Tu salud</p>
+      <h2 id="salud-title" tabindex="-1">Una pregunta antes de empezar</h2>
+      <p id="salud-head" class="salud-head"></p>
+      <fieldset class="salud-box">
+        <legend id="salud-q" class="salud-q"></legend>
+        <div id="salud-opts" class="salud-opts"></div>
+      </fieldset>
+      <p id="salud-yes" class="salud-yes hidden" role="note"></p>
+      <p id="salud-error" class="acc-error hidden" role="alert"></p>
+      <button type="button" class="btn btn-tall salud-ok" id="btn-salud-ok" disabled>Continuar</button>
+    </div>
+  </section>
+
   <main>
     <section id="install-card" class="card install-card hidden" aria-labelledby="install-card-title">
       <h2 id="install-card-title">Instala la app en tu iPhone</h2>
@@ -241,25 +259,27 @@
 
       <!-- Sprint 11 (producto 'coach'): Inicio del cliente = próximo pago + hábitos de hoy + atajos. Las tarjetas heredadas llevan
            la clase home-legacy y se esconden en ese modo (siguen ahí para la Etapa 2). -->
+      <!-- UX Etapa 2 (imagen A12): pausa respetuosa con «Escribirle a mi coach» como acción principal; los hábitos se siguen anotando en modo autónomo (P1). -->
       <div id="pause-card" class="card pause-card pc-only hidden" role="region" aria-labelledby="pause-title">
-        <p class="pause-icon" aria-hidden="true">⏸</p>
-        <h2 id="pause-title" tabindex="-1">Tu acceso está en pausa</h2>
-        <p id="pause-text" class="small">Habla con tu coach para reactivarlo. Cuando te confirme el pago, la app vuelve a funcionar sola.</p>
-        <button type="button" class="btn btn-tall" id="btn-pause-check">Ya pagué: volver a comprobar</button>
+        <p class="pause-icon" aria-hidden="true">II</p>
+        <h2 id="pause-title" tabindex="-1">Tu plan está en pausa</h2>
+        <p id="pause-text" class="small">Tu progreso está guardado. Cuando se confirme el pago, todo vuelve a estar como lo dejaste.</p>
+        <a class="btn btn-tall" id="btn-pause-write" href="https://wa.me/" target="_blank" rel="noopener">Escribirle a mi coach</a>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-pause-check">Ya pagué: volver a comprobar</button>
         <p id="pause-status" class="small muted" role="status" aria-live="polite"></p>
-        <div class="pause-own">
-          <h3>Tus datos siguen siendo tuyos</h3>
-          <p class="small muted">Aunque el acceso esté en pausa, puedes verlos, descargarlos o borrar tu cuenta.</p>
-          <button type="button" class="btn btn-ghost btn-tall" id="btn-pause-see">Ver mis datos</button>
-          <button type="button" class="btn btn-ghost btn-tall" id="btn-pause-download">Descargar mis datos</button>
-          <button type="button" class="btn btn-danger btn-tall" id="btn-pause-delete">Borrar mi cuenta</button>
-        </div>
       </div>
       <!-- UX Etapa 1 (producto 'coach'): Inicio «Mi día». Orden: nota del coach sin leer (se coloca aquí desde el código de la app) → Mi día (registro de un toque, se guarda solo)
            → Rutina de hoy → Tu semana → aviso de pago solo si faltan 7 días o menos. Las kcal NO van aquí. -->
       <div id="home-coach" class="pc-only">
+        <!-- UX Etapa 2 (L4): invitación a la pregunta de salud mientras no la haya respondido. Voluntaria: no bloquea nada. -->
+        <section id="home-salud" class="home-card home-salud hidden" aria-labelledby="hs-title">
+          <h3 id="hs-title" class="home-label">Una pregunta antes de empezar</h3>
+          <p class="small muted">Sobre tu salud, para tu coach. Es voluntaria: puedes elegir «Prefiero no responder».</p>
+          <button type="button" class="btn btn-tall" id="btn-home-salud">Responder</button>
+        </section>
         <section id="home-dia" class="home-card dia-card" aria-labelledby="dia-title">
-          <div class="home-row"><h3 id="dia-title" class="home-label">Mi día</h3><span id="dia-sub" class="home-sub">Se guarda solo</span></div>
+          <div class="home-row"><h3 id="dia-title" class="home-label">Mi día</h3><span id="dia-sub" class="home-sub">Se guarda solo</span><span id="dia-modo" class="dia-modo hidden">modo autónomo</span></div>
+          <p id="dia-p1" class="dia-p1 hidden" role="note">Registro personal en modo autónomo. Durante la pausa del servicio con tu coach, tus nuevos hábitos no serán supervisados ni revisados por él.</p>
           <div class="dia-grid">
             <button type="button" class="dia-tile" id="dia-agua"><b id="dia-agua-t">Agua 0 / 8</b><span id="dia-agua-s">Toca: +1 vaso</span></button>
             <button type="button" class="dia-tile" id="dia-sueno" aria-expanded="false" aria-controls="dia-sueno-opts"><b id="dia-sueno-t">Sueño</b><span id="dia-sueno-s">Toca para cambiar</span></button>
@@ -291,12 +311,28 @@
         <button type="button" class="btn btn-tall" id="btn-home-daily" data-goto="rutina">Empezar</button>
       </section>
       <div id="home-coach2" class="pc-only">
+        <!-- UX Etapa 2: reto de su coach (etapa2-view.js). Proceso, nunca kilos; sin comparación con otros asesorados. -->
+        <section id="home-reto" class="home-card reto-card hidden" aria-labelledby="reto-label">
+          <p id="reto-label" class="home-label reto-label">Reto de tu coach</p>
+          <p id="reto-title" class="reto-title"></p>
+          <p class="reto-prog"><span id="reto-dots" class="reto-dots" aria-hidden="true"></span><span id="reto-line" class="small muted"></span></p>
+          <button type="button" class="btn btn-ghost btn-tall" id="btn-reto-mark" aria-pressed="false">Hoy lo cumplí</button>
+          <p id="reto-status" class="small muted" role="status" aria-live="polite"></p>
+        </section>
         <section id="home-semana" class="home-card semana-card" aria-labelledby="semana-title">
           <div class="home-row"><h3 id="semana-title" class="home-label">Tu semana</h3><b id="semana-count" class="semana-count"></b></div>
           <ol id="semana-days" class="semana-days" aria-label="Días de esta semana"></ol>
           <p id="semana-line" class="small muted"></p>
         </section>
         <p id="pay-countdown" class="pay-line hidden" role="status"></p>
+      </div>
+      <!-- UX Etapa 2: en pausa, la constancia congelada, la rutina y las notas en solo lectura, y los derechos del titular (ver, descargar, borrar). -->
+      <div id="pause-extra" class="pc-only">
+        <div class="home-card pause-rows">
+          <p class="pause-row"><span>Tu constancia</span><span id="pause-const" class="muted">congelada, no se pierde</span></p>
+          <button type="button" class="pause-row pause-row-btn" id="pause-rutina" data-goto="rutina" aria-label="Rutina y notas: solo lectura. Ver mi rutina"><span>Rutina y notas</span><span class="muted">solo lectura</span></button>
+        </div>
+        <p class="pause-foot small">Tus datos siguen siendo tuyos: <button type="button" class="btn-link" id="btn-pause-see" aria-label="Ver mis datos">Ver</button> · <button type="button" class="btn-link" id="btn-pause-download" aria-label="Descargar mis datos">Descargar</button> · <button type="button" class="btn-link pause-del" id="btn-pause-delete" aria-label="Borrar mi cuenta">Borrar mi cuenta</button></p>
       </div>
 
       <div id="onboarding" class="card hidden home-legacy">
@@ -498,7 +534,7 @@
         <label class="mc-date hidden" id="mc-date-row"><span class="sr-only">Día</span><input type="date" id="mc-date" aria-label="Día de las comidas"></label>
         <div class="card mc-resumen">
           <div class="home-row"><b id="mc-count" class="mc-count">0 comidas anotadas</b><span class="small muted"><span id="mc-kcal">~0</span> kcal aprox.</span></div>
-          <div class="home-row mc-prot"><span>Proteína de hoy</span><span><b id="mc-prot" class="mc-prot-n">—</b></span></div>
+          <div class="home-row mc-prot"><span>Proteína de hoy</span><span><b id="mc-prot" class="mc-prot-n">—</b> <span id="mc-prot-goal" class="small muted hidden"></span></span></div>
           <div id="mc-prot-bar" class="mc-bar hidden" role="progressbar" aria-label="Proteína de hoy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div></div></div>
           <p id="mc-prot-note" class="small muted"></p>
         </div>
@@ -745,6 +781,7 @@
           <h2 id="coach-detail-title" class="sr-only" tabindex="-1"></h2>
           <div class="fc-meta"><p id="coach-detail-last" class="small pc-only"></p>
             <div id="coach-detail-pay" class="detail-pay pc-only"><p id="coach-detail-pay-line" class="small muted"></p><button type="button" class="chip-pay" id="btn-detail-pay"></button></div></div>
+          <div id="fc-salud" class="fc-salud pc-only hidden" role="note"></div>
           <p id="coach-detail-light" class="small"></p>
           <p id="coach-detail-shares" class="small muted"></p>
         </div>
@@ -764,6 +801,7 @@
           <a class="fc-link" href="#coach-detail-medidas-card"><span>Medidas: peso, cintura, cadera</span><b id="fc-link-med">Ver ›</b></a>
           <a class="fc-link" href="#coach-detail-comidas-card"><span>Comidas día por día</span><b>Ver ›</b></a>
           <a class="fc-link" href="#fc-const"><span>Constancia e insignias</span><b id="fc-link-const">Ver ›</b></a>
+          <button type="button" class="fc-link" id="fc-link-meta"><span>Meta de proteína</span><b id="fc-meta-val">Sin meta ›</b></button>
         </div>
         <div class="card pc-only" id="coach-detail-medidas-card">
           <h2>Medidas (cm)</h2>
@@ -781,7 +819,7 @@
           <ul class="fc-weeks" id="fc-weeks" aria-label="Días con registro en las últimas semanas"></ul>
           <ul class="fc-ins" id="fc-ins"></ul>
           <button type="button" class="btn btn-tall" id="btn-fc-felicitar">Felicitar</button>
-          <p class="small muted">Sin ranking entre asesorados. Las insignias reconocen el proceso, nunca el peso ni las calorías.</p>
+          <p class="small muted fc-const-note">Sin ranking entre asesorados. La constancia se congela en pausa.</p>
         </div>
         <div class="card pc-only" id="coach-detail-comidas-card">
           <h2>Comidas</h2>
@@ -1098,6 +1136,59 @@
     </section>
 
     <!-- MÁS: cuenta y menú con todo lo que no está en la barra -->
+    <!-- UX Etapa 2 (imagen C04): RETOS del coach en 2 toques: plantilla → a quién. Fechas solas (hoy + 6 días), editables. Solo hábitos y constancia: nunca kilos. -->
+    <section id="view-retos" class="view" aria-labelledby="retos-title">
+      <h2 id="retos-title" class="sr-only back-title" tabindex="-1">Retos</h2>
+      <p class="retos-step"><b>Toque 1:</b> elige una plantilla</p>
+      <div id="retos-tpls" class="retos-tpls" role="group" aria-label="Plantillas de reto"></div>
+      <div class="card retos-who">
+        <p class="retos-step"><b>Toque 2:</b> ¿a quién?</p>
+        <div id="retos-who" class="retos-chips" role="group" aria-label="A quién se lanza el reto"></div>
+        <fieldset id="retos-pick" class="retos-pick hidden"><legend class="sr-only">Elige asesorados</legend></fieldset>
+        <p id="retos-range" class="retos-range"></p>
+        <details class="retos-custom" id="retos-custom">
+          <summary>Cambiar título, meta o fechas</summary>
+          <label class="acc-label" for="reto-f-title">Título</label>
+          <input type="text" id="reto-f-title" maxlength="60" autocomplete="off">
+          <div class="retos-grid">
+            <label>Desde<input type="date" id="reto-f-start"></label>
+            <label>Hasta<input type="date" id="reto-f-end"></label>
+            <label>Se cumple con<input type="number" id="reto-f-target" min="1" max="31" inputmode="numeric"></label>
+          </div>
+        </details>
+        <p id="retos-error" class="acc-error hidden" role="alert"></p>
+        <button type="button" class="btn btn-tall" id="btn-reto-lanzar">Lanzar reto</button>
+      </div>
+      <div id="retos-list" aria-live="polite"></div>
+      <p class="small muted retos-foot">No hay retos de kilos: solo de hábitos y constancia.</p>
+    </section>
+
+    <!-- UX Etapa 2 (imagen C05): META ORIENTATIVA DE PROTEÍNA que escribe el coach por asesorado. La app no la calcula ni la sugiere (L5). -->
+    <section id="view-meta" class="view" aria-labelledby="meta-title">
+      <h2 id="meta-title" class="sr-only back-title" tabindex="-1">Meta de proteína de <span id="meta-name"></span></h2>
+      <div class="card meta-card">
+        <label class="meta-label" for="meta-input" id="meta-label">Escribe la meta</label>
+        <div class="meta-step">
+          <button type="button" class="btn btn-ghost meta-btn" id="meta-minus" aria-label="5 g menos">−</button>
+          <span class="meta-field"><input type="text" id="meta-input" inputmode="numeric" maxlength="3" autocomplete="off" aria-describedby="meta-help"><span class="muted">g al día</span></span>
+          <button type="button" class="btn btn-ghost meta-btn" id="meta-plus" aria-label="5 g más">+</button>
+        </div>
+        <p id="meta-help" class="small muted">La cifra la decides tú. La app no la calcula ni la sugiere.</p>
+      </div>
+      <p class="meta-prev-title" id="meta-prev-title">Así la verá en Comidas</p>
+      <div class="card mc-resumen meta-prev" aria-labelledby="meta-prev-title">
+        <div class="home-row"><b id="mp-count" class="mc-count"></b><span class="small muted" id="mp-kcal"></span></div>
+        <div class="home-row mc-prot"><span>Proteína de hoy</span><span><b id="mp-prot" class="mc-prot-n">—</b> <span id="mp-goal" class="small muted"></span></span></div>
+        <div id="mp-bar" class="mc-bar hidden" role="progressbar" aria-label="Vista previa de la barra de proteína" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div></div></div>
+        <p id="mp-note" class="small muted"></p>
+      </div>
+      <p id="meta-error" class="acc-error hidden" role="alert"></p>
+      <div class="meta-acts">
+        <button type="button" class="btn btn-tall" id="btn-meta-save">Guardar meta</button>
+        <button type="button" class="btn btn-ghost btn-tall meta-quitar" id="btn-meta-clear">Quitar la meta</button>
+      </div>
+    </section>
+
     <section id="view-mas" class="view" aria-labelledby="mas-title">
       <h2 id="mas-title" class="sr-only" tabindex="-1">Más</h2>
       <div class="card more-head">
@@ -1117,8 +1208,10 @@
         <li class="home-legacy"><button type="button" class="more-row" id="row-fotos"><span class="more-text"><strong>Mis fotos</strong><span class="more-sub">Fotos de progreso y comparación</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="pc-only hidden" id="li-micomidas"><button type="button" class="more-row" id="row-micomidas"><span class="more-text"><strong>Mis comidas</strong><span class="more-sub">Lo que comes cada día, con calorías aproximadas</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="coach-only pc-only hidden"><button type="button" class="more-row" id="row-c-rutinas"><span class="more-text"><strong>Mis rutinas</strong><span class="more-sub">Crea rutinas, asígnalas y publica la de hoy</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="coach-only pc-only hidden"><button type="button" class="more-row" id="row-c-retos"><span class="more-text"><strong>Retos</strong><span class="more-sub">Lanza un reto de hábitos a tus asesorados</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="coach-only hidden"><button type="button" class="more-row" id="row-c-acuerdo"><span class="more-text"><strong>Mi acuerdo</strong><span class="more-sub">El Acuerdo del coach que aceptaste, con copia</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-link hidden"><button type="button" class="more-row" id="row-coach"><span class="more-text"><strong>Mi coach</strong><span class="more-sub">Qué puede ver y cómo dejar de compartir</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="needs-link pc-only hidden"><button type="button" class="more-row" id="row-salud"><span class="more-text"><strong>Tu salud</strong><span class="more-sub">La pregunta para tu coach (voluntaria)</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="rutina-row pc-only hidden"><button type="button" class="more-row" id="row-rutina"><span class="more-text"><strong>Mi rutina</strong><span class="more-sub">Tus ejercicios y cómo se hacen</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-datos"><span class="more-text"><strong>Mis datos y permisos</strong><span class="more-sub">Tu <span class="needs-account">cuenta, tu </span>privacidad y tus datos de salud</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-copia"><span class="more-text"><strong>Descargar una copia</strong><span class="more-sub">Guarda tus datos en un archivo</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
@@ -1476,6 +1569,7 @@
   <script src="estado-cliente.js"></script>
   <script src="inicio-view.js"></script>
   <script src="photos.js"></script>
+  <script src="etapa2.js"></script>
   <script src="app.js"></script>
   <script src="vendor/supabase-2.117.2.js"></script>
   <script src="invite.js"></script>
@@ -1485,5 +1579,6 @@
   <script src="account.js"></script>
   <script src="coach-panel.js"></script>
   <script src="rutinas-view.js"></script>
+  <script src="etapa2-view.js"></script>
 </body>
 </html>

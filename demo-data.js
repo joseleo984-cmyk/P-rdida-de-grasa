@@ -206,6 +206,18 @@
     carla: [{ ago: 5, text: 'Carla, buen trabajo. Probemos dormir una hora más esta semana.', read: true }],
   };
 
+  // ---------- UX Etapa 2 (datos ficticios) ----------
+  // Pregunta de salud: Ana dijo «Sí» (su coach solo ve el indicador); Elena, «Sí» a la de embarazo, lactancia o posparto; los demás «No» o «Prefiero no responder».
+  // Hugo (recién llegado) no la ha respondido. Meta de proteína que propuso el coach: Ana 110 g y Beto 150 g. Reto «7 días de agua» para todos menos Diego.
+  const HEALTH = {
+    ana: { condition: 'yes', pregnancy: 'no' }, beto: { condition: 'no', pregnancy: 'no' }, carla: { condition: 'skip', pregnancy: 'no' },
+    diego: { condition: 'no', pregnancy: 'no' }, elena: { condition: 'no', pregnancy: 'yes' }, fabio: { condition: 'no', pregnancy: 'skip' }, gina: { condition: 'no', pregnancy: 'no' },
+  };
+  const PROTEIN_GOALS = { ana: 110, beto: 150 };
+  const RETO_MARKS = { ana: 4, beto: 3, carla: 3, elena: 4, fabio: 3, gina: 1, hugo: 0 };   // Diego (en pausa) no está en el reto: su Inicio queda como la imagen A12
+  // Lo que Diego anota en modo autónomo durante la pausa (días relativos a hoy): el coach NO lo ve.
+  const AUTONOMOUS = [[-2, { water: 1.5, sleep: 7 }], [-1, { water: 1, sleep: 6.5 }], [0, { water: 0.5 }]];
+
   // ---------- Plan completo (puro) ----------
   function buildPlan(today, { Platos } = {}) {
     const P = Platos || deps().Platos;
@@ -312,7 +324,7 @@
   function deps() {
     const get = (n, f) => root[n] || (typeof require === 'function' ? require(f) : null);
     return { RemoteFake: get('RemoteFake', './remote-fake.js'), Platos: get('Platos', './platos.js'), Schema: get('Schema', './schema.js'),
-      Sync: get('Sync', './sync.js'), CT: get('ConsentTexts', './consent-texts.js'), Rutinas: get('Rutinas', './rutinas.js') };
+      Sync: get('Sync', './sync.js'), CT: get('ConsentTexts', './consent-texts.js'), Rutinas: get('Rutinas', './rutinas.js'), Etapa2: get('Etapa2', './etapa2.js') };
   }
   async function sha256(text) {
     const c = (typeof crypto !== 'undefined' && crypto.subtle) ? crypto : require('node:crypto').webcrypto;
@@ -417,6 +429,29 @@
       const ph = ana.photos[n];
       be.photoViews.push({ id: uid(`vista:ana:${i}`), photoId: ph.id, coachId: coachU.id, clientId: clients.ana.id, viewedAt: iso(dayMs(-ago) - 3600000 * (3 + i)) });
     });
+    // --- UX Etapa 2: pregunta de salud, meta de proteína, un reto y el modo autónomo en pausa ---
+    const E2 = D.Etapa2;
+    if (E2) {
+      for (const [key, ans] of Object.entries(HEALTH)) {
+        const r = asUser(be, clients[key], D);
+        for (const q of E2.QUESTIONS) await r.client.setHealthAnswer(q, ans[q], { version: E2.HEALTH[q].version, textHash: await sha256(E2.healthText(q, ans[q])) });
+      }
+      for (const [key, g] of Object.entries(PROTEIN_GOALS)) await rc.coach.setProteinGoal(clients[key].id, g);
+      const tb = be.todayBogota();
+      const reto = await rc.coach.createChallenge({ id: uid('reto:agua'), title: '7 días de agua', habit: 'water', target: 5, start: addDays(tb, -5), end: addDays(tb, 1),
+        clients: plan.clients.filter((c) => c.key !== 'diego').map((c) => clients[c.key].id) });
+      for (const [key, n] of Object.entries(RETO_MARKS)) {
+        const r = asUser(be, clients[key], D);
+        for (let k = 0; k < n; k++) await r.client.markChallenge(reto.id, addDays(tb, -5 + k), true);
+      }
+      // Diego está en pausa (no pagó): sigue anotando en modo autónomo (P1). El «servidor» lo guarda como privado y el coach no lo ve.
+      const diego = plan.clients.find((c) => c.key === 'diego');
+      const rd = asUser(be, clients.diego, D);
+      const auto = Schema.normalize({ entries: [], foods: {}, habits: Object.fromEntries(AUTONOMOUS.map(([off, h]) => [addDays(today, off), { ...h, id: uid(`autonomo:diego:${off}`), updatedAt: stampOf(addDays(today, off), nowMs) }])) },
+        { uid: () => uid('relleno:diego-autonomo') });
+      await rd.sync.push({ records: Sync.toWire(auto.state, { userId: clients.diego.id }), photos: [] });
+      void diego;
+    }
     be._persist();
     return { today, coach: coachU, code: INVITE_CODE, clients, plan: { photos: Object.fromEntries(plan.clients.map((c) => [c.key, c.photos])) } };
   }
@@ -445,7 +480,7 @@
     return { state, meta, photos: photos.filter((p) => !p.deletedAt), session: { user: { id: who.id, email: who.email }, issuedAt: now } };
   }
 
-  const api = { BUSINESS, COACH, PEOPLE, INVITE_CODE, BANNER, TEMPLATES, GIFS, PALETTE, buildPlan, seed, localFor, asUser, makeGif, encodeGif, lzw, uid, rng, addDays, localDay, stampOf, sha256, deps };
+  const api = { HEALTH, PROTEIN_GOALS, RETO_MARKS, AUTONOMOUS, BUSINESS, COACH, PEOPLE, INVITE_CODE, BANNER, TEMPLATES, GIFS, PALETTE, buildPlan, seed, localFor, asUser, makeGif, encodeGif, lzw, uid, rng, addDays, localDay, stampOf, sha256, deps };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PGDemoData = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -183,6 +183,7 @@
   //   photosCloudAllowed?()                 ← autorización "copia de fotos en la nube"
   //   photos?: { list(), getBlob(id), applyRemote({ upserts, deletes }) }
   //   saveComments?(comments)
+  //   autonomous?()                         ← true con el acceso en pausa (P1): solo se suben hábitos
   // }
   // remote: { sync: { push({records, photos}), pull(since), uploadPhoto(id, blob) } } (contrato §3.3)
   function createSync({ remote, store, now = () => Date.now(), onStatus = () => {} }) {
@@ -210,7 +211,11 @@
       const localPhotos = cloud ? await store.photos.list() : [];
       const photoWire = cloud ? photosToWire(localPhotos, state.deleted && state.deleted.photos, { userId }) : [];
       const seen = { ...(meta.seen || {}) };
-      const plan = planPush(state, { userId, pushedUpTo: meta.pushedUpTo, photos: photoWire, seen });
+      // UX Etapa 2 (P1, modo autónomo): con el acceso en pausa solo se suben HÁBITOS (el servidor rechaza lo demás) y no se avanza `pushedUpTo`:
+      // lo enviado queda en `seen` y el resto (medidas, comidas, fotos) espera a que vuelva el acceso. El servidor los marca privados para el coach.
+      const autonomous = typeof store.autonomous === 'function' && store.autonomous() === true;
+      const full = planPush(state, { userId, pushedUpTo: meta.pushedUpTo, photos: photoWire, seen });
+      const plan = autonomous ? { records: full.records.filter((r) => r.kind === 'habit'), photos: [], maxUpdatedAt: meta.pushedUpTo } : full;
       const rejected = { records: [], photos: [] };
       for (const p of plan.photos) {
         if (!p.deletedAt && store.photos.getBlob) {
@@ -236,7 +241,8 @@
       }
       // pushedUpTo = mayor updatedAt ENVIADO (no "ahora": así no se salta ediciones hechas durante el envío). Se guarda
       // ya: si el pull falla, el siguiente ciclo no vuelve a subir lo mismo.
-      if (items.length) { meta.pushedUpTo = plan.maxUpdatedAt; store.setMeta({ ...(store.getMeta() || {}), pushedUpTo: meta.pushedUpTo }); }
+      if (items.length && !autonomous) { meta.pushedUpTo = plan.maxUpdatedAt; store.setMeta({ ...(store.getMeta() || {}), pushedUpTo: meta.pushedUpTo }); }
+      if (items.length && autonomous) { for (const r of plan.records) seen[seenKey(r)] = r.updatedAt; store.setMeta({ ...(store.getMeta() || {}), seen: { ...seen } }); }
 
       // 1b. Rechazados: se adopta la versión del servidor tal cual (§10.6), antes del pull, salvo que el usuario haya
       // vuelto a editar ese registro durante la red.
