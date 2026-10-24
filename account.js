@@ -299,6 +299,17 @@
     const form = $('#form-acc-code');
     if (el.value.length === OTP_LEN && el.value !== codeSent && form.getAttribute('aria-busy') !== 'true' && email) { codeSent = el.value; form.requestSubmit(); }
   });
+  // «Pegar código»: lee el portapapeles (el código que se copió del correo), toma los 6 dígitos y los escribe; al completarse entra solo.
+  $('#btn-acc-paste').addEventListener('click', async () => {
+    showError('#acc-code-error', '');
+    let text = '';
+    try { text = await navigator.clipboard.readText(); } catch { /* sin permiso o sin portapapeles */ }
+    const m = String(text || '').match(new RegExp(`(?<!\\d)\\d{${OTP_LEN}}(?!\\d)`));
+    if (!m) { showError('#acc-code-error', `No encontré un código de ${OTP_LEN} dígitos copiado. Copia el código del correo y vuelve a tocar «Pegar código».`); $('#acc-code').focus(); return; }
+    const el = $('#acc-code');
+    el.value = m[0];
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   $('#form-acc-code').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const form = ev.currentTarget;
