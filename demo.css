@@ -1,0 +1,23 @@
+/* COPIA «DEMO» (solo en /demo/): banner, pantalla de entrada y ajustes. No existe en la app oficial ni en /pruebas/. */
+.demo-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  background: #5b21b6; color: #fff; font-weight: 700; font-size: .8rem; line-height: 1.25; text-align: center; padding: 6px 12px; min-height: 32px;
+}
+body.has-demo-banner { padding-top: var(--demo-banner-h, 32px); }
+body.has-demo-banner .topbar { top: var(--demo-banner-h, 32px); }
+/* La demo no tiene cuenta real: nada de entrar, cerrar sesión ni borrar la cuenta. */
+body.demo #view-mas .needs-login, body.demo #btn-more-login, body.demo #btn-account-login, body.demo #btn-account-logout, body.demo #btn-account-delete, body.demo #form-logout { display: none !important; }
+
+.demo-gate { position: fixed; inset: 0; z-index: 50; overflow-y: auto; background: var(--bg); padding: calc(var(--demo-banner-h, 32px) + 16px) 16px 24px; }
+.demo-card { max-width: 480px; margin: 0 auto; display: grid; gap: 14px; }
+.demo-card h2 { margin: 0; overflow-wrap: anywhere; }
+.demo-card p { margin: 0; overflow-wrap: anywhere; }
+.demo-big {
+  display: flex; flex-direction: column; gap: 4px; align-items: flex-start; text-align: left; width: 100%; min-height: 84px; padding: 16px;
+  font: inherit; color: var(--text); background: var(--card); border: 2px solid var(--accent); border-radius: 16px; cursor: pointer;
+}
+.demo-big strong { font-size: 1.2rem; color: var(--accent); }
+.demo-big span { font-size: .9rem; color: var(--muted); overflow-wrap: anywhere; }
+.demo-big:focus-visible, .demo-paused:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.demo-paused { justify-self: start; text-align: left; min-height: 44px; }
+.demo-more .more-row { border-style: dashed; }

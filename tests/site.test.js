@@ -12,6 +12,8 @@ test.after(() => fs.rmSync(dir, { recursive: true, force: true }));
 const read = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
 const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
 const REF = 'myeuoqvyyhveoxrpkjvg';
+const DEMO_FILES = ['demo.js', 'demo-data.js', 'demo.css', 'remote-fake.js'];
+const inRoot = (f) => !f.startsWith(path.join(dir, 'pruebas') + path.sep) && !f.startsWith(path.join(dir, 'demo') + path.sep);
 
 test('la raíz no incluye la URL ni la clave de pruebas y su config.js sigue vacío', () => {
   const files = walk(dir).filter((f) => !f.startsWith(path.join(dir, 'pruebas') + path.sep));
@@ -81,6 +83,45 @@ test('el sitio incluye todos los archivos que carga index.html y precachea sw.js
   }
 });
 
+test('demo: la raíz y /pruebas/ no contienen nada de la demo (archivos, datos, banner, referencias)', () => {
+  const MARK = /Fit Demo|\.demo@example\.com|DEMO — datos ficticios|PGDemoData|config\.demo|demo-data|demo\.js|demo\.css|PG_CONFIG\.demo|env:\s*'demo'|perdida-grasa-demo/;
+  for (const f of walk(dir).filter((f) => !f.startsWith(path.join(dir, 'demo') + path.sep) && !f.includes(path.sep + 'vendor' + path.sep))) {
+    if (f.endsWith('robots.txt')) continue;   // solo aquí aparece /demo/ (Disallow)
+    assert.ok(!MARK.test(fs.readFileSync(f, 'utf8')), 'rastro de la demo en ' + f);
+  }
+  for (const base of ['', 'pruebas/']) for (const f of DEMO_FILES) assert.ok(!fs.existsSync(path.join(dir, base, f)), 'archivo de la demo en ' + base + f);
+  assert.ok(/Disallow: \/P-rdida-de-grasa\/demo\//.test(read('robots.txt')));
+});
+
+test('demo: /demo/ no lleva claves ni URLs de Supabase ni captcha, usa env demo con servidor falso, noindex y manifest propio', () => {
+  const cfg = read('demo/config.js');
+  assert.match(cfg, /env:\s*'demo'/);
+  assert.match(cfg, /demo:\s*true/);
+  assert.match(cfg, /producto:\s*'coach'/);
+  assert.match(cfg, /soloNube:\s*true/);
+  assert.match(cfg, /url:\s*''/);
+  assert.match(cfg, /key:\s*''/);
+  assert.ok(!/captchaSiteKey/.test(cfg));
+  for (const f of walk(path.join(dir, 'demo'))) {
+    if (f.includes(path.sep + 'vendor' + path.sep)) continue;   // la librería de terceros cita el dominio en su código; la app nunca la inicia en la demo
+    const t = fs.readFileSync(f, 'utf8');
+    assert.ok(!/https?:\/\/[a-z0-9-]+\.supabase\.co/i.test(t), 'URL de Supabase en ' + f);
+    assert.ok(!/sb_publishable_[A-Za-z0-9_-]{10,}|sb_secret_[A-Za-z0-9]|service_role/.test(t), 'clave en ' + f);
+    assert.ok(!t.includes(REF), 'referencia del proyecto de pruebas en ' + f);
+    assert.ok(!/['"]0x4[A-Za-z0-9_-]{17,27}['"]/.test(t), 'site key de captcha en ' + f);
+  }
+  const html = read('demo/index.html');
+  assert.match(html, /<meta name="robots" content="noindex,nofollow">/);
+  for (const f of DEMO_FILES) { assert.ok(fs.existsSync(path.join(dir, 'demo', f)), f); assert.ok(read('demo/sw.js').includes(`'${f}'`), 'sw de la demo sin ' + f); }
+  assert.ok(html.indexOf('remote.js') < html.indexOf('remote-fake.js') && html.indexOf('demo.js') < html.indexOf('account.js'), 'demo.js debe cargar antes de account.js');
+  const m = JSON.parse(read('demo/manifest.webmanifest'));
+  assert.strictEqual(m.name, 'Pérdida de Grasa (demo)');
+  assert.strictEqual(m.scope, './');
+  // El sw de la raíz y el de pruebas no precachean nada de la demo
+  assert.ok(!/demo/.test(read('sw.js')) && !/demo/.test(read('pruebas/sw.js')));
+  assert.ok(/cacheName\(47\)/.test(read('demo/sw.js')));
+});
+
 test('PGNS: sin env los nombres son los de siempre; con env llevan sufijo', () => {
   const { create } = require('../ns.js');
   const p = create({ env: '' }), t = create({ env: 'pruebas' }), x = create({ env: '../x' });
@@ -89,4 +130,7 @@ test('PGNS: sin env los nombres son los de siempre; con env llevan sufijo', () =
   assert.strictEqual(create().key('owner'), 'perdida-grasa:owner');
   assert.strictEqual(x.env, '');
   assert.ok(!t.cacheName(1).startsWith(p.cachePrefix()));
+  const d = create({ env: 'demo' });
+  assert.deepStrictEqual([d.key('v1'), d.dbName(), d.cacheName(47), d.isTest], ['perdida-grasa-demo:v1', 'perdida-grasa-demo', 'perdida-grasa-demo-v47', false]);
+  assert.ok(!d.cacheName(1).startsWith(p.cachePrefix()) && !d.cacheName(1).startsWith(t.cachePrefix()) && !t.cacheName(1).startsWith(d.cachePrefix()));
 });

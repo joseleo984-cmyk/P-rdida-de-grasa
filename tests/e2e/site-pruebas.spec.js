@@ -92,12 +92,15 @@ test('(d) los service workers de la raíz y de pruebas conviven sin borrarse las
   await page.waitForFunction(() => navigator.serviceWorker.controller || true);
   const regs = await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map((r) => new URL(r.scope).pathname).sort());
   expect(regs).toEqual(['/', '/pruebas/']);
+  await page.goto(site.base + '/demo/');                  // la demo es una tercera copia en el mismo origen (su entrada propia no pasa por la pantalla legal)
+  await page.waitForFunction(() => typeof PGNS !== 'undefined' && document.readyState === 'complete');
+  await page.evaluate(() => navigator.serviceWorker.ready);
   // Reabrir cada una fuerza install/activate otra vez: ninguna debe borrar la caché de la otra.
   await page.reload(); await page.waitForTimeout(500);
   await open(page, site.base + '/');
   await page.waitForTimeout(500);
   const keys = await page.evaluate(() => caches.keys());
-  expect(keys.sort()).toEqual(['perdida-grasa-pruebas-v46', 'perdida-grasa-v46']);
+  expect(keys.sort()).toEqual(['perdida-grasa-demo-v47', 'perdida-grasa-pruebas-v47', 'perdida-grasa-v47']);
   for (const k of keys) expect(await page.evaluate(async (k) => (await (await caches.open(k)).keys()).length, k)).toBeGreaterThan(5);
-  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v46')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
+  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v47')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
 });
