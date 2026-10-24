@@ -138,7 +138,7 @@
   // ---------- Navegación ----------
   // Barra de abajo. Cliente (y sin cuenta): Inicio | Comidas | ＋ Registrar | Progreso | Más.
   // Coach: Clientes | ＋ Invitar | Más (su propio seguimiento sigue en Más). Las vistas conservan sus ids (#view-…).
-  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas', micomidas: 'mas', rutina: 'mas', rutinas: 'mas', 'rutina-edit': 'coach' };
+  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas', micomidas: 'mas', rutina: 'mas', rutinas: 'mas', 'rutina-edit': 'coach', fotovistas: 'fotos' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
   let navCoach = false;
   function show(view, mode) {
@@ -149,7 +149,7 @@
       $('#view-perfil').dataset.mode = m;
       $('#perfil-title').textContent = PERFIL_TITLES[m];
     }
-    const tabView = navCoach && ['panel', 'comidas', 'registro', 'habitos', 'medidas', 'fotos'].includes(view) ? 'mas' : PROD.coach && view === 'fotos' ? 'fotos' : view === 'rutina-edit' && mode === 'mas' ? 'mas' : TAB_OF[view] || view;   // v1.8: la rutina de la biblioteca se edita desde Más
+    const tabView = navCoach && ['panel', 'comidas', 'registro', 'habitos', 'medidas', 'fotos'].includes(view) ? 'mas' : PROD.coach && view === 'fotos' ? 'fotos' : (view === 'rutina-edit' || view === 'fotovistas') && mode === 'mas' ? 'mas' : TAB_OF[view] || view;   // v1.8: la rutina de la biblioteca se edita desde Más
     $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + view));
     $$('.tabbar button').forEach((b) => {
       const on = b.dataset.view === tabView;
@@ -641,6 +641,9 @@
     const card = $('#photos-coach-card');
     const show = PROD.coach && !!l && photoCloudOn();
     card.classList.toggle('hidden', !show);
+    // Textos legales 24/10/2026: aviso prominente junto al formulario (solo con el permiso A6b vigente; NO es un consentimiento) y entrada a la bitácora.
+    $('#photo-share-notice').classList.toggle('hidden', !(PROD.coach && coachPhotosOn()));
+    $('#photos-log-card').classList.toggle('hidden', !(PROD.coach && !!acct()));
     $('#photos-a6a-text').classList.toggle('hidden', !PROD.soloNube);
     if (PROD.soloNube) setText($('#photos-a6a-text'), CT.fill(CT.get('A6a').body, {}));
     if (!show) return;
@@ -668,6 +671,7 @@
     finally { btn.disabled = false; render(); }
   });
   async function unshareAllPhotos() {
+    if (!photos.length && photosAllowed()) await loadPhotos();   // al arrancar la galería puede no estar leída todavía (p. ej. al retirar un permiso viejo)
     const now = new Date().toISOString();
     for (const p of photos.filter((x) => x.sharedWithCoach)) { p.sharedWithCoach = false; p.updatedAt = now; try { await Photos.put(p); } catch { /* se reintenta en la próxima carga */ } }
     scheduleSync(300);
@@ -687,6 +691,38 @@
   let lastPhotosAllowed = photosAllowed();
   document.addEventListener('pg:consents-changed', () => { const a = photosAllowed(); if (a !== lastPhotosAllowed) { lastPhotosAllowed = a; loadPhotos(); } render(); });
   document.addEventListener('pg:account-ready', () => { lastPhotosAllowed = photosAllowed(); loadPhotos(); });
+
+  // ---- Textos legales 24/10/2026 (producto coach): «Quién vio mis fotos». El texto aprobado de A6b promete una bitácora de visualización en el perfil:
+  // cada vez que el coach abre una foto, el servidor lo anota (grasa.photo_views) y aquí la persona lo ve (Remote.client.photoViews: las 100 más recientes).
+  if (PROD.coach) {
+    $('#photo-file-text').textContent = 'Adjuntar foto';   // el teléfono ofrece «Tomar foto» en el mismo selector (accept="image/*"): sin botones nuevos
+    $('#coach-log-card').classList.remove('hidden');
+  }
+  const fvWhen = (iso) => new Date(iso).toLocaleString('es', { day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+  const fvDay = (d) => new Date(d + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
+  async function loadPhotoViews() {
+    const status = $('#fv-status'), list = $('#fv-list'), empty = $('#fv-empty'), retry = $('#btn-fv-retry');
+    list.replaceChildren(); empty.classList.add('hidden'); retry.classList.add('hidden');
+    const R = window.PGAccount && PGAccount.remote;
+    if (!R || !acct()) { setText(status, 'Entra a tu cuenta para ver quién abrió tus fotos.'); return; }
+    setText(status, 'Cargando…');
+    try {
+      const rows = await R.client.photoViews();
+      setText(status, rows.length ? `Aperturas registradas: ${rows.length}${rows.length >= 100 ? ' (las 100 más recientes)' : ''}.` : '');
+      empty.classList.toggle('hidden', rows.length > 0);
+      list.innerHTML = rows.map((v) => {
+        const what = v.photoDate && POSES[v.pose] ? `tu foto de ${POSES[v.pose].toLowerCase()} del ${fvDay(v.photoDate)}` : 'una de tus fotos';
+        return `<li class="fv-item"><strong>${esc(fvWhen(v.viewedAt))}</strong><span>${esc(v.coachName || 'Tu coach')} abrió ${esc(what)}.</span></li>`;
+      }).join('');
+    } catch (e) {
+      setText(status, PGAccount.errorText(e, 'shares'));
+      retry.classList.remove('hidden');
+    }
+  }
+  const openPhotoViews = (mode) => { goTo('fotovistas', mode, mode === 'mas' ? 'row-coach' : undefined); loadPhotoViews(); };
+  $('#btn-fotovistas').addEventListener('click', () => openPhotoViews());
+  $('#btn-fotovistas-coach').addEventListener('click', () => openPhotoViews('mas'));
+  $('#btn-fv-retry').addEventListener('click', loadPhotoViews);
 
   // Peso registrado el mismo día o el más cercano (máximo 3 días de diferencia).
   function weightNear(iso) {
@@ -1053,6 +1089,20 @@
   $('#btn-export-csv').addEventListener('click', () => {
     download(`perdida-grasa-${today()}.csv`, Coach.toCSV(state), 'text/csv;charset=utf-8');
   });
+  // Textos legales 24/10/2026 (producto coach, concepto punto 3.6): antes de abrir el selector de archivo se muestra el aviso LITERAL aprobado
+  // («Antes de importar tu historial: …»). «Continuar» abre el selector; «Cancelar» no hace nada. En la app oficial la importación sigue como estaba.
+  if (PROD.coach) {
+    const dlg = $('#sheet-import');
+    let passOnce = false;
+    $('#file-import').addEventListener('click', (ev) => {
+      if (passOnce) { passOnce = false; return; }
+      ev.preventDefault();
+      dlg.showModal();
+      $('#import-title').focus();
+    });
+    $('#import-ok').addEventListener('click', () => { passOnce = true; dlg.close(); $('#file-import').click(); });
+    $('#import-cancel').addEventListener('click', () => dlg.close());
+  }
   // Importación atómica: se valida TODO en memoria; si algo falla no se toca ni localStorage ni IndexedDB.
   $('#file-import').addEventListener('change', async (ev) => {
     const file = ev.target.files[0];
@@ -1707,10 +1757,13 @@
       const raw = String(el[m.key].value).replace(',', '.').trim();
       if (raw === '') continue;
       const v = Number(raw), [lo, hi] = Schema.RANGES[m.key];
-      if (!Number.isFinite(v) || v < lo || v > hi) { fail(`Revisa «${m.label}»: debe estar entre ${lo} y ${hi} cm.`, el[m.key]); return; }
+      if (!Number.isFinite(v) || v < lo || v > hi) { fail(`Revisa «${m.label}»: debe estar entre ${lo} y ${hi} ${m.unit}.`, el[m.key]); return; }
       vals[m.key] = v;
     }
-    if (!Object.keys(vals).length) { fail('Escribe al menos una medida.', el.neck); return; }
+    // Peso, abdomen y cadera son obligatorios en los registros NUEVOS (si ese día ya los tiene, no se vuelven a exigir; el historial importado queda exento).
+    const prior = state.entries.find((e) => e.date === d);
+    const falta = Medidas.missing(vals, prior);
+    if (falta.length) { fail(Medidas.missingText(falta), el[falta[0].key]); return; }
     err.classList.add('hidden');
     const existing = state.entries.find((e) => e.date === d);
     if (existing) Object.assign(existing, vals); else state.entries.push({ id: uid(), date: d, ...vals });
@@ -1728,12 +1781,12 @@
     if (save()) render();
   });
   function medChartSVG(key) {
-    const label = Medidas.labelOf(key);
+    const label = Medidas.labelOf(key), unit = Medidas.unitOf(key);
     const c = Medidas.chart(Medidas.series(state.entries, key), { w: 320, h: 150 });
     if (!c) return `<p class="muted small">Aún no hay medidas de «${esc(label)}». Anota la primera arriba.</p>`;
     const first = c.pts[0], last = c.pts[c.pts.length - 1];
     const val = (p, anchor) => `<text x="${p.x}" y="${Math.max(11, p.y - 9)}" text-anchor="${anchor}">${esc(Medidas.fmt(p.value))}</text>`;
-    return `<svg viewBox="0 0 ${c.w} ${c.h}" role="img" aria-label="${esc(Medidas.chartLabel(label, c))}" focusable="false">
+    return `<svg viewBox="0 0 ${c.w} ${c.h}" role="img" aria-label="${esc(Medidas.chartLabel(label, c, unit))}" focusable="false">
       <line class="axis" x1="10" y1="${c.h - 20}" x2="${c.w - 10}" y2="${c.h - 20}"/>
       ${c.d ? `<path class="line" d="${c.d}"/>` : ''}${c.pts.map((p) => `<circle class="dot" cx="${p.x}" cy="${p.y}" r="4"/>`).join('')}
       ${val(first, c.pts.length > 1 ? 'start' : 'middle')}${c.pts.length > 1 ? val(last, 'end') : ''}
@@ -1744,7 +1797,7 @@
     $$('#medidas-pick button').forEach((b) => b.classList.toggle('on', b.dataset.med === medKey));
     $('#medidas-chart').innerHTML = medChartSVG(medKey);
     const row = Medidas.summary(state.entries).find((r) => r.key === medKey);
-    setText($('#medidas-chart-sub'), row.count ? `${row.label}: inicio ${row.startText} cm · hoy ${row.todayText} cm${row.change == null ? '' : ` · cambio ${row.changeText} cm`}` : '');
+    setText($('#medidas-chart-sub'), row.count ? `${row.label}: inicio ${row.startText} ${row.unit} · hoy ${row.todayText} ${row.unit}${row.change == null ? '' : ` · cambio ${row.changeText} ${row.unit}`}` : '');
   }
   window.PGMedTable = (rows) => `<table class="med-table"><thead><tr><th scope="col">Medida</th><th scope="col">Inicio</th><th scope="col">Hoy</th><th scope="col">Cambio</th></tr></thead><tbody>${rows.map((r) =>
     `<tr><th scope="row">${esc(r.label)}</th><td>${esc(r.startText)}</td><td>${esc(r.todayText)}</td><td class="${r.dir === 'down' ? 'dn' : ''}">${esc(r.changeText)}</td></tr>`).join('')}</tbody></table>`;
@@ -1753,7 +1806,7 @@
     $('#medidas-table').innerHTML = PGMedTable(Medidas.summary(state.entries));
     const list = state.entries.filter((e) => Medidas.KEYS.some((k) => e[k] != null)).sort((a, b) => b.date.localeCompare(a.date));
     $('#medidas-empty').classList.toggle('hidden', list.length > 0);
-    $('#medidas-history').innerHTML = list.map((e) => `<li><span><strong>${esc(fmtDate(e.date))}</strong><br><span class="small muted">${Medidas.MEASURES.filter((m) => e[m.key] != null).map((m) => `${esc(m.label)} ${esc(Medidas.fmt(e[m.key]))}`).join(' · ')}</span></span>
+    $('#medidas-history').innerHTML = list.map((e) => `<li><span><strong>${esc(fmtDate(e.date))}</strong><br><span class="small muted">${Medidas.MEASURES.filter((m) => e[m.key] != null).map((m) => `${esc(m.label)} ${esc(Medidas.fmt(e[m.key]))}${m.unit === 'kg' ? ' kg' : ''}`).join(' · ')}</span></span>
       <button type="button" class="icon-btn" data-del-med="${esc(e.id)}" aria-label="Eliminar las medidas del ${esc(fmtDate(e.date))}">✕</button></li>`).join('');
     // Lo último que anotó, como pista en cada casilla.
     for (const r of Medidas.summary(state.entries)) medForm.elements[r.key].placeholder = r.count ? `Última: ${r.todayText}` : '';
@@ -1772,7 +1825,7 @@
     $('#hc-habits').innerHTML = barHTML(day.items);
     setText($('#hc-habits-sub'), day.logged ? 'Hoy' : 'Aún sin registrar');
     const last = Medidas.summary(state.entries).filter((r) => r.count).sort((a, b) => b.lastDate.localeCompare(a.lastDate))[0];
-    setText($('#hc-med-text'), last ? `Última medida: ${fmtDate(last.lastDate)} · ${last.label} ${last.todayText} cm` : 'Aún no registras medidas.');
+    setText($('#hc-med-text'), last ? `Última medida: ${fmtDate(last.lastDate)} · ${last.label} ${last.todayText} ${last.unit}` : 'Aún no registras medidas.');
     const m = acct();
     const name = (m && m.displayName) || (m && m.email ? m.email.split('@')[0] : '');
     setText($('#home-greeting'), name ? `Hola, ${name.charAt(0).toUpperCase() + name.slice(1)}` : 'Hola');

@@ -11,8 +11,9 @@
   const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-  // Valor del atributo accept del selector de archivo (iPad/iPhone: tipos explícitos + extensiones, para que Fotos ofrezca los videos).
-  const ACCEPT = 'image/gif,image/webp,video/mp4,video/quicktime,video/webm,.gif,.webp,.mp4,.mov,.webm';
+  // Valor del atributo accept del selector de archivo: «video/*» hace que el teléfono ofrezca además GRABAR con la cámara. Solo orienta al
+  // teléfono: lo que de verdad se acepta lo decide checkGif (tipos mp4/mov/webm, GIF/WebP, firma de bytes, 10 MB / 3 MB), que no cambia.
+  const ACCEPT = 'image/gif,image/webp,video/*';
 
   const str = (v) => (typeof v === 'string' ? v : '');
   const trim = (v) => str(v).trim();

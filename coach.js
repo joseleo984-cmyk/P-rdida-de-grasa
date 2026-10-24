@@ -50,7 +50,10 @@
 
   function toCSV(state) {
     const byDate = new Map(state.entries.map((e) => [e.date, e]));
-    const rows = [CSV_HEADERS.map(csvText).join(';')];
+    // Producto «coach»: si algún registro trae abdomen, se añade su columna tras «Cintura». Sin abdomen (la app oficial) el CSV queda IGUAL que siempre.
+    const withAbdomen = state.entries.some((e) => typeof e.abdomen === 'number');
+    const heads = withAbdomen ? [...CSV_HEADERS.slice(0, 3), 'Abdomen (cm)', ...CSV_HEADERS.slice(3)] : CSV_HEADERS;
+    const rows = [heads.map(csvText).join(';')];
     for (const d of allDates(state)) {
       const e = byDate.get(d) || {};
       const food = hasFood(state, d);
@@ -59,7 +62,7 @@
       const habits = hasHabits(h);
       const bf = byDate.has(d) ? bodyFatOf(e, state.profile) : null;
       rows.push([
-        d, csvNum(e.weight), csvNum(e.waist), csvNum(e.neck), csvNum(e.hip), csvNum(bf),
+        d, csvNum(e.weight), csvNum(e.waist), ...(withAbdomen ? [csvNum(e.abdomen)] : []), csvNum(e.neck), csvNum(e.hip), csvNum(bf),
         food ? csvNum(t.kcal, 0) : '', food ? csvNum(t.protein) : '', food ? csvNum(t.carbs) : '', food ? csvNum(t.fat) : '',
         food ? String(state.foods[d].length) : '',
         habits ? csvNum(h.steps, 0) : '', habits ? csvNum(h.water) : '', habits ? csvNum(h.sleep) : '',

@@ -15,6 +15,8 @@
   //   (armR, armL), espalda (back) y muslo derecho/izquierdo (thighR, thighL), además de cuello y cintura que ya existían.
   //   Son campos OPCIONALES: un respaldo v4 es válido tal cual (la migración v4→v5 no cambia ningún dato) y el peso ya no es obligatorio.
   //   Un respaldo v5 no se puede abrir en una app de versión 4 (dice «versión más nueva»), como siempre.
+  //   Producto «coach» (textos legales del 24/10/2026): se suma el abdomen (`abdomen`, cm), también OPCIONAL en el esquema. Es campo nuevo sin
+  //   cambio de versión: un respaldo anterior es válido tal cual y la obligatoriedad de peso, abdomen y cadera es solo del formulario nuevo de Medidas.
   const CURRENT_VERSION = 5;
   const EPOCH = '1970-01-01T00:00:00.000Z';
 
@@ -46,7 +48,7 @@
 
   // Rangos aceptados (algo más amplios que los del formulario para no perder datos legítimos).
   const RANGES = {
-    weight: [20, 400], waist: [30, 250], neck: [15, 80], hip: [40, 250], bodyFat: [2, 70],
+    weight: [20, 400], waist: [30, 250], abdomen: [30, 250], neck: [15, 80], hip: [40, 250], bodyFat: [2, 70],
     armR: [10, 80], armL: [10, 80], back: [15, 150], thighR: [20, 120], thighL: [20, 120],
     kcal: [0, 10000], protein: [0, 1000], carbs: [0, 2000], fat: [0, 1000],
     steps: [0, 200000], water: [0, 20], sleep: [0, 24],
@@ -180,8 +182,8 @@
     return p;
   }
 
-  // Medidas que puede llevar un registro corporal (todas opcionales; basta con una). Sprint 11: + brazos, espalda y muslos.
-  const ENTRY_FIELDS = ['weight', 'waist', 'neck', 'hip', 'bodyFat', 'armR', 'armL', 'back', 'thighR', 'thighL'];
+  // Medidas que puede llevar un registro corporal (todas opcionales; basta con una). Sprint 11: + brazos, espalda y muslos. Textos legales 24/10/2026: + abdomen.
+  const ENTRY_FIELDS = ['weight', 'waist', 'abdomen', 'neck', 'hip', 'bodyFat', 'armR', 'armL', 'back', 'thighR', 'thighL'];
   function normalizeEntries(raw, warn, uid) {
     if (raw === undefined) return [];
     if (!Array.isArray(raw)) { warn('Registros descartados: formato no válido'); return []; }

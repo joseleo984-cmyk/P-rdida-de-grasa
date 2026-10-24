@@ -1,16 +1,31 @@
 // Sprint 11: medidas de cuerpo tipo sastre (cuello, brazos, espalda, cintura, muslos), en cm con decimales. Lógica PURA
 // (sin DOM; pruebas en tests/medidas.test.js). Viven en el registro corporal `entry` (una fila por día; Schema v5).
-// Ni el peso es obligatorio ni se pide ningún dato de salud.
+// Textos legales del 24/10/2026: el formulario de medidas NUEVAS exige peso (kg), abdomen y cadera (cm); las otras siete siguen opcionales.
+// Los registros viejos y el historial importado están EXENTOS (en el esquema siguen siendo opcionales; ver Schema.RANGES).
 (function (root) {
   'use strict';
   const MINUS = '−';
-  // Orden de la maqueta M2. `key` = campo del registro corporal.
+  // Orden de la maqueta M2 (con peso al inicio y abdomen y cadera junto a la cintura). `key` = campo del registro corporal; `required` = lo exige
+  // el formulario nuevo; `unit` = kg o cm.
   const MEASURES = [
-    { key: 'neck', label: 'Cuello' }, { key: 'armR', label: 'Brazo der.' }, { key: 'armL', label: 'Brazo izq.' }, { key: 'back', label: 'Espalda' },
-    { key: 'waist', label: 'Cintura' }, { key: 'thighR', label: 'Muslo der.' }, { key: 'thighL', label: 'Muslo izq.' },
+    { key: 'weight', label: 'Peso', unit: 'kg', required: true },
+    { key: 'neck', label: 'Cuello', unit: 'cm' }, { key: 'armR', label: 'Brazo der.', unit: 'cm' }, { key: 'armL', label: 'Brazo izq.', unit: 'cm' }, { key: 'back', label: 'Espalda', unit: 'cm' },
+    { key: 'waist', label: 'Cintura', unit: 'cm' }, { key: 'abdomen', label: 'Abdomen', unit: 'cm', required: true }, { key: 'hip', label: 'Cadera', unit: 'cm', required: true },
+    { key: 'thighR', label: 'Muslo der.', unit: 'cm' }, { key: 'thighL', label: 'Muslo izq.', unit: 'cm' },
   ];
   const KEYS = MEASURES.map((m) => m.key);
+  const REQUIRED = MEASURES.filter((m) => m.required).map((m) => m.key);
   const labelOf = (key) => (MEASURES.find((m) => m.key === key) || {}).label || key;
+  const unitOf = (key) => (MEASURES.find((m) => m.key === key) || {}).unit || 'cm';
+  // Qué falta en un registro NUEVO: `vals` = lo escrito en el formulario; `existing` = el registro de ese mismo día, si ya existía (lo que ya tiene no se vuelve a exigir).
+  // → lista de medidas (objetos de MEASURES) que faltan.
+  const missing = (vals, existing) => MEASURES.filter((m) => m.required && num((vals || {})[m.key]) == null && num((existing || {})[m.key]) == null);
+  // «Falta «Abdomen» (cm): es obligatoria.» / «Faltan «Peso» (kg), «Abdomen» (cm) y «Cadera» (cm): son obligatorias.»
+  function missingText(list) {
+    const names = list.map((m) => `«${m.label}» (${m.unit})`);
+    if (!names.length) return '';
+    return names.length === 1 ? `Falta ${names[0]}: es obligatoria.` : `Faltan ${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}: son obligatorias.`;
+  }
 
   const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
   const round1 = (v) => Math.round(v * 10) / 10;
@@ -29,7 +44,7 @@
       const s = series(entries, m.key);
       const start = s.length ? s[0].value : null, now = s.length ? s[s.length - 1].value : null;
       const change = s.length > 1 ? round1(now - start) : null;
-      return { key: m.key, label: m.label, count: s.length, start, today: now, change, dir: change == null ? 'none' : change < 0 ? 'down' : change > 0 ? 'up' : 'same',
+      return { key: m.key, label: m.label, unit: m.unit, count: s.length, start, today: now, change, dir: change == null ? 'none' : change < 0 ? 'down' : change > 0 ? 'up' : 'same',
         startText: fmt(start), todayText: fmt(now), changeText: fmtChange(change), lastDate: s.length ? s[s.length - 1].date : null };
     });
   }
@@ -54,13 +69,13 @@
     return { w, h, d, pts, min: lo, max: hi, first, last, dir };
   }
   // Texto para lectores de pantalla.
-  function chartLabel(label, c) {
+  function chartLabel(label, c, unit = 'cm') {
     if (!c) return `${label}: sin datos`;
-    if (c.pts.length < 2) return `${label}: un solo registro, ${fmt(c.last.value)} cm`;
-    return `${label}: de ${fmt(c.first.value)} cm a ${fmt(c.last.value)} cm en ${c.pts.length} registros`;
+    if (c.pts.length < 2) return `${label}: un solo registro, ${fmt(c.last.value)} ${unit}`;
+    return `${label}: de ${fmt(c.first.value)} ${unit} a ${fmt(c.last.value)} ${unit} en ${c.pts.length} registros`;
   }
 
-  const api = { MEASURES, KEYS, labelOf, series, summary, hasAny, chart, chartLabel, fmt, fmtChange, MINUS };
+  const api = { MEASURES, KEYS, REQUIRED, labelOf, unitOf, missing, missingText, series, summary, hasAny, chart, chartLabel, fmt, fmtChange, MINUS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Medidas = api;
 })(typeof window !== 'undefined' ? window : globalThis);

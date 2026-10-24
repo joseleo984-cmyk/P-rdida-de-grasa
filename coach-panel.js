@@ -57,6 +57,9 @@
       gate.classList.toggle('hidden', !locked);
       if (!locked) continue;
       gate.querySelector('.a7-intro').textContent = ConsentTexts.fill(t.intro, {});
+      const clause = gate.querySelector('.a7-clause');   // producto coach: cláusula 13 completa (contenidos cargados y derechos de imagen)
+      clause.textContent = t.clause || '';
+      clause.classList.toggle('hidden', !t.clause);
       gate.querySelector('.a7-text').textContent = ConsentTexts.fill(t.body, {});
       A.fillLinks(gate.querySelector('.a7-links'), t.links);
     }

@@ -75,7 +75,9 @@ test('checkGif con videos: tipos, 10 MB, firma, y el GIF sigue en 3 MB', () => {
 test('isVideo, maxBytes y accept', () => {
   assert.strictEqual(R.isVideo('video/webm'), true); assert.strictEqual(R.isVideo('image/gif'), false);
   assert.strictEqual(R.maxBytes('video/mp4'), 10 * MB); assert.strictEqual(R.maxBytes('image/webp'), 3 * MB);
-  for (const t of ['image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm', '.mov', '.mp4']) assert.ok(R.ACCEPT.includes(t), t);
+  // «video/*» deja que el teléfono ofrezca grabar con la cámara; la validación de verdad sigue en checkGif (otros tipos se rechazan con mensaje claro).
+  assert.strictEqual(R.ACCEPT, 'image/gif,image/webp,video/*');
+  assert.strictEqual(R.checkGif({ type: 'video/x-matroska', size: 1000, name: 'a.mkv' }, '1a45dfa3010000000000000a').ok, false);
 });
 test('el selector de archivo de index.html acepta exactamente R.ACCEPT (GIF/WebP y video)', () => {
   const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');

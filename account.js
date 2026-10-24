@@ -464,6 +464,9 @@
   function renderA7Box() {
     const t = CT.get('A7');
     $('#acc-a7-intro').textContent = CT.fill(t.intro, {});
+    // Producto coach: la cláusula 13 (contenidos cargados) se muestra completa antes de la casilla; en la app oficial no existe.
+    $('#acc-a7-clause').textContent = t.clause || '';
+    $('#acc-a7-clause').classList.toggle('hidden', !t.clause);
     $('#acc-a7-text').textContent = CT.fill(t.body, {});
     fillLinks($('#acc-a7-links'), t.links);
   }
@@ -984,6 +987,7 @@
       // Autorizaciones: lo pendiente sube y se aprende lo que ya se aceptó en otro teléfono (A7, A3, A4…).
       await flushConsents();
       try { const server = await remote.account.consents(); writeMeta(CT.mergeServer(readMeta(), server)); } catch (e) { if (e && e.code === 'auth') throw e; }
+      await retireOldA6b();
       document.dispatchEvent(new CustomEvent('pg:consents-changed'));
     } catch (err) {
       if (err && err.code === 'auth') writeMeta({ ...readMeta(), authExpired: true });
@@ -1050,6 +1054,22 @@
     document.dispatchEvent(new CustomEvent('pg:consents-changed'));
     document.dispatchEvent(new CustomEvent('pg:link-changed'));
     return true;
+  }
+
+  // Producto coach: quien dio el permiso de fotos con un texto ANTERIOR (0.3-A6b-coach) queda sin permiso vigente. El servidor no mira la versión
+  // del texto, así que se retira aquí lo que el coach ya veía (permiso y marca de cada foto) y la persona decide de nuevo con el texto nuevo.
+  let a6bChecked = false;
+  async function retireOldA6b() {
+    const meta = readMeta() || {};
+    const c = meta.consents && meta.consents.photo_view_coach;
+    if (!PROD.coach || a6bChecked || !meta.link || !c || c.granted !== true || c.version === CT.version('A6b')) return;
+    a6bChecked = true;
+    try {
+      if (await setCoachPhotos(false, { ask: false })) {
+        document.dispatchEvent(new CustomEvent('pg:photos-unshare'));
+        toast('Actualizamos el permiso de tus fotos: tu coach ya no las ve hasta que lo vuelvas a dar (Fotos)');
+      }
+    } catch { a6bChecked = false; /* sin conexión: se reintenta en el próximo refresco */ }
   }
 
   // ---------- Arranque ----------
