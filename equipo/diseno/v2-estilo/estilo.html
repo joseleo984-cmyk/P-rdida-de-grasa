@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Estilo propuesto</title>
+<link href="fonts/local.css" rel="stylesheet">
+<style>
+:root{
+  --bg:#05090a; --app:#07100f; --s1:#0f1918; --s2:#16221f; --line:#1f2e2b;
+  --fg:#eef5f3; --muted:#93a6a2; --dim:#5d706c;
+  --acc:#2dd4bf; --acc2:#5eead4; --on:#04201c; --glow:rgba(45,212,191,.55);
+  --warm:#f59e5b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#020405;font-family:"Atkinson Hyperlegible",-apple-system,sans-serif;color:var(--fg)}
+.all{display:flex;gap:0}
+.shot{width:520px;padding:34px 40px 40px;position:relative;overflow:hidden;
+  background:radial-gradient(120% 45% at 50% 108%, rgba(45,212,191,.42), rgba(13,80,72,.25) 38%, transparent 70%),linear-gradient(#000,#05100f);}
+.shot + .shot{border-left:1px solid #0c1615}
+.hl{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:38px;line-height:1.02;text-transform:uppercase;letter-spacing:-.01em;text-align:center;margin:6px 0 4px}
+.sub{text-align:center;color:var(--muted);font-size:15px;margin:0 0 22px}
+.ic{width:30px;height:30px;margin:0 auto 6px;display:block;color:var(--acc2)}
+.phone{width:410px;margin:0 auto;border:10px solid #222b2a;border-radius:52px;background:var(--app);overflow:hidden;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.6)}
+.screen{height:844px;display:flex;flex-direction:column;position:relative}
+.sbar{height:46px;flex:0 0 46px;display:flex;align-items:center;justify-content:space-between;padding:0 28px 0 32px;font-weight:700;font-size:14.5px;position:relative}
+.isl{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:112px;height:29px;border-radius:16px;background:#000}
+.bat{width:24px;height:12px;border:1.6px solid currentColor;border-radius:4px;position:relative}
+.bat::after{content:"";position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:70%;background:currentColor;border-radius:1px}
+.body{flex:1;padding:6px 16px 10px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.date{font-size:15px;color:var(--muted)}
+.hi{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:25px;line-height:1.1;margin:2px 0 0}
+.gear{width:34px;height:34px;border-radius:50%;background:var(--s1);display:grid;place-items:center;color:var(--muted)}
+/* tira de días */
+.days{display:flex;justify-content:space-between;gap:4px;margin:2px 0}
+.d{width:46px;height:62px;border-radius:24px;border:2px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--dim);font-size:11.5px}
+.d b{font-size:17px;color:var(--fg)}
+.d.ok{border-color:var(--acc);color:var(--acc2)}
+.d.ok b{color:var(--fg)}
+.d.jok{border-color:var(--warm);border-style:dashed;color:var(--warm)}
+.d.hoy{background:var(--fg);border-color:var(--fg);color:#334}
+.d.hoy b{color:#000}
+.d.fut b{color:var(--dim)}
+.legend{font-size:12.5px;color:var(--muted);display:flex;gap:12px;margin-top:-4px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0}
+/* tarjeta héroe */
+.hero{border-radius:24px;padding:16px;position:relative;overflow:hidden;min-height:168px;
+  background:radial-gradient(90% 120% at 100% 0%, rgba(45,212,191,.28), transparent 60%),linear-gradient(160deg,#122a27,#0b1413 70%);border:1px solid #1d3532}
+.hero h3{margin:0;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:22px}
+.meta{font-size:13.5px;color:var(--muted);display:flex;gap:6px;align-items:center;margin-top:3px}
+.btn{background:var(--acc);color:var(--on);font-weight:700;border-radius:999px;padding:11px 22px;font-size:15.5px;display:inline-block;box-shadow:0 6px 24px rgba(45,212,191,.35)}
+.btn.ghost{background:var(--s2);color:var(--fg);box-shadow:none}
+.fig{position:absolute;right:-6px;bottom:-4px;width:170px;height:150px;opacity:.95}
+.tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc2);font-weight:700}
+/* hábitos */
+.habs{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.hab{background:var(--s1);border:1px solid var(--line);border-radius:20px;padding:11px 8px;text-align:center}
+.ring{width:58px;height:58px;margin:0 auto 6px;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-weight:700;font-size:14px}
+.hab .l{font-size:13px;color:var(--muted)}
+.hab .v{font-size:14px;font-weight:700}
+.note{background:var(--s1);border:1px solid var(--line);border-radius:20px;padding:13px 15px;text-align:center}
+.note .tag{color:var(--muted)}
+.note p{margin:5px 0 0;font-size:15.5px;line-height:1.4}
+.note .who{font-size:12.5px;color:var(--muted);margin-top:6px}
+/* barra inferior */
+.tabs{flex:0 0 auto;display:flex;justify-content:space-around;padding:9px 6px 26px;background:linear-gradient(transparent,#050b0a 30%);border-top:1px solid #111d1b}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;color:var(--dim);width:68px}
+.tab svg{width:24px;height:24px}
+.tab.on{color:var(--acc2)}
+/* entrenar */
+.seg{display:flex;background:var(--s1);border-radius:999px;padding:4px;gap:4px}
+.seg div{flex:1;text-align:center;padding:8px;border-radius:999px;font-size:14px;color:var(--muted)}
+.seg .on{background:var(--s2);color:var(--fg);font-weight:700}
+.rc{border-radius:22px;height:150px;position:relative;overflow:hidden;border:1px solid #1c2b29;padding:14px 15px;display:flex;flex-direction:column;justify-content:flex-end}
+.rc h4{margin:0;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;position:relative}
+.rc .meta{position:relative}
+.rc .chip{position:absolute;right:12px;bottom:14px;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);border-radius:999px;padding:5px 10px;font-size:12.5px;display:flex;gap:5px;align-items:center}
+.rc .pill{position:absolute;left:14px;top:12px;background:var(--acc);color:var(--on);border-radius:999px;font-size:11.5px;font-weight:700;padding:4px 10px}
+.rc .art{position:absolute;right:30px;top:6px;width:140px;height:120px;opacity:.9}
+.g1{background:radial-gradient(80% 110% at 85% 20%, rgba(245,158,91,.45), transparent 60%),linear-gradient(135deg,#1d1410,#0b0f0f)}
+.g2{background:radial-gradient(80% 110% at 85% 20%, rgba(45,212,191,.40), transparent 60%),linear-gradient(135deg,#0d1d1b,#090f0e)}
+.g3{background:radial-gradient(80% 110% at 85% 20%, rgba(129,140,248,.40), transparent 60%),linear-gradient(135deg,#12142a,#0a0b12)}
+.small{font-size:12.5px;color:var(--muted);text-align:center}
+/* paso a paso */
+.prog{display:flex;gap:5px;padding:4px 4px 0}
+.prog i{flex:1;height:4px;border-radius:2px;background:#24322f}
+.prog i.d{background:var(--acc)}
+.prog i.c{background:linear-gradient(90deg,var(--acc) 50%,#24322f 50%)}
+.x{width:32px;height:32px;display:grid;place-items:center;color:var(--muted);font-size:22px}
+.stage{height:250px;border-radius:24px;background:radial-gradient(70% 60% at 50% 60%, #1b2a28, #0a1110);position:relative;overflow:hidden;border:1px solid #1a2826}
+.stage .floor{position:absolute;left:8%;right:8%;bottom:34px;height:46px;background:linear-gradient(#202e2b,#141e1c);transform:perspective(200px) rotateX(55deg);border-radius:6px}
+.stage .lbl{position:absolute;left:12px;bottom:10px;font-size:11.5px;color:var(--dim)}
+.stage .thumb{position:absolute;right:10px;top:10px;width:64px;height:64px;border-radius:12px;background:#0f1918;border:1px solid #263532;display:grid;place-items:center;font-size:10px;color:var(--dim);text-align:center}
+.exn{text-align:center}
+.exn h3{margin:0;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:24px}
+.exn p{margin:2px 0 0;color:var(--muted);font-size:14.5px}
+.big{display:flex;align-items:center;justify-content:space-between;padding:0 6px}
+.side{font-size:12px;color:var(--dim);text-align:center;width:70px}
+.side b{display:block;color:var(--fg);font-size:15px}
+.timer{width:178px;height:178px;border-radius:50%;position:relative;display:grid;place-items:center;
+  background:radial-gradient(circle,#081312 58%,transparent 59%);box-shadow:0 0 50px 6px var(--glow), inset 0 0 0 7px var(--acc)}
+.timer .t{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:46px;line-height:1}
+.timer .s{font-size:14px;color:var(--muted);text-align:center;margin-top:4px}
+.ctrl{display:flex;gap:10px;align-items:center;justify-content:center}
+.cb{width:52px;height:52px;border-radius:50%;background:var(--s1);display:grid;place-items:center;font-size:22px;color:var(--fg);border:1px solid var(--line)}
+.cp{flex:0 0 170px;height:52px;border-radius:999px;background:var(--s2);display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;border:1px solid var(--line)}
+.sets{display:flex;justify-content:center;gap:8px}
+.sets span{padding:6px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted)}
+.sets span.ok{border-color:var(--acc);color:var(--acc2)}
+.sets span.now{background:var(--fg);color:#000;font-weight:700;border-color:var(--fg)}
+/* final */
+.done{display:grid;place-items:center;margin-top:20px}
+.medal{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,#0c1d1b 60%,transparent 61%);box-shadow:0 0 60px 10px var(--glow),inset 0 0 0 7px var(--acc)}
+.medal svg{width:64px;height:64px;color:var(--acc2)}
+.dt{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:30px;text-align:center;margin:20px 0 2px;text-transform:uppercase}
+.dsub{text-align:center;color:var(--muted);font-size:15px;margin:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.st{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:12px 6px;text-align:center}
+.st b{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:22px}
+.st span{font-size:12.5px;color:var(--muted)}
+.eff{background:var(--s1);border:1px solid var(--line);border-radius:20px;padding:12px 13px}
+.eff .q{font-size:15px;font-weight:700;margin-bottom:9px}
+.efs{display:flex;gap:6px}
+.efs div{flex:1;text-align:center;border-radius:14px;padding:9px 2px;background:var(--s2);font-size:12.5px;color:var(--muted)}
+.efs div b{display:block;font-size:20px;margin-bottom:2px}
+.efs .on{background:var(--acc);color:var(--on)}
+.efs .on b{color:var(--on)}
+.cap{margin:22px auto 0;width:420px;font-size:14.5px;line-height:1.45;color:#c8d6d3}
+.cap b{color:var(--acc2)}
+</style>
+</head>
+<body>
+<div class="all">
+
+<!-- ================= E1 INICIO ================= -->
+<section class="shot" id="E1-inicio">
+  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+  <h2 class="hl">Tu día en<br>un vistazo</h2>
+  <p class="sub">Inicio del asesorado</p>
+  <div class="phone"><div class="screen">
+    <div class="sbar"><span>9:41</span><div class="isl"></div><span class="bat"></span></div>
+    <div class="body">
+      <div class="row"><div><div class="date">Viernes, 23 de octubre</div><div class="hi">Hola, Ana</div></div><div class="gear">⚙</div></div>
+      <div class="days">
+        <div class="d ok">Sáb<b>17</b></div><div class="d ok">Dom<b>18</b></div><div class="d jok">Lun<b>19</b></div><div class="d ok">Mar<b>20</b></div><div class="d ok">Mié<b>21</b></div><div class="d ok">Jue<b>22</b></div><div class="d hoy">Vie<b>23</b></div>
+      </div>
+      <div class="legend"><span><i style="background:var(--acc)"></i>Registré</span><span><i style="background:var(--warm)"></i>Comodín</span><span>5 de 7 · vas muy bien</span></div>
+      <div class="hero">
+        <div class="tag">Rutina de hoy · de tu coach</div>
+        <h3>Piernas y glúteo</h3>
+        <div class="meta">◷ 6 ejercicios · Día 1</div>
+        <svg class="fig" viewBox="0 0 170 150"><defs><radialGradient id="h1"><stop offset="0" stop-color="#2dd4bf" stop-opacity=".35"/><stop offset="1" stop-color="#2dd4bf" stop-opacity="0"/></radialGradient></defs><circle cx="95" cy="70" r="70" fill="url(#h1)"/><g stroke="#cfe9e4" stroke-width="7" stroke-linecap="round" fill="none" opacity=".85"><circle cx="98" cy="30" r="11" fill="#cfe9e4" stroke="none"/><path d="M98 43 L92 82"/><path d="M95 55 L72 66 M95 55 L118 64"/><path d="M92 82 L66 98 L74 128"/><path d="M92 82 L120 100 L118 130"/></g><rect x="60" y="62" width="70" height="7" rx="3" fill="#2dd4bf" opacity=".9"/></svg>
+        <div style="position:absolute;left:16px;bottom:16px"><span class="btn">Empezar</span></div>
+      </div>
+      <div class="habs">
+        <div class="hab"><div class="ring"><svg width="58" height="58"><circle cx="29" cy="29" r="24" stroke="#1f2e2b" stroke-width="6" fill="none"/><circle cx="29" cy="29" r="24" stroke="#2dd4bf" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="151" stroke-dashoffset="45"/></svg><span>💧</span></div><div class="v">1,4 / 2 L</div><div class="l">Agua</div></div>
+        <div class="hab"><div class="ring"><svg width="58" height="58"><circle cx="29" cy="29" r="24" stroke="#1f2e2b" stroke-width="6" fill="none"/><circle cx="29" cy="29" r="24" stroke="#f59e5b" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="151" stroke-dashoffset="70"/></svg><span>👟</span></div><div class="v">5.200</div><div class="l">Pasos</div></div>
+        <div class="hab"><div class="ring"><svg width="58" height="58"><circle cx="29" cy="29" r="24" stroke="#1f2e2b" stroke-width="6" fill="none"/><circle cx="29" cy="29" r="24" stroke="#818cf8" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="151" stroke-dashoffset="0"/></svg><span>🌙</span></div><div class="v">7 h ✓</div><div class="l">Sueño</div></div>
+      </div>
+      <div class="note"><div class="tag">Nota de tu coach</div><p>«Esta semana subimos el peso en la sentadilla. Si sientes molestia, me escribes.»</p><div class="who">Coach Laura · hace 2 h</div></div>
+    </div>
+    <div class="tabs">
+      <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</div>
+      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 3v8a3 3 0 0 0 6 0V3M7 3v18M17 3c-2 2-3 5-3 8h3v10"/></svg>Comidas</div>
+      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>Entrenar</div>
+      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16l4-5 3 3 5-7"/></svg>Progreso</div>
+      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>Más</div>
+    </div>
+  </div></div>
+  <p class="cap"><b>Qué cambia:</b> la semana pasa a círculos por día (cumplido, comodín, hoy). La rutina de hoy es una tarjeta grande con «Empezar». Agua, pasos y sueño se muestran en anillos. La nota del coach queda como tarjeta de mensaje, nunca como consejo de la app. La barra de abajo sigue con texto debajo de cada ícono.</p>
+</section>
+
+<!-- ================= E2 ENTRENAR ================= -->
+<section class="shot" id="E2-entrenar">
+  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>
+  <h2 class="hl">Las rutinas<br>de tu coach</h2>
+  <p class="sub">Entrenar del asesorado</p>
+  <div class="phone"><div class="screen">
+    <div class="sbar"><span>9:41</span><div class="isl"></div><span class="bat"></span></div>
+    <div class="body">
+      <div class="hi" style="text-align:center;font-size:21px">Entrenar</div>
+      <div class="seg"><div class="on">Asignadas</div><div>Mis rutinas</div><div>Historial</div></div>
+      <div class="rc g2"><span class="pill">HOY</span>
+        <svg class="art" viewBox="0 0 140 120"><g stroke="#d9f3ee" stroke-width="7" stroke-linecap="round" fill="none"><circle cx="78" cy="22" r="10" fill="#d9f3ee" stroke="none"/><path d="M78 34 L72 66"/><path d="M75 44 L52 54 M75 44 L98 52"/><path d="M72 66 L48 80 L56 108"/><path d="M72 66 L98 84 L96 112"/></g><rect x="40" y="50" width="70" height="7" rx="3" fill="#2dd4bf"/></svg>
+        <h4>Piernas y glúteo</h4><div class="meta">Día 1 de 2 · Coach Laura</div><span class="chip">◷ 6 ejercicios</span></div>
+      <div class="rc g1">
+        <svg class="art" viewBox="0 0 140 120"><g stroke="#f6dcc8" stroke-width="7" stroke-linecap="round" fill="none"><circle cx="40" cy="58" r="10" fill="#f6dcc8" stroke="none"/><path d="M52 64 L104 74"/><path d="M60 66 L58 96 M96 72 L100 100"/></g><path d="M20 102 H124" stroke="#f59e5b" stroke-width="4" stroke-linecap="round"/></svg>
+        <h4>Empuje y core</h4><div class="meta">Día 2 de 2 · Coach Laura</div><span class="chip">◷ 7 ejercicios</span></div>
+      <div class="rc g3">
+        <svg class="art" viewBox="0 0 140 120"><g stroke="#dcdffb" stroke-width="7" stroke-linecap="round" fill="none"><circle cx="70" cy="18" r="10" fill="#dcdffb" stroke="none"/><path d="M70 30 L70 70"/><path d="M70 40 L46 62 M70 40 L94 62"/><path d="M70 70 L54 108 M70 70 L86 108"/></g></svg>
+        <h4>Movilidad suave</h4><div class="meta">Para días de descanso</div><span class="chip">◷ 5 ejercicios</span></div>
+      <div class="small">Las imágenes son los GIF o videos que sube tu coach.<br>Si una rutina no tiene, se ve un dibujo de color.</div>
+    </div>
+    <div class="tabs">
+      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Inicio</div>
+      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 3v8a3 3 0 0 0 6 0V3M7 3v18M17 3c-2 2-3 5-3 8h3v10"/></svg>Comidas</div>
+      <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>Entrenar</div>
+      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16l4-5 3 3 5-7"/></svg>Progreso</div>
+      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>Más</div>
+    </div>
+  </div></div>
+  <p class="cap"><b>Qué cambia:</b> cada rutina es una tarjeta grande con la imagen o el GIF que subió el coach, el nombre encima y los ejercicios en la esquina. No mostramos minutos porque las rutinas no guardan su duración. No hay fotos de modelos: si el coach no subió imagen, se ve un dibujo de color.</p>
+</section>
+
+<!-- ================= E3 PASO A PASO ================= -->
+<section class="shot" id="E3-paso-a-paso">
+  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
+  <h2 class="hl">Entrena paso<br>a paso</h2>
+  <p class="sub">Nuevo: modo guiado con la rutina</p>
+  <div class="phone"><div class="screen">
+    <div class="sbar"><span>9:41</span><div class="isl"></div><span class="bat"></span></div>
+    <div class="body">
+      <div class="row"><div class="prog" style="flex:1"><i class="d"></i><i class="d"></i><i class="c"></i><i></i><i></i><i></i></div><div class="x">✕</div></div>
+      <div class="stage"><div class="floor"></div>
+        <svg viewBox="0 0 240 200" style="position:absolute;left:50%;top:18px;transform:translateX(-50%);width:230px"><g stroke="#e3f3f0" stroke-width="9" stroke-linecap="round" fill="none"><circle cx="122" cy="34" r="13" fill="#e3f3f0" stroke="none"/><path d="M122 50 L114 100"/><path d="M119 64 L88 76 M119 64 L150 74"/><path d="M114 100 L80 120 L90 160"/><path d="M114 100 L150 124 L146 162"/></g><rect x="74" y="68" width="92" height="9" rx="4" fill="#2dd4bf"/><path d="M114 100 L80 120" stroke="#f87171" stroke-width="9" stroke-linecap="round" opacity=".8"/><path d="M114 100 L150 124" stroke="#f87171" stroke-width="9" stroke-linecap="round" opacity=".8"/></svg>
+        <div class="thumb">siguiente<br>▶</div>
+        <div class="lbl">GIF del coach</div>
+      </div>
+      <div class="exn"><h3>Sentadilla goblet</h3><p>4 series · 12 repeticiones · 12 kg</p></div>
+      <div class="sets"><span class="ok">1 ✓</span><span class="ok">2 ✓</span><span class="now">Serie 3</span><span>4</span></div>
+      <div class="big">
+        <div class="side">Hecho<b>40 %</b></div>
+        <div class="timer"><div><div class="t">01:02</div><div class="s">Descanso</div></div></div>
+        <div class="side">Ejercicio<b>3 / 6</b></div>
+      </div>
+      <div class="ctrl"><div class="cb">‹</div><div class="cp">❚❚ Pausa</div><div class="cb">›</div></div>
+      <div class="small">Al terminar el descanso suena un aviso corto y pasa a la siguiente serie.</div>
+    </div>
+  </div></div>
+  <p class="cap"><b>Qué es nuevo:</b> hoy el asesorado solo marca «Ya entrené». Con esto sigue la rutina del coach ejercicio por ejercicio: ve el GIF, la serie en la que va y el descanso en un anillo con cuenta regresiva, y puede pausar o saltar. Las series, repeticiones y kilos los pone el coach. La app no los calcula.</p>
+</section>
+
+<!-- ================= E4 TERMINADO ================= -->
+<section class="shot" id="E4-terminado">
+  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg>
+  <h2 class="hl">Cada entreno<br>cuenta</h2>
+  <p class="sub">Al terminar la rutina</p>
+  <div class="phone"><div class="screen">
+    <div class="sbar"><span>9:41</span><div class="isl"></div><span class="bat"></span></div>
+    <div class="body">
+      <div class="row"><span></span><div class="x">✕</div></div>
+      <div class="done"><div class="medal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12l5 5 9-10"/></svg></div></div>
+      <div class="dt">¡Entreno completo!</div>
+      <p class="dsub">Piernas y glúteo · Día 1</p>
+      <div class="stats"><div class="st"><b>6/6</b><span>ejercicios</span></div><div class="st"><b>22</b><span>series</span></div><div class="st"><b>5/7</b><span>días esta semana</span></div></div>
+      <div class="eff"><div class="q">¿Qué tan duro estuvo?</div>
+        <div class="efs"><div><b>😌</b>Suave</div><div><b>🙂</b>Normal</div><div class="on"><b>😤</b>Duro</div><div><b>🥵</b>Al límite</div></div></div>
+      <div class="eff" style="display:flex;align-items:center;justify-content:space-between"><div><div class="q" style="margin:0">¿Alguna molestia?</div><div class="small" style="text-align:left">Tu coach lo verá</div></div><span class="btn ghost" style="padding:8px 14px;font-size:14px">Anotar</span></div>
+      <div style="text-align:center;margin-top:auto"><span class="btn" style="display:block">Listo</span></div>
+      <div class="small">Tu coach verá que entrenaste y cómo te sentiste.</div>
+    </div>
+  </div></div>
+  <p class="cap"><b>Qué cambia:</b> en lugar de un mensaje simple, una pantalla de cierre con un anillo que brilla, el resumen del entreno, la pregunta de esfuerzo que ya existe y «¿Alguna molestia?» para el coach. Mantiene el tono de la celebración aprobada, sin puntos ni premios.</p>
+</section>
+
+</div>
+</body>
+</html>
