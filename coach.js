@@ -134,7 +134,7 @@
   //   estancado en los últimos 14 días (ritmo de 14 d también ≤ −0,05);
   // - amarillo: el resto (2–3 de 7 días, o estancado, o sin pesajes suficientes para ver la tendencia).
   // Solo usa lo que el coach puede ver (el estado ya viene filtrado por las categorías que el cliente compartió).
-  const RED_DAYS = 5, GREEN_DAYS = 4, STALL = -0.05;
+  const RED_DAYS = 7, AMBER_DAYS = 3, GREEN_DAYS = 4, STALL = -0.05;
   function semaforo(state, { today } = {}) {
     if (!today) throw new Error('Falta la fecha de referencia');
     const ref = Calc.toDay(today);
@@ -148,6 +148,7 @@
     if (!last || since >= RED_DAYS) {
       return { ...base, color: 'rojo', label: 'Rojo', reason: last ? `Sin registros desde hace ${since} días` : 'Aún no hay registros' };
     }
+    if (since >= AMBER_DAYS) return { ...base, color: 'amarillo', label: 'Amarillo', reason: `Sin registrar desde hace ${since} días` };
     const losing = rate21 != null && rate21 <= STALL;
     const stalled = rate14 != null && rate14 > STALL;
     if (d7 >= GREEN_DAYS && losing && !stalled) return { ...base, color: 'verde', label: 'Verde', reason: `Registró ${d7} de 7 días y su peso baja` };
@@ -176,7 +177,71 @@
     return state;
   }
 
-  const api = { toCSV, summarize, semaforo, byLight, stateFromWire, CSV_HEADERS, RED_DAYS, GREEN_DAYS };
+  // ---------- UX Etapa 1: lista «Necesitan atención» y resumen semanal ----------
+  // Lo que el coach necesita ver de un vistazo, SIN prescribir nada. Todo sale de lo que el asesorado compartió (el estado ya viene filtrado).
+  const MINUS = '−';
+  const signed1 = (n, d = 1) => { const r = round(n, d); return r === 0 ? '0' : (r < 0 ? MINUS : '+') + Math.abs(r).toLocaleString('es', { minimumFractionDigits: 0, maximumFractionDigits: d }); };
+  const dayNum = Calc.toDay;
+  const inLast = (d, today, days) => { const x = dayNum(d), ref = dayNum(today); return x <= ref && x > ref - days; };
+  const EFFORT_NAMES = { facil: 'Fácil', normal: 'Normal', duro: 'Duro', no_termine: 'No pude terminar' };
+
+  // Resumen de los últimos 7 días (hoy incluido) para la ficha.
+  function weekSummary(state, { today, shares } = {}) {
+    if (!today) throw new Error('Falta la fecha de referencia');
+    const sh = shares || {};
+    const dates = allDates(state).filter((d) => dayNum(d) <= dayNum(today));
+    const d7 = dates.filter((d) => inLast(d, today, 7));
+    const wTrend = Calc.trend(state.entries.filter((e) => e.weight && e.date <= today));
+    const rate = Calc.weeklyRate(state.entries.filter((e) => e.date <= today), 21);
+    const waists = state.entries.filter((e) => typeof e.waist === 'number' && e.date <= today).sort((a, b) => a.date.localeCompare(b.date));
+    const hab = Object.keys(state.habits).filter((d) => inLast(d, today, 7) && hasHabits(state.habits[d])).sort();
+    const trained = hab.filter((d) => state.habits[d].trained === true);
+    const efforts = trained.map((d) => state.habits[d].effort).filter((e) => EFFORT_NAMES[e]);
+    const foodDays = Object.keys(state.foods).filter((d) => inLast(d, today, 7) && hasFood(state, d));
+    const protDays = foodDays.map((d) => state.foods[d].filter((x) => x.dish || x.protein > 0)).filter((l) => l.length).map((l) => l.reduce((s, x) => s + (x.protein || 0), 0));
+    const closes = hab.map((d) => state.habits[d].close).filter(Boolean);
+    return {
+      from: Calc.addDays(today, -6), to: today,
+      weight: wTrend.length ? { trend: wTrend[wTrend.length - 1].trend, rate, text: `${wTrend[wTrend.length - 1].trend.toLocaleString('es', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg${rate != null ? ` · ${signed1(rate)}/sem` : ''}` } : null,
+      waist: waists.length ? { value: waists[waists.length - 1].waist, change: waists.length > 1 ? round(waists[waists.length - 1].waist - waists[waists.length - 2].waist, 1) : null,
+        text: `${waists[waists.length - 1].waist.toLocaleString('es', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} cm${waists.length > 1 ? ` · ${signed1(waists[waists.length - 1].waist - waists[waists.length - 2].waist)}` : ''}` } : null,
+      daysLogged: d7.length, daysLoggedText: `${d7.length} de 7 días`,
+      habitDays: hab.length, trained: trained.length, trainedText: sh.habits ? `${trained.length} ${trained.length === 1 ? 'entreno' : 'entrenos'}` : null,
+      efforts: efforts.map((e) => EFFORT_NAMES[e]), hardCount: efforts.filter((e) => e === 'duro' || e === 'no_termine').length,
+      effortText: efforts.length ? `Esfuerzo: ${efforts.map((e) => EFFORT_NAMES[e]).join(' · ')}` : '',
+      protein: protDays.length ? { avg: round(protDays.reduce((a, b) => a + b, 0) / protDays.length, 0), days: protDays.length } : null,
+      proteinText: protDays.length ? `~${round(protDays.reduce((a, b) => a + b, 0) / protDays.length, 0)} g/día` : null,
+      closeYes: closes.filter((c) => c === 'si').length, closeCount: closes.length,
+      closeText: closes.length ? `${closes.filter((c) => c === 'si').length} ${closes.filter((c) => c === 'si').length === 1 ? 'día' : 'días'} con registro completo` : null,
+      closes,
+    };
+  }
+
+  // Estado para la lista «Necesitan atención». level: 'atencion' (rojo) | 'revisar' (ámbar) | 'aldia' (verde). `reason` SIEMPRE dice el motivo en texto (y la pantalla le suma forma: ▲ ● ✓, no solo color).
+  function atencion(state, { today, shares } = {}) {
+    const sem = semaforo(state, { today });
+    const ws = weekSummary(state, { today, shares });
+    const hard = ws.hardCount >= 2 ? ` · entreno «${ws.efforts.filter((e) => e === 'Duro' || e === 'No pude terminar')[0]}» ${ws.hardCount} veces` : '';
+    let level, reason;
+    if (sem.color === 'rojo') { level = 'atencion'; reason = sem.lastDate ? `Sin registrar desde hace ${sem.daysSinceLast} días` : 'Aún no ha registrado nada'; }
+    else if (sem.daysSinceLast >= AMBER_DAYS) { level = 'revisar'; reason = `${sem.daysSinceLast} días sin registrar${hard}`; }
+    else if (hard) { level = 'revisar'; reason = `Entreno «${ws.efforts.filter((e) => e === 'Duro' || e === 'No pude terminar')[0]}» ${ws.hardCount} veces esta semana`; }
+    else if (sem.color === 'amarillo') {
+      // Una persona que empezó hace menos de una semana no tiene aún 4 días posibles: no se marca para revisar por eso.
+      const first = allDates(state)[0];
+      const newcomer = !!first && dayNum(today) - dayNum(first) < 7;
+      if (newcomer && sem.daysLogged7 < GREEN_DAYS) { level = 'aldia'; reason = `Recién empieza · ${sem.daysLogged7} ${sem.daysLogged7 === 1 ? 'día' : 'días'} con registro`; }
+      else if (sem.daysLogged7 >= GREEN_DAYS && sem.weeklyRate == null) { level = 'aldia'; reason = `${sem.daysLogged7} de 7 días con registro · aún sin pesajes para ver la tendencia`; }   // constante sin báscula: no es motivo para revisar
+      else { level = 'revisar'; reason = sem.daysLogged7 < GREEN_DAYS ? `Registró ${sem.daysLogged7} de 7 días` : sem.reason; }
+    }
+    else { level = 'aldia'; reason = `${[ws.weight && ws.weight.rate != null ? `Peso ${signed1(ws.weight.rate)} kg/sem` : '', ws.trainedText || ''].filter(Boolean).join(' · ') || `${sem.daysLogged7} de 7 días con registro`}`; }
+    const labels = { atencion: 'Atención', revisar: 'Revisar', aldia: 'Al día' };
+    return { level, label: labels[level], reason, days: sem.lastDate ? sem.daysSinceLast : null, lastDate: sem.lastDate, daysLogged7: sem.daysLogged7, color: sem.color, ws };
+  }
+  const LEVEL_ORDER = { atencion: 0, revisar: 1, aldia: 2 };
+  const byAtencion = (a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] || (b.days == null ? 1e9 : b.days) - (a.days == null ? 1e9 : a.days);
+
+  const api = { toCSV, summarize, semaforo, byLight, stateFromWire, weekSummary, atencion, byAtencion, CSV_HEADERS, RED_DAYS, AMBER_DAYS, GREEN_DAYS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Coach = api;
 })(typeof window !== 'undefined' ? window : globalThis);

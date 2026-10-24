@@ -40,14 +40,16 @@ test('textos del coach: pagó hasta, vence en N días, venció, sin pago', () =>
   assert.strictEqual(P.chipText(P.status({ paidUntil: '2026-10-23' }, t)), 'Pagó');
   assert.strictEqual(P.chipText(P.status({}, t)), 'No pagó');
 });
-test('frase del cliente: «Faltan N días…», resaltada si N ≤ 7', () => {
+test('frase del cliente (UX Etapa 1): «Tu plan se renueva…», sin cuenta regresiva; solo se muestra en Inicio si N ≤ 7', () => {
   const t = '2026-10-23';
-  assert.deepStrictEqual(P.clientCountdown(P.status({ paidUntil: '2026-11-04' }, t)), { text: 'Faltan 12 días para tu próximo pago', soon: false });
-  assert.deepStrictEqual(P.clientCountdown(P.status({ paidUntil: '2026-10-30' }, t)), { text: 'Faltan 7 días para tu próximo pago', soon: true });
+  assert.deepStrictEqual(P.clientCountdown(P.status({ paidUntil: '2026-11-04' }, t)), { text: 'Tu plan se renueva el 4 nov. Si tienes dudas, habla con tu coach.', soon: false });
+  assert.deepStrictEqual(P.clientCountdown(P.status({ paidUntil: '2026-10-30' }, t)), { text: 'Tu plan se renueva el 30 oct. Si tienes dudas, habla con tu coach.', soon: true });
+  assert.strictEqual(P.SOON_DAYS, 7);
   assert.strictEqual(P.clientCountdown(P.status({ paidUntil: '2026-10-31' }, t)).soon, false);
-  assert.strictEqual(P.clientCountdown(P.status({ paidUntil: '2026-10-23' }, t)).text, 'Tu pago vence hoy');
-  assert.strictEqual(P.clientCountdown(P.status({ paidUntil: '2026-10-24' }, t)).text, 'Mañana vence tu pago');
+  assert.strictEqual(P.clientCountdown(P.status({ paidUntil: '2026-10-23' }, t)).text, 'Tu plan se renueva hoy. Si tienes dudas, habla con tu coach.');
+  assert.strictEqual(P.clientCountdown(P.status({ paidUntil: '2026-10-24' }, t)).text, 'Tu plan se renueva mañana. Si tienes dudas, habla con tu coach.');
   assert.strictEqual(P.clientCountdown(P.status({}, t)).soon, true);
+  assert.doesNotMatch(JSON.stringify([P.clientCountdown(P.status({ paidUntil: '2026-10-30' }, t))]), /Faltan|días para/);
 });
 test('summary y orden por vencimiento (sin fecha y vencidos primero)', () => {
   const t = '2026-10-23';

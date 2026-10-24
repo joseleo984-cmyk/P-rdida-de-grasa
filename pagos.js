@@ -48,8 +48,10 @@
   function clientCountdown(st) {
     if (st.key === 'none') return { text: 'Tu coach aún no registra tu pago', soon: true };
     if (st.key === 'overdue') return { text: `Tu pago venció el ${dayText(st.paidUntil)}`, soon: true };
+    // UX Etapa 1 (texto de neurociencia #12): sereno, separa lo administrativo del progreso y solo se muestra si faltan SOON_DAYS días o menos (Inicio).
     const n = st.daysLeft;
-    const text = n === 0 ? 'Tu pago vence hoy' : n === 1 ? 'Mañana vence tu pago' : `Faltan ${n} días para tu próximo pago`;
+    const when = n === 0 ? 'hoy' : n === 1 ? 'mañana' : `el ${dayText(st.paidUntil)}`;
+    const text = `Tu plan se renueva ${when}. Si tienes dudas, habla con tu coach.`;
     return { text, soon: n <= SOON_DAYS };
   }
   // «3 pagaron / 2 sin pagar» sobre una lista de estados.

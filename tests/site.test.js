@@ -77,7 +77,7 @@ test('ninguna clave secreta ni service_role en todo _site', () => {
 
 test('el sitio incluye todos los archivos que carga index.html y precachea sw.js (raíz y pruebas)', () => {
   for (const base of ['', 'pruebas/']) {
-    for (const f of ['index.html', 'schema.js', 'consent-texts.js', 'consent-texts-solo.js', 'producto.js', 'pagos.js', 'medidas.js', 'habitos.js', 'platos.js', 'rutinas.js', 'coach.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'app.js', 'config.js', 'ns.js', 'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'rutinas-view.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'calc.js', 'sw.js', 'manifest.webmanifest', 'icon.svg', 'styles.css', 'vendor/supabase-2.117.2.js', 'legal/terminos.html', 'legal/privacidad.html']) {
+    for (const f of ['index.html', 'schema.js', 'consent-texts.js', 'consent-texts-solo.js', 'producto.js', 'pagos.js', 'medidas.js', 'habitos.js', 'constancia.js', 'platos.js', 'rutinas.js', 'coach.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'app.js', 'config.js', 'ns.js', 'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'rutinas-view.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'calc.js', 'sw.js', 'manifest.webmanifest', 'icon.svg', 'styles.css', 'vendor/supabase-2.117.2.js', 'legal/terminos.html', 'legal/privacidad.html']) {
       assert.ok(fs.existsSync(path.join(dir, base, f)), base + f);
     }
   }
@@ -119,7 +119,7 @@ test('demo: /demo/ no lleva claves ni URLs de Supabase ni captcha, usa env demo 
   assert.strictEqual(m.scope, './');
   // El sw de la raíz y el de pruebas no precachean nada de la demo
   assert.ok(!/demo/.test(read('sw.js')) && !/demo/.test(read('pruebas/sw.js')));
-  assert.ok(/cacheName\(47\)/.test(read('demo/sw.js')));
+  assert.ok(/cacheName\(48\)/.test(read('demo/sw.js')));
 });
 
 test('PGNS: sin env los nombres son los de siempre; con env llevan sufijo', () => {

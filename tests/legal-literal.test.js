@@ -110,3 +110,40 @@ test('3.6 Importación: el aviso previo (título y párrafo) aparece LITERAL en 
   assert.match(t, /^Antes de importar tu historial:/);
   assert.ok(norm(visible(read('index.html'))).includes(norm(t)), 'index.html (#sheet-import)');
 });
+
+// ---------- Concepto jurídico 2 (24/10/2026): textos de la tabla de decisiones (equipo/legal/concepto-2-2026-10-24.md) ----------
+// La tabla trae, por punto, el texto exacto entre «…». Se leen de ahí (la fuente) y se comparan con lo que muestra la app (index.html y app.js).
+function approved2() {
+  const md = read('equipo/legal/concepto-2-2026-10-24.md');
+  const out = {};
+  for (const row of md.split('\n').filter((l) => /^\| [A-Z]\d?\./.test(l) || /^\| [A-Za-z]+/.test(l))) {
+    const id = (row.match(/^\| ([A-Z]\d)\./) || [])[1];
+    if (id) out[id] = [...row.matchAll(/«([\s\S]*?)»/g)].map((m) => m[1]);
+  }
+  return out;
+}
+const B = approved2();
+
+test('concepto 2 se lee bien: L1 trae el aviso, el botón y la etiqueta', () => {
+  assert.deepStrictEqual(B.L1, [
+    'Cada foto que guardes será visible para tu coach de forma automática. Puedes ocultar fotos específicas o retirar este permiso en cualquier momento desde tu perfil.',
+    'Entendido y autorizar', 'Visible para tu coach']);
+});
+
+test('concepto 2 · L1: el aviso previo a la primera foto, su botón «Entendido y autorizar» y la etiqueta «Visible para tu coach» están LITERALES', () => {
+  const [aviso, boton, etiqueta] = B.L1;
+  const html = read('index.html'), app = read('app.js');
+  const dlg = html.slice(html.indexOf('id="sheet-foto-aviso"'), html.indexOf('</dialog>', html.indexOf('id="sheet-foto-aviso"')));
+  assert.ok(norm(visible(dlg)).includes(norm(aviso)), 'el modal (#sheet-foto-aviso) trae el texto aprobado');
+  assert.ok(norm(visible(dlg)).includes(norm(boton)), 'el botón del modal');
+  assert.ok(/id="fa-ok"[^>]*>\s*Entendido y autorizar\s*</.test(dlg), '#fa-ok dice exactamente «Entendido y autorizar»');
+  // La etiqueta persistente: vista previa (hero), visor y miniaturas (app.js)
+  assert.ok(/id="foto-hero-tag">\s*Visible para tu coach\s*</.test(html), 'etiqueta de la vista previa');
+  assert.ok(/id="viewer-vis">\s*Visible para tu coach\s*</.test(html), 'etiqueta del visor');
+  assert.ok(app.includes(`Visible para tu coach`) && /visTag/.test(app), 'etiqueta de las miniaturas (visTag en app.js)');
+  assert.strictEqual((app.match(/Visible para tu coach/g) || []).length >= 3, true);
+  assert.strictEqual(norm(etiqueta), 'Visible para tu coach');
+  // El aviso fijo anterior (concepto 1, 3.3) se reemplaza por este esquema: ya no existe en la página.
+  assert.ok(!html.includes('id="photo-share-notice"'), 'el recuadro fijo anterior ya no está');
+  assert.ok(!/Puedes ocultar una foto abriéndola/.test(html + app), 'el texto anterior ya no se muestra');
+});

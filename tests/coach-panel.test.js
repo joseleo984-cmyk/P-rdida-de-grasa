@@ -8,12 +8,16 @@ const day = (n) => new Date(Date.UTC(2026, 9, 21 - n)).toISOString().slice(0, 10
 const mk = (entries, extra = {}) => S.normalize(S.migrate({ schemaVersion: S.CURRENT_VERSION, profile: null, entries, foods: {}, habits: {}, library: {}, ...extra })).state;
 const losing = (days, step = 0.1) => days.map((n, i) => ({ id: 'e' + i, date: day(n), weight: 80 + n * step }));
 
-test('semaforo: rojo sin datos o sin registros ≥ 5 días', () => {
+test('semaforo: rojo sin datos o sin registros ≥ 7 días (D8), ámbar desde los 3', () => {
   assert.strictEqual(C.semaforo(mk([]), { today: day(0) }).color, 'rojo');
-  const r = C.semaforo(mk(losing([5, 6, 8, 10])), { today: day(0) });
+  const r = C.semaforo(mk(losing([7, 8, 10, 12])), { today: day(0) });
   assert.strictEqual(r.color, 'rojo');
-  assert.match(r.reason, /hace 5 días/);
-  assert.strictEqual(C.semaforo(mk(losing([4, 6])), { today: day(0) }).color, 'amarillo', '4 días: aún no es rojo');
+  assert.match(r.reason, /hace 7 días/);
+  assert.strictEqual(C.semaforo(mk(losing([6, 8])), { today: day(0) }).color, 'amarillo', '6 días: aún no es rojo');
+  const a = C.semaforo(mk(losing([3, 4, 8])), { today: day(0) });
+  assert.strictEqual(a.color, 'amarillo');
+  assert.match(a.reason, /3 días/, 'ámbar desde los 3 días sin registrar');
+  assert.strictEqual(C.semaforo(mk(losing([2, 3, 4, 8, 9, 10])), { today: day(0) }).color, 'amarillo', '2 días: sigue la regla de los 7 días');
   assert.throws(() => C.semaforo(mk([])), /referencia/);
 });
 
@@ -56,4 +60,66 @@ test('stateFromWire: perfil/registros/comidas/hábitos sin notas ni biblioteca; 
   const sum = C.summarize(s, { today: '2026-10-21' });
   assert.strictEqual(sum.weight.current, 69);
   assert.deepStrictEqual(sum.notes, []);
+});
+
+// ---------- UX Etapa 1: «Necesitan atención» y resumen semanal ----------
+const hab = (rows) => Object.fromEntries(rows.map(([n, h], i) => [day(n), { id: `00000000-0000-4000-8000-0000000000${String(10 + i)}`, trained: false, updatedAt: '2026-10-01T10:00:00.000Z', ...h }]));
+const fd = (n, items) => [day(n), items.map((x, i) => ({ id: `00000000-0000-4000-8000-0000000001${n}${i}`, name: x.name || 'Plato', meal: 'Almuerzo', kcal: 300, protein: 0, carbs: 0, fat: 0, ...x }))];
+test('atencion: rojo a los 7 días, ámbar a los 3 (con el motivo en texto), verde con constancia', () => {
+  const rojo = C.atencion(mk(losing([9, 10, 12])), { today: day(0) });
+  assert.strictEqual(rojo.level, 'atencion');
+  assert.strictEqual(rojo.label, 'Atención');
+  assert.strictEqual(rojo.reason, 'Sin registrar desde hace 9 días');
+  assert.strictEqual(C.atencion(mk([]), { today: day(0) }).reason, 'Aún no ha registrado nada');
+  const amb = C.atencion(mk(losing([3, 9, 12])), { today: day(0) });
+  assert.strictEqual(amb.level, 'revisar');
+  assert.strictEqual(amb.reason, '3 días sin registrar');
+  const verde = C.atencion(mk(losing([0, 1, 2, 3, 5, 8, 12, 16, 20]), { habits: hab([[0, { trained: true }], [1, { trained: true }], [2, { trained: true }]]) }), { today: day(0), shares: { habits: true } });
+  assert.strictEqual(verde.level, 'aldia');
+  assert.match(verde.reason, /Peso −0,\d\d? kg\/sem|3 entrenos|de 7 días/);
+  assert.doesNotMatch(JSON.stringify([rojo, amb, verde]), /fallaste|culpa|perdió|castigo/i);
+});
+test('atencion: «Duro» repetido pone en revisión aunque registre cada día', () => {
+  const s = mk(losing([0, 1, 2, 3]), { habits: hab([[0, { trained: true, effort: 'duro' }], [1, { trained: true, effort: 'duro' }], [2, { trained: true, effort: 'normal' }], [3, {}]]) });
+  const a = C.atencion(s, { today: day(0), shares: { habits: true } });
+  assert.strictEqual(a.level, 'revisar');
+  assert.match(a.reason, /Duro.*2 veces/);
+});
+test('byAtencion: Atención primero, luego Revisar y Al día; dentro de cada grupo, más días sin registrar primero', () => {
+  const l = [{ level: 'aldia', days: 0 }, { level: 'atencion', days: 8 }, { level: 'revisar', days: 3 }, { level: 'atencion', days: 12 }, { level: 'atencion', days: null }];
+  assert.deepStrictEqual(l.sort(C.byAtencion).map((x) => `${x.level}:${x.days}`), ['atencion:null', 'atencion:12', 'atencion:8', 'revisar:3', 'aldia:0']);
+});
+test('weekSummary: tendencia, cintura, días, entrenos, esfuerzo, proteína promedio (solo días con dato) y cierre del día', () => {
+  const entries = [...losing([0, 2, 4, 6, 9, 14]), { id: 'w1', date: day(10), waist: 85.4 }, { id: 'w2', date: day(1), waist: 84.6 }];
+  const habits = hab([[0, { trained: true, effort: 'normal', close: 'si' }], [1, { trained: true, effort: 'duro', close: 'casi' }], [2, { trained: false, close: 'si' }], [8, { trained: true, effort: 'facil' }]]);
+  const foods = Object.fromEntries([fd(0, [{ dish: 'x', protein: 40 }, { protein: 0, name: 'Libre' }]), fd(1, [{ protein: 60 }]), fd(2, [{ protein: 0 }])]);
+  const w = C.weekSummary(mk(entries, { habits, foods }), { today: day(0), shares: { habits: true, nutrition: true } });
+  assert.match(w.weight.text, /kg · [−+]/);
+  assert.strictEqual(w.waist.text, '84,6 cm · −0,8');
+  assert.strictEqual(w.daysLogged, 5);
+  assert.strictEqual(w.daysLoggedText, '5 de 7 días');
+  assert.strictEqual(w.trained, 2);
+  assert.strictEqual(w.trainedText, '2 entrenos');
+  assert.strictEqual(w.effortText, 'Esfuerzo: Duro · Normal');
+  assert.deepStrictEqual(w.protein, { avg: 50, days: 2 });
+  assert.strictEqual(w.proteinText, '~50 g/día');
+  assert.strictEqual(w.closeText, '2 días con registro completo');
+  const nada = C.weekSummary(mk([]), { today: day(0), shares: { habits: false } });
+  assert.strictEqual(nada.trainedText, null);
+  assert.strictEqual(nada.protein, null);
+  assert.strictEqual(nada.weight, null);
+});
+test('atencion: quien empezó hace menos de una semana no se marca «Revisar» por tener pocos días', () => {
+  const nuevo = C.atencion(mk(losing([0, 1])), { today: day(0) });
+  assert.strictEqual(nuevo.level, 'aldia');
+  assert.strictEqual(nuevo.reason, 'Recién empieza · 2 días con registro');
+  const viejo = C.atencion(mk(losing([0, 1, 20])), { today: day(0) });
+  assert.strictEqual(viejo.level, 'revisar');
+  assert.strictEqual(viejo.reason, 'Registró 2 de 7 días');
+});
+test('atencion: constante sin báscula (5 de 7 días con hábitos y sin pesajes) está «Al día», no «Revisar»', () => {
+  const habits = Object.fromEntries([0, 1, 2, 3, 4].map((n) => [day(n), { id: 'h' + n, trained: false, water: 2, updatedAt: '2026-10-20T10:00:00.000Z' }]));
+  const a = C.atencion(mk([], { habits }), { today: day(0), shares: { habits: true } });
+  assert.strictEqual(a.level, 'aldia');
+  assert.match(a.reason, /^5 de 7 días con registro/);
 });
