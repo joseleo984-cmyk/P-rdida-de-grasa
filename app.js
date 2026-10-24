@@ -19,6 +19,7 @@
     const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
     return z.toISOString().slice(0, 10);
   }
+  const fmtShort = (iso) => (iso ? new Date(iso + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short' }).replace('.', '') : '');
   function fmtDate(iso) {
     return new Date(iso + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short', year: '2-digit' });
   }
@@ -139,6 +140,12 @@
   // Barra de abajo. Cliente (y sin cuenta): Inicio | Comidas | ＋ Registrar | Progreso | Más.
   // Coach: Clientes | ＋ Invitar | Más (su propio seguimiento sigue en Más). Las vistas conservan sus ids (#view-…).
   const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas', micomidas: 'mas', rutina: 'mas', rutinas: 'mas', 'rutina-edit': 'coach', fotovistas: 'fotos' };
+  // UX Etapa 1 (producto 'coach'): a qué botón de la barra pertenece cada pantalla. Cliente: Inicio · Comidas · Entrenar · Progreso · Más. Coach: Asesorados · Rutinas · Invitar · Más.
+  const TAB_COACH_CLIENT = { panel: 'panel', habitos: 'panel', micomidas: 'comidas', rutina: 'entrenar', progreso: 'registro', medidas: 'registro', fotos: 'registro', insignias: 'registro', fotovistas: 'registro' };
+  const TAB_COACH_COACH = { coach: 'coach', rutinas: 'rutinas', invitar: 'invitar' };
+  // Título de la barra de arriba en el producto coach (la fecha corta va a la derecha).
+  const TITLE_COACH = { panel: 'Inicio', habitos: 'Corregir otro día', micomidas: 'Comidas', rutina: 'Entrenar', progreso: 'Progreso', medidas: 'Medirme', fotos: 'Fotos', insignias: 'Insignias', fotovistas: 'Quién vio mis fotos',
+    mas: 'Más', ayuda: 'Ayuda', acuerdo: 'Mi acuerdo', coach: 'Asesorados', invitar: 'Invitar', rutinas: 'Rutinas', 'rutina-edit': 'Editar rutina' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
   let navCoach = false;
   function show(view, mode) {
@@ -149,15 +156,37 @@
       $('#view-perfil').dataset.mode = m;
       $('#perfil-title').textContent = PERFIL_TITLES[m];
     }
-    const tabView = navCoach && ['panel', 'comidas', 'registro', 'habitos', 'medidas', 'fotos'].includes(view) ? 'mas' : PROD.coach && view === 'fotos' ? 'fotos' : (view === 'rutina-edit' || view === 'fotovistas') && mode === 'mas' ? 'mas' : TAB_OF[view] || view;   // v1.8: la rutina de la biblioteca se edita desde Más
+    let tabView = navCoach && ['panel', 'comidas', 'registro', 'habitos', 'medidas', 'fotos'].includes(view) ? 'mas' : PROD.coach && view === 'fotos' ? 'fotos' : (view === 'rutina-edit' || view === 'fotovistas') && mode === 'mas' ? 'mas' : TAB_OF[view] || view;   // v1.8: la rutina de la biblioteca se edita desde Más
+    if (PROD.coach) {
+      tabView = navCoach ? (view === 'rutina-edit' ? (mode === 'mas' ? 'rutinas' : 'coach') : view === 'fotovistas' ? 'mas' : TAB_COACH_COACH[view] || 'mas') : TAB_COACH_CLIENT[view] || 'mas';
+      topTitle(view, mode);
+    }
     $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + view));
     $$('.tabbar button').forEach((b) => {
-      const on = b.dataset.view === tabView;
+      const on = b.id === 'tab-' + tabView;
       b.classList.toggle('on', on);
       if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
     window.scrollTo({ top: 0 });
     render();
+  }
+  function topTitle(view, mode) {
+    const t = view === 'perfil' ? PERFIL_TITLES[mode] || 'Mi coach' : TITLE_COACH[view] || 'Pérdida de Grasa';
+    const h = $('#topbar-title');
+    const fichaOpen = navCoach && view === 'coach' && !$('#coach-detail-view').classList.contains('hidden');   // la ficha pone su propia barra («‹ Anterior · Nombre · Siguiente ›»)
+    if (fichaOpen) return;
+    if (h.textContent !== t) h.textContent = t;
+    for (const id of ['btn-coach-prev', 'btn-coach-next']) $('#' + id).classList.add('hidden');
+    // Barra superior de las pantallas de Progreso: «‹ Progreso» a la izquierda en Medirme, Fotos e Insignias; acción a la derecha («Medirme ›», «+ Foto»).
+    const client = !navCoach;
+    const back = client && ['medidas', 'fotos', 'insignias'].includes(view);
+    const bar = $('.topbar');
+    $('#topbar-back').classList.toggle('hidden', !back);
+    $('#btn-medirme').classList.toggle('hidden', !(client && view === 'progreso'));
+    $('#btn-foto-add').classList.toggle('hidden', !(client && view === 'fotos'));
+    bar.classList.toggle('has-back', back);
+    bar.classList.remove('has-ficha');
+    bar.classList.toggle('has-act', client && (view === 'progreso' || view === 'fotos'));
   }
   // Como show(), pero para las filas de Más: el foco va al título de la pantalla nueva.
   let moreReturn = null;
@@ -188,10 +217,10 @@
     navCoach = !!isCoach;
     document.body.classList.toggle('mode-coach', navCoach);
     // Sprint 11 (producto 'coach'): cliente = Inicio · Hábitos · Medidas · Fotos · Más; coach = Asesorados · Invitar · Más.
-    const order = PROD.coach ? (navCoach ? ['coach', 'invitar', 'mas'] : ['panel', 'habitos', 'medidas', 'fotos', 'mas'])
+    const order = PROD.coach ? (navCoach ? ['coach', 'rutinas', 'invitar', 'mas'] : ['panel', 'comidas', 'entrenar', 'registro', 'mas'])
       : navCoach ? ['coach', 'invitar', 'mas'] : ['panel', 'comidas', 'registrar', 'registro', 'mas'];
     const bar = $('#tabbar');
-    for (const id of ['panel', 'comidas', 'registrar', 'registro', 'mas', 'coach', 'invitar', 'habitos', 'medidas', 'fotos']) $('#tab-' + id).classList.toggle('hidden', !order.includes(id));
+    for (const id of ['panel', 'comidas', 'registrar', 'registro', 'mas', 'coach', 'invitar', 'entrenar', 'rutinas']) $('#tab-' + id).classList.toggle('hidden', !order.includes(id));
     order.forEach((id) => bar.appendChild($('#tab-' + id))); // el orden de lectura es el orden visual
     if (navCoach && !was) $('#tab-coach').click(); // el coach empieza en su lista de clientes
     else if (!navCoach && was) {
@@ -201,7 +230,13 @@
   }
   if (PROD.coach) {
     $('#tab-coach .tb-label').textContent = 'Asesorados';
+    // Barra del asesorado: Comidas lleva a «Comidas» (la pantalla nueva) y Progreso a «Progreso» (Medidas · Fotos · Insignias).
+    $('#tab-comidas').dataset.view = 'micomidas';
+    $('#tab-registro').dataset.view = 'progreso';
     applyNav(false);
+    topTitle('panel');
+    // Las notas sin leer de la persona van ARRIBA en Inicio (se leen primero); en la app oficial no se mueven.
+    $('#home-greeting').closest('.home-head').after($('#coach-notes'));
   }
 
   // ---------- Más (cuenta y menú) ----------
@@ -641,8 +676,7 @@
     const card = $('#photos-coach-card');
     const show = PROD.coach && !!l && photoCloudOn();
     card.classList.toggle('hidden', !show);
-    // Textos legales 24/10/2026: aviso prominente junto al formulario (solo con el permiso A6b vigente; NO es un consentimiento) y entrada a la bitácora.
-    $('#photo-share-notice').classList.toggle('hidden', !(PROD.coach && coachPhotosOn()));
+    // Concepto jurídico 2 (L1): el aviso ya no es un recuadro fijo; es un modal BLOQUEANTE antes de guardar la primera foto con el permiso A6b (ver más abajo).
     $('#photos-log-card').classList.toggle('hidden', !(PROD.coach && !!acct()));
     $('#photos-a6a-text').classList.toggle('hidden', !PROD.soloNube);
     if (PROD.soloNube) setText($('#photos-a6a-text'), CT.fill(CT.get('A6a').body, {}));
@@ -737,8 +771,17 @@
   }
 
   const photoForm = $('#form-photo');
-  photoForm.addEventListener('submit', async (ev) => {
-    ev.preventDefault();
+  // Concepto jurídico 2 (L1), texto LITERAL: antes de guardar la PRIMERA foto con el permiso A6b activo sale un aviso bloqueante con «Entendido y autorizar».
+  // Si la persona retira el permiso y lo vuelve a dar, vuelve a salir (la marca guarda LA CONCESIÓN vista, no «alguna vez»).
+  const FOTO_AVISO_KEY = PGNS.key('foto-aviso');
+  const a6bGrantId = () => { const m = acct(); const c = m && m.consents && m.consents.photo_view_coach; return c && c.granted === true ? `${c.version}|${c.clientAt}` : ''; };
+  const needFotoAviso = () => PROD.coach && coachPhotosOn() && getPref(FOTO_AVISO_KEY) !== a6bGrantId();
+  const dlgAviso = $('#sheet-foto-aviso');
+  let avisoThen = null;
+  $('#fa-ok').addEventListener('click', () => { setPref(FOTO_AVISO_KEY, a6bGrantId()); const go = avisoThen; avisoThen = null; dlgAviso.close(); if (go) go(); });
+  $('#fa-cancel').addEventListener('click', () => { avisoThen = null; dlgAviso.close(); });
+  dlgAviso.addEventListener('cancel', () => { avisoThen = null; });   // Escape = «Ahora no»
+  async function savePhoto() {
     const file = photoForm.elements.file.files[0];
     if (!file) return;
     const btn = photoForm.querySelector('button[type=submit]');
@@ -759,6 +802,12 @@
     } finally {
       btn.disabled = false;
     }
+  }
+  photoForm.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    if (!photoForm.elements.file.files[0]) return;
+    if (needFotoAviso()) { avisoThen = savePhoto; dlgAviso.showModal(); $('#fa-title').focus(); return; }
+    savePhoto();
   });
 
   $('#compare-pose').addEventListener('click', (ev) => {
@@ -784,6 +833,10 @@
     const shareRow = $('#viewer-share-row');
     shareRow.classList.toggle('hidden', !coachPhotosOn());
     $('#viewer-share').checked = viewing.sharedWithCoach === true;
+    const vt = $('#viewer-vis');
+    vt.classList.toggle('hidden', !(PROD.coach && coachPhotosOn()));
+    setText(vt, viewing.sharedWithCoach ? 'Visible para tu coach' : 'Oculta');
+    vt.classList.toggle('vis-off', !viewing.sharedWithCoach);
     viewer.showModal();
   });
   $('#viewer-close').addEventListener('click', () => viewer.close());
@@ -794,6 +847,8 @@
       viewing.sharedWithCoach = on;
       viewing.updatedAt = new Date().toISOString();
       await Photos.put(viewing);
+      setText($('#viewer-vis'), on ? 'Visible para tu coach' : 'Oculta');
+      $('#viewer-vis').classList.toggle('vis-off', !on);
       toast(on ? 'Tu coach ya puede ver esta foto' : 'Tu coach ya no ve esta foto');
       renderPhotos();
       scheduleSync(300);
@@ -822,7 +877,59 @@
     }
   });
 
+  // Etiqueta persistente (concepto jurídico 2, L1): «Visible para tu coach» en la vista previa y en cada miniatura. Si la persona ocultó esa foto: «Oculta».
+  // Solo con el permiso A6b vigente; sin él, el coach no ve ninguna foto y no hay etiqueta.
+  function visTag(p, cls = 'vis-tag') {
+    if (!(PROD.coach && coachPhotosOn())) return '';
+    return p.sharedWithCoach ? `<em class="${cls}">Visible para tu coach</em>` : `<em class="${cls} vis-off">Oculta</em>`;
+  }
+  function renderFotoHero() {
+    const on = PROD.coach;
+    const list = sortedPhotos();
+    const card = $('#foto-hero-card');
+    card.classList.toggle('hidden', !on || !list.length);
+    const det = $('#foto-nueva');
+    if (on && det.dataset.init !== String(list.length > 0)) { det.dataset.init = String(list.length > 0); det.open = false; }
+    $('#foto-vacio').classList.toggle('hidden', !on || list.length > 0);
+    const cs0 = on && coachPhotosOn();
+    $('#foto-perm').classList.toggle('hidden', !on || !photoCloudOn());
+    setText($('#foto-perm-st'), cs0 ? 'activo' : 'sin compartir con tu coach');
+    $('#view-fotos').classList.toggle('has-photos', on && list.length > 0);
+    setText($('#foto-nueva-sum'), on ? (list.length ? '+ Foto' : 'Tomar mi primera foto') : 'Nueva foto de progreso');
+    if (!on || !list.length) return;
+    const p = list[list.length - 1];
+    const img = $('#foto-hero-img');
+    const url = photoUrl(p);
+    if (img.getAttribute('src') !== url) img.setAttribute('src', url);
+    img.alt = `Foto de ${POSES[p.pose].toLowerCase()} del ${fmtDate(p.date)}`;
+    $('#foto-hero-btn').dataset.photo = p.id;
+    const tag = $('#foto-hero-tag');
+    const cs = PROD.coach && coachPhotosOn();
+    tag.classList.toggle('hidden', !cs);
+    setText(tag, p.sharedWithCoach ? 'Visible para tu coach' : 'Oculta');
+    tag.classList.toggle('vis-off', !p.sharedWithCoach);
+    setText($('#foto-hero-cap'), `${POSES[p.pose]} · ${fmtShort(p.date)}`);
+    const hide = $('#btn-hero-hide');
+    hide.classList.toggle('hidden', !cs || isPaused());
+    setText(hide, p.sharedWithCoach ? 'Ocultar esta foto a mi coach' : 'Mostrar esta foto a mi coach');
+    hide.dataset.hero = p.id;
+  }
+  $('#btn-hero-hide').addEventListener('click', async (ev) => {
+    const p = photos.find((x) => x.id === ev.currentTarget.dataset.hero);
+    if (!p || !coachPhotosOn()) return;
+    const on = !p.sharedWithCoach;
+    try {
+      p.sharedWithCoach = on; p.updatedAt = new Date().toISOString();
+      await Photos.put(p);
+      toast(on ? 'Tu coach ya puede ver esta foto' : 'Tu coach ya no ve esta foto');
+      renderPhotos();
+      scheduleSync(300);
+    } catch { p.sharedWithCoach = !on; toast('No se pudo cambiar', true); }
+  });
+  $('#btn-hero-compare').addEventListener('click', () => { $('#compare-card').scrollIntoView({ block: 'start' }); $('#compare-a').focus(); });
   function renderPhotos(resetSelection = false) {
+    renderFotoHero();
+    if (PROD.coach) setText($('#galeria-nota'), 'Tus fotos se guardan en este teléfono y, si lo autorizaste, en tu cuenta. Puedes descargar una copia desde Más.');
     $$('#compare-pose button').forEach((b) => b.classList.toggle('on', b.dataset.pose === comparePose));
     renderCompare(resetSelection);
     renderPhotosCoach();
@@ -836,7 +943,7 @@
         <div class="meal-head"><strong>${fmtDate(d)}</strong><span class="muted">${w ? fmt(w.weight) + ' kg' : ''}</span></div>
         <div class="thumbs">${byDate[d].map((p) => `
           <button class="thumb" data-photo="${esc(p.id)}" aria-label="Ver foto ${esc(POSES[p.pose])} del ${esc(fmtDate(d))}${p.sharedWithCoach ? '. Tu coach puede verla' : ''}">
-            <img src="${esc(photoUrl(p))}" alt="" loading="lazy"><span>${esc(POSES[p.pose])}</span>${p.sharedWithCoach ? '<em class="shared-badge">Tu coach la ve</em>' : ''}
+            <img src="${esc(photoUrl(p))}" alt="" loading="lazy"><span>${esc(PROD.coach ? fmtShort(p.date) : POSES[p.pose])}</span>${visTag(p)}
           </button>`).join('')}</div>
       </div>`;
     }).join('') : '<p class="muted small">Aún no hay fotos.</p>';
@@ -1242,7 +1349,7 @@
     const kg = (v) => (v == null ? '—' : fmt(v) + ' kg');
     const sign = (v, d = 1) => (v == null ? '—' : (v > 0 ? '+' : '') + fmt(v, d));
     const w = r.weight;
-    const prot = (a) => (a.proteinAvg == null ? '—' : `${esc(a.proteinAvg)} g${r.target ? ' / ' + esc(r.target.protein) + ' g' : ''}`);
+    const prot = (a) => (a.proteinAvg == null ? '—' : `${esc(a.proteinAvg)} g${r.target && !PROD.coach ? ' / ' + esc(r.target.protein) + ' g' : ''}`);
     $('#coach-title').textContent = r.name ? `Copia de ${r.name}` : 'Copia de cliente';
     $('#coach-file').textContent = `${file.name} · referencia ${fmtDate(r.reference)}${refLabel}`;
     const discarded = copy.warnings.length;
@@ -1711,10 +1818,13 @@
     const glasses = n('water'), steps = n('steps'), sleep = n('sleep');
     if ((glasses != null && !(glasses >= 0 && glasses <= 40)) || (steps != null && !(steps >= 0 && steps <= 100000)) || (sleep != null && !(sleep >= 0 && sleep <= 24))) { toast('Revisa los números: algo está fuera de rango'); return; }
     if (glasses == null && steps == null && sleep == null && !el.trained.checked) { toast('Anota al menos un hábito'); return; }
-    state.habits[d] = { steps, water: glasses == null ? undefined : glasses * Habitos.GLASS_L, sleep, trained: el.trained.checked };
+    const old = state.habits[d] || {};   // el esfuerzo y el cierre del día que ya había se conservan
+    state.habits[d] = { ...old, steps, water: glasses == null ? undefined : glasses * Habitos.GLASS_L, sleep, trained: el.trained.checked };
+    if (!el.trained.checked) delete state.habits[d].effort;
     if (!save()) return;
-    toast('Hábitos guardados');
     render();
+    const wk = Constancia.summary(state, today());
+    toast(`Listo, día registrado.${wk.daysThisWeek ? ` Llevas ${daysWord(wk.daysThisWeek)} esta semana.` : ''}`);
   });
   function renderHabitos() {
     const w = Habitos.week(state, today());
@@ -1724,28 +1834,257 @@
     if (!habForm.contains(document.activeElement)) fillHabForm();
   }
 
-  // Etapa 2: «Hoy entrené» en Mi rutina marca el mismo hábito «Entrené» del día (con el acceso en pausa no se guarda nada nuevo).
-  document.addEventListener('pg:rutina-trained', () => {
-    if (isPaused()) { toast('Tu acceso está en pausa: por ahora solo puedes ver tu rutina'); return; }
-    const d = today();
-    state.habits[d] = { ...(state.habits[d] || {}), trained: true };
-    if (!save()) return;
-    toast('Anotamos que hoy entrenaste');
+  // ---------- UX Etapa 1: «Mi día» (registro de UN toque con guardado automático), celebración, Entrenar, Progreso, Medirme e Insignias ----------
+  // Todo se calcula en el teléfono con lo que ya existe (hábitos, comidas, medidas): constancia semanal con comodines, insignias de proceso y mensajes sin culpa.
+  const regBlock = () => (isPaused() ? 'Tu acceso está en pausa: habla con tu coach' : !consentOK() ? 'Acepta los Términos y la Política para continuar' : !can('sensitiveHealth') ? 'Autoriza tus datos de salud para registrar tu seguimiento' : '');
+  const CELEB_KEY = PGNS.key('celebrado');   // último día en que se mostró «Día completo» (una sola vez al día)
+  const coachNameNow = () => { const l = myLinkNow(); return (l && l.businessName) || 'tu coach'; };
+  const firstName = (n) => String(n || '').trim().split(/\s+/)[0] || '';
+  const capFirst1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const daysWord = (n) => `${n} ${n === 1 ? 'día' : 'días'}`;
+
+  // Un cambio en el hábito del día: se guarda al instante (sin botón «Guardar»), con «Deshacer». Devuelve true si se guardó.
+  function setHabit(change, { d = today(), msg, action, celebrate = true } = {}) {
+    const blocked = regBlock();
+    if (blocked) { toast(blocked, true); return false; }
+    const prev = state.habits[d] ? { ...state.habits[d] } : null;
+    const before = Constancia.badges(state, d).filter((b) => b.earned).map((b) => b.id);
+    const wasComplete = Constancia.dayDone(state, d).complete;
+    const next = Habitos.apply(prev, change);
+    if (Habitos.isEmpty(next)) delete state.habits[d]; else state.habits[d] = next;
+    if (!save()) return false;
     render();
-    document.dispatchEvent(new CustomEvent('pg:rutina-trained-done'));
+    const done = Constancia.dayDone(state, d);
+    const fresh = Constancia.badges(state, d).filter((b) => b.earned && !before.includes(b.id));
+    const undo = () => { if (prev) state.habits[d] = prev; else delete state.habits[d]; if (save()) { render(); toast('Listo, lo dejamos como estaba'); } };
+    if (celebrate && done.complete && (!wasComplete || fresh.length) && getPref(CELEB_KEY) !== d) {
+      setPref(CELEB_KEY, d);
+      showCelebration({ d, fresh });
+    } else toast(msg || (done.complete ? 'Día completo. Gracias por registrar.' : 'Registrado. Mañana sumamos'), action || { label: 'Deshacer', run: undo });
+    return true;
+  }
+
+  // ---- Celebración: aro de «Día completo» (≤ 1 s; sin animación con «reducir movimiento») o «Registrado. Mañana sumamos». Nunca «fallaste». ----
+  const dlgDia = $('#dlg-dia');
+  function showCelebration({ d = today(), fresh = [] } = {}) {
+    const done = Constancia.dayDone(state, d), week = Constancia.summary(state, d), noted = Constancia.noted(state, d);
+    const arc = $('#dd-arc');
+    $('#dd-frac').textContent = `${done.done}/4`;
+    setText($('#dd-title'), done.complete ? 'Día completo' : 'Registrado. Mañana sumamos');
+    setText($('#dd-text'), done.complete
+      ? `${capFirst1(Constancia.joinEs(done.names))}. Llevas ${daysWord(week.daysThisWeek)} esta semana.`
+      : noted.length ? `Anotaste ${Constancia.joinEs(noted)}. Este día ya cuenta para tu semana: llevas ${week.daysThisWeek} de 7.` : 'Cualquier registro cuenta para tu semana.');
+    setText($('#dd-chips'), week.constantWeeks ? (week.constantWeeks === 1 ? '1 semana constante' : `${week.constantWeeks} semanas constantes`) : '');
+    $('#dd-chips').classList.toggle('hidden', !week.constantWeeks);
+    const b = fresh[0];
+    $('#dd-badge').classList.toggle('hidden', !b);
+    if (b) $('#dd-badge').innerHTML = `<span class="dd-badge-n" aria-hidden="true">${esc(b.n)}</span><span><strong>Nueva insignia: ${esc(b.name)}</strong><br><small>${esc(b.desc)}</small></span>`;
+    $('#dd-insignias').classList.toggle('hidden', !b);
+    const l = myLinkNow();
+    setText($('#dd-foot'), done.complete ? (l && l.shares && l.shares.habits ? `${coachNameNow()} verá tu semana en su resumen.` : '') : 'Tu constancia sigue intacta.');
+    dlgDia.classList.toggle('dd-complete', done.complete);
+    // El aro: parte de vacío y se cierra hasta lo hecho. Con «reducir movimiento» (CSS) no hay transición: aparece ya cerrado.
+    arc.style.strokeDashoffset = '100';
+    if (!dlgDia.open) dlgDia.showModal();
+    void arc.getBoundingClientRect();
+    arc.style.strokeDashoffset = String(100 - (done.done / 4) * 100);
+    $('#dd-title').focus();
+  }
+  $('#dd-ok').addEventListener('click', () => dlgDia.close());
+  dlgDia.addEventListener('click', (ev) => { if (ev.target === dlgDia) dlgDia.close(); });
+  $('#dd-insignias').addEventListener('click', () => { dlgDia.close(); show('insignias'); $('#insignias-title').focus(); });
+
+  // ---- Inicio: registro de un toque ----
+  $('#dia-agua').addEventListener('click', () => setHabit({ water: 1 }));
+  $('#dia-sueno').addEventListener('click', () => {
+    const box = $('#dia-sueno-opts'), open = box.classList.toggle('hidden') === false;
+    $('#dia-sueno').setAttribute('aria-expanded', String(open));
+    if (open) { const on = box.querySelector('[aria-pressed="true"]') || box.querySelector('button'); on.focus(); }
+  });
+  $('#dia-sueno-opts').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-sleep]');
+    if (!b) return;
+    const cur = (state.habits[today()] || {}).sleep;
+    const opt = Habitos.SLEEP_OPTS.find((o) => o.key === b.dataset.sleep);
+    const same = Habitos.optOfSleep(cur) && Habitos.optOfSleep(cur).key === opt.key;
+    if (setHabit({ sleep: same ? null : opt.value })) { $('#dia-sueno-opts').classList.add('hidden'); $('#dia-sueno').setAttribute('aria-expanded', 'false'); $('#dia-sueno').focus(); }
+  });
+  $('#dia-pasos').addEventListener('click', () => {
+    const box = $('#dia-pasos-opts'), open = box.classList.toggle('hidden') === false;
+    $('#dia-pasos').setAttribute('aria-expanded', String(open));
+    if (open) { const on = box.querySelector('[aria-pressed="true"]') || box.querySelector('button'); on.focus(); }
+  });
+  $('#dia-pasos-opts').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-steps]');
+    if (!b) return;
+    const t = Habitos.STEP_TIERS.find((x) => x.key === b.dataset.steps);
+    const cur = Habitos.tierOfSteps((state.habits[today()] || {}).steps);
+    if (setHabit({ steps: cur && cur.key === t.key ? null : t.value })) { $('#dia-pasos-opts').classList.add('hidden'); $('#dia-pasos').setAttribute('aria-expanded', 'false'); $('#dia-pasos').focus(); }
+  });
+  $('#dia-entrene').addEventListener('click', () => {
+    const on = !!(state.habits[today()] || {}).trained;
+    if (on) { setHabit({ trained: false }, { msg: 'Quitamos «Entrené» de hoy' }); return; }
+    setHabit({ trained: true }, { msg: 'Entrenamiento anotado', action: { label: 'Contar cómo te sentiste', run: () => { show('rutina'); $('#esf-title').focus(); } } });
+  });
+  $('#dia-igual').addEventListener('click', () => {
+    const y = state.habits[Schema.addDays(today(), -1)];
+    if (!y || !(y.water > 0 || y.steps > 0 || y.sleep > 0)) { toast('Ayer no hay agua, pasos ni sueño anotados para repetir'); return; }
+    setHabit({ sameAs: y }, { msg: 'Listo: repetimos lo de ayer. Ajusta lo que cambió.' });
+  });
+  $('#dia-listo').addEventListener('click', () => {
+    if (!Constancia.noted(state, today()).length) { toast('Todavía no anotas nada hoy. Un toque en «Agua» ya cuenta.'); return; }
+    showCelebration({ d: today() });
   });
 
-  // --- Medidas ---
+  function renderInicio() {
+    if (!PROD.coach) return;
+    const d = today(), client = !navCoach;
+    // Saludo y frase del día (tono cálido; lo de ayer ya pasó)
+    const m = acct();
+    const name = firstName((m && m.displayName) || (m && m.email ? m.email.split('@')[0] : ''));
+    setText($('#home-greeting'), name ? `Hola, ${capFirst1(name)}` : 'Hola');
+    const sub = $('#home-sub');
+    sub.classList.toggle('hidden', !client);
+    const since = Constancia.daysSince(state, d);
+    const doneToday = Constancia.dayDone(state, d), regToday = Constancia.hasRecord(state, d);
+    setText(sub, doneToday.complete ? 'Día completo. Gracias por registrar.' : regToday ? 'Hoy solo hay una tarea: registrar tu día.'
+      : since == null ? 'Hoy solo hay una tarea: registrar tu día. Te toma menos de un minuto.'
+        : since >= 5 ? 'Volver también es parte del proceso. Empecemos con lo más fácil: ¿cuántos vasos de agua llevas?'
+          : since >= 2 ? 'Qué bueno verte. ¿Registramos hoy? Lo de ayer ya pasó; cuenta lo que haces desde aquí.' : 'Hoy solo hay una tarea: registrar tu día.');
+    if (!client) return;
+    // Mi día
+    const h = state.habits[d] || {};
+    const glasses = Math.round((h.water || 0) / Habitos.GLASS_L), sleepOpt = Habitos.optOfSleep(h.sleep), tier = Habitos.tierOfSteps(h.steps), trained = h.trained === true;
+    const agua = $('#dia-agua');
+    setText($('#dia-agua-t'), `Agua ${glasses} / ${Habitos.GLASSES_GOAL}`);
+    setText($('#dia-agua-s'), 'Toca: +1 vaso');
+    agua.classList.toggle('on', glasses >= Habitos.GLASSES_GOAL || glasses > 0);
+    agua.setAttribute('aria-label', `Agua: ${glasses} de ${Habitos.GLASSES_GOAL} vasos. Toca para sumar un vaso`);
+    const sueno = $('#dia-sueno');
+    setText($('#dia-sueno-t'), sleepOpt ? `Sueño ${sleepOpt.label.replace(' h o más', '+ h').replace(' h', ' h')}` : 'Sueño');
+    setText($('#dia-sueno-s'), sleepOpt ? 'Toca para cambiar' : 'Toca para anotar');
+    sueno.classList.toggle('on', !!sleepOpt);
+    $('#dia-sueno-opts').innerHTML = Habitos.SLEEP_OPTS.map((o) => `<button type="button" data-sleep="${o.key}" aria-pressed="${!!sleepOpt && sleepOpt.key === o.key}">${esc(o.label)}</button>`).join('');
+    $('#dia-pasos').classList.toggle('on', !!tier);
+    setText($('#dia-pasos-t'), tier ? `Pasos ${tier.label}` : 'Pasos');
+    setText($('#dia-pasos-s'), tier ? 'Toca para cambiar' : '<4 mil · 4–8 mil · 8 mil+');
+    $$('#dia-pasos-opts [data-steps]').forEach((b) => { const on = !!tier && tier.key === b.dataset.steps; b.setAttribute('aria-pressed', String(on)); });
+    const ent = $('#dia-entrene');
+    ent.classList.toggle('on', trained);
+    ent.setAttribute('aria-pressed', String(trained));
+    setText($('#dia-entrene-s'), trained ? 'Anotado ✓' : 'Toca al terminar');
+    const week = Constancia.summary(state, d);
+    const idle = !Constancia.noted(state, d).length;
+    setText($('#dia-status'), idle ? 'Cada toque se guarda solo.' : `Guardado. Llevas ${daysWord(week.daysThisWeek)} esta semana.`);
+    setText($('#dia-sub'), idle ? 'Se guarda solo' : 'Guardado ✓');
+    const y = state.habits[Schema.addDays(d, -1)];
+    $('#dia-igual').setAttribute('aria-disabled', String(!(y && (y.water > 0 || y.steps > 0 || y.sleep > 0))));
+    // Hoy toca medirte (solo lo obligatorio de hoy)
+    const due = Medidas.dueToday(state.entries, d, { scale: bascula() });
+    const must = due.items.filter((i) => i.required);
+    $('#home-toca').classList.toggle('hidden', !must.length);
+    if (must.length) setText($('#toca-text'), `Hoy toca: ${Constancia.joinEs(must.map((i) => i.label.toLowerCase()))}.`);
+    // Tu semana
+    setText($('#semana-count'), week.weekLine);
+    $('#semana-days').innerHTML = week.week.days.map((x) => `<li class="sd${x.registered ? ' on' : ''}${x.comodin ? ' comodin' : ''}${x.today ? ' hoy' : ''}${x.future ? ' fut' : ''}" aria-label="${esc(x.name)}: ${x.registered ? 'con registro' : x.comodin ? 'comodín' : x.future ? 'todavía no llega' : x.today ? 'hoy' : 'sin registro'}"><span aria-hidden="true">${esc(x.letter)}</span></li>`).join('');
+    setText($('#semana-line'), week.line);
+    // Aviso de pago: solo si faltan 7 días o menos (SOON_DAYS), como una línea discreta al final y con tono sereno
+    const st = payNow();
+    const c = st && !isPaused() ? Pagos.clientCountdown(st) : null;
+    const show7 = !!(c && c.soon);
+    $('#pay-countdown').classList.toggle('hidden', !show7);
+    setText($('#pay-countdown'), show7 ? c.text : '');
+  }
+
+  // ---- Entrenar: «Ya entrené» marca el hábito y pregunta el esfuerzo (Fácil · Normal · Duro · No pude terminar) ----
+  document.addEventListener('pg:rutina-trained', () => {
+    if (!setHabit({ trained: true }, { msg: 'Entrenamiento anotado' })) return;
+    document.dispatchEvent(new CustomEvent('pg:rutina-trained-done'));
+    const t = $('#esf-title');
+    if (t && t.offsetParent) t.focus();
+  });
+  $('#esf-chips').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-effort]');
+    if (!b) return;
+    const cur = (state.habits[today()] || {}).effort;
+    setHabit({ effort: cur === b.dataset.effort ? null : b.dataset.effort }, { msg: 'Gracias por contarlo' });
+    const nb = $(`#esf-chips [data-effort="${b.dataset.effort}"]`);
+    if (nb) nb.focus();
+  });
+  function renderEntrenar() {
+    if (!PROD.coach || navCoach) return;
+    const h = state.habits[today()] || {};
+    $('#rutina-esfuerzo').classList.toggle('hidden', h.trained !== true);
+    $('#esf-chips').innerHTML = Habitos.EFFORTS.map((e) => `<button type="button" data-effort="${e.key}" aria-pressed="${h.effort === e.key}">${esc(e.label)}</button>`).join('');
+    const l = myLinkNow();
+    setText($('#esf-note'), l && l.shares && l.shares.habits ? `Tu respuesta le llega a ${coachNameNow()}.` : 'Tu respuesta queda en tu registro.');
+  }
+
+  // ---- Medirme ----
   const medForm = $('#form-medidas');
   medForm.elements.date.value = today();
-  let medKey = 'waist';
-  $('#medidas-pick').innerHTML = Medidas.MEASURES.map((m) => `<button type="button" data-med="${m.key}" aria-pressed="false">${esc(m.label)}</button>`).join('');
-  $('#medidas-pick').addEventListener('click', (ev) => {
-    const b = ev.target.closest('[data-med]');
-    if (!b) return;
-    medKey = b.dataset.med;
-    renderMedChart();
+  const BASCULA_KEY = PGNS.key('bascula');   // 'si' | 'no' | (vacío = aún sin configurar): solo en este teléfono
+  function bascula() { const v = getPref(BASCULA_KEY); return v === 'si' || v === 'no' ? v : null; }
+  const medComma = (v) => (v == null ? '' : String(Math.round(v * 10) / 10).replace('.', ','));
+  const WAIST_FIG = '<svg class="med-fig" width="44" height="64" viewBox="0 0 44 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="22" cy="7" r="5"/><path d="M13 16h18l3 22-4 24M31 16 34 38M13 16 10 38l4 24"/><path d="M12 33h20" stroke-dasharray="3 3" class="med-belt"/></svg>';
+  function medCard(it, prior, { guideFig = false, title = '' } = {}) {
+    const id = 'med-' + it.key;
+    const last = it.last ? `La última fue ${Medidas.fmt(it.last.value)} ${it.unit} (${Medidas.dayShort(it.last.date)})` : 'Aún no tienes una medida anterior';
+    const tag = it.required ? '<small class="req med-req">Toca hoy</small>' : it.key === 'weight' ? '<small class="med-sched">lun · mié · vie</small>' : it.due ? '' : it.when ? `<small class="med-sched">${esc(it.when)}</small>` : '';
+    const prefill = prior && typeof prior[it.key] === 'number' ? medComma(prior[it.key]) : '';
+    // El peso lleva su guía bajo el campo, junto a «la última fue…»; la cintura la lleva arriba, con su dibujo.
+    const guideBelow = it.key === 'weight';
+    return `<div class="card med-card${title ? ' is-toca' : ''}" data-key="${it.key}"><div class="med-head"><label for="${id}" class="med-h"${title ? ' id="med-toca"' : ''}>${esc(title || (it.key === 'waist' ? 'Cintura' : it.label))}</label>${tag}</div>
+      ${guideBelow ? '' : `<div class="med-guide">${guideFig ? WAIST_FIG : ''}<p class="small">${esc(it.guide)}</p></div>`}
+      <div class="med-input"><input id="${id}" name="${it.key}" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" pattern="[0-9]+([.,][0-9])?" value="${esc(prefill)}" aria-describedby="${id}-ult"><span class="med-unit" aria-hidden="true">${it.unit}</span></div>
+      <p id="${id}-ult" class="small muted">${esc(last)}${guideBelow ? `. ${esc(it.guide)}` : ''}</p></div>`;
+  }
+  let medSig = '';
+  function renderMedirme() {
+    if (!PROD.coach || navCoach) return;
+    const f = medForm.elements;
+    if (!Schema.isISODate(f.date.value) || f.date.value > today()) f.date.value = today();
+    const d = f.date.value;
+    f.date.max = today();
+    setText($('#med-day-text'), (d === today() ? 'Hoy, ' : '') + new Date(d + 'T12:00:00').toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/[,.]/g, ''));
+    const sc = bascula();
+    const due = Medidas.dueToday(state.entries, d, { scale: sc });
+    const prior = state.entries.find((e) => e.date === d) || null;
+    const sig = JSON.stringify([d, sc, due.items.map((i) => [i.key, i.due, i.required, i.last && i.last.date, i.last && i.last.value, i.when]), prior && Medidas.KEYS.map((k) => prior[k])]);
+    const typing = document.activeElement && document.activeElement.tagName === 'INPUT' && $('#med-fields').contains(document.activeElement);   // no se redibuja mientras escribe
+    if (sig === medSig || typing) return;
+    medSig = sig;
+    const by = Object.fromEntries(due.items.map((i) => [i.key, i]));
+    const dueMain = ['waist', 'weight', 'hip'].filter((k) => by[k].due && (k !== 'weight' || sc !== 'no'));
+    // Con báscula, el peso se muestra siempre (con sus días: lun · mié · vie) aunque hoy no toque.
+    const main = ['waist', 'weight', 'hip'].filter((k) => dueMain.includes(k) || (k === 'weight' && sc === 'si'));
+    const rest = Medidas.FORM_KEYS.filter((k) => !main.includes(k) && !(k === 'weight' && sc === 'no'));
+    const toca = dueMain.length ? `Toca hoy: ${Constancia.joinEs(dueMain.map((k) => by[k].label.toLowerCase()))}` : 'Hoy no te toca medir nada';
+    // Lo próximo que toca, para la fila de «Más medidas»
+    const next = due.items.filter((i) => !i.due && i.when && ['waist', 'hip'].includes(i.key)).sort((a, b) => 0)[0];
+    let html = '';
+    if (sc == null) html += `<div class="card med-scale" role="group" aria-labelledby="med-scale-t"><h3 id="med-scale-t" class="med-h">¿Tienes báscula en casa?</h3><p class="small muted">Si la tienes, te pedimos el peso lunes, miércoles y viernes. Si no, el peso queda opcional.</p><div class="row-actions"><button type="button" class="btn btn-ghost btn-tall" id="btn-scale-si">Sí, tengo</button><button type="button" class="btn btn-ghost btn-tall" id="btn-scale-no">No tengo</button></div></div>`;
+    // Si hoy solo toca una medida, «Toca hoy: cintura» es el título de su tarjeta; si tocan varias, va como encabezado.
+    const single = dueMain.length === 1 ? dueMain[0] : null;
+    if (!single) html += `<h3 class="med-toca" id="med-toca">${esc(toca)}</h3>`;
+    html += main.map((k) => medCard(by[k], prior, { guideFig: k === 'waist', title: k === single ? toca : '' })).join('');
+    html += `<details class="card med-mas" id="med-mas"><summary><span class="med-mas-t">+ Más medidas (opcional)</span>${next ? `<small class="med-mas-s">${esc(next.label)} ${esc(next.when)}</small>` : ''}</summary>${rest.map((k) => medCard(by[k], prior)).join('')}</details>`;
+    $('#med-fields').innerHTML = html;
+  }
+  $('#med-fields').addEventListener('click', (ev) => {
+    const si = ev.target.closest('#btn-scale-si'), no = ev.target.closest('#btn-scale-no');
+    if (!si && !no) return;
+    setPref(BASCULA_KEY, si ? 'si' : 'no');
+    medSig = '';
+    render();
+    toast(si ? 'Listo: te pediremos el peso lunes, miércoles y viernes' : 'Listo: el peso queda opcional');
   });
+  $('#btn-med-cambiar').addEventListener('click', () => {
+    const row = $('#med-date-row'), open = row.classList.toggle('hidden') === false;
+    $('#btn-med-cambiar').setAttribute('aria-expanded', String(open));
+    if (open) medForm.elements.date.focus();
+  });
+  medForm.elements.date.addEventListener('change', () => { medSig = ''; renderMedirme(); });
   medForm.addEventListener('submit', (ev) => {
     ev.preventDefault();
     const el = medForm.elements, d = el.date.value;
@@ -1753,26 +2092,50 @@
     const fail = (msg, field) => { err.textContent = msg; err.classList.remove('hidden'); if (field) field.focus(); };
     if (!Schema.isISODate(d)) { fail('Elige la fecha.', el.date); return; }
     const vals = {};
-    for (const m of Medidas.MEASURES) {
-      const raw = String(el[m.key].value).replace(',', '.').trim();
+    for (const k of Medidas.FORM_KEYS) {
+      if (!el[k]) continue;
+      const raw = String(el[k].value).replace(',', '.').trim();
       if (raw === '') continue;
-      const v = Number(raw), [lo, hi] = Schema.RANGES[m.key];
-      if (!Number.isFinite(v) || v < lo || v > hi) { fail(`Revisa «${m.label}»: debe estar entre ${lo} y ${hi} ${m.unit}.`, el[m.key]); return; }
-      vals[m.key] = v;
+      const v = Number(raw), [lo, hi] = Schema.RANGES[k];
+      if (!Number.isFinite(v) || v < lo || v > hi) { fail(`Revisa «${Medidas.labelOf(k)}»: debe estar entre ${lo} y ${hi} ${Medidas.unitOf(k)}.`, el[k]); return; }
+      vals[k] = v;
     }
-    // Peso, abdomen y cadera son obligatorios en los registros NUEVOS (si ese día ya los tiene, no se vuelven a exigir; el historial importado queda exento).
+    // Solo lo que TOCA hoy es obligatorio (decisión D2): lo demás se puede dejar en blanco.
     const prior = state.entries.find((e) => e.date === d);
-    const falta = Medidas.missing(vals, prior);
+    const due = Medidas.dueToday(state.entries, d, { scale: bascula() });
+    const falta = Medidas.missing(vals, prior, due);
     if (falta.length) { fail(Medidas.missingText(falta), el[falta[0].key]); return; }
+    if (!Object.keys(vals).length) { fail('Anota al menos una medida.', el[Medidas.FORM_KEYS.find((k) => el[k])]); return; }
     err.classList.add('hidden');
     const existing = state.entries.find((e) => e.date === d);
     if (existing) Object.assign(existing, vals); else state.entries.push({ id: uid(), date: d, ...vals });
     if (!save()) return;
-    for (const m of Medidas.MEASURES) el[m.key].value = '';
+    medSig = '';
     el.date.value = today();
-    toast(existing ? 'Medidas actualizadas' : 'Medidas guardadas');
+    $('#med-date-row').classList.add('hidden');
+    const rose = vals.weight != null && Medidas.rose(state.entries, d);
+    const wk = Constancia.summary(state, today());
     render();
+    show('progreso');
+    $('#progreso-title').focus();
+    toast(rose ? 'Hoy marcaste un poco más que la vez pasada. El peso diario sube y baja por agua, sal y digestión; lo que importa es la tendencia de varias semanas.'
+      : `${existing ? 'Medidas actualizadas' : 'Medidas guardadas'}. Gracias por medirte.${wk.daysThisWeek ? ` Llevas ${daysWord(wk.daysThisWeek)} esta semana.` : ''}`);
   });
+
+  // ---- Progreso: tendencia, constancia y cambios en lenguaje neutro ----
+  let medKey = 'weight';
+  let medAll = false;
+  const MED_CHIPS = ['weight', 'waist', 'hip'];
+  const OTHER_KEYS = ['neck', 'armR', 'armL', 'back', 'thighR', 'thighL', 'abdomen'];
+  $('#medidas-pick').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-med]');
+    if (!b) return;
+    if (b.dataset.med === 'otra') { medKey = $('#medidas-otra').value || OTHER_KEYS[0]; $('#medidas-otra').classList.remove('hidden'); $('#medidas-otra').focus(); }
+    else { medKey = b.dataset.med; $('#medidas-otra').classList.add('hidden'); }
+    renderProgreso();
+  });
+  $('#medidas-otra').addEventListener('change', (ev) => { medKey = ev.target.value; renderProgreso(); });
+  $('#btn-med-all').addEventListener('click', () => { medAll = !medAll; renderProgreso(); });
   $('#medidas-history').addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-del-med]');
     if (!b || isPaused()) return;
@@ -1780,57 +2143,111 @@
     state.entries = state.entries.filter((e) => e.id !== b.dataset.delMed);
     if (save()) render();
   });
-  function medChartSVG(key) {
+  function chartSVG(key) {
     const label = Medidas.labelOf(key), unit = Medidas.unitOf(key);
-    const c = Medidas.chart(Medidas.series(state.entries, key), { w: 320, h: 150 });
-    if (!c) return `<p class="muted small">Aún no hay medidas de «${esc(label)}». Anota la primera arriba.</p>`;
+    if (key === 'weight') {
+      const t = Medidas.weightTrend(state.entries, today());
+      if (!t) return `<p class="muted small">Aún no hay pesajes. Cuando anotes tu peso, aquí verás la tendencia.</p>`;
+      const grid = t.ticks.map((k) => `<line class="grid" x1="30" y1="${k.y}" x2="${t.w - 8}" y2="${k.y}"/><text x="26" y="${k.y + 4}" text-anchor="end">${esc(Medidas.fmt(k.v))}</text>`).join('');
+      return `<svg viewBox="0 0 ${t.w} ${t.h}" role="img" aria-label="${esc(`Peso: tendencia de 7 días${t.change != null ? `, ${Medidas.neutralChange(t.change, 'kg')} entre el ${Medidas.dayShort(t.from)} y el ${Medidas.dayShort(t.to)}` : ''}; ${t.count} pesajes`)}" focusable="false">${grid}
+        ${t.raw.map((p) => `<circle class="raw" cx="${p.x}" cy="${p.y}" r="3"/>`).join('')}${t.d ? `<path class="line" d="${t.d}"/>` : `<circle class="dot" cx="${t.trend[0].x}" cy="${t.trend[0].y}" r="4"/>`}
+        <text x="30" y="${t.h - 6}" text-anchor="start">${esc(Medidas.dayShort(t.from))}</text>${t.count > 1 ? `<text x="${t.w - 8}" y="${t.h - 6}" text-anchor="end">${esc(Medidas.dayShort(t.to))}</text>` : ''}</svg>`;
+    }
+    const c = Medidas.chart(Medidas.series(state.entries, key), { w: 320, h: 160 });
+    if (!c) return `<p class="muted small">Aún no hay medidas de «${esc(label)}». Anota la primera en «Medirme».</p>`;
     const first = c.pts[0], last = c.pts[c.pts.length - 1];
     const val = (p, anchor) => `<text x="${p.x}" y="${Math.max(11, p.y - 9)}" text-anchor="${anchor}">${esc(Medidas.fmt(p.value))}</text>`;
     return `<svg viewBox="0 0 ${c.w} ${c.h}" role="img" aria-label="${esc(Medidas.chartLabel(label, c, unit))}" focusable="false">
       <line class="axis" x1="10" y1="${c.h - 20}" x2="${c.w - 10}" y2="${c.h - 20}"/>
       ${c.d ? `<path class="line" d="${c.d}"/>` : ''}${c.pts.map((p) => `<circle class="dot" cx="${p.x}" cy="${p.y}" r="4"/>`).join('')}
       ${val(first, c.pts.length > 1 ? 'start' : 'middle')}${c.pts.length > 1 ? val(last, 'end') : ''}
-      <text x="10" y="${c.h - 5}" text-anchor="start">${esc(fmtDate(first.date))}</text>${c.pts.length > 1 ? `<text x="${c.w - 10}" y="${c.h - 5}" text-anchor="end">${esc(fmtDate(last.date))}</text>` : ''}</svg>`;
-  }
-  function renderMedChart() {
-    $$('#medidas-pick button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.med === medKey)));
-    $$('#medidas-pick button').forEach((b) => b.classList.toggle('on', b.dataset.med === medKey));
-    $('#medidas-chart').innerHTML = medChartSVG(medKey);
-    const row = Medidas.summary(state.entries).find((r) => r.key === medKey);
-    setText($('#medidas-chart-sub'), row.count ? `${row.label}: inicio ${row.startText} ${row.unit} · hoy ${row.todayText} ${row.unit}${row.change == null ? '' : ` · cambio ${row.changeText} ${row.unit}`}` : '');
+      <text x="10" y="${c.h - 5}" text-anchor="start">${esc(Medidas.dayShort(first.date))}</text>${c.pts.length > 1 ? `<text x="${c.w - 10}" y="${c.h - 5}" text-anchor="end">${esc(Medidas.dayShort(last.date))}</text>` : ''}</svg>`;
   }
   window.PGMedTable = (rows) => `<table class="med-table"><thead><tr><th scope="col">Medida</th><th scope="col">Inicio</th><th scope="col">Hoy</th><th scope="col">Cambio</th></tr></thead><tbody>${rows.map((r) =>
-    `<tr><th scope="row">${esc(r.label)}</th><td>${esc(r.startText)}</td><td>${esc(r.todayText)}</td><td class="${r.dir === 'down' ? 'dn' : ''}">${esc(r.changeText)}</td></tr>`).join('')}</tbody></table>`;
-  function renderMedidas() {
-    renderMedChart();
-    $('#medidas-table').innerHTML = PGMedTable(Medidas.summary(state.entries));
+    `<tr><th scope="row">${esc(r.label)}</th><td>${esc(r.startText)}</td><td>${esc(r.todayText)}</td><td>${esc(r.changeText)}</td></tr>`).join('')}</tbody></table>`;
+  function renderProgreso() {
+    if (!PROD.coach || navCoach) return;
+    const d = today();
+    const has = (k) => Medidas.series(state.entries, k).length > 0;
+    if (medKey === 'weight' && !has('weight') && has('waist')) medKey = 'waist';
+    const otherKeys = OTHER_KEYS.filter((k) => k !== 'abdomen' || has('abdomen'));
+    const isOther = !MED_CHIPS.includes(medKey);
+    $('#medidas-pick').innerHTML = MED_CHIPS.map((k) => `<button type="button" data-med="${k}" aria-pressed="${medKey === k}" class="${medKey === k ? 'on' : ''}">${esc(Medidas.labelOf(k))}</button>`).join('')
+      + `<button type="button" data-med="otra" aria-pressed="${isOther}" class="${isOther ? 'on' : ''}">Otra ▾</button>`;
+    const sel = $('#medidas-otra');
+    sel.classList.toggle('hidden', !isOther);
+    const wantOpts = otherKeys.map((k) => `<option value="${k}">${esc(Medidas.labelOf(k))}</option>`).join('');
+    if (sel.innerHTML !== wantOpts) sel.innerHTML = wantOpts;
+    if (isOther) sel.value = medKey;
+    $('#medidas-chart').innerHTML = chartSVG(medKey);
+    const unit = Medidas.unitOf(medKey), label = Medidas.labelOf(medKey);
+    const meseta = medKey === 'weight' && Medidas.plateau(state.entries, d);
+    $('#prog-meseta').classList.toggle('hidden', !meseta);
+    if (meseta) setText($('#prog-meseta'), 'El peso lleva unas semanas estable. Es común y no borra lo que has construido. Mira tu cintura y tu constancia; tu coach revisará contigo si hace falta ajustar algo.');
+    if (medKey === 'weight') {
+      const t = Medidas.weightTrend(state.entries, d);
+      setText($('#prog-label'), 'Tendencia (promedio de 7 días)');
+      setText($('#prog-big'), t ? `${Medidas.fmt(t.trendNow)} ${unit}` : '—');
+      setText($('#prog-delta'), t && t.change != null ? `· ${Medidas.neutralChange(t.change, unit)} desde el ${Medidas.dayShort(t.from)}` : '');
+      setText($('#medidas-chart-sub'), t ? 'Puntos: tus pesajes. Línea: la tendencia. El peso diario sube y baja por agua y sal.' : '');
+    } else {
+      const s = Medidas.series(state.entries, medKey);
+      setText($('#prog-label'), `${label}: última medida`);
+      setText($('#prog-big'), s.length ? `${Medidas.fmt(s[s.length - 1].value)} ${unit}` : '—');
+      setText($('#prog-delta'), s.length > 1 ? `· ${Medidas.neutralChange(s[s.length - 1].value - s[0].value, unit)} desde el ${Medidas.dayShort(s[0].date)}` : '');
+      setText($('#medidas-chart-sub'), '');
+    }
+    // Constancia
+    const sm = Constancia.summary(state, d), bg = Constancia.badgeCount(Constancia.badges(state, d));
+    const ym = d.slice(0, 7);
+    const trainedMonth = Object.keys(state.habits).filter((x) => x.startsWith(ym) && x <= d && state.habits[x].trained === true).length;
+    $('#prog-stats').innerHTML = [[sm.constantWeeks, sm.constantWeeks === 1 ? 'semana constante' : 'semanas constantes'], [trainedMonth, trainedMonth === 1 ? 'entreno este mes' : 'entrenos este mes'],
+      [`${sm.daysThisWeek} de 7`, 'días con registro'], [`${bg.earned} de ${bg.total}`, 'insignias']].map(([n, l]) => `<div class="stat"><span class="stat-value">${esc(n)}</span><span class="stat-label">${esc(l)}</span></div>`).join('');
+    // Cambios: lenguaje neutro (sin verde ni rojo)
+    const rows = Medidas.summary(state.entries).filter((r) => r.key !== 'weight' && r.count > 1);
+    const from = rows.length ? rows.map((r) => Medidas.series(state.entries, r.key)[0].date).sort()[0] : null;
+    setText($('#prog-cambios-title'), from ? `Cambios desde el ${Medidas.dayShort(from)}` : 'Cambios');
+    // Lo principal es cintura y cadera; el resto de las medidas queda en «Ver todas las medidas».
+    const dl = (list) => `<dl class="prog-cambios">${list.map((r) => `<div><dt>${esc(r.label)}</dt><dd>${esc(Medidas.neutralChange(r.change, r.unit))}</dd></div>`).join('')}</dl>`;
+    const mainRows = rows.filter((r) => r.key === 'waist' || r.key === 'hip'), restRows = rows.filter((r) => !mainRows.includes(r));
+    $('#medidas-table').innerHTML = !rows.length ? '<p class="small muted">Cuando tengas dos medidas de la misma parte del cuerpo, aquí verás cómo cambió.</p>'
+      : !mainRows.length ? dl(rows) : dl(mainRows) + (restRows.length ? `<details class="prog-mas"><summary>Ver todas las medidas</summary>${dl(restRows)}</details>` : '');
+    // Registros: los 5 últimos y «Ver todo»
     const list = state.entries.filter((e) => Medidas.KEYS.some((k) => e[k] != null)).sort((a, b) => b.date.localeCompare(a.date));
+    const shown = medAll ? list : list.slice(0, 5);
     $('#medidas-empty').classList.toggle('hidden', list.length > 0);
-    $('#medidas-history').innerHTML = list.map((e) => `<li><span><strong>${esc(fmtDate(e.date))}</strong><br><span class="small muted">${Medidas.MEASURES.filter((m) => e[m.key] != null).map((m) => `${esc(m.label)} ${esc(Medidas.fmt(e[m.key]))}${m.unit === 'kg' ? ' kg' : ''}`).join(' · ')}</span></span>
+    $('#btn-med-all').classList.toggle('hidden', list.length <= 5);
+    setText($('#btn-med-all'), medAll ? 'Ver menos' : `Ver todo (${list.length})`);
+    $('#medidas-history').innerHTML = shown.map((e) => `<li><span><strong>${esc(fmtDate(e.date))}</strong><br><span class="small muted">${Medidas.MEASURES.filter((m) => e[m.key] != null).map((m) => `${esc(m.label)} ${esc(Medidas.fmt(e[m.key]))}${m.unit === 'kg' ? ' kg' : ''}`).join(' · ')}</span></span>
       <button type="button" class="icon-btn" data-del-med="${esc(e.id)}" aria-label="Eliminar las medidas del ${esc(fmtDate(e.date))}">✕</button></li>`).join('');
-    // Lo último que anotó, como pista en cada casilla.
-    for (const r of Medidas.summary(state.entries)) medForm.elements[r.key].placeholder = r.count ? `Última: ${r.todayText}` : '';
   }
 
-  // --- Inicio del cliente (modo coach): próximo pago, hábitos de hoy y atajos ---
-  function renderHomeCoach() {
-    if (!PROD.coach) return;
-    const st = payNow();
-    const cd = $('#pay-countdown');
-    const c = st && !isPaused() ? Pagos.clientCountdown(st) : null;
-    cd.classList.toggle('hidden', !c);
-    cd.classList.toggle('soon', !!(c && c.soon));
-    setText(cd, c ? c.text : '');
-    const day = Habitos.day(state, today());
-    $('#hc-habits').innerHTML = barHTML(day.items);
-    setText($('#hc-habits-sub'), day.logged ? 'Hoy' : 'Aún sin registrar');
-    const last = Medidas.summary(state.entries).filter((r) => r.count).sort((a, b) => b.lastDate.localeCompare(a.lastDate))[0];
-    setText($('#hc-med-text'), last ? `Última medida: ${fmtDate(last.lastDate)} · ${last.label} ${last.todayText} ${last.unit}` : 'Aún no registras medidas.');
-    const m = acct();
-    const name = (m && m.displayName) || (m && m.email ? m.email.split('@')[0] : '');
-    setText($('#home-greeting'), name ? `Hola, ${name.charAt(0).toUpperCase() + name.slice(1)}` : 'Hola');
+  // ---- Insignias (8 del MVP) ----
+  function renderInsignias() {
+    if (!PROD.coach || navCoach) return;
+    const list = Constancia.badges(state, today()), c = Constancia.badgeCount(list);
+    setText($('#insig-count'), `${c.earned} de ${c.total} insignias`);
+    $('#insig-list').innerHTML = list.map((b, i) => `<li class="insig ${b.earned ? 'earned' : 'pending'}"><span class="insig-n" aria-hidden="true">${i + 1}</span><span class="insig-t"><strong>${esc(b.name)}</strong><small>${esc(b.earned ? fmtShort(b.date) : b.hint)}</small><span class="sr-only">${esc(b.desc)}. ${b.earned ? 'Ganada' : 'Aún no'}</span></span></li>`).join('');
+  }
+  // Barra Medidas · Fotos · Insignias al inicio de las tres pantallas de Progreso
+  if (PROD.coach) {
+    // Progreso lleva Medidas · Fotos · Insignias; Fotos e Insignias son pantallas hijas (con «‹ Progreso» en la barra superior).
+    const nav = document.createElement('nav');
+    nav.className = 'prog-seg';
+    nav.setAttribute('aria-label', 'Progreso');
+    nav.innerHTML = [['progreso', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias']].map(([v, t]) => `<button type="button" data-goto="${v}"${v === 'progreso' ? ' aria-current="page" class="on"' : ''}>${t}</button>`).join('');
+    $('#view-progreso').prepend(nav);
+    $('#btn-foto-add').addEventListener('click', () => {
+      const det = $('#foto-nueva');
+      det.open = true;
+      det.scrollIntoView({ block: 'start' });
+      const f = det.querySelector('input[name=date]');
+      if (f) f.focus({ preventScroll: true });
+    });
   }
 
+  // --- Inicio del cliente (modo coach) ---
+  function renderHomeCoach() { renderInicio(); }
 
   // --- Etapa 2: Mis comidas (producto 'coach') ---
   // Usa el MISMO registro de siempre (`state.foods`, su guardado y su sincronización); solo cambia cómo se elige y se ve.
@@ -1851,55 +2268,71 @@
   const mcBlock = () => (isPaused() ? 'Tu acceso está en pausa: habla con tu coach' : shareGate() ? 'Antes confirma lo que compartes con tu coach (Más → Mi coach)'
     : !consentOK() ? 'Acepta los Términos y la Política para continuar' : !can('sensitiveHealth') ? 'Autoriza tus datos de salud para registrar tu seguimiento' : '');
 
+  // UX Etapa 1: lo principal es «comidas anotadas» y la proteína del día; las kcal van pequeñas, redondeadas y con «aprox.». Sin rojo ni «te pasaste».
+  // La META de proteína del coach (concepto jurídico L5) llega en la Etapa 2 (necesita servidor): por ahora NO se muestra ninguna meta ni barra de avance.
+  const FAV_KEY = PGNS.key('platos');   // «Mis platos»: guardados solo en este teléfono
+  const favs = () => { let raw = null; try { raw = JSON.parse(getPref(FAV_KEY) || 'null'); } catch { raw = null; } return Platos.favsClean(raw); };
+  const saveFavs = (list) => setPref(FAV_KEY, JSON.stringify(Platos.favsClean(list)));
+  const mcOpen = new Set();   // comidas con sus opciones (editar, borrar, guardar) desplegadas
+  $('#mc-list').addEventListener('toggle', (ev) => { const d = ev.target; if (d.classList && d.classList.contains('mc-det')) { if (d.open) mcOpen.add(d.dataset.id); else mcOpen.delete(d.dataset.id); } }, true);
   function renderComidasCoach() {
     if (!PROD.coach) return;
     const client = !navCoach;
     const gate = shareGate(), paused = isPaused();
     $('#li-micomidas').classList.toggle('hidden', !client);
-    $('#home-comidas').classList.toggle('hidden', !client);
     if (!client) return;
-    // Inicio
-    const t = Platos.dayTotal(state.foods, today());
-    setText($('#hm-kcal'), Platos.n0(t.kcal));
-    setText($('#hm-sub'), t.count ? 'Hoy' : 'Aún sin registrar');
-    setText($('#hm-text'), gate ? 'Para usar tus comidas, confirma lo que compartes con tu coach.' : t.count ? `${plural1(t.count, 'comida registrada', 'comidas registradas')} hoy. Calorías aproximadas.` : 'Aún no registras comidas hoy. Las calorías son aproximadas.');
-    $('#btn-hm-add').classList.toggle('hidden', gate || paused);
-    $('#btn-hm-see').classList.toggle('hidden', gate);
-    $('#btn-hm-gate').classList.toggle('hidden', !gate);
-    // Pantalla Mis comidas
     $('#mc-gate').classList.toggle('hidden', !gate);
     $('#mc-main').classList.toggle('hidden', gate);
     if (gate) return;
     const day = Schema.isISODate(mcDate.value) ? mcDate.value : today();
     const isToday = day === today();
-    const tot = Platos.dayTotal(state.foods, day);
+    const tot = Platos.dayTotal(state.foods, day), pr = Platos.proteinDay(state.foods, day);
     setText($('#mc-day-title'), (isToday ? 'Hoy, ' : '') + longDay(day));
-    setText($('#mc-kcal'), Platos.n0(tot.kcal));
+    setText($('#mc-count'), pr.count ? plural1(pr.count, 'comida anotada', 'comidas anotadas') : 'Aún sin comidas anotadas');
+    setText($('#mc-kcal'), Platos.approx(tot.kcal, 10));
+    setText($('#mc-prot'), pr.any ? `~${pr.grams} g` : '—');
+    setText($('#mc-prot-note'), !pr.count ? 'Cuando anotes una comida del catálogo, aquí verás su proteína aproximada.'
+      : !pr.any ? 'Estas comidas no traen dato de proteína: escríbelas desde el catálogo para sumarla.'
+        : pr.partial ? `${plural1(pr.without, 'comida sin dato', 'comidas sin dato')} de proteína (las escritas a mano no la traen).` : 'Proteína aproximada de lo que anotaste.');
     $('#mc-next').disabled = day >= today();
     const prev = Schema.addDays(day, -1);
     const canRepeat = !paused && (state.foods[prev] || []).length > 0;
     $('#btn-mc-repeat').classList.toggle('hidden', !canRepeat);
     setText($('#btn-mc-repeat'), isToday ? 'Repetir la de ayer' : 'Repetir el día anterior');
-    const list = state.foods[day] || [];
-    const html = Schema.MEALS.map((m) => {
-      const xs = list.filter((x) => x.meal === m).sort((a, b) => String(a.time || '99').localeCompare(String(b.time || '99')));
-      if (!xs.length) return '';
-      const sum = xs.reduce((n, x) => n + x.kcal, 0);
-      return `<div class="mc-meal"><div class="mc-meal-head"><strong>${esc(m)}</strong><span class="muted">${Platos.n0(sum)} kcal</span></div><ul class="mc-items">${xs.map((x) => {
-        const p = x.dish ? Platos.portionOf(x.portion) : null;
-        const sub = [p ? p.label : '', x.time || ''].filter(Boolean).join(' · ');
-        return `<li class="mc-item"><div class="mc-line"><span class="mc-t"><strong>${esc(x.name)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</span><b class="mc-k">${Platos.n0(x.kcal)} kcal</b></div>
-          <div class="mc-actions"><button type="button" class="btn-link" data-mc-edit="${esc(x.id)}" aria-label="Editar: ${esc(x.name)}">Editar</button><button type="button" class="btn-link" data-mc-del="${esc(x.id)}" aria-label="Borrar: ${esc(x.name)}">Borrar</button></div></li>`;
-      }).join('')}</ul></div>`;
-    }).join('');
-    $('#mc-list').innerHTML = html || '<p class="muted">Nada registrado este día.</p>' + (isToday && !paused ? '<p class="small muted">Toca «Agregar comida» para anotar la primera.</p>' : '');
+    $('#btn-mc-add').classList.toggle('hidden', paused);
+    $('#btn-mc-platos').classList.toggle('hidden', paused);
+    const saved = new Set(favs().map((f) => f.key));
+    const list = (state.foods[day] || []).slice().sort((a, b) => Schema.MEALS.indexOf(a.meal) - Schema.MEALS.indexOf(b.meal) || String(a.time || '99').localeCompare(String(b.time || '99')));
+    $('#mc-list').innerHTML = list.length ? `<ul class="mc-items">${list.map((x) => {
+      const p = x.dish ? Platos.portionOf(x.portion) : null;
+      const sub = [p ? p.label : '', x.time || ''].filter(Boolean).join(' · ');
+      const isFav = saved.has(Platos.favKey(x));
+      const open = mcOpen.has(x.id);
+      return `<li class="mc-item"><details class="mc-det" data-id="${esc(x.id)}"${open ? ' open' : ''}><summary class="mc-line" aria-label="${esc(x.meal)}: ${esc(x.name)}. Ver opciones"><span class="mc-t"><strong>${esc(x.meal)}</strong> · ${esc(x.name)}</span><span class="mc-k"><b>${esc(Platos.protText(x))}</b><small>${esc(Platos.kcalApprox(x.kcal))}</small></span></summary>
+        <div class="mc-actions">${sub ? `<small class="mc-sub">${esc(sub)}</small>` : ''}<button type="button" class="btn-link" data-mc-edit="${esc(x.id)}" aria-label="Editar: ${esc(x.name)}">Editar</button><button type="button" class="btn-link" data-mc-del="${esc(x.id)}" aria-label="Borrar: ${esc(x.name)}">Borrar</button>${paused ? '' : `<button type="button" class="btn-link" data-mc-fav="${esc(x.id)}" aria-pressed="${isFav}" aria-label="${isFav ? 'Quitar de Mis platos' : 'Guardar en Mis platos'}: ${esc(x.name)}">${isFav ? '★ Guardado' : '☆ Guardar'}</button>`}</div></details></li>`;
+    }).join('')}</ul>` : '<p class="muted">Nada registrado este día.</p>' + (isToday && !paused ? '<p class="small muted">Toca «+ Comida» para anotar la primera.</p>' : '');
+    // Cierre del día
+    const close = (state.habits[day] || {}).close;
+    $('#mc-cierre-chips').innerHTML = Habitos.CLOSES.map((c) => `<button type="button" data-close="${c.key}" aria-pressed="${close === c.key}">${esc(c.label)}</button>`).join('');
+    $('#mc-cierre').classList.toggle('hidden', paused && !close);
   }
+  $('#mc-cierre-chips').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-close]');
+    if (!b) return;
+    const blocked = mcBlock();
+    if (blocked) { toast(blocked, true); return; }
+    const day = Schema.isISODate(mcDate.value) ? mcDate.value : today();
+    const cur = (state.habits[day] || {}).close;
+    setHabit({ close: cur === b.dataset.close ? null : b.dataset.close }, { d: day, msg: 'Gracias. Así tu coach lee mejor tu semana.', celebrate: false });
+    const nb = $(`#mc-cierre-chips [data-close="${b.dataset.close}"]`);
+    if (nb) nb.focus();
+  });
   const mcGoToday = () => { mcDate.value = today(); };
   mcDate.addEventListener('change', () => { if (!Schema.isISODate(mcDate.value) || mcDate.value > today()) mcGoToday(); render(); });
+  $('#mc-cambiar').addEventListener('click', () => { const row = $('#mc-date-row'), open = row.classList.toggle('hidden') === false; $('#mc-cambiar').setAttribute('aria-expanded', String(open)); if (open) mcDate.focus(); });
   $('#mc-prev').addEventListener('click', () => { mcDate.value = Schema.addDays(mcDate.value || today(), -1); render(); });
   $('#mc-next').addEventListener('click', () => { const n = Schema.addDays(mcDate.value || today(), 1); mcDate.value = n > today() ? today() : n; render(); });
   $('#row-micomidas').addEventListener('click', mcGoToday);
-  $('#btn-hm-see').addEventListener('click', mcGoToday);
   $('#btn-mc-repeat').addEventListener('click', () => {
     const blocked = mcBlock();
     if (blocked) { toast(blocked, true); return; }
@@ -1909,6 +2342,19 @@
   });
   // Borrar (con «Deshacer») y editar
   $('#mc-list').addEventListener('click', (ev) => {
+    const fav = ev.target.closest('[data-mc-fav]');
+    if (fav) {
+      const day = mcDate.value || today();
+      const item = (state.foods[day] || []).find((x) => x.id === fav.dataset.mcFav);
+      if (!item) return;
+      const list = favs(), key = Platos.favKey(item), has = list.some((f) => f.key === key);
+      saveFavs(has ? list.filter((f) => f.key !== key) : [Platos.favOf(item), ...list]);
+      render();
+      const again = $(`#mc-list [data-mc-fav="${item.id}"]`);
+      if (again) again.focus();
+      toast(has ? `Quitamos «${item.name}» de Mis platos` : `Guardado en Mis platos: ${item.name}`);
+      return;
+    }
     const del = ev.target.closest('[data-mc-del]'), ed = ev.target.closest('[data-mc-edit]');
     if (!del && !ed) return;
     const blocked = mcBlock();
@@ -1937,14 +2383,27 @@
   function scRenderCats() {
     $('#sc-cats').innerHTML = scCats.map((c) => `<button type="button" data-cat="${esc(c.key)}" aria-pressed="${c.key === scCat}">${esc(c.label)}</button>`).join('');
   }
-  const scItemHTML = (d) => `<li><button type="button" class="sc-item" data-dish="${esc(d.id)}"><span class="sc-t"><strong>${esc(d.name)}</strong><small>${esc(d.portion)}</small></span><b>${Platos.n0(d.kcal)} kcal</b></button></li>`;
+  const scItemHTML = (d) => `<li><button type="button" class="sc-item" data-dish="${esc(d.id)}"><span class="sc-t"><strong>${esc(d.name)}</strong><small>${esc(d.portion)}</small></span><span class="sc-k"><b>P ${Platos.approx(d.protein)} g</b><small>${esc(Platos.kcalApprox(d.kcal))}</small></span></button></li>`;
+  const scFavHTML = (f) => `<li><button type="button" class="sc-item" data-fav="${esc(f.key)}"><span class="sc-t"><strong>${esc(f.name)}</strong><small>${esc(f.dish ? (Platos.portionOf(f.portion) || {}).label || '' : 'Escrita por ti')}</small></span><span class="sc-k"><b>${f.dish ? `P ${Platos.approx(Platos.scale(Platos.byId(f.dish), f.portion || 'normal').protein)} g` : 'P sin dato'}</b><small>${esc(Platos.kcalApprox(f.kcal))}</small></span></button></li>`;
   const SC_MAX = 60;
+  let scTab = 'cat';
+  const SC_TABS = [['cat', 'Catálogo'], ['mios', 'Mis platos'], ['rec', 'Recientes']];
+  function scRenderTabs() {
+    $('#sc-tabs').innerHTML = SC_TABS.map(([k, t]) => `<button type="button" data-tab="${k}" aria-pressed="${scTab === k}">${t}</button>`).join('');
+    $('#sc-pane-cat').classList.toggle('hidden', scTab !== 'cat');
+    $('#sc-pane-mios').classList.toggle('hidden', scTab !== 'mios');
+    $('#sc-pane-rec').classList.toggle('hidden', scTab !== 'rec');
+  }
   function scRenderList() {
     const q = $('#sc-q').value;
-    const rec = !q.trim() && scCat === 'todas' ? Platos.recents(state.foods, 6) : [];
-    $('#sc-recent-title').classList.toggle('hidden', !rec.length);
-    $('#sc-recent').classList.toggle('hidden', !rec.length);
+    // Al escribir se esconden las categorías (el teclado tapaba los resultados)
+    $('#sc-cats').classList.toggle('hidden', !!q.trim());
+    const rec = Platos.recents(state.foods, 8);
     $('#sc-recent').innerHTML = rec.map(scItemHTML).join('');
+    $('#sc-recent-empty').classList.toggle('hidden', rec.length > 0);
+    const mine = favs();
+    $('#sc-mine').innerHTML = mine.map(scFavHTML).join('');
+    $('#sc-mine-empty').classList.toggle('hidden', mine.length > 0);
     const res = Platos.search(q, { category: scCat });
     const cat = Platos.categoryOf(scCat);
     setText($('#sc-res-title'), q.trim() ? (res.length ? plural1(res.length, 'resultado', 'resultados') : 'No encontramos ese plato') : cat ? cat.label : 'Todos los platos');
@@ -1954,16 +2413,16 @@
   function scPortionsHTML(d, selected) {
     return Platos.PORTIONS.map((p) => {
       const v = Platos.scale(d, p.key);
-      return `<label class="sc-portion"><input type="radio" name="portion" value="${p.key}"${p.key === selected ? ' checked' : ''}><span class="sc-pl">${esc(p.label)}</span><span class="sc-pk">${Platos.n0(v.kcal)} kcal</span></label>`;
+      return `<label class="sc-portion"><input type="radio" name="portion" value="${p.key}"${p.key === selected ? ' checked' : ''}><span class="sc-pl">${esc(p.label)}</span><span class="sc-pk">P ${Platos.approx(v.protein)} g · ${esc(Platos.approx(v.kcal, 10))} kcal</span></label>`;
     }).join('');
   }
   function scUpdateTotal() {
     if (!scSt || scSt.mode !== 'dish') { setText($('#sc-total'), ''); return; }
     const v = Platos.scale(scSt.dish, formC.elements.portion.value || 'normal');
-    setText($('#sc-total'), `Total: ${Platos.n0(v.kcal)} kcal aproximadas`);
+    setText($('#sc-total'), `Proteína ${Platos.approx(v.protein)} g · ${Platos.kcalApprox(v.kcal)}`);
   }
   formC.addEventListener('change', (ev) => { if (ev.target.name === 'portion') scUpdateTotal(); });
-  function scOpenForm({ dish, edit, day }) {
+  function scOpenForm({ dish, edit, day, fav }) {
     const free = !dish;
     scSt = { mode: free ? 'free' : 'dish', dish: dish || null, edit: edit || null, day };
     const f = formC.elements;
@@ -1971,11 +2430,11 @@
     $('#sc-free').classList.toggle('hidden', !free);
     $('#sc-portions').classList.toggle('hidden', free);
     setText($('#sc-step2-title'), free ? (edit ? 'Editar comida' : 'Escribir otra comida') : dish.name);
-    setText($('#sc-dish-sub'), free ? 'Escribe lo que comiste y sus calorías aproximadas.' : `Porción normal: ${dish.portion} · ${Platos.n0(dish.kcal)} kcal aprox.`);
-    if (!free) $('#sc-portions').innerHTML = '<legend>¿Cuánto comiste?</legend>' + scPortionsHTML(dish, (edit && edit.portion) || 'normal');
-    f.name.value = free && edit ? edit.name : '';
-    f.kcal.value = free && edit ? String(edit.kcal) : '';
-    f.meal.value = edit ? edit.meal : free ? mealByHour(new Date().getHours()) : (Platos.categoryOf(dish.category) || {}).meal || 'Snack';
+    setText($('#sc-dish-sub'), free ? 'Escribe lo que comiste y sus calorías aproximadas. Las comidas escritas a mano no traen dato de proteína.' : `Porción normal: ${dish.portion} · ${Platos.kcalApprox(dish.kcal)}`);
+    if (!free) $('#sc-portions').innerHTML = '<legend>¿Cuánto comiste?</legend>' + scPortionsHTML(dish, (edit && edit.portion) || (fav && fav.portion) || 'normal');
+    f.name.value = free ? (edit ? edit.name : fav ? fav.name : '') : '';
+    f.kcal.value = free ? (edit ? String(edit.kcal) : fav ? String(fav.kcal) : '') : '';
+    f.meal.value = edit ? edit.meal : fav && fav.meal ? fav.meal : free ? mealByHour(new Date().getHours()) : (Platos.categoryOf(dish.category) || {}).meal || 'Snack';
     f.date.value = day; f.date.max = today();
     f.time.value = edit ? edit.time || '' : day === today() ? nowHM() : '';
     setText($('#sc-save'), edit ? 'Guardar cambios' : 'Agregar');
@@ -1984,7 +2443,7 @@
     scShow('form');
     $('#sc-step2-title').focus();
   }
-  function openComida({ edit, day, opener } = {}) {
+  function openComida({ edit, day, opener, tab } = {}) {
     scOpener = opener || document.activeElement;
     day = day || (mcDate.value && Schema.isISODate(mcDate.value) ? mcDate.value : today());
     scSt = { day };
@@ -1994,11 +2453,17 @@
       scOpenForm({ dish: edit.dish ? Platos.byId(edit.dish) : null, edit, day });
       return;
     }
-    $('#sc-q').value = ''; scCat = 'todas'; scRenderCats(); scRenderList(); scShow('pick');
+    $('#sc-q').value = ''; scCat = 'todas'; scTab = tab || 'cat'; scRenderTabs(); scRenderCats(); scRenderList(); scShow('pick');
     sheetC.showModal();
     $('#sc-title').focus();
   }
-  $('#sc-q').addEventListener('input', scRenderList);
+  $('#sc-q').addEventListener('input', () => { if (scTab !== 'cat' && $('#sc-q').value.trim()) { scTab = 'cat'; scRenderTabs(); } scRenderList(); });
+  $('#sc-tabs').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-tab]');
+    if (!b) return;
+    scTab = b.dataset.tab; scRenderTabs(); scRenderList();
+    $(`#sc-tabs [data-tab="${scTab}"]`).focus();
+  });
   $('#sc-cats').addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-cat]');
     if (!b) return;
@@ -2008,6 +2473,8 @@
   $('#sheet-comida').addEventListener('click', (ev) => {
     const it = ev.target.closest('[data-dish]');
     if (it) { scOpenForm({ dish: Platos.byId(it.dataset.dish), day: scSt.day }); return; }
+    const fv = ev.target.closest('[data-fav]');
+    if (fv) { const f = favs().find((x) => x.key === fv.dataset.fav); if (f) scOpenForm({ dish: f.dish ? Platos.byId(f.dish) : null, day: scSt.day, fav: f }); return; }
     if (ev.target === sheetC) sheetC.close(); // toque en el fondo
   });
   $('#sc-free-open').addEventListener('click', () => scOpenForm({ dish: null, day: scSt.day }));
@@ -2063,18 +2530,24 @@
     toast(scSt.edit ? 'Comida actualizada' : 'Comida agregada');
     $('#mc-list-title').focus();
   });
-  // Atajos: «Agregar comida» en Inicio y en la pantalla Mis comidas
-  $('#btn-hm-add').addEventListener('click', () => {
+  // Atajos: «+ Comida» en Mi día (Inicio) y en la pantalla Comidas; «Mis platos» abre la hoja con lo guardado
+  function openAddFromHome() {
     const blocked = mcBlock();
     if (blocked) { toast(blocked, true); return; }
     mcGoToday();
     show('micomidas');
     openComida({ day: today(), opener: $('#btn-mc-add') });
-  });
+  }
+  $('#dia-comida').addEventListener('click', openAddFromHome);
   $('#btn-mc-add').addEventListener('click', () => {
     const blocked = mcBlock();
     if (blocked) { toast(blocked, true); return; }
     openComida({ opener: $('#btn-mc-add') });
+  });
+  $('#btn-mc-platos').addEventListener('click', () => {
+    const blocked = mcBlock();
+    if (blocked) { toast(blocked, true); return; }
+    openComida({ opener: $('#btn-mc-platos'), tab: 'mios' });
   });
 
   // --- Acceso en pausa (M4) ---
@@ -2085,7 +2558,9 @@
     if (!paused) return;
     const l = myLinkNow(), st = payNow();
     const who = l.businessName ? `tu coach, ${l.businessName},` : 'tu coach';
-    setText($('#pause-text'), `${st.key === 'overdue' ? `Tu pago venció el ${Pagos.dayText(st.paidUntil)}. ` : ''}Habla con ${who} para reactivarlo. Cuando te confirme el pago, la app vuelve a funcionar sola.`);
+    // Texto de neurociencia #11: sin castigo ni vergüenza. (El registro propio durante la pausa llega en la Etapa 2: necesita servidor.)
+    const since = st.paidUntil ? ` desde el ${Pagos.dayText(Pagos.addDays(st.paidUntil, 1))}` : '';
+    setText($('#pause-text'), `Tu plan con ${l.businessName || 'tu coach'} está en pausa${since}. Tu progreso está guardado y sigue siendo tuyo. Cuando se confirme el pago, todo vuelve a estar como lo dejaste. Habla con ${who} para reactivarlo.`);
   }
   async function checkPayment(manual) {
     if (!window.PGAccount || !PGAccount.refreshLink) return;
@@ -2098,7 +2573,7 @@
     else if (manual) setText($('#pause-status'), '');
   }
   $('#btn-pause-check').addEventListener('click', () => checkPayment(true));
-  $('#btn-pause-see').addEventListener('click', () => { show('medidas'); $('#medidas-title').focus(); });
+  $('#btn-pause-see').addEventListener('click', () => { show('progreso'); $('#progreso-title').focus(); });
   $('#btn-pause-download').addEventListener('click', () => $('#btn-export').click());
   $('#btn-pause-delete').addEventListener('click', () => $('#btn-account-delete').click());
   document.addEventListener('pg:link-changed', () => render());
@@ -2108,20 +2583,39 @@
   setInterval(() => { if (isPaused() && document.visibilityState === 'visible') checkPayment(false); }, 60000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && PROD.coach && myLinkNow()) checkPayment(false); });
 
+  // Texto de la derecha de la barra superior: fecha corta («sáb 24 oct»); en Comidas «Hoy, sáb 24 oct» (o el día que se mira); en la lista del coach, «Actualizado 08:10».
+  function topLabel() {
+    const short = (d) => new Date(d ? d + 'T12:00:00' : Date.now()).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/[,.]/g, '');
+    let t;
+    if (!PROD.coach) t = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
+    else {
+      const act = document.querySelector('.view.active');
+      const id = act ? act.id : '';
+      if (navCoach && id === 'view-coach' && $('#coach-detail-view').classList.contains('hidden') && document.body.dataset.stamp) t = document.body.dataset.stamp;
+      else if (!navCoach && id === 'view-micomidas') { const day = Schema.isISODate(mcDate.value) ? mcDate.value : today(); t = (day === today() ? 'Hoy, ' : '') + short(day === today() ? null : day); }
+      else t = short();
+    }
+    if ($('#today-label').textContent !== t) $('#today-label').textContent = t;
+  }
+  document.addEventListener('pg:topbar-label', () => topLabel());
   // ---------- Render ----------
   function render() {
     renderConsent();
-    $('#today-label').textContent = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
-    renderPanel();
+    // Producto coach: fecha corta a la derecha de la barra («sáb 24 oct»); la app oficial conserva la larga.
+    topLabel();
+    // Producto «coach» (UX etapa 1): la plataforma NO formula ni prescribe (concepto jurídico, L5): nada de plan, «objetivo diario», consejos de calorías
+    // ni «~N semanas para la meta». Las pantallas heredadas que los pintan no se dibujan en absoluto (ni siquiera ocultas).
+    if (!PROD.coach) { renderPanel(); }
     renderProfileIssue();
     renderBackup();
-    renderEntries();
-    renderFoods();
-    renderPlan();
+    if (!PROD.coach) { renderEntries(); renderFoods(); renderPlan(); }
     renderPhotos();
     renderMas();
     renderHabitos();
-    renderMedidas();
+    renderMedirme();
+    renderProgreso();
+    renderInsignias();
+    renderEntrenar();
     renderHomeCoach();
     renderComidasCoach();
     renderPaused();

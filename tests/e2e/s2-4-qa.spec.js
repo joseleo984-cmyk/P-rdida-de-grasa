@@ -31,11 +31,11 @@ for (const [label, raw] of [
   ['v2', { ...state(), schemaVersion: 2, foods: { [D(1)]: [{ id: 'abc', name: 'Avena', meal: 'Desayuno', kcal: 300, protein: 10, carbs: 50, fat: 5 }] }, habits: { [D(1)]: { steps: 9000, trained: true } }, library: { avena: { name: 'Avena', kcal: 300, protein: 10, carbs: 50, fat: 5 } } }],
   ['v3', { ...V3_STATE, consent: CONSENT }],
 ]) {
-  test(`migración ${label} → v5 al cargar: mismo contenido, UUID, EPOCH y copia por versión`, async ({ app }) => {
+  test(`migración ${label} → v6 al cargar: mismo contenido, UUID, EPOCH y copia por versión`, async ({ app }) => {
     const rawJSON = JSON.stringify(raw);
     await app.open({ state: rawJSON });
     const s = await app.stored();
-    expect(s.schemaVersion).toBe(5);
+    expect(s.schemaVersion).toBe(6);
     expect(s.entries.map(strip)).toEqual(raw.entries.map(strip));
     for (const d of Object.keys(raw.foods || {})) expect(s.foods[d].map(strip)).toEqual(raw.foods[d].map(strip));
     for (const d of Object.keys(raw.habits || {})) expect(strip(s.habits[d])).toEqual(strip({ trained: false, ...raw.habits[d] }));
@@ -111,7 +111,7 @@ test('cuota llena durante la migración al cargar: no se pierde nada y la siguie
   await page.locator('#form-entry [name=weight]').fill('70.1');
   await page.locator('#form-entry button[type=submit]').click();
   const s = await app.stored();
-  expect(s.schemaVersion).toBe(5);
+  expect(s.schemaVersion).toBe(6);
   expect(s.deleted.entries).toEqual([]);
   expect(s.entries.length).toBe(V3_STATE.entries.length + 1);
 });

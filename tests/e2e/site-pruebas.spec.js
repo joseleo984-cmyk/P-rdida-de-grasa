@@ -70,10 +70,12 @@ test('(b)(c) raíz y /pruebas/ no se ven entre sí en el mismo origen; banner so
   await expect(banner).toHaveText('VERSIÓN DE PRUEBAS — no uses datos reales');
   expect(await page.evaluate(() => [PGNS.env, PGNS.key('v1'), PGNS.dbName()])).toEqual(['pruebas', 'perdida-grasa-pruebas:v1', 'perdida-grasa-pruebas']);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('perdida-grasa-pruebas:v1') || '{}').entries || [])).toEqual([]); // no ve los datos de la raíz
-  await expect(page.locator('#st-weight')).not.toContainText('70');
   await page.evaluate((s) => localStorage.setItem('perdida-grasa-pruebas:v1', JSON.stringify(s)), entry(80));
   await page.reload(); await acceptLegalIfPresent(page);
-  await expect(page.locator('#st-weight')).toContainText('80');
+  // La copia de pruebas es el producto «coach»: el peso se ve en Progreso (tendencia), no en el panel heredado.
+  await page.evaluate(() => PGNav.show('progreso'));
+  await expect(page.locator('#prog-big')).toContainText('80');
+  await expect(page.locator('#prog-big')).not.toContainText('70');
   const n = await NAMES(page);
   expect(n.idb).toEqual(expect.arrayContaining(['perdida-grasa-pruebas']));
 
@@ -100,7 +102,7 @@ test('(d) los service workers de la raíz y de pruebas conviven sin borrarse las
   await open(page, site.base + '/');
   await page.waitForTimeout(500);
   const keys = await page.evaluate(() => caches.keys());
-  expect(keys.sort()).toEqual(['perdida-grasa-demo-v47', 'perdida-grasa-pruebas-v47', 'perdida-grasa-v47']);
+  expect(keys.sort()).toEqual(['perdida-grasa-demo-v48', 'perdida-grasa-pruebas-v48', 'perdida-grasa-v48']);
   for (const k of keys) expect(await page.evaluate(async (k) => (await (await caches.open(k)).keys()).length, k)).toBeGreaterThan(5);
-  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v47')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
+  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v48')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
 });

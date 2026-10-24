@@ -232,7 +232,27 @@
     return [x.name, p && x.dish ? p.label : '', x.meal, x.time || ''].filter(Boolean).join(' · ');
   }
 
-  const api = { CATEGORIES, PORTIONS, LIST, byId, portionOf, categoryOf, norm, search, scale, toFood, portionText, recents, dayTotal, lastDays, lineOf, n0 };
+  // ---------- UX Etapa 1: proteína al frente, kcal pequeñas y aproximadas ----------
+  // Una comida «tiene dato de proteína» si viene del catálogo (platos.js) o si la persona la anotó con proteína (> 0). Las comidas libres sin proteína cuentan como «sin dato»:
+  // NO se asume 0 g (sería un dato falso), simplemente no suman y se dice cuántas faltan.
+  const hasProtein = (x) => !!x && (typeof x.dish === 'string' || Number(x.protein) > 0);
+  function proteinDay(foods, day) {
+    const list = foods && Array.isArray(foods[day]) ? foods[day] : [];
+    const withData = list.filter(hasProtein);
+    const grams = withData.reduce((n, x) => n + (Number(x.protein) || 0), 0);
+    return { count: list.length, withData: withData.length, without: list.length - withData.length, grams: Math.round(grams), partial: list.length > 0 && withData.length < list.length, any: withData.length > 0 };
+  }
+  // «~1.250» (kcal redondeadas a 10) y «~78» (g): siempre con «~» porque son aproximadas.
+  const approx = (n, step = 1) => '~' + n0(Math.round((Number(n) || 0) / step) * step);
+  const kcalApprox = (n) => `${approx(n, 10)} kcal aprox.`;
+  const protText = (x) => (hasProtein(x) ? `P ${approx(x.protein)} g` : 'P sin dato');
+  // «Mis platos» (guardados solo en este teléfono): un favorito es { key, name, kcal, meal, dish?, portion? }. La clave evita repetidos.
+  const favKey = (x) => (x.dish ? `d:${x.dish}:${x.portion || 'normal'}` : `l:${String(x.name || '').trim().toLowerCase()}:${Math.round(Number(x.kcal) || 0)}`);
+  const favOf = (x) => { const f = { key: favKey(x), name: x.name, kcal: Math.round(Number(x.kcal) || 0), meal: x.meal }; if (x.dish) { f.dish = x.dish; f.portion = x.portion || 'normal'; } if (Number(x.protein) > 0) f.protein = x.protein; return f; };
+  const favValid = (f) => !!f && typeof f === 'object' && typeof f.key === 'string' && typeof f.name === 'string' && f.name.trim() && Number.isFinite(f.kcal) && f.kcal >= 0 && f.kcal <= 5000 && (!f.dish || BY_ID.has(f.dish));
+  const favsClean = (list) => { const seen = new Set(); return (Array.isArray(list) ? list : []).filter((f) => favValid(f) && !seen.has(f.key) && seen.add(f.key)).slice(0, 40); };
+
+  const api = { CATEGORIES, PORTIONS, LIST, byId, portionOf, categoryOf, norm, search, scale, toFood, portionText, recents, dayTotal, lastDays, lineOf, n0, hasProtein, proteinDay, approx, kcalApprox, protText, favKey, favOf, favValid, favsClean };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Platos = api;
 })(typeof window !== 'undefined' ? window : globalThis);

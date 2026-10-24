@@ -57,7 +57,41 @@
   }
   const notSharedText = (name) => `${name || 'Este cliente'} todavía no comparte sus hábitos`;
 
-  const api = { HABITS, day, week, listLine, notSharedText, GLASS_L, GLASSES_GOAL, STEPS_GOAL, SLEEP_GOAL };
+  // ---------- Registro de un toque («Mi día», UX Etapa 1) ----------
+  // Pasos en tramos y sueño en rangos: se guarda un valor representativo del tramo (el de «8 mil+» es justo la meta, así que «cumple»).
+  const STEP_TIERS = [{ key: 'low', label: '<4 mil', value: 3000 }, { key: 'mid', label: '4–8 mil', value: 6000 }, { key: 'high', label: '8 mil+', value: 8000 }];
+  const SLEEP_OPTS = [{ key: 's1', label: '<6 h', value: 5 }, { key: 's2', label: '6–7 h', value: 6.5 }, { key: 's3', label: '7–8 h', value: 7.5 }, { key: 's4', label: '8 h o más', value: 8.5 }];
+  const tierOfSteps = (n) => (pos(n) <= 0 ? null : n < 4000 ? STEP_TIERS[0] : n < STEPS_GOAL ? STEP_TIERS[1] : STEP_TIERS[2]);
+  const optOfSleep = (h) => (pos(h) <= 0 ? null : h < 6 ? SLEEP_OPTS[0] : h < 7 ? SLEEP_OPTS[1] : h < 8 ? SLEEP_OPTS[2] : SLEEP_OPTS[3]);
+  const EFFORTS = [{ key: 'facil', label: 'Fácil' }, { key: 'normal', label: 'Normal' }, { key: 'duro', label: 'Duro' }, { key: 'no_termine', label: 'No pude terminar' }];
+  const CLOSES = [{ key: 'si', label: 'Sí' }, { key: 'casi', label: 'Casi todo' }, { key: 'no', label: 'No' }];
+  const effortLabel = (k) => (EFFORTS.find((e) => e.key === k) || {}).label || '';
+  const closeLabel = (k) => (CLOSES.find((e) => e.key === k) || {}).label || '';
+  // Devuelve el registro del día (nuevo objeto, sin mutar) tras UN cambio. change: { water: +1|-1 } | { steps: valor|null } | { sleep: valor|null } | { trained: bool }
+  // | { effort: clave|null } | { close: clave|null } | { sameAs: registro de ayer }. Quita las claves vacías: un día sin nada no queda como «registrado».
+  function apply(rec, change) {
+    const h = { ...(rec || {}) };
+    if ('water' in change) {
+      const g = Math.round(pos(h.water) / GLASS_L) + change.water;
+      const next = Math.max(0, Math.min(40, g));
+      if (next > 0) h.water = next * GLASS_L; else delete h.water;
+    }
+    if ('steps' in change) { if (change.steps == null) delete h.steps; else h.steps = change.steps; }
+    if ('sleep' in change) { if (change.sleep == null) delete h.sleep; else h.sleep = change.sleep; }
+    if ('trained' in change) { h.trained = !!change.trained; if (!h.trained) delete h.effort; }
+    if ('effort' in change) { if (change.effort == null) delete h.effort; else { h.effort = change.effort; h.trained = true; } }
+    if ('close' in change) { if (change.close == null) delete h.close; else h.close = change.close; }
+    if (change.sameAs) {
+      const y = change.sameAs;
+      for (const k of ['water', 'steps', 'sleep']) if (pos(y[k]) > 0) h[k] = y[k];
+    }
+    if (h.trained !== true) h.trained = false;
+    return h;
+  }
+  // ¿Quedó vacío el día (nada anotado)? Entonces no se guarda un registro.
+  const isEmpty = (h) => !h || (!pos(h.water) && !pos(h.steps) && !pos(h.sleep) && h.trained !== true && !h.effort && !h.close);
+
+  const api = { HABITS, day, week, listLine, notSharedText, GLASS_L, GLASSES_GOAL, STEPS_GOAL, SLEEP_GOAL, STEP_TIERS, SLEEP_OPTS, EFFORTS, CLOSES, tierOfSteps, optOfSleep, effortLabel, closeLabel, apply, isEmpty };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Habitos = api;
 })(typeof window !== 'undefined' ? window : globalThis);

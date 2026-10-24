@@ -135,4 +135,16 @@ async function tall(page, scope) {
 }
 // Ningún elemento que coincida con el selector se ve (los toBeHidden de Playwright exigen un solo elemento).
 const allHidden = async (page, sel) => expect(await page.evaluate((sel) => [...document.querySelectorAll(sel)].filter((el) => el.offsetParent !== null).map((el) => el.id || el.className), sel)).toEqual([]);
-module.exports = { allHidden, useConfig, phone, seedCoach, seedClient, transfer, ready, backend, acceptSolo, enterWithEmail, layout, tall, shot, WIDE, sha, NOW, signedIn };
+// Producto coach: abre el formulario de «Nueva foto» (con fotos ya guardadas se abre con «+ Foto» de la barra; sin ninguna, con «Tomar mi primera foto»).
+async function openFotoForm(page) {
+  if (await page.locator('#foto-nueva').evaluate((d) => d.open)) return;
+  const sum = page.locator('#foto-nueva-sum');
+  if (await sum.isVisible()) await sum.click(); else await page.locator('#btn-foto-add').click();
+}
+// Producto coach: despliega las opciones (editar, borrar, guardar) de una comida de la lista.
+async function openMeal(page, text) {
+  const det = page.locator('#mc-list .mc-det', { hasText: text }).first();
+  if (!(await det.evaluate((d) => d.open))) await det.locator('summary').click();
+}
+
+module.exports = { openFotoForm, openMeal, allHidden, useConfig, phone, seedCoach, seedClient, transfer, ready, backend, acceptSolo, enterWithEmail, layout, tall, shot, WIDE, sha, NOW, signedIn };

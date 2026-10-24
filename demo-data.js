@@ -11,7 +11,7 @@
 (function (root) {
   'use strict';
 
-  const BUSINESS = 'Fit Demo';
+  const BUSINESS = 'Coach Fit Demo';
   const COACH = { key: 'coach', name: 'Coach Demo', email: 'coach.demo@example.com' };
   const INVITE_CODE = 'FTDM72';                       // 6 letras/números válidos del alfabeto de invitaciones (sin I, L, O, 0, 1)
   const BANNER = 'DEMO — datos ficticios; nada se guarda en ningún servidor';
@@ -39,9 +39,9 @@
   // weeks: semanas de historial de medidas (0 = una sola medición); last: día del último registro (0 = hoy, -2 = hace 2 días).
   // habitDays / foodDays: cuántos días de hábitos y comidas hay (hasta «last»). paid: días de pago que le quedan (negativo = no pagó).
   const PEOPLE = [
-    { key: 'ana', name: 'Ana Demo', sex: 'f', w0: 78.4, loss: 5.6, weeks: 10, last: -1, adh: 0.88, habitDays: 28, foodDays: 7, started: -72, paid: 21, notes: true,
-      shares: { body: true, notes: true, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [0, 'perfil', 0], [4, 'frente', 1], [8, 'frente', 1], [10, 'frente', 1], [10, 'perfil', 1]], routines: ['pecho', 'piernas'] },
-    { key: 'beto', name: 'Beto Demo', sex: 'm', w0: 96.2, loss: 6.8, weeks: 10, last: 0, adh: 0.62, habitDays: 28, foodDays: 7, started: -75, paid: 4, notes: true,
+    { key: 'ana', name: 'Ana Demo', sex: 'f', w0: 78.4, loss: 5.6, weeks: 10, last: -1, adh: 0.88, habitDays: 28, foodDays: 7, started: -72, paid: 21, notes: true, waistWeekAgo: true,
+      shares: { body: true, notes: true, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [0, 'perfil', 0], [4, 'frente', 1], [8, 'frente', 1], [10, 'frente', 1], [10, 'perfil', 1]], routines: ['pecho', 'piernas'], pattern: true, early: true, steady: true },
+    { key: 'beto', name: 'Beto Demo', sex: 'm', w0: 96.2, loss: 6.8, weeks: 10, last: 0, adh: 0.62, habitDays: 28, foodDays: 7, started: -75, paid: 4, notes: true, hard: true,
       shares: { body: true, notes: false, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [5, 'frente', 1], [10, 'frente', 1], [10, 'espalda', 1]], routines: ['espalda'] },
     { key: 'carla', name: 'Carla Demo', sex: 'f', w0: 69.5, loss: 3.9, weeks: 10, last: -2, adh: 0.5, habitDays: 28, foodDays: 7, started: -70, paid: 14, notes: true,
       shares: { body: true, notes: true, nutrition: true, habits: false, photos: false }, photos: [[0, 'frente', 0], [9, 'frente', 0]], routines: ['piernas*', 'pecho'] },
@@ -51,9 +51,9 @@
       shares: { body: true, notes: false, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [5, 'frente', 1]], routines: ['piernas'] },
     { key: 'fabio', name: 'Fabio Demo', sex: 'm', w0: 102.4, loss: 3.1, weeks: 4, last: 0, adh: 0.7, habitDays: 10, foodDays: 4, started: -30, paid: 2, notes: false,
       shares: { body: true, notes: false, nutrition: true, habits: true, photos: false }, photos: [], routines: [] },
-    { key: 'gina', name: 'Gina Demo', sex: 'f', w0: 64.8, loss: 1.5, weeks: 3, last: -2, adh: 0.55, habitDays: 7, foodDays: 2, started: -23, paid: 9, notes: false,
+    { key: 'gina', name: 'Gina Demo', sex: 'f', w0: 64.8, loss: 1.5, weeks: 3, last: -3, adh: 0.55, habitDays: 7, foodDays: 2, started: -23, paid: 9, notes: false,
       shares: { body: true, notes: false, nutrition: true, habits: false, photos: false }, photos: [], routines: [] },
-    { key: 'hugo', name: 'Hugo Demo', sex: 'm', w0: 91.0, loss: 0, weeks: 0, last: -2, adh: 0, habitDays: 0, foodDays: 0, started: -2, paid: 28, notes: false,
+    { key: 'hugo', name: 'Hugo Demo', sex: 'm', w0: 91.0, loss: 0, weeks: 0, last: 0, adh: 0, habitDays: 0, foodDays: 0, started: -2, paid: 28, notes: false,
       shares: { body: true, notes: false, nutrition: true, habits: false, photos: false }, photos: [], routines: [] },
   ].map((p) => ({ ...p, email: `${p.key}.demo@example.com` }));
 
@@ -69,7 +69,7 @@
     const weeks = p.weeks;
     const base = BASE[p.sex];
     // Avance semanal acumulado (fracción de lo que baja en total), con semanas de meseta y alguna que sube un poco.
-    const raw = Array.from({ length: weeks }, () => rnd() * 1.6 - 0.2);
+    const raw = Array.from({ length: weeks }, () => (p.steady ? 1 : rnd() * 1.6 - 0.2));   // steady: baja parejo (sin mesetas)
     const sum = raw.reduce((a, b) => a + b, 0) || 1;
     const frac = [0];
     raw.forEach((x) => frac.push(frac[frac.length - 1] + x / sum));
@@ -77,16 +77,15 @@
     const add = (off, data) => { const date = addDays(today, off); if (off <= 0) out.set(date, { date, ...data }); };
     for (let w = 0; w <= weeks; w++) {
       const f = frac[w] || 0, L = p.loss;
-      const e = { weight: r1(p.w0 - L * f + (rnd() - 0.5) * 0.4), abdomen: r1(base.abdomen - L * 1.2 * f + (rnd() - 0.5) * 0.8), hip: r1(base.hip - L * 0.6 * f + (rnd() - 0.5) * 0.7) };
-      if (w % 2 === 0 || w === weeks) {   // las demás medidas cada 2 semanas
-        e.waist = r1(base.waist - L * 0.9 * f + (rnd() - 0.5) * 0.8);
-        e.neck = r1(base.neck - 0.4 * f + (rnd() - 0.5) * 0.3);
-        e.armR = r1(base.armR - L * 0.1 * f + (rnd() - 0.5) * 0.4);
-        e.armL = r1(base.armL - L * 0.1 * f + (rnd() - 0.5) * 0.4);
-        e.back = r1(base.back - L * 0.15 * f + (rnd() - 0.5) * 0.6);
-        e.thighR = r1(base.thighR - L * 0.35 * f + (rnd() - 0.5) * 0.6);
-        e.thighL = r1(base.thighL - L * 0.35 * f + (rnd() - 0.5) * 0.6);
-      }
+      const e = { weight: r1(p.w0 - L * f + (rnd() - 0.5) * 0.4), abdomen: r1(base.abdomen - L * 1.2 * f + (rnd() - 0.5) * 0.8) };
+      const hipNow = r1(base.hip - L * 0.6 * f + (rnd() - 0.5) * 0.7);   // siempre se consume el mismo azar (los datos de la demo no cambian de un día a otro)
+      // Cintura, cadera y las demás medidas cada 2 semanas (waistWeekAgo: la última vez fue hace una semana, así hoy «toca» la cintura).
+      // El azar se consume igual que siempre (solo en las semanas pares y la última): los datos de la demo no cambian de un día a otro.
+      const orig = w % 2 === 0 || w === weeks;
+      const nz = (k) => (orig ? rnd() : 0.5) - 0.5, place = p.waistWeekAgo ? (w % 2 === (weeks - 1) % 2 && w < weeks) : orig;
+      const g = orig || place ? { waist: r1(base.waist - L * 0.9 * f + nz() * 0.8), neck: r1(base.neck - 0.4 * f + nz() * 0.3), armR: r1(base.armR - L * 0.1 * f + nz() * 0.4), armL: r1(base.armL - L * 0.1 * f + nz() * 0.4),
+        back: r1(base.back - L * 0.15 * f + nz() * 0.6), thighR: r1(base.thighR - L * 0.35 * f + nz() * 0.6), thighL: r1(base.thighL - L * 0.35 * f + nz() * 0.6) } : null;
+      if (place) Object.assign(e, g, { hip: hipNow });
       if (p.notes && (w === 3 || w === 7)) e.note = NOTES[(w + p.key.length) % NOTES.length];
       add(dayOf(w), e);
       // Pesajes entre semanas (solo peso), con la fluctuación normal de un día a otro.
@@ -100,6 +99,10 @@
   }
 
   // ---------- Hábitos ----------
+  // UX Etapa 1: además de agua, pasos, sueño y entreno, cada día de entreno trae su esfuerzo («Cómo te sentiste») y algunos días traen el cierre de comidas
+  // («¿Registraste todo lo de hoy?»). Ana usa un patrón fijo por días seguidos (cualquier semana del calendario tiene 6 de 7 de agua y sueño, 3 de 7 de pasos y 3 entrenos)
+  // para que sus insignias sean las mismas todos los días de la semana: 6 de 8, con «Pata de perro» en camino y «Volviste» sin aplicar.
+  const EFFORT_CYCLE = ['normal', 'normal', 'duro', 'facil'];
   function buildHabits(p, today, rnd) {
     const out = [];
     const anchor = p.habitDays >= 28 ? 0 : p.last;   // los asesorados al día arrancan hoy (con el día a medias)
@@ -107,11 +110,24 @@
       const off = anchor - k;
       const date = addDays(today, off);
       if (off === 0) { out.push({ date, water: 0.75, steps: 3150, sleep: 7.5, trained: false }); continue; }   // hoy: el día va a medias
-      if (k > 6 && rnd() < 0.08) continue;                                                                 // algún día sin anotar
+      if (!p.pattern && k > 6 && rnd() < 0.08) continue;                                                      // algún día sin anotar
       const a = p.adh;
-      const glasses = rnd() < a ? 8 + Math.floor(rnd() * 3) : 3 + Math.floor(rnd() * 5);
-      out.push({ date, water: glasses * 0.25, steps: rnd() < a ? 8000 + Math.floor(rnd() * 4500) : 3000 + Math.floor(rnd() * 4500),
-        sleep: rnd() < a * 0.9 ? 7 + Math.floor(rnd() * 4) / 2 : 5 + Math.floor(rnd() * 4) / 2, trained: rnd() < a * 0.8 });
+      let h;
+      if (p.pattern) {
+        h = { water: (k % 7 !== 3 ? 8 + (k % 3) : 5) * 0.25, steps: k % 7 < 3 ? 8500 + k * 40 : 4200 + (k % 5) * 500, sleep: k % 7 !== 5 ? 7 + (k % 3) / 2 : 6, trained: [0, 2, 4].includes(k % 7) };
+      } else {
+        const glasses = rnd() < a ? 8 + Math.floor(rnd() * 3) : 3 + Math.floor(rnd() * 5);
+        h = { water: glasses * 0.25, steps: rnd() < a ? 8000 + Math.floor(rnd() * 4500) : 3000 + Math.floor(rnd() * 4500),
+          sleep: rnd() < a * 0.9 ? 7 + Math.floor(rnd() * 4) / 2 : 5 + Math.floor(rnd() * 4) / 2, trained: rnd() < a * 0.8 || !!(p.hard && k < 5) };
+      }
+      if (h.trained) h.effort = p.hard && k < 5 ? 'duro' : EFFORT_CYCLE[(k + p.key.length) % EFFORT_CYCLE.length];
+      if (k > 0 && (k % 3 === 0 || k % 5 === 0) && rnd() < 0.9) h.close = k % 5 === 0 ? 'casi' : 'si';
+      out.push({ date, ...h });
+    }
+    // Primeros días con la plataforma (para «Primera semana»): 5 días seguidos de registro al comienzo.
+    if (p.early) {
+      const first = p.last - 7 * p.weeks;
+      for (let k = 1; k <= 5; k++) out.push({ date: addDays(today, first + k), water: 2, steps: 7000, sleep: 7, trained: k % 2 === 0 });
     }
     return out;
   }
@@ -163,13 +179,13 @@
         { name: 'Extensión de tríceps con cuerda', sets: '3 × 15', note: 'Codos pegados al cuerpo.' }] },
       { title: 'Día 2 – Cardio suave', exercises: [{ name: 'Caminata rápida', sets: '30 minutos', note: 'A un ritmo en el que puedas conversar.' }] }] },
     piernas: { title: 'Piernas', days: [
-      { title: 'Día 1 – Piernas y glúteos', exercises: [
-        { name: 'Sentadilla', sets: '4 × 12', note: 'Rodillas en la dirección de los pies.', gif: 'sentadilla' },
-        { name: 'Peso muerto rumano', sets: '3 × 10', note: 'Espalda recta, baja hasta media pierna.' },
-        { name: 'Zancadas', sets: '3 × 12 por pierna', note: '' },
-        { name: 'Puente de glúteos', sets: '3 × 15', note: 'Aprieta arriba un segundo.' },
-        { name: 'Elevación de talones', sets: '4 × 15', note: '' }] },
-      { title: 'Día 2 – Descanso activo', exercises: [{ name: 'Estiramientos suaves', sets: '15 minutos', note: '' }] }] },
+      { title: 'Piernas y glúteos', exercises: [
+        { name: 'Sentadilla goblet', sets: '3×12', note: 'Rodillas en la dirección de los pies.', gif: 'sentadilla' },
+        { name: 'Zancadas', sets: '3×10 c/lado', note: '' },
+        { name: 'Peso muerto rumano', sets: '3×10', note: 'Espalda recta, baja hasta media pierna.' },
+        { name: 'Puente de glúteo', sets: '3×15', note: 'Aprieta arriba un segundo.' },
+        { name: 'Elevación de talones', sets: '3×15', note: '' },
+        { name: 'Plancha', sets: '3×30 s', note: '' }] }] },
     espalda: { title: 'Espalda y bíceps', days: [
       { title: 'Día 1 – Espalda y bíceps', exercises: [
         { name: 'Remo con mancuerna', sets: '4 × 12', note: 'Lleva el codo hacia la cadera.', gif: 'remo' },

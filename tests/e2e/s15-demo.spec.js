@@ -50,7 +50,7 @@ const enterCoach = async (page, site) => {
 const enterClient = async (page, site, query = '') => {
   const log = await openDemo(page, site, query);
   if (!query) await page.getByRole('button', { name: /Ver como asesorado/ }).click();
-  await expect(page.locator('#home-coach h1, .home-greeting').filter({ visible: true }).first()).toContainText('Ana Demo');
+  await expect(page.locator('.home-greeting').filter({ visible: true }).first()).toHaveText('Hola, Ana');
   return log;
 };
 const noOverflow = async (page) => {
@@ -80,8 +80,14 @@ test('entrada: banner DEMO, dos botones y nada sale a la red; no hay pantalla de
 test('coach: lista con el «sin pagar», ficha con medidas, hábitos, comidas, fotos y rutinas; abre una foto', async ({ page, site }) => {
   const log = await enterCoach(page, site);
   await expect(page.locator('#coach-title-list')).toHaveText('Mis asesorados');
-  await expect(page.locator('#coach-pay-summary')).toContainText('7pagaron');
-  await expect(page.locator('#coach-pay-summary')).toContainText('1sin pagar');
+  // UX Etapa 1: filtros y semáforo variado (rojo, ámbar y verde, cada uno con su motivo en texto)
+  await expect(page.locator('#coach-filters button')).toHaveText(['Necesitan atención · 3', 'Todos · 8', 'Vencen pronto · 2', 'Sin pagar · 1']);
+  await page.locator('#coach-filters button', { hasText: 'Todos' }).click();
+  const sem = (await page.locator('#coach-clients .sem').allTextContents()).map((x) => x.replace(/\s+/g, ' ').trim());
+  expect(new Set(sem)).toEqual(new Set(['▲ Atención', '● Revisar', '✓ Al día']));
+  await expect(page.locator('#coach-clients .cli-pay-row').filter({ hasText: 'Diego Demo' })).toContainText('Sin registrar desde hace 9 días');
+  await expect(page.locator('#coach-clients .cli-pay-row').filter({ hasText: 'Gina Demo' })).toContainText('3 días sin registrar');
+  await expect(page.locator('#coach-clients .cli-pay-row').filter({ hasText: 'Beto Demo' })).toContainText('Duro');
   const diego = page.locator('#coach-clients .cli-pay-row').filter({ hasText: 'Diego Demo' });
   await expect(diego).toContainText('No pagó');
   const names = (await page.locator('#coach-clients .cli-pay-row strong, #coach-clients .cli-pay-row .cli-name').allTextContents()).join(' ');
@@ -89,7 +95,11 @@ test('coach: lista con el «sin pagar», ficha con medidas, hábitos, comidas, f
   await page.locator('#coach-clients .cli-pay-row').filter({ hasText: 'Ana Demo' }).locator('.cli-main').click();
   await expect(page.locator('#coach-detail-title')).toHaveText('Ana Demo');
   await expect(page.locator('#coach-detail-medidas')).toContainText('Abdomen');
-  await expect(page.locator('#coach-detail-medidas')).toContainText('−5,6');
+  await expect(page.locator('#coach-detail-medidas')).toContainText(/−5,\d/);
+  await expect(page.locator('#fc-semana-title')).toContainText('Esta semana');
+  await expect(page.locator('#fc-esfuerzo')).toContainText('Esfuerzo:');
+  await expect(page.locator('#fc-ins li')).toHaveCount(8);
+  await expect(page.locator('#fc-const-sum')).toContainText('6 de 8');
   await expect(page.locator('#coach-detail-view')).toContainText('Hábitos de la semana');
   await expect(page.locator('#coach-detail-view')).toContainText('Comidas');
   await expect(page.locator('#coach-detail-view')).toContainText('kcal');
@@ -122,30 +132,36 @@ test('coach: Invitar muestra el código y el QR de ejemplo; Más tiene «Cambiar
   await expect(page.locator('.tabbar button:visible')).toHaveCount(5);
 });
 
-test('asesorado: Inicio, Hábitos, Medidas con gráficas, Fotos con comparador, comidas, rutina (con animación) y bitácora', async ({ page, site }) => {
+test('asesorado: Inicio «Mi día», Comidas, Entrenar (con animación), Progreso con gráficas, Fotos con comparador, insignias y bitácora', async ({ page, site }) => {
   const log = await enterClient(page, site);
-  await expect(page.locator('#home-rutina-hoy, #home-rutina').first()).toBeVisible();
-  await expect(page.locator('#view-panel')).toContainText('Rutina de hoy');
-  await expect(page.locator('#view-panel')).toContainText('Tienes 2 rutinas');
-  await expect(page.locator('#view-panel')).toContainText('Notas de tu coach');
-  await expect(page.locator('#home-comidas')).toBeVisible();
-  await page.locator('#tab-habitos').click();
-  await expect(page.locator('#view-habitos')).toContainText('vasos');
-  await page.locator('#tab-medidas').click();
-  await expect(page.locator('#view-medidas svg').first()).toBeVisible();
-  expect(await page.locator('#medidas-chart svg circle').count()).toBeGreaterThanOrEqual(5);   // puntos de la medida elegida (las de cada 2 semanas tienen 6; el peso, 11)
+  // Inicio: nota del coach sin leer ARRIBA, «Mi día», una sola rutina y la semana (sin kcal en grande)
+  await expect(page.locator('#coach-notes')).toContainText('Qué buena semana, Ana');
+  await expect(page.locator('#home-dia')).toBeVisible();
+  await expect(page.locator('#dia-agua-t')).toHaveText('Agua 3 / 8');
+  await expect(page.locator('#dia-sueno-t')).toHaveText('Sueño 7–8 h');
+  await expect(page.locator('#hd-title')).toHaveText('Rutina de hoy: Piernas');
+  await expect(page.locator('#semana-line')).toContainText('semanas constantes');
+  expect(await page.locator('#view-panel').evaluate((v) => v.innerText)).not.toMatch(/kcal/i);
+  await page.locator('#tab-comidas').click();
+  await expect(page.locator('#view-micomidas')).toContainText('comidas anotadas');
+  await expect(page.locator('#view-micomidas')).toContainText('kcal aprox.');
+  await page.locator('#tab-registro').click();
+  await expect(page.locator('#view-progreso svg').first()).toBeVisible();
+  expect(await page.locator('#medidas-chart svg circle').count()).toBeGreaterThanOrEqual(5);   // pesajes tenues + línea de tendencia
   await expect(page.locator('#medidas-chart-sub')).not.toHaveText('');
-  await page.locator('#tab-fotos').click();
+  await expect(page.locator('#prog-stats')).toContainText('6 de 8');
+  await page.locator('#view-progreso .prog-seg button', { hasText: 'Fotos' }).click();
   await expect(page.locator('#view-fotos')).toContainText('Comparar');
   expect(await page.locator('#view-fotos img').count()).toBeGreaterThanOrEqual(6);
+  await expect(page.locator('#foto-hero-tag')).toHaveText('Visible para tu coach');
+  await expect(page.locator('#gallery .vis-tag.vis-off')).toHaveCount(1);   // una foto que Ana ocultó
   await expect.poll(() => page.locator('#view-fotos img').first().evaluate((i) => i.complete && i.naturalWidth > 0)).toBe(true);
   await page.locator('#btn-fotovistas').click();
   await expect(page.locator('#fv-list li')).toHaveCount(4);
-  await page.locator('#tab-mas').click();
-  await page.locator('#row-micomidas').click();
-  await expect(page.locator('#view-micomidas')).toContainText('kcal');
-  await page.locator('#tab-mas').click();
-  await page.locator('#row-rutina').click();
+  await page.evaluate(() => PGNav.show('insignias'));
+  await expect(page.locator('#insig-count')).toHaveText('6 de 8 insignias');
+  await expect(page.locator('#insig-list li.earned')).toHaveCount(6);
+  await page.locator('#tab-entrenar').click();
   await expect(page.locator('#view-rutina')).toContainText('Rutina de hoy');
   await expect(page.locator('#view-rutina')).toContainText('Pecho y tríceps');
   await expect(page.locator('#view-rutina')).not.toContainText('Espalda y bíceps');
@@ -184,6 +200,7 @@ for (const scheme of ['light', 'dark']) {
     await expect(page.locator('#coach-clients .cli-pay-row')).toHaveCount(8);
     await page.addStyleTag({ content: WIDE });
     await noOverflow(page);
+    await page.locator('#coach-filters button', { hasText: 'Todos' }).click();
     await page.locator('#coach-clients .cli-pay-row').filter({ hasText: 'Ana Demo' }).locator('.cli-main').click();
     await expect(page.locator('#coach-detail-title')).toHaveText('Ana Demo');
     await noOverflow(page);
@@ -192,10 +209,11 @@ for (const scheme of ['light', 'dark']) {
     await page.locator('#row-demo-rol').click();
     await page.addStyleTag({ content: WIDE });
     await page.getByRole('button', { name: /Ver como asesorado/ }).click();
-    await expect(page.locator('#view-panel')).toContainText('Ana Demo');
+    await expect(page.locator('#view-panel')).toContainText('Hola, Ana');
     await page.addStyleTag({ content: WIDE });
     await noOverflow(page);
-    for (const t of ['#tab-habitos', '#tab-medidas', '#tab-fotos', '#tab-mas']) { await page.locator(t).click(); await noOverflow(page); }
+    for (const t of ['#tab-comidas', '#tab-entrenar', '#tab-registro', '#tab-mas']) { await page.locator(t).click(); await noOverflow(page); }
+    for (const v of ['habitos', 'medidas', 'fotos', 'insignias']) { await page.evaluate((x) => PGNav.show(x), v); await noOverflow(page); }
   });
 }
 

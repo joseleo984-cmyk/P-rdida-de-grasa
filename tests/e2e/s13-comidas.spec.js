@@ -40,21 +40,16 @@ async function addDish(p, query, { portion, meal, date } = {}) {
 
 test('cliente: agrega un plato del catálogo con porción y una comida libre, ve su total del día, edita, borra y deshace', async ({ browser }, testInfo) => {
   const { p, errors } = await clientApp(browser, testInfo);
-  // La barra no cambia; la tarjeta de Inicio y la fila de Más existen
-  expect((await p.locator('.tabbar button:visible').allTextContents()).map((l) => l.trim())).toEqual(['Inicio', 'Hábitos', 'Medidas', 'Fotos', 'Más']);
-  const card = p.locator('#home-comidas');
-  await expect(card).toBeVisible();
-  await expect(card.locator('#hm-title')).toHaveText('Mis comidas de hoy');
-  await expect(p.locator('#hm-kcal')).toHaveText('0');
-  await expect(card).toContainText('Las calorías son aproximadas');
-  await H.layout(p); await H.tall(p, '#home-comidas');
-  await H.shot(p, 's13-inicio-comidas-vacio.png', { fullPage: true });
-  // «Agregar comida» abre Mis comidas con el catálogo
-  await p.getByRole('button', { name: 'Agregar comida' }).first().click();
+  // «Comidas» está en la barra; en Inicio, «+ Comida» (de «Mi día») abre el catálogo y NO hay kcal en grande
+  expect((await p.locator('.tabbar button:visible').allTextContents()).map((l) => l.trim())).toEqual(['Inicio', 'Comidas', 'Entrenar', 'Progreso', 'Más']);
+  await expect(p.locator('#home-dia')).toBeVisible();
+  expect(await p.locator('#view-panel').innerText()).not.toMatch(/kcal/i);
+  await H.layout(p); await H.tall(p, '#home-dia');
+  await p.locator('#dia-comida').click();
   await expect(p.locator('#view-micomidas')).toBeVisible();
   await expect(p.locator('#sheet-comida')).toBeVisible();
   await expect(p.locator('#sc-title')).toHaveText('Agregar comida');
-  await expect(p.locator('#sc-recent-title')).toBeHidden();
+  await expect(p.locator('#sc-pane-rec')).toBeHidden();   // «Recientes» es otra pestaña
   expect(await p.locator('#sc-results .sc-item').count()).toBeGreaterThan(50);
   await expect(p.locator('#sc-pick')).toContainText('Calorías aproximadas');
   await H.layout(p); await H.tall(p, '#sheet-comida');
@@ -79,23 +74,23 @@ test('cliente: agrega un plato del catálogo con porción y una comida libre, ve
   await p.locator('#sc-q').fill('arepa de huevo');
   await p.locator('#sc-results .sc-item').first().click();
   await expect(p.locator('#sc-step2-title')).toHaveText('Arepa de huevo (costeña)');
-  await expect(p.locator('#sc-dish-sub')).toHaveText('Porción normal: 1 arepa de huevo frita · 280 kcal aprox.');
+  await expect(p.locator('#sc-dish-sub')).toHaveText('Porción normal: 1 arepa de huevo frita · ~280 kcal aprox.');
   await expect(p.locator('#sc-meal')).toHaveValue('Desayuno');
   await expect(p.locator('#sc-date')).toHaveValue(D0);   // hoy por defecto
-  await expect(p.locator('#sc-portions label')).toHaveText([/Media porción\s*140 kcal/, /Porción normal\s*280 kcal/, /Porción grande\s*420 kcal/, /Doble porción\s*560 kcal/]);
-  await expect(p.locator('#sc-total')).toHaveText('Total: 280 kcal aproximadas');
+  await expect(p.locator('#sc-portions label')).toHaveText([/Media porción\s*P ~4 g · ~140 kcal/, /Porción normal\s*P ~8 g · ~280 kcal/, /Porción grande\s*P ~12 g · ~420 kcal/, /Doble porción\s*P ~16 g · ~560 kcal/]);
+  await expect(p.locator('#sc-total')).toHaveText('Proteína ~8 g · ~280 kcal aprox.');
   await p.locator('#sc-portions label', { hasText: 'Porción grande' }).click();
-  await expect(p.locator('#sc-total')).toHaveText('Total: 420 kcal aproximadas');
+  await expect(p.locator('#sc-total')).toHaveText('Proteína ~12 g · ~420 kcal aprox.');
   await H.layout(p); await H.tall(p, '#sheet-comida');
   await H.shot(p, 's13-porcion.png');
   await p.getByRole('button', { name: 'Agregar', exact: true }).click();
   await expect(p.locator('#toast')).toHaveText('Comida agregada');
   await expect(p.locator('#sheet-comida')).toBeHidden();
-  await expect(p.locator('#mc-kcal')).toHaveText('420');
+  await expect(p.locator('#mc-kcal')).toHaveText('~420');
   await expect(p.locator('#mc-list .mc-item')).toHaveCount(1);
   await expect(p.locator('#mc-list .mc-item').first()).toContainText('Arepa de huevo (costeña)');
   await expect(p.locator('#mc-list .mc-item').first()).toContainText('Porción grande');
-  await expect(p.locator('#mc-list .mc-meal-head').first()).toContainText('Desayuno');
+  await expect(p.locator('#mc-list .mc-item').first()).toContainText('Desayuno');
   // Comida libre: nombre + kcal (con validación)
   await p.locator('#btn-mc-add').click();
   await p.locator('#sc-free-open').click();
@@ -111,7 +106,7 @@ test('cliente: agrega un plato del catálogo con porción y una comida libre, ve
   await p.locator('#sc-kcal-in').fill('450');
   await p.getByRole('button', { name: 'Agregar', exact: true }).click();
   await expect(p.locator('#sheet-comida')).toBeHidden();
-  await expect(p.locator('#mc-kcal')).toHaveText('870');
+  await expect(p.locator('#mc-kcal')).toHaveText('~870');
   await expect(p.locator('#mc-list .mc-item')).toHaveCount(2);
   await H.layout(p); await H.tall(p, '#view-micomidas');
   await H.shot(p, 's13-mis-comidas.png', { fullPage: true });
@@ -123,25 +118,23 @@ test('cliente: agrega un plato del catálogo con porción y una comida libre, ve
   expect(list[0].time).toMatch(/^\d\d:\d\d$/);
   expect(list[1]).toMatchObject({ name: 'Pollo con papas', meal: 'Almuerzo', kcal: 450 });
   expect(list[1].dish).toBeUndefined();
-  // Inicio: total del día
-  await p.locator('#tab-panel').click();
-  await expect(p.locator('#hm-kcal')).toHaveText('870');
-  await expect(p.locator('#hm-text')).toHaveText('2 comidas registradas hoy. Calorías aproximadas.');
+  // Lo principal es cuántas comidas anotó
+  await expect(p.locator('#mc-count')).toHaveText('2 comidas anotadas');
   // Llegan al servidor (el coach las verá)
   await expect.poll(async () => Object.values((await H.backend(p)).records).filter((r) => r.kind === 'food').length).toBe(2);
   const srv = Object.values((await H.backend(p)).records).find((r) => r.kind === 'food' && r.data.dish === 'arepa-de-huevo');
   expect(srv.data).toMatchObject({ kcal: 420, portion: 'large', meal: 'Desayuno' });
   expect(srv.date).toBe(D0);
   // Recientes: el plato ya elegido aparece arriba la próxima vez
-  await p.locator('#tab-mas').click();
-  await p.locator('#row-micomidas').click();
-  await expect(p.locator('#micomidas-title')).toBeFocused();
+  await p.locator('#tab-comidas').click();
   await p.locator('#btn-mc-add').click();
+  await p.locator('#sc-tabs button', { hasText: 'Recientes' }).click();
   await expect(p.locator('#sc-recent-title')).toBeVisible();
   await expect(p.locator('#sc-recent .sc-item strong')).toHaveText(['Arepa de huevo (costeña)']);
   await p.locator('#sc-close').click();
   await expect(p.locator('#sheet-comida')).toBeHidden();
   // Editar el plato: otra porción y otro tipo de comida
+  await H.openMeal(p, 'Arepa de huevo');
   await p.getByRole('button', { name: 'Editar: Arepa de huevo (costeña)' }).click();
   await expect(p.locator('#sc-title')).toHaveText('Editar comida');
   await expect(p.locator('#sc-portions input:checked')).toHaveValue('large');
@@ -149,21 +142,23 @@ test('cliente: agrega un plato del catálogo con porción y una comida libre, ve
   await p.locator('#sc-meal').selectOption('Snack');
   await p.getByRole('button', { name: 'Guardar cambios' }).click();
   await expect(p.locator('#toast')).toHaveText('Comida actualizada');
-  await expect(p.locator('#mc-kcal')).toHaveText('590');
+  await expect(p.locator('#mc-kcal')).toHaveText('~590');
   await expect(p.locator('#mc-list')).toContainText('Media porción');
   expect((await foodsOf(p))[D0][0]).toMatchObject({ kcal: 140, portion: 'half', meal: 'Snack', dish: 'arepa-de-huevo' });
   // Editar la libre
+  await H.openMeal(p, 'Pollo con papas');
   await p.getByRole('button', { name: 'Editar: Pollo con papas' }).click();
   await expect(p.locator('#sc-name')).toHaveValue('Pollo con papas');
   await p.locator('#sc-kcal-in').fill('500');
   await p.getByRole('button', { name: 'Guardar cambios' }).click();
-  await expect(p.locator('#mc-kcal')).toHaveText('640');
+  await expect(p.locator('#mc-kcal')).toHaveText('~640');
   // Borrar y deshacer
+  await H.openMeal(p, 'Pollo con papas');
   await p.getByRole('button', { name: 'Borrar: Pollo con papas' }).click();
   await expect(p.locator('#toast')).toContainText('Se borró «Pollo con papas»');
-  await expect(p.locator('#mc-kcal')).toHaveText('140');
+  await expect(p.locator('#mc-kcal')).toHaveText('~140');
   await p.locator('#toast .toast-action').click();
-  await expect(p.locator('#mc-kcal')).toHaveText('640');
+  await expect(p.locator('#mc-kcal')).toHaveText('~640');
   await expect(p.locator('#mc-list .mc-item')).toHaveCount(2);
   // El servidor refleja el estado final (una lápida del borrado y la comida recuperada)
   await expect.poll(async () => Object.values((await H.backend(p)).records).filter((r) => r.kind === 'food' && !r.deletedAt).map((r) => r.data.kcal).sort()).toEqual([140, 500]);
@@ -172,8 +167,7 @@ test('cliente: agrega un plato del catálogo con porción y una comida libre, ve
 
 test('cliente: elige otro día, repite la de ayer y no puede anotar días futuros', async ({ browser }, testInfo) => {
   const { p, errors } = await clientApp(browser, testInfo);
-  await p.locator('#tab-mas').click();
-  await p.locator('#row-micomidas').click();
+  await p.locator('#tab-comidas').click();
   await expect(p.locator('#btn-mc-repeat')).toBeHidden();   // ayer sin comidas
   await expect(p.locator('#mc-list')).toContainText('Nada registrado este día.');
   await expect(p.locator('#mc-next')).toBeDisabled();
@@ -181,15 +175,15 @@ test('cliente: elige otro día, repite la de ayer y no puede anotar días futuro
   await addDish(p, 'changua', { date: D1 });
   await addDish(p, 'ajiaco', { date: D1, portion: 'Media porción' });
   await expect(p.locator('#mc-day-title')).toHaveText(/^Martes 20 de octubre$/);   // la pantalla va al día anotado
-  await expect(p.locator('#mc-kcal')).toHaveText('448');   // Changua 210 + media porción de ajiaco 238
+  await expect(p.locator('#mc-kcal')).toHaveText('~450');   // Changua 210 + media porción de ajiaco 238
   await p.locator('#mc-next').click();
   await expect(p.locator('#mc-day-title')).toHaveText('Hoy, Miércoles 21 de octubre');
-  await expect(p.locator('#mc-kcal')).toHaveText('0');
+  await expect(p.locator('#mc-kcal')).toHaveText('~0');
   // Repetir la de ayer
   await expect(p.locator('#btn-mc-repeat')).toHaveText('Repetir la de ayer');
   await p.locator('#btn-mc-repeat').click();
   await expect(p.locator('#toast')).toContainText('Se copiaron 2 alimentos a hoy');
-  await expect(p.locator('#mc-kcal')).toHaveText('448');
+  await expect(p.locator('#mc-kcal')).toHaveText('~450');
   const foods = await foodsOf(p);
   expect(foods[D0].map((x) => [x.dish, x.portion])).toEqual([['changua', 'normal'], ['ajiaco', 'half']]);
   expect(foods[D0].every((x) => x.time === undefined)).toBe(true);   // la hora de ayer no se copia
@@ -209,8 +203,7 @@ test('cliente: elige otro día, repite la de ayer y no puede anotar días futuro
 test('el coach ve las comidas en la ficha: últimos 7 días con total por día, plato, porción, tipo y hora', async ({ browser }, testInfo) => {
   const cli = await clientApp(browser, testInfo);
   const a = cli.p;
-  await a.locator('#tab-mas').click();
-  await a.locator('#row-micomidas').click();
+  await a.locator('#tab-comidas').click();
   await addDish(a, 'bandeja paisa', { portion: 'Porción normal' });
   await addDish(a, 'jugo de naranja', { meal: 'Desayuno' });
   await a.locator('#btn-mc-add').click();
@@ -329,14 +322,13 @@ test('vínculo con el texto anterior (compartir-c1, sin comidas): se pide confir
     await PGAccount.refresh();
     document.dispatchEvent(new CustomEvent('pg:link-changed'));
   });
-  await expect(p.locator('#btn-hm-gate')).toBeVisible();
-  await expect(p.locator('#btn-hm-add')).toBeHidden();
-  await expect(p.locator('#hm-text')).toHaveText('Para usar tus comidas, confirma lo que compartes con tu coach.');
-  await H.layout(p); await H.tall(p, '#home-comidas');
-  await H.shot(p, 's13-inicio-confirmar.png', { fullPage: true });
+  // «+ Comida» de Inicio avisa qué falta (y no abre nada)
+  await p.locator('#dia-comida').click();
+  await expect(p.locator('#toast')).toHaveText('Antes confirma lo que compartes con tu coach (Más → Mi coach)');
+  await expect(p.locator('#sheet-comida')).toBeHidden();
+  await H.layout(p);
   // Mis comidas explica qué falta
-  await p.locator('#tab-mas').click();
-  await p.locator('#row-micomidas').click();
+  await p.locator('#tab-comidas').click();
   await expect(p.locator('#mc-gate')).toBeVisible();
   await expect(p.locator('#mc-main')).toBeHidden();
   await expect(p.locator('#mc-gate')).toContainText('tus comidas son necesarias mientras estés vinculado/a');
@@ -358,11 +350,7 @@ test('vínculo con el texto anterior (compartir-c1, sin comidas): se pide confir
   expect([ev.granted, ev.version, ev.textHash]).toEqual([true, 'compartir-c2', H.sha(CT.fullText('A5c', { coach: 'Laura Fit' }))]);
   expect(await p.evaluate(() => PGAccount.meta().shareVersion)).toBe('compartir-c2');
   // Ya puede usar sus comidas
-  await p.locator('#tab-panel').click();
-  await expect(p.locator('#btn-hm-gate')).toBeHidden();
-  await expect(p.locator('#btn-hm-add')).toBeVisible();
-  await p.locator('#tab-mas').click();
-  await p.locator('#row-micomidas').click();
+  await p.locator('#tab-comidas').click();
   await expect(p.locator('#mc-gate')).toBeHidden();
   await addDish(p, 'tamal');
   await expect(p.locator('#mc-list .mc-item')).toHaveCount(1);
@@ -371,8 +359,7 @@ test('vínculo con el texto anterior (compartir-c1, sin comidas): se pide confir
 
 test('en pausa por pago el cliente aún ve sus comidas (sin agregar, editar ni borrar)', async ({ browser }, testInfo) => {
   const { p, errors } = await clientApp(browser, testInfo);
-  await p.locator('#tab-mas').click();
-  await p.locator('#row-micomidas').click();
+  await p.locator('#tab-comidas').click();
   await addDish(p, 'sancocho de gallina');
   await expect(p.locator('#mc-list .mc-item')).toHaveCount(1);
   // Vence el pago
@@ -384,14 +371,11 @@ test('en pausa por pago el cliente aún ve sus comidas (sin agregar, editar ni b
   await expect(p.locator('.pause-banner:visible')).toContainText('por ahora solo puedes ver tus comidas');
   await H.allHidden(p, '#btn-mc-add, #btn-mc-repeat, .mc-actions');
   await H.layout(p);
+  await H.allHidden(p, '#btn-mc-platos, #mc-cierre-chips button[disabled]');
+  await H.shot(p, 's13-pausa-comidas.png', { fullPage: true });
   await p.locator('#tab-panel').click();
   await expect(p.locator('#pause-card')).toBeVisible();
-  await expect(p.locator('#home-comidas')).toBeVisible();
-  await expect(p.locator('#hm-kcal')).not.toHaveText('0');
-  await H.allHidden(p, '#btn-hm-add');
-  await expect(p.locator('#btn-hm-see')).toBeVisible();
-  await H.shot(p, 's13-pausa-comidas.png', { fullPage: true });
-  await p.locator('#btn-hm-see').click();
+  await p.locator('#tab-comidas').click();
   await expect(p.locator('#mc-list')).toContainText('Sancocho de gallina');
   // También por código: nada nuevo en pausa
   await p.evaluate(() => document.querySelector('#btn-mc-add').click());
@@ -414,7 +398,7 @@ test('la app OFICIAL no cambia: sin tarjeta «Mis comidas de hoy», sin fila nue
   await page.getByRole('button', { name: 'Continuar' }).click();
   expect((await page.locator('.tabbar button:visible').allTextContents()).map((l) => l.trim())).toEqual(['Inicio', 'Comidas', 'Registrar', 'Progreso', 'Más']);
   await page.locator('#tab-panel').click();
-  await H.allHidden(page, '#home-comidas, #btn-hm-add, #btn-hm-gate');
+  await H.allHidden(page, '#home-dia, #mc-count');
   await page.locator('#tab-mas').click();
   await H.allHidden(page, '#li-micomidas, #row-micomidas');
   expect(await page.locator('#view-mas').innerText()).not.toMatch(/Lo que comes cada día/);
@@ -451,7 +435,7 @@ test('claro y oscuro, letra ancha a 390 px: Inicio, Mis comidas, catálogo, porc
     await H.layout(p); await H.tall(p, '#view-panel');
     await p.locator('#tab-mas').click();
     await H.layout(p); await H.tall(p, '#view-mas');
-    await p.locator('#row-micomidas').click();
+    await p.locator('#tab-comidas').click();
     await H.layout(p); await H.tall(p, '#view-micomidas');
     // Catálogo
     await p.locator('#btn-mc-add').click();
@@ -473,6 +457,7 @@ test('claro y oscuro, letra ancha a 390 px: Inicio, Mis comidas, catálogo, porc
     await H.layout(p); await H.tall(p, '#view-micomidas');
     if (scheme === 'dark') await H.shot(p, 's13-mis-comidas-oscuro.png', { fullPage: true });
     // Editar
+    await H.openMeal(p, 'Pescado');
     await p.getByRole('button', { name: /^Editar: Pescado/ }).click();
     await H.layout(p); await H.tall(p, '#sheet-comida');
     await p.locator('#sc-close').click();
@@ -511,6 +496,7 @@ test('claro y oscuro, letra ancha a 390 px: Inicio, Mis comidas, catálogo, porc
     await c.reload(); await H.ready(c);
     await c.addStyleTag({ content: H.WIDE });
     await c.locator('#tab-coach').click();
+    await c.locator('#coach-filters button', { hasText: 'Todos' }).click();
     await c.locator('#coach-clients .cli-pay-row').first().locator('.cli-main').click();
     await expect(c.locator('#coach-detail-comidas .cm-day')).toHaveCount(7);
     await H.layout(c); await H.tall(c, '#coach-detail-view');

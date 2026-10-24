@@ -61,7 +61,7 @@ test('migración: idempotente y estable (v4 → v4 conserva ids y updatedAt) y s
   const twice = load(plain(once)).state;
   assert.deepStrictEqual(plain(twice), plain(once));
   assert.throws(() => load({ foo: 1 }), /respaldo/);   // migrateTo4 no inventa claves
-  assert.throws(() => Schema.migrate({ schemaVersion: 6, entries: [] }), /más nueva/);
+  assert.throws(() => Schema.migrate({ schemaVersion: 7, entries: [] }), /más nueva/);
 });
 
 test('normalize: ids no UUID, updatedAt inválido y lápidas inválidas se corrigen o descartan', () => {

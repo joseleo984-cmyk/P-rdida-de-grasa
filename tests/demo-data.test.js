@@ -17,7 +17,7 @@ const by = (k) => plan.clients.find((c) => c.key === k);
 
 test('8 asesorados con nombres y correos inventados (@example.com), sin teléfonos', () => {
   assert.strictEqual(plan.clients.length, 8);
-  assert.strictEqual(plan.business, 'Fit Demo');
+  assert.strictEqual(plan.business, 'Coach Fit Demo');
   for (const e of [DD.COACH.email, ...plan.clients.map((c) => c.email)]) assert.match(e, /^[a-z.]+\.demo@example\.com$/);
   for (const c of plan.clients) { assert.match(c.name, /^[A-Za-zñ]+ Demo$/); assert.ok(!/\d{6,}/.test(c.name + c.email)); }
   assert.strictEqual(new Set(plan.clients.map((c) => c.email)).size, 8);
@@ -148,7 +148,7 @@ test('siembra en el servidor falso: ids únicos, estados de pago, rutinas, una o
   assert.ok(Object.keys(be.users).every((e) => e.endsWith('@example.com')));
   // coach
   const coach = be.coaches[r.coach.id];
-  assert.strictEqual(coach.businessName, 'Fit Demo');
+  assert.strictEqual(coach.businessName, 'Coach Fit Demo');
   assert.strictEqual(coach.inviteCode, DD.INVITE_CODE);
   assert.ok(be.hasConsent(r.coach.id, 'coach_agreement'));
   assert.strictEqual(Object.values(be.templates).length, 3);
@@ -171,4 +171,38 @@ test('siembra en el servidor falso: ids únicos, estados de pago, rutinas, una o
   // no se puede mezclar con datos reales: la siembra no toca nada fuera del backend dado
   const hugo = await DD.localFor(be, r.clients.hugo);
   assert.strictEqual(hugo.state.entries.length, 1);
+});
+
+// ---------- UX Etapa 1: la Demo muestra lo nuevo (esfuerzo, cierre del día, insignias, semáforo variado) ----------
+const Constancia = require('../constancia.js');
+const CoachM = require('../coach.js');
+const stateOf = (c) => ({ habits: Object.fromEntries(c.habits.map(({ date, ...h }) => [date, h])),
+  foods: c.foods.reduce((a, f) => { (a[f.date] ||= []).push(f); return a; }, {}), entries: c.entries, profile: null });
+const attn = (k) => CoachM.atencion(stateOf(by(k)), { today: TODAY, shares: by(k).shares });
+test('demo: hay esfuerzo del entreno y cierre del día, con valores válidos del esquema', () => {
+  const hs = plan.clients.flatMap((c) => c.habits);
+  assert.ok(hs.some((h) => h.effort === 'normal') && hs.some((h) => h.effort === 'duro') && hs.some((h) => h.effort === 'facil'));
+  assert.ok(hs.some((h) => h.close === 'si') && hs.some((h) => h.close === 'casi'));
+  for (const h of hs) { if (h.effort) { assert.ok(Schema.EFFORTS.includes(h.effort)); assert.strictEqual(h.trained, true); } if (h.close) assert.ok(Schema.CLOSES.includes(h.close)); }
+});
+test('demo: Ana tiene 6 de 8 insignias (con «Pata de perro» en camino y «Volviste» sin aplicar) en cualquier día de la semana', () => {
+  for (const today of ['2026-10-19', '2026-10-21', '2026-10-24', '2026-10-25', '2026-10-27']) {
+    const p = DD.buildPlan(today, { Platos });
+    const ana = p.clients.find((c) => c.key === 'ana');
+    const list = Constancia.badges(stateOf(ana), today);
+    assert.deepStrictEqual(list.filter((b) => b.earned).map((b) => b.n), [1, 2, 3, 5, 7, 9], today);
+    assert.match(list.find((b) => b.n === 6).hint, /pasos: \d de 5 días/);
+  }
+});
+test('demo: el semáforo del coach es variado (rojo, ámbar y verde) con motivos en texto', () => {
+  const levels = Object.fromEntries(plan.clients.map((c) => [c.key, attn(c.key)]));
+  assert.strictEqual(levels.diego.level, 'atencion');
+  assert.match(levels.diego.reason, /^Sin registrar desde hace 9 días$/);
+  assert.strictEqual(levels.gina.level, 'revisar');
+  assert.match(levels.gina.reason, /^3 días sin registrar/);
+  assert.strictEqual(levels.beto.level, 'revisar');
+  assert.match(levels.beto.reason, /Duro/);
+  assert.strictEqual(levels.ana.level, 'aldia');
+  assert.strictEqual(levels.hugo.level, 'aldia');
+  assert.ok(new Set(Object.values(levels).map((l) => l.level)).size === 3);
 });

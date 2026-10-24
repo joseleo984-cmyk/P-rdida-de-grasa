@@ -135,6 +135,7 @@
       ls.set(PGNS.key('v1'), JSON.stringify(loc.state));
       ls.set(PGNS.key('account'), JSON.stringify(loc.meta));
       ls.set(PGNS.key('owner'), who.id);
+      if (role !== 'coach') ls.set(PGNS.key('bascula'), 'si');   // el asesorado de la demo ya dijo que tiene báscula
       ns(localStorage).setItem(RF.SESSION_KEY, JSON.stringify(loc.session));
       ls.set(STATE_KEY, JSON.stringify({ role, client: role === 'coach' ? null : who.key, day: today, roster: st.roster }));
       location.replace(location.pathname);

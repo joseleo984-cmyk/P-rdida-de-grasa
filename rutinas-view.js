@@ -111,7 +111,7 @@
     el._tok = (el._tok || 0) + 1;
     dropMedia(el.querySelector('.rut-gif'));
   }
-  function freeAllGifs() { for (const el of document.querySelectorAll('#rutina-body .rut-ex')) freeGif(el); }
+  function freeAllGifs() { for (const el of document.querySelectorAll('#view-rutina .rut-ex')) freeGif(el); }
 
   // La animación se pide SOLO al abrir el ejercicio y se suelta al cerrarlo: cada apertura firma una URL nueva (60 s).
   async function loadGif(el) {
@@ -140,32 +140,52 @@
     const d = on ? dailyNow() : null;
     const n = routines ? routines.length : 0;
     for (const el of document.querySelectorAll('.rutina-row')) el.classList.toggle('hidden', !on);
-    // «Rutina de hoy» en Inicio (solo el día publicado) y «Mi rutina» (solo si no queda como duplicado vacío de la de hoy)
-    $('#home-daily').classList.toggle('hidden', !d);
-    if (d) $('#hd-text').textContent = `${d.title} · ${R.summary(d)}`;
-    $('#home-rutina').classList.toggle('hidden', !on || (!!d && routines !== undefined && !n));
-    $('#hr-text').textContent = n ? R.homeLine(routines) : routines && !n && on ? 'Tu coach todavía no te armó una rutina.' : 'Tus ejercicios y cómo se hacen.';
+    // UX Etapa 1: UN solo bloque en Inicio. «Rutina de hoy: Piernas» si el coach publicó una para hoy; si no, «Mi rutina» con lo que armó (y solo si ya tiene alguna).
+    const card = $('#home-daily');
+    card.classList.toggle('hidden', !(d || (on && n)));
+    if (d) { $('#hd-title').textContent = `Rutina de hoy: ${d.title}`; const nEx = ((d && d.days) || []).reduce((a, x) => a + ((x && x.exercises) || []).length, 0); $('#hd-text').textContent = `${nEx} ${nEx === 1 ? 'ejercicio' : 'ejercicios'}`; }
+    else if (on && n) { $('#hd-title').textContent = 'Mi rutina'; $('#hd-text').textContent = R.homeLine(routines); }
   }
+  // UX Etapa 1: UN solo «Ya entrené» (siempre disponible para el asesorado: entrene con la rutina de su coach o por su cuenta). Marca el hábito del día y pregunta el esfuerzo.
   function renderTrained() {
     const card = $('#rutina-trained');
-    card.classList.toggle('hidden', !hasAny());
+    card.classList.remove('hidden');
     const done = !!(window.PGNav && PGNav.trainedToday && PGNav.trainedToday());
     const b = $('#btn-rutina-trained');
-    b.disabled = done;
-    b.textContent = done ? 'Hoy ya anotaste que entrenaste ✓' : 'Hoy entrené';
+    b.setAttribute('aria-pressed', String(done));
+    b.setAttribute('aria-label', done ? 'Ya entrené. El entrenamiento de hoy está anotado' : 'Ya entrené');
+    b.textContent = '✓ Ya entrené';
   }
+  // Todos los ejercicios llevan «Cómo se hace ›»: con la animación o el video del coach, su nota o, si no hay nada, un aviso amable.
   function exerciseHTML(e, coachId) {
-    const head = `<span class="rut-ex-name">${esc(e.name)}</span><span class="rut-ex-sets">${esc(e.sets)}</span>`;
-    if (!e.gif && !e.note) return `<li><div class="rut-ex-row">${head}</div></li>`;
-    return `<li><details class="rut-ex" data-gif="${esc(e.gif)}" data-name="${esc(e.name)}" data-coach="${esc(coachId)}"><summary>${head}</summary>
-      <div class="rut-ex-body">${e.note ? `<p class="rut-note">${esc(e.note)}</p>` : ''}${e.gif ? '<div class="rut-gif" role="status" aria-live="polite"></div>' : ''}</div></details></li>`;
+    const head = `<span class="rut-ex-text"><span class="rut-ex-name">${esc(e.name)}</span><span class="rut-ex-sets">${esc(e.sets)}</span></span><span class="rut-ex-how">Cómo se hace ›</span>`;
+    const none = !e.gif && !e.note;
+    const key = `${coachId}|${e.name}`;
+    return `<li class="rut-exrow"><button type="button" class="rut-check" data-check="${esc(key)}" aria-pressed="${checked(key)}" aria-label="Marcar «${esc(e.name)}» como hecho"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <details class="rut-ex" data-gif="${esc(e.gif)}" data-name="${esc(e.name)}" data-coach="${esc(coachId)}"><summary aria-label="${esc(e.name)}, ${esc(e.sets)}. Cómo se hace">${head}</summary>
+      <div class="rut-ex-body">${e.note ? `<p class="rut-note">${esc(e.note)}</p>` : ''}${e.gif ? '<div class="rut-gif" role="status" aria-live="polite"></div>' : ''}${none ? '<p class="rut-note muted">Tu coach todavía no agregó una demostración de este ejercicio. Si tienes dudas de cómo hacerlo, pregúntale.</p>' : ''}</div></details></li>`;
+  }
+  // Ejercicios marcados como hechos HOY (solo en este teléfono; no se sincroniza y no sustituye al «Ya entrené»).
+  const CHECKS_KEY = (window.PGNS && PGNS.key ? PGNS.key('rutina-hechos') : 'perdida-grasa:rutina-hechos');
+  const readChecks = () => { try { const v = JSON.parse(localStorage.getItem(CHECKS_KEY) || '{}'); return v && v.day === today() && Array.isArray(v.keys) ? v.keys : []; } catch { return []; } };
+  const checked = (key) => readChecks().includes(key);
+  function toggleCheck(key) {
+    const keys = readChecks();
+    const next = keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key];
+    try { localStorage.setItem(CHECKS_KEY, JSON.stringify({ day: today(), keys: next })); } catch { /* sin espacio */ }
+    return next.includes(key);
   }
   // Una rutina (o la de hoy): cabecera + días plegables. Solo se abre el primer día de la primera rutina de la pantalla.
-  function blockHTML(r, { isDaily, openFirst, by }) {
+  function blockHTML(r, { isDaily, openFirst, by, main, business }) {
     const stamp = isDaily ? `para hoy, ${fmtStamp(r.publishedAt)}` : r.updatedAt ? `actualizada el ${fmtStamp(r.updatedAt)}` : '';
-    return `<section class="rut-block${isDaily ? ' rut-daily' : ''}"><div class="card rut-head">${isDaily ? '<span class="rut-badge">Rutina de hoy</span>' : ''}<h3 class="rut-title">${esc(r.title)}</h3>
+    // Rutina principal (la de hoy o la primera): UNA tarjeta con sus ejercicios en lista; sin días plegables si solo tiene un día.
+    if (main && r.days.length === 1) {
+      return `<section class="rut-block rut-main${isDaily ? ' rut-daily' : ''}"><div class="card rut-card">${isDaily ? '<span class="rut-badge sr-only">Rutina de hoy</span>' : ''}<div class="rut-titlebar"><h3 class="rut-title">${esc(r.title)}</h3>${business ? `<span class="rut-by"> · de ${esc(business)}</span>` : ''}</div>
+        <ul class="rut-ex-list rut-flat">${r.days[0].exercises.map((e) => exerciseHTML(e, r.coachId)).join('')}</ul></div></section>`;
+    }
+    return `<section class="rut-block${isDaily ? ' rut-daily' : ''}${main ? ' rut-main' : ''}"><div class="card rut-head">${isDaily ? '<span class="rut-badge">Rutina de hoy</span>' : ''}<h3 class="rut-title">${esc(r.title)}</h3>
         <p class="small muted">${by}${esc(R.summary(r))}${stamp ? ` · ${esc(stamp)}` : ''}</p>
-        <p class="small muted">Toca un día para ver sus ejercicios y un ejercicio para ver cómo se hace.</p></div>` +
+        </div>` +
       r.days.map((d, i) => `<details class="card rut-day"${openFirst && i === 0 ? ' open' : ''}><summary><span class="rut-day-title">${esc(d.title)}</span><span class="small muted">${esc(R.dayLine(d))}</span></summary>
         <ul class="rut-ex-list">${d.exercises.map((e) => exerciseHTML(e, r.coachId)).join('')}</ul></details>`).join('') + '</section>';
   }
@@ -173,7 +193,14 @@
     freeAllGifs();
     renderEntrances();
     const box = $('#rutina-body');
+    box.after($('#rutina-trained'));   // vuelve a su sitio (debajo de la lista) antes de repintarla
     const status = $('#rutina-status');
+    if (!myLink()) {
+      status.textContent = '';
+      box.innerHTML = '<div class="card"><p><strong>Todavía no tienes una rutina.</strong></p><p class="small muted">Cuando tengas un coach, la rutina que arme para ti aparecerá aquí con la demostración de cada ejercicio. Mientras tanto, puedes anotar tu entrenamiento.</p></div>';
+      renderTrained();
+      return;
+    }
     if (routines === undefined) {
       box.replaceChildren();
       status.textContent = loadFailed ? '' : 'Cargando tu rutina…';
@@ -191,10 +218,18 @@
     }
     const by = l && l.businessName ? `Armada por ${esc(l.businessName)} · ` : '';
     let html = '';
-    if (d) html += blockHTML(d, { isDaily: true, openFirst: true, by: l && l.businessName ? `De ${esc(l.businessName)} · ` : '' });
-    if (d && routines.length) html += '<h3 class="rut-section">Mis rutinas</h3>';
-    html += routines.map((r, i) => blockHTML(r, { isDaily: false, openFirst: !d && i === 0, by })).join('');
+    const biz = l && l.businessName ? l.businessName : '';
+    // La rutina de hoy ya es una de «Mis rutinas»: no se repite debajo.
+    const same = (a, b) => a.title === b.title && JSON.stringify(a.days) === JSON.stringify(b.days);
+    const others = d ? routines.filter((r) => !same(r, d)) : routines;
+    if (d) html += blockHTML(d, { isDaily: true, openFirst: true, main: true, business: biz, by: biz ? `De ${esc(biz)} · ` : '' });
+    else if (routines.length) html += blockHTML(routines[0], { isDaily: false, openFirst: true, main: true, business: biz, by });
+    const rest = d ? others : routines.slice(1);
+    if (rest.length) html += `<details class="rut-more card"><summary>${d ? 'Mis otras rutinas' : 'Mis rutinas'} (${rest.length})</summary>${rest.map((r) => blockHTML(r, { isDaily: false, openFirst: false, by })).join('')}</details>`;
     box.innerHTML = html;
+    // «Ya entrené» va justo debajo de la rutina principal (la de hoy o la primera), no al final de una lista larga.
+    const first = box.querySelector('.rut-block');
+    if (first && box.children.length > 1) first.after($('#rutina-trained'));
     renderTrained();
   }
   async function loadRoutine({ silent = false } = {}) {
@@ -215,23 +250,25 @@
     renderRoutine();
   }
   function wireClient() {
-    const body = $('#rutina-body');
+    const body = $('#view-rutina');
     body.addEventListener('toggle', (ev) => {   // 'toggle' no sube por el árbol: se escucha en la captura
       const el = ev.target;
       if (!el.classList || !el.classList.contains('rut-ex')) return;
       if (el.open) loadGif(el); else freeGif(el);
     }, true);
     body.addEventListener('click', (ev) => {
+      const ck = ev.target.closest('[data-check]');
+      if (ck) { ck.setAttribute('aria-pressed', String(toggleCheck(ck.dataset.check))); return; }
       if (ev.target.closest('#btn-rutina-retry')) { routines = undefined; loadRoutine(); return; }
       const r = ev.target.closest('[data-retry]');
       if (r) loadGif(r.closest('.rut-ex'));
     });
     $('#btn-rutina-trained').addEventListener('click', () => document.dispatchEvent(new CustomEvent('pg:rutina-trained')));
-    document.addEventListener('pg:rutina-trained-done', () => { renderTrained(); $('#rutina-trained-status').textContent = 'Anotado. ¡Buen trabajo!'; });
+    document.addEventListener('pg:rutina-trained-done', () => { renderTrained(); $('#rutina-trained-status').textContent = ''; });
     // Al entrar a la pantalla se vuelve a pedir (el coach pudo cambiarla); la que ya estaba se ve mientras tanto.
     const open = () => { $('#rutina-trained-status').textContent = ''; renderRoutine(); loadRoutine({ silent: routines !== undefined }); };
     $('#row-rutina').addEventListener('click', open);
-    $('#btn-home-rutina').addEventListener('click', open);
+    $('#tab-entrenar').addEventListener('click', open);   // UX Etapa 1: «Entrenar» está en la barra
     $('#btn-home-daily').addEventListener('click', open);
     for (const ev of ['pg:link-changed', 'pg:account-changed']) document.addEventListener(ev, () => {
       if (!myLink()) { routines = undefined; daily = null; freeAllGifs(); renderEntrances(); return; }
@@ -714,6 +751,7 @@
     });
     // --- Mis rutinas (biblioteca) ---
     $('#row-c-rutinas').addEventListener('click', () => loadLibrary());
+    $('#tab-rutinas').addEventListener('click', () => { document.querySelector('#rutinas-title').focus(); loadLibrary(); });   // UX Etapa 1: «Rutinas» está en la barra del coach
     $('#btn-rl-new').addEventListener('click', () => { if (lib !== undefined) openEditor({ kind: 'template', routine: null }); });
     $('#rl-list').addEventListener('click', onLibAction);
     $('#btn-rl-daily-clear').addEventListener('click', clearDaily);

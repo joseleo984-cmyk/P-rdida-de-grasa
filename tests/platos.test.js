@@ -104,3 +104,36 @@ test('lineOf: plato · porción · tipo · hora', () => {
   assert.strictEqual(P.lineOf({ name: 'Tamal', dish: 'tamal', portion: 'half', meal: 'Desayuno', time: '08:30' }), 'Tamal · Media porción · Desayuno · 08:30');
   assert.strictEqual(P.lineOf({ name: 'Mi receta', meal: 'Cena' }), 'Mi receta · Cena');
 });
+
+// ---------- UX Etapa 1: proteína al frente, kcal aproximadas y «Mis platos» ----------
+test('proteína de hoy: suma lo que tiene dato; la comida libre sin proteína cuenta como «sin dato», no como 0 g', () => {
+  const foods = { '2026-10-24': [
+    P.toFood('arepa-con-huevo', 'normal', { meal: 'Desayuno' }) && { id: 'a', ...P.toFood('arepa-con-huevo', 'normal', { meal: 'Desayuno' }) },
+    { id: 'b', name: 'Algo del restaurante', meal: 'Almuerzo', kcal: 600, protein: 0, carbs: 0, fat: 0 },
+    { id: 'c', name: 'Mi batido', meal: 'Snack', kcal: 200, protein: 20, carbs: 0, fat: 0 },
+  ] };
+  const p = P.proteinDay(foods, '2026-10-24');
+  assert.strictEqual(p.count, 3);
+  assert.strictEqual(p.withData, 2);
+  assert.strictEqual(p.without, 1);
+  assert.strictEqual(p.partial, true);
+  assert.strictEqual(p.grams, Math.round(P.toFood('arepa-con-huevo', 'normal').protein + 20));
+  assert.strictEqual(P.proteinDay(foods, '2026-10-01').count, 0);
+  assert.strictEqual(P.proteinDay(foods, '2026-10-01').any, false);
+  assert.strictEqual(P.protText(foods['2026-10-24'][1]), 'P sin dato');
+  assert.match(P.protText(foods['2026-10-24'][2]), /^P ~20 g$/);
+});
+test('kcal redondeadas a 10 y con «aprox.»', () => {
+  assert.strictEqual(P.kcalApprox(1247), '~1.250 kcal aprox.');
+  assert.strictEqual(P.kcalApprox(383), '~380 kcal aprox.');
+  assert.strictEqual(P.approx(77.6), '~78');
+});
+test('«Mis platos»: favoritos sin repetidos, con clave estable, validados', () => {
+  const f = { id: 'z', ...P.toFood('arepa-con-huevo', 'large', { meal: 'Desayuno' }) };
+  const fav = P.favOf(f);
+  assert.strictEqual(fav.key, 'd:arepa-con-huevo:large');
+  assert.strictEqual(P.favOf({ name: ' Ajiaco ', kcal: 450.4, meal: 'Almuerzo' }).key, 'l:ajiaco:450');
+  const clean = P.favsClean([fav, fav, { key: 'x' }, null, { key: 'l:a:1', name: 'A', kcal: 1, meal: 'Cena' }, { key: 'd:no-existe:normal', name: 'Z', kcal: 1, dish: 'no-existe' }]);
+  assert.deepStrictEqual(clean.map((x) => x.key), ['d:arepa-con-huevo:large', 'l:a:1']);
+  assert.deepStrictEqual(P.favsClean('basura'), []);
+});
