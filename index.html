@@ -750,6 +750,9 @@
         <p class="small muted">Tu uso personal de la app (tu propio peso, comidas y hábitos) no cambia.</p>
       </div>
       <div id="coach-list-view">
+        <!-- r1 v1.13 (M10): aviso de la plataforma (solo coaches activos; se cierra y el cierre se recuerda en este teléfono) y coach suspendido -->
+        <div id="coach-avisos" class="pa-list"></div>
+        <div id="coach-suspendido" class="card pa-susp hidden" role="note"><strong>Tu cuenta de coach está suspendida</strong><p class="small">Mientras tanto no ves los datos de tus asesorados. Ellos siguen usando la app y conservan sus datos. Escríbenos para reactivarla.</p></div>
         <div class="cli-panel">
           <div class="card-head cli-head">
             <div>
@@ -790,6 +793,15 @@
           <p id="coach-detail-light" class="small"></p>
           <p id="coach-detail-shares" class="small muted"></p>
         </div>
+        <!-- r1 v1.13: pestañas de la ficha. «Resumen» muestra todo lo de siempre; las demás filtran (M4 Gráficas, M2 Metas, Comidas). -->
+        <div id="fc-tabs" class="an-seg fc-tabs pc-only" role="tablist" aria-label="Ficha del asesorado">
+          <button type="button" role="tab" id="fct-resumen" data-ftab="resumen" aria-selected="true">Resumen</button>
+          <button type="button" role="tab" id="fct-graficas" data-ftab="graficas" aria-selected="false">Gráficas</button>
+          <button type="button" role="tab" id="fct-metas" data-ftab="metas" aria-selected="false">Metas</button>
+          <button type="button" role="tab" id="fct-comidas" data-ftab="comidas" aria-selected="false">Comidas</button>
+        </div>
+        <div id="fc-graficas" class="fc-pane pc-only" role="tabpanel" aria-labelledby="fct-graficas"></div>
+        <div id="fc-metas" class="fc-pane pc-only" role="tabpanel" aria-labelledby="fct-metas"></div>
         <!-- UX Etapa 1: RESUMEN SEMANAL arriba (tendencia de peso y cintura, días con registro, entrenos y esfuerzo, proteína promedio, cierre del día) y reacciones de un toque -->
         <div class="card pc-only" id="fc-semana">
           <h2 id="fc-semana-title">Esta semana</h2>
@@ -1199,6 +1211,61 @@
       </div>
     </section>
 
+    <!-- r1 v1.13 · M3/M5: ANALÍTICA del coach (Resumen y Ranking privado). Cifras agregadas en el servidor (grasa.coach_analytics). -->
+    <section id="view-analitica" class="view" aria-labelledby="analitica-title">
+      <h2 id="analitica-title" class="sr-only" tabindex="-1">Analítica</h2>
+      <div class="an-seg an-main" role="tablist" aria-label="Analítica">
+        <button type="button" role="tab" id="ant-resumen" data-atab="resumen" aria-selected="true">Resumen</button>
+        <button type="button" role="tab" id="ant-ranking" data-atab="ranking" aria-selected="false">Ranking privado</button>
+      </div>
+      <div class="an-row"><div class="an-seg an-sm" role="group" aria-label="Periodo"><button type="button" data-per="semana" aria-pressed="true">Semana</button><button type="button" data-per="mes" aria-pressed="false">Mes</button></div><span id="an-range" class="small muted"></span></div>
+      <p id="an-status" class="small muted" role="status" aria-live="polite"></p>
+      <div id="an-resumen" role="tabpanel" aria-labelledby="ant-resumen"></div>
+      <div id="an-ranking" role="tabpanel" aria-labelledby="ant-ranking" hidden></div>
+    </section>
+
+    <!-- r1 v1.13 · M1: METAS del asesorado (solo las que fijó su coach; sin metas no hay nada). Un solo pie literal (concepto jurídico 5). -->
+    <section id="view-metas" class="view" aria-labelledby="metas-title">
+      <h2 id="metas-title" class="sr-only" tabindex="-1">Metas</h2>
+      <div id="metas-cards"></div>
+      <p id="metas-foot" class="small muted metas-foot hidden"></p>
+    </section>
+
+    <!-- r1 v1.13 · M7–M10: PANEL ADMIN (solo con el rol admin, que se da a mano en SQL). Solo cantidades: nunca salud ni asesorados. -->
+    <section id="view-admin-coaches" class="view adm-view" aria-labelledby="adm-coaches-title">
+      <p class="adm-tag"><span aria-hidden="true">🛡</span> Admin · <span class="adm-who"></span></p>
+      <div class="adm-head"><h2 id="adm-coaches-title" class="adm-title" tabindex="-1">Coaches</h2><label class="sr-only" for="adm-month-coaches">Mes</label><select id="adm-month-coaches" class="adm-month"></select></div>
+      <div id="adm-coaches"></div>
+    </section>
+    <section id="view-admin-uso" class="view adm-view" aria-labelledby="adm-uso-title">
+      <p class="adm-tag"><span aria-hidden="true">🛡</span> Admin · <span class="adm-who"></span></p>
+      <div class="adm-head"><h2 id="adm-uso-title" class="adm-title" tabindex="-1">Uso general</h2><label class="sr-only" for="adm-month-uso">Mes</label><select id="adm-month-uso" class="adm-month"></select></div>
+      <div id="adm-uso"></div>
+    </section>
+    <section id="view-admin-coach" class="view adm-view" aria-labelledby="adm-coach-title">
+      <p class="adm-tag"><span aria-hidden="true">🛡</span> Admin · <span class="adm-who"></span></p>
+      <div class="adm-head"><h2 id="adm-coach-title" class="adm-title" tabindex="-1">Por coach</h2></div>
+      <label class="sr-only" for="adm-coach-pick">Coach</label><select id="adm-coach-pick" class="adm-pick"></select>
+      <div id="adm-coach"></div>
+    </section>
+    <section id="view-admin-avisos" class="view adm-view" aria-labelledby="adm-avisos-title">
+      <p class="adm-tag"><span aria-hidden="true">🛡</span> Admin · <span class="adm-who"></span></p>
+      <div class="adm-head"><h2 id="adm-avisos-title" class="adm-title" tabindex="-1">Avisos</h2></div>
+      <form id="form-aviso" class="card adm-form" novalidate>
+        <p class="an-tag">Nuevo aviso</p>
+        <label class="acc-label" for="aviso-title">Título</label>
+        <input id="aviso-title" name="title" maxlength="80" autocomplete="off">
+        <label class="acc-label" for="aviso-body">Texto</label>
+        <textarea id="aviso-body" name="body" maxlength="400" rows="3"></textarea>
+        <div class="adm-dates"><label>Desde<input type="date" id="aviso-from" name="from"></label><label>Hasta<input type="date" id="aviso-to" name="to"></label></div>
+        <p class="small muted" id="aviso-help">Solo comunicación operativa, técnica o de servicio. Llega solo a los coaches activos, nunca a los asesorados.</p>
+        <p id="aviso-error" class="acc-error hidden" role="alert"></p>
+      </form>
+      <div class="pa-preview"><p class="an-tag muted-tag">Así lo ve el coach · arriba de su lista</p><div class="pa-card" id="aviso-preview"><p class="pa-tag">Aviso de la plataforma</p><b id="aviso-prev-title">Título del aviso</b><p id="aviso-prev-body">El texto aparece aquí.</p></div></div>
+      <button type="button" class="btn btn-tall adm-publish" id="btn-aviso-publicar">Publicar aviso</button>
+      <div class="card"><p class="an-tag muted-tag">Publicados</p><ul id="adm-avisos" class="adm-list"></ul></div>
+    </section>
+
     <section id="view-mas" class="view" aria-labelledby="mas-title">
       <h2 id="mas-title" class="sr-only" tabindex="-1">Más</h2>
       <div class="card more-head">
@@ -1219,6 +1286,7 @@
         <li class="pc-only hidden" id="li-micomidas"><button type="button" class="more-row" id="row-micomidas"><span class="more-text"><strong>Mis comidas</strong><span class="more-sub">Lo que comes cada día, con calorías aproximadas</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="coach-only pc-only hidden"><button type="button" class="more-row" id="row-c-rutinas"><span class="more-text"><strong>Mis rutinas</strong><span class="more-sub">Crea rutinas, asígnalas y publica la de hoy</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="coach-only pc-only hidden"><button type="button" class="more-row" id="row-c-retos"><span class="more-text"><strong>Retos</strong><span class="more-sub">Lanza un reto de hábitos a tus asesorados</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="admin-only hidden"><button type="button" class="more-row" id="row-admin"><span class="more-text"><strong id="row-admin-t">Panel admin</strong><span class="more-sub" id="row-admin-s">Coaches, cobro, uso y avisos (solo cantidades)</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="coach-only hidden"><button type="button" class="more-row" id="row-c-acuerdo"><span class="more-text"><strong>Mi acuerdo</strong><span class="more-sub">El Acuerdo del coach que aceptaste, con copia</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-link hidden"><button type="button" class="more-row" id="row-coach"><span class="more-text"><strong>Mi coach</strong><span class="more-sub">Qué puede ver y cómo dejar de compartir</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-link pc-only hidden"><button type="button" class="more-row" id="row-salud"><span class="more-text"><strong>Tu salud</strong><span class="more-sub">La pregunta para tu coach (voluntaria)</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
@@ -1286,6 +1354,11 @@
     <button type="button" id="tab-coach" data-view="coach" class="hidden"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3.2 3.2 0 0 1 0 6"/><path d="M18 14.5c1.8.8 3 2.6 3 5.5"/></svg><span class="tb-label">Clientes</span></button>
     <button type="button" id="tab-rutinas" data-view="rutinas" class="hidden"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6"/><path d="M9 14h6"/><path d="M9 18h3"/></svg><span class="tb-label">Rutinas</span></button>
     <button type="button" id="tab-invitar" data-view="invitar" class="tab-add hidden"><span class="tab-disc"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span><span class="tb-label">Invitar</span></button>
+    <button type="button" id="tab-analitica" data-view="analitica" class="hidden"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg><span class="tb-label">Analítica</span></button>
+    <button type="button" id="tab-adm-coaches" data-view="admin-coaches" class="hidden"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h6M7 17h8"/></svg><span class="tb-label">Coaches</span></button>
+    <button type="button" id="tab-adm-uso" data-view="admin-uso" class="hidden"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span class="tb-label">Uso</span></button>
+    <button type="button" id="tab-adm-coach" data-view="admin-coach" class="hidden"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg><span class="tb-label">Por coach</span></button>
+    <button type="button" id="tab-adm-avisos" data-view="admin-avisos" class="hidden"><svg class="tb-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg><span class="tb-label">Avisos</span></button>
   </nav>
 
   <!-- v1.8: Asignar una rutina a uno o varios asesorados (se crea una copia para cada uno) -->
@@ -1383,6 +1456,33 @@
 
   <!-- Sprint 5: QR de la invitación del coach (se dibuja en el teléfono; el enlace no sale del dispositivo) -->
   <!-- Sprint 11: el coach marca el pago de un asesorado (cobro manual: el cliente le paga por fuera de la app) -->
+  <!-- r1 v1.13 · M2: «Fijar metas» (coach). Todo opcional; los campos empiezan vacíos y la app no sugiere números. -->
+  <dialog id="sheet-metas" class="sheet metas-sheet" aria-labelledby="sm-title">
+    <form id="form-metas" novalidate>
+      <div class="sheet-head"><h2 id="sm-title" tabindex="-1">Fijar metas</h2><button type="button" class="sheet-x" id="sm-close" aria-label="Cerrar">×</button></div>
+      <div class="sm-body">
+        <p class="an-banner an-banner-t"><span aria-hidden="true">🛡</span><span>Todo es opcional. La app no sugiere números: tú decides cada meta, o la dejas vacía.</span></p>
+        <div id="sm-fields"></div>
+        <p id="sm-error" class="acc-error hidden" role="alert"></p>
+        <div class="btnrow"><button type="button" class="btn btn-ghost btn-tall" id="sm-cancel">Cancelar</button><button type="submit" class="btn btn-tall" id="sm-save">Guardar metas</button></div>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- r1 v1.13 · M7: confirmar Suspender / Reactivar un coach (motivo opcional que solo ve el admin) -->
+  <dialog id="sheet-susp" class="sheet" aria-labelledby="ss-title">
+    <form id="form-susp" novalidate>
+      <div class="sheet-head"><h2 id="ss-title" tabindex="-1"></h2></div>
+      <div class="sm-body">
+        <p id="ss-text" class="small"></p>
+        <label class="sr-only" for="ss-reason">Motivo (opcional, solo lo ves tú)</label>
+        <textarea id="ss-reason" maxlength="200" rows="2" placeholder="Motivo (opcional, solo lo ves tú)"></textarea>
+        <p id="ss-error" class="acc-error hidden" role="alert"></p>
+        <div class="btnrow"><button type="button" class="btn btn-ghost btn-tall" id="ss-cancel">Cancelar</button><button type="submit" class="btn btn-tall" id="ss-ok"></button></div>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="sheet-pago" class="sheet" aria-labelledby="pago-title">
     <div class="sheet-head"><h2 id="pago-title" tabindex="-1">Cobro</h2></div>
     <div class="a8-body">
@@ -1655,6 +1755,8 @@
   <script src="acuerdo-view.js"></script>
   <script src="install-guide.js"></script>
   <script src="coach.js"></script>
+  <script src="analitica.js"></script>
+  <script src="admin.js"></script>
   <script src="estado-cliente.js"></script>
   <script src="inicio-view.js"></script>
   <script src="photos.js"></script>
@@ -1669,5 +1771,7 @@
   <script src="coach-panel.js"></script>
   <script src="rutinas-view.js"></script>
   <script src="etapa2-view.js"></script>
+  <script src="analitica-view.js"></script>
+  <script src="admin-view.js"></script>
 </body>
 </html>

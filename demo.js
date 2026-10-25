@@ -116,9 +116,9 @@
         wipeLocal({ all: true });
         be = origPersistent(ns(localStorage));
         const roster = await DD.seed(be, { today });
-        st = { roster: { coach: roster.coach, clients: roster.clients } };
+        st = { roster: { coach: roster.coach, admin: roster.admin, clients: roster.clients } };
       } else be = origPersistent(ns(localStorage));
-      const who = role === 'coach' ? st.roster.coach : st.roster.clients[clientKey] || st.roster.clients.ana;
+      const who = role === 'coach' ? st.roster.coach : role === 'admin' && st.roster.admin ? st.roster.admin : st.roster.clients[clientKey] || st.roster.clients.ana;
       const loc = await DD.localFor(be, who);
       // Fotos del asesorado en su «teléfono» (IndexedDB del entorno demo).
       const mine = [];
@@ -137,7 +137,7 @@
       ls.set(PGNS.key('owner'), who.id);
       if (role !== 'coach') ls.set(PGNS.key('bascula'), 'si');   // el asesorado de la demo ya dijo que tiene báscula
       ns(localStorage).setItem(RF.SESSION_KEY, JSON.stringify(loc.session));
-      ls.set(STATE_KEY, JSON.stringify({ role, client: role === 'coach' ? null : who.key, day: today, roster: st.roster }));
+      ls.set(STATE_KEY, JSON.stringify({ role, client: role === 'client' ? who.key : null, day: today, roster: st.roster }));
       location.replace(location.pathname);
     } catch (err) {
       entering = false;
@@ -151,6 +151,7 @@
   const ROLES = [
     ['coach', 'Ver como coach', 'Lista de asesorados, cobros, fichas con medidas, comidas y rutinas de «Fit Demo».'],
     ['client', 'Ver como asesorado', 'La app de Ana Demo: Inicio, Hábitos, Medidas, Fotos, comidas y rutina.'],
+    ['admin', 'Ver como admin', 'El panel del dueño de la plataforma: coaches y cobro, uso, por coach y avisos. Solo cantidades.'],
   ];
   function inertApp(on) {
     for (const el of document.body.children) if (el.id !== 'demo-gate' && el.id !== 'demo-banner' && el.tagName !== 'SCRIPT') { if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); }
@@ -214,19 +215,21 @@
   addBanner();
   addMasRows();
   const st = readState();
-  const want = (/[?&]rol=(coach|asesorado|pausa)\b/.exec(location.search) || [])[1];
+  const want = (/[?&]rol=(coach|asesorado|pausa|admin)\b/.exec(location.search) || [])[1];
   if (st && st.role && st.roster && st.day === DD.localDay()) {
     // Entrada normal: ya hay datos de hoy y papel elegido.
     window.PGDemo = { state: st, enter, reset };
     // El coach empieza en su lista: el clic automático de la app puede llegar antes de que el panel esté listo, así que se repite ya con todo cargado.
     if (st.role === 'coach') document.addEventListener('pg:account-ready', () => setTimeout(() => { const t = $('#tab-coach'); if (t) t.click(); }, 150));
+    // r1 v1.13: el admin de la demo entra directo a su panel (Más → «Panel admin»).
+    if (st.role === 'admin') document.addEventListener('pg:account-ready', () => setTimeout(() => { const r = $('#row-admin'); if (r && !(window.PGNav && PGNav.isAdmin())) r.click(); }, 250));
     document.addEventListener('pg:account-changed', (ev) => { if (!(ev.detail && ev.detail.signedIn) && !entering) { ls.set(STATE_KEY, JSON.stringify({ ...st, role: null })); location.replace(location.pathname); } });
   } else if (st && st.role && st.roster) {
     window.PGDemo = { enter, reset };
     enter(st.role, st.client || 'ana', { reset: true });                  // cambió el día: se vuelve a generar todo respecto a hoy
   } else {
     window.PGDemo = { enter, reset };
-    if (want) enter(want === 'coach' ? 'coach' : 'client', want === 'pausa' ? 'diego' : 'ana');
+    if (want) enter(want === 'coach' || want === 'admin' ? want : 'client', want === 'pausa' ? 'diego' : 'ana');
     else showGate(false);
   }
 })();

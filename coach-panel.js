@@ -20,6 +20,7 @@
   const todayBo = () => Pagos.todayBogota();   // los cobros se miden con el día de Bogotá
 
   let A = null;           // PGAccount (remote + metadatos)
+  let loadedOnce = false; // r1 v1.13: ¿ya se cargó la lista al menos una vez?
   const cache = new Map(); // clientId → { info, data, state, sem, sum }
   let current = null;      // clientId abierto en la ficha
   const ended = [];        // A8: clientes que dejaron de compartir contigo desde la última vez que lo viste
@@ -165,8 +166,10 @@
           if (!(err && err.code === 'forbidden')) throw err; // revocado entre una llamada y otra: se omite
         }
       }));
+      loadedOnce = true;
       renderList();
       renderEnded();
+      document.dispatchEvent(new CustomEvent('pg:coach-list-loaded'));
       const over = list.filter((c) => c.overFreeLimit).length;
       const limit = $('#coach-limit');
       limit.classList.toggle('hidden', !over);
@@ -549,6 +552,9 @@
     current: () => { const c = current && cache.get(current); return c ? { clientId: current, name: displayName(c), info: c.info, state: c.state } : null; },
     setInfo: (clientId, patch) => { const c = cache.get(clientId); if (c) { c.info = { ...c.info, ...patch }; renderList(); } },
     clients: () => [...cache.values()].map((c) => ({ clientId: c.info.clientId, name: displayName(c), info: c.info })),
+    rows: () => [...cache.values()].map((c) => ({ clientId: c.info.clientId, name: displayName(c), info: c.info, state: c.state })),   // r1 v1.13: Analítica («Necesitan atención» reusa el semáforo)
+    open: (clientId) => { if (!cache.has(clientId)) return false; if (window.PGNav) PGNav.show('coach'); openClient(clientId); return true; },
+    loaded: () => loadedOnce,
     load: () => loadClients(),
     toast,
   };

@@ -134,3 +134,45 @@ test('L5: Comidas sin meta del coach no muestra barra ni meta; con la meta del c
   expect(await todoElTexto(p)).not.toMatch(/te faltan|faltan \d+ g/i);
   expect(errors).toEqual([]);
 });
+
+// r1 v1.13 (concepto jurídico 5): las metas SOLO existen si las fija el coach. Sin metas: el asesorado no ve ninguna meta ni número sugerido, y el coach
+// abre «Fijar metas» con TODOS los campos vacíos (sin marcadores con cifras). Nada prescriptivo en Analítica, Gráficas ni Metas.
+test('metas: sin metas del coach no aparece ninguna meta ni número sugerido (asesorado y coach)', async ({ browser }, testInfo) => {
+  const H1 = require('./ux1-helpers');
+  const { p, errors } = await H1.clientApp(browser, testInfo, { habits: true });
+  await H1.seedState(p, { entries: [{ date: iso(-10), weight: 75, waist: 82 }, { date: iso(-1), weight: 74, waist: 81 }], foods: { [H1.TODAY]: [{ name: 'Pollo asado', kcal: 400, protein: 38 }] } });
+  await p.evaluate((perfil) => { const s = JSON.parse(localStorage.getItem('perdida-grasa:v1')); s.profile = { ...perfil, updatedAt: '2026-10-20T10:00:00.000Z' }; localStorage.setItem('perdida-grasa:v1', JSON.stringify(s)); }, PERFIL);
+  await p.reload(); await H.ready(p);
+  await p.locator('#tab-registro').click();
+  await expect(p.locator('#view-progreso')).toBeVisible();
+  await expect(p.locator('#view-progreso .prog-seg [data-goto="metas"]')).toHaveCount(0);
+  for (const v of ['progreso', 'metas', 'micomidas', 'panel']) {
+    await p.evaluate((x) => PGNav.show(x), v);
+    const t = await p.locator(`#view-${v}`).textContent();
+    expect(t, v).not.toMatch(/meta (de )?\d|faltan \d|Metas orientativas|% del camino|tu meta/i);
+    await sinPrescripcion(p, `metas: ${v}`);
+  }
+  await expect(p.locator('#metas-foot')).toBeHidden();
+  expect(errors).toEqual([]);
+
+  const c = await H1.coachApp(browser, testInfo, [{ email: 'ana2@c.co', name: 'Ana Dos', habits: true, measures: [{ date: iso(-1), data: { weight: 74.2, waist: 84 } }] }]);
+  await c.p.locator('#tab-coach').click();
+  await c.p.locator('#coach-clients [data-client]').first().click();
+  await c.p.locator('#fct-metas').click();
+  await expect(c.p.locator('#fc-metas .fc-goals li')).toHaveCount(7);
+  for (const li of await c.p.locator('#fc-metas .fc-goals li b').allTextContents()) expect(li).toBe('Sin meta');
+  await c.p.locator('#btn-fijar-metas').click();
+  for (const k of ['weight_kg', 'waist_cm', 'protein_g', 'water_days', 'steps_days', 'sleep_days', 'trained_days']) {
+    await expect(c.p.locator('#sm-' + k)).toHaveValue('');
+    expect(await c.p.locator('#sm-' + k).getAttribute('placeholder')).not.toMatch(/\d/);
+  }
+  await c.p.locator('#sm-cancel').click();
+  for (const t of ['#fct-graficas', '#fct-metas']) { await c.p.locator(t).click(); await sinPrescripcion(c.p, `ficha ${t}`); }
+  await c.p.locator('#tab-analitica').click();
+  await expect(c.p.locator('#an-resumen .an-glow')).toBeVisible();
+  await sinPrescripcion(c.p, 'analítica');
+  await c.p.locator('#ant-ranking').click();
+  await expect(c.p.locator('[data-by="meta"]')).toBeDisabled();
+  await sinPrescripcion(c.p, 'ranking');
+  expect(c.errors).toEqual([]);
+});
