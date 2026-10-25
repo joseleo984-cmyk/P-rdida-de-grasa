@@ -134,8 +134,8 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0;
 .btn-link { font: inherit; font-weight: 600; border: 0; background: transparent; color: var(--accent); cursor: pointer; padding: 6px 8px; border-radius: 8px; min-height: 32px; }
 .btn-link:hover { background: var(--line); }
 .btn-tall { min-height: 44px; }
-.toast.has-action { pointer-events: auto; display: flex; align-items: center; gap: 12px; width: max-content; border-radius: 14px; }
-.toast-action { font: inherit; font-weight: 700; border: 0; background: transparent; color: inherit; text-decoration: underline; cursor: pointer; padding: 6px 4px; min-height: 32px; }
+.toast.has-action { pointer-events: auto; display: flex; flex-wrap: wrap; align-items: center; column-gap: 12px; row-gap: 2px; width: max-content; border-radius: 14px; }
+.toast-action { max-width: 100%; text-align: left; font: inherit; font-weight: 700; border: 0; background: transparent; color: inherit; text-decoration: underline; cursor: pointer; padding: 6px 4px; min-height: 32px; }
 .toast-action:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
 .toast:not(.show) .toast-action { visibility: hidden; }
 [tabindex="-1"]:focus:not(:focus-visible) { outline: none; }
