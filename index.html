@@ -1475,6 +1475,16 @@
     </form>
   </dialog>
 
+  <!-- Analítica (M3): asesorados de una categoría de «Tendencia de peso». Solo lo que el coach ya ve (grasa.coach_analytics y su lista); lenguaje de tendencia, sin juicios. -->
+  <dialog id="sheet-tend" class="sheet" aria-labelledby="st-title" aria-describedby="st-sub">
+    <div class="sheet-head"><h2 id="st-title" tabindex="-1">Tendencia de peso</h2><button type="button" class="btn btn-ghost st-close" id="st-close">Cerrar</button></div>
+    <div class="sm-body">
+      <p id="st-sub" class="small muted"></p>
+      <ul id="st-list" class="an-list st-list"></ul>
+      <p id="st-rule" class="small muted an-note"></p>
+    </div>
+  </dialog>
+
   <!-- r1 v1.13 · M7: confirmar Suspender / Reactivar un coach (motivo opcional que solo ve el admin) -->
   <dialog id="sheet-susp" class="sheet" aria-labelledby="ss-title">
     <form id="form-susp" novalidate>

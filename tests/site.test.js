@@ -119,7 +119,7 @@ test('demo: /demo/ no lleva claves ni URLs de Supabase ni captcha, usa env demo 
   assert.strictEqual(m.scope, './');
   // El sw de la raíz y el de pruebas no precachean nada de la demo
   assert.ok(!/demo/.test(read('sw.js')) && !/demo/.test(read('pruebas/sw.js')));
-  assert.ok(/cacheName\(51\)/.test(read('demo/sw.js')));
+  assert.ok(/cacheName\(52\)/.test(read('demo/sw.js')));
 });
 
 test('PGNS: sin env los nombres son los de siempre; con env llevan sufijo', () => {

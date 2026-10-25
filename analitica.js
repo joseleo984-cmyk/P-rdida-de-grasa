@@ -53,16 +53,38 @@
     if (win.length < 2 || win[0].w > 1) return { kind: 'sin_datos', weeks: 0, diff: null };
     const newest = win[0], oldest = win[win.length - 1];
     const diff = r1(newest.kg - oldest.kg), span = oldest.w - newest.w;
+    const rate = span ? r1((newest.kg - oldest.kg) / span) : null;   // cambio del promedio semanal, por semana (solo para mostrarlo)
     // Semanas seguidas (hacia atrás) dentro de ±STALL_KG del promedio más reciente.
     let flat = newest.w;
     for (const x of pts) { if (x.w <= newest.w) continue; if (Math.abs(x.kg - newest.kg) < STALL_KG) flat = x.w; else break; }
-    if (diff <= -STALL_KG) return { kind: 'bajando', weeks: span + 1, diff };
-    if (diff >= STALL_KG) return { kind: 'subiendo', weeks: span + 1, diff };
-    if (span >= 2) return { kind: 'estancado', weeks: flat - newest.w + 1, diff };
-    return { kind: 'sin_datos', weeks: 0, diff };
+    if (diff <= -STALL_KG) return { kind: 'bajando', weeks: span + 1, diff, rate };
+    if (diff >= STALL_KG) return { kind: 'subiendo', weeks: span + 1, diff, rate };
+    if (span >= 2) return { kind: 'estancado', weeks: flat - newest.w + 1, diff, rate };
+    return { kind: 'sin_datos', weeks: 0, diff, rate };
   }
   const TREND_ORDER = ['bajando', 'estancado', 'subiendo', 'sin_datos'];
   const TREND_TEXT = { bajando: 'van bajando', estancado: 'estancados 3+ sem.', subiendo: 'subiendo', sin_datos: 'sin datos' };
+  const TREND_TITLE = { bajando: 'Van bajando', estancado: 'Estancados 3+ sem.', subiendo: 'Subiendo', sin_datos: 'Sin datos' };
+  // Lo que se muestra de cada persona en la lista de una categoría: solo la tendencia, en lenguaje neutro (sin «bien» ni «mal»).
+  const SIN_PESAJES = 'sin pesajes suficientes';
+  function trendChange(t) {
+    if (!t || t.kind === 'sin_datos') return SIN_PESAJES;
+    if (t.kind === 'estancado') return `estable ${t.weeks} sem.`;
+    const r = t.rate == null ? t.diff : t.rate;
+    return `${r < 0 ? MINUS : '+'}${num(Math.abs(r))} kg/sem`;
+  }
+  // Fecha del último pesaje en lo que el coach ya ve (entradas con peso). null si no hay ninguno.
+  function lastWeigh(entries) {
+    let last = null;
+    for (const e of Array.isArray(entries) ? entries : []) if (e && typeof e.date === 'string' && typeof e.weight === 'number' && Number.isFinite(e.weight) && (!last || e.date > last)) last = e.date;
+    return last;
+  }
+  // Asesorados de UNA categoría (rows de grasa.coach_analytics), por nombre. names: { clientId: nombre }; last: { clientId: 'AAAA-MM-DD' }.
+  function trendPeople(rows, kind, { names = {}, last = {} } = {}) {
+    return (Array.isArray(rows) ? rows : []).map((r) => ({ r, t: trend(r.weightWeeks) })).filter((x) => x.t.kind === kind)
+      .map(({ r, t }) => ({ clientId: r.clientId, name: names[r.clientId] || 'Asesorado', kind, change: trendChange(t), last: last[r.clientId] || null, lastText: last[r.clientId] ? `Último pesaje: ${dm(last[r.clientId])}` : 'Sin pesajes' }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  }
 
   // ---------- M3: resumen de todos ----------
   // rows: salida de remote.coach.analytics(from, to) pedida con from = p.prevFrom y to = p.to.
@@ -264,7 +286,7 @@
     return { ok: !Object.keys(errors).length, goals, errors };
   }
 
-  const api = { RANKING_LABEL, GOALS_FOOTER, STALL_KG, TREND_TEXT, TREND_ORDER, METRICS, GOAL_FIELDS, period, trend, summary, deltaText, progress, hasGoals, ranking,
+  const api = { RANKING_LABEL, GOALS_FOOTER, STALL_KG, TREND_TEXT, TREND_TITLE, TREND_ORDER, trendChange, trendPeople, lastWeigh, SIN_PESAJES, METRICS, GOAL_FIELDS, period, trend, summary, deltaText, progress, hasGoals, ranking,
     buckets, series, compare, metas, parseGoals, addDays, rangeText, dm, num, signed };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Analitica = api;

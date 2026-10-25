@@ -30,6 +30,29 @@ test('tendencia de peso: bajando, subiendo, estancado solo con 3+ semanas, y «s
   assert.strictEqual(A.STALL_KG, 0.3);
 });
 
+test('tendencia por persona: cambio del promedio semanal en lenguaje neutro y la lista de cada categoría', () => {
+  assert.strictEqual(A.trendChange(A.trend([{ w: 0, kg: 72.6 }, { w: 1, kg: 73.0 }, { w: 2, kg: 73.4 }, { w: 3, kg: 74 }])), '−0,5 kg/sem');
+  assert.strictEqual(A.trendChange(A.trend([{ w: 0, kg: 75 }, { w: 2, kg: 74.4 }])), '+0,3 kg/sem');
+  assert.strictEqual(A.trendChange(A.trend([{ w: 0, kg: 90 }, { w: 1, kg: 90.1 }, { w: 2, kg: 90.2 }])), 'estable 3 sem.');
+  assert.strictEqual(A.trendChange(A.trend([{ w: 0, kg: 80 }])), 'sin pesajes suficientes');
+  assert.strictEqual(A.trendChange(A.trend(null)), 'sin pesajes suficientes');
+  assert.strictEqual(A.lastWeigh([{ date: '2026-10-10', weight: 80 }, { date: '2026-10-19', waist: 80 }, { date: '2026-10-14', weight: 79.5 }]), '2026-10-14');
+  assert.strictEqual(A.lastWeigh([{ date: '2026-10-19', waist: 80 }]), null);
+  assert.strictEqual(A.lastWeigh(null), null);
+  const names = { ana: 'Ana', beto: 'Beto', carla: 'Carla', hugo: 'Hugo', zoe: 'Zoe' };
+  const last = { ana: '2026-10-20', beto: '2026-10-21', carla: '2026-10-19' };
+  const R = [...rows, { clientId: 'zoe', weightWeeks: [{ w: 0, kg: 60 }, { w: 1, kg: 60.1 }, { w: 2, kg: 59.9 }, { w: 3, kg: 60 }] }];
+  assert.deepStrictEqual(A.trendPeople(R, 'estancado', { names, last }).map((x) => [x.name, x.change, x.lastText]), [['Beto', 'estable 3 sem.', 'Último pesaje: 21 oct'], ['Zoe', 'estable 4 sem.', 'Sin pesajes']]);
+  assert.deepStrictEqual(A.trendPeople(R, 'bajando', { names, last }).map((x) => [x.clientId, x.change]), [['ana', '−0,5 kg/sem']]);
+  assert.deepStrictEqual(A.trendPeople(R, 'subiendo', { names, last }).map((x) => [x.clientId, x.change, x.lastText]), [['carla', '+0,3 kg/sem', 'Último pesaje: 19 oct']]);
+  assert.deepStrictEqual(A.trendPeople(R, 'sin_datos', { names, last }).map((x) => [x.name, x.change, x.lastText]), [['Hugo', 'sin pesajes suficientes', 'Sin pesajes']]);
+  // Las categorías suman lo mismo que la tarjeta
+  const s = A.summary(R, A.period(TODAY, 'semana'), TODAY);
+  for (const k of A.TREND_ORDER) assert.strictEqual(A.trendPeople(R, k).length, s.trend[k], k);
+  // Sin juicios
+  for (const k of A.TREND_ORDER) for (const x of A.trendPeople(R, k, { names, last })) assert.doesNotMatch(`${x.change} ${x.lastText}`, /bien|mal|deber/i);
+});
+
 // ---------------- Resumen (M3) ----------------
 const rows = [
   { clientId: 'ana', logDays: days(0, -1, -2, -3, -4, -5, -6, -8, -9), trainedDays: null, weightWeeks: [{ w: 0, kg: 72.6 }, { w: 3, kg: 74 }] },
