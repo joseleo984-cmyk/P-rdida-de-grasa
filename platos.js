@@ -252,7 +252,18 @@
   const favValid = (f) => !!f && typeof f === 'object' && typeof f.key === 'string' && typeof f.name === 'string' && f.name.trim() && Number.isFinite(f.kcal) && f.kcal >= 0 && f.kcal <= 5000 && (!f.dish || BY_ID.has(f.dish));
   const favsClean = (list) => { const seen = new Set(); return (Array.isArray(list) ? list : []).filter((f) => favValid(f) && !seen.has(f.key) && seen.add(f.key)).slice(0, 40); };
 
-  const api = { CATEGORIES, PORTIONS, LIST, byId, portionOf, categoryOf, norm, search, scale, toFood, portionText, recents, dayTotal, lastDays, lineOf, n0, hasProtein, proteinDay, approx, kcalApprox, protText, favKey, favOf, favValid, favsClean };
+  // Tipo de comida por la hora del registro (lo que se propone al AGREGAR; la persona lo cambia con un toque).
+  // Antes de las 10 → Desayuno; 10–15 → Almuerzo; 15–18 → Snack; desde las 18 → Cena.
+  const mealByHour = (h) => (h < 10 ? 'Desayuno' : h < 15 ? 'Almuerzo' : h < 18 ? 'Snack' : 'Cena');
+  // day/today: 'AAAA-MM-DD'; time: 'HH:MM' escrita en el formulario (o vacía); nowHour: la hora actual (0–23).
+  // Con hora escrita, manda esa hora. Sin hora: la hora actual si el día es hoy; en otros días, Almuerzo.
+  function defaultMeal({ day, today, time, nowHour } = {}) {
+    const m = /^(\d{2}):(\d{2})$/.exec(String(time || ''));
+    if (m && Number(m[1]) <= 23) return mealByHour(Number(m[1]));
+    if (day && today && day === today && Number.isFinite(nowHour)) return mealByHour(nowHour);
+    return 'Almuerzo';
+  }
+  const api = { mealByHour, defaultMeal, CATEGORIES, PORTIONS, LIST, byId, portionOf, categoryOf, norm, search, scale, toFood, portionText, recents, dayTotal, lastDays, lineOf, n0, hasProtein, proteinDay, approx, kcalApprox, protText, favKey, favOf, favValid, favsClean };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Platos = api;
 })(typeof window !== 'undefined' ? window : globalThis);

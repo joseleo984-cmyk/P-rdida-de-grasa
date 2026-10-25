@@ -759,6 +759,16 @@ body.paused #rutina-trained { display: none !important; }
 .sc-pk { color: var(--muted); font-size: .9rem; }
 .sc-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 12px; }
 .sc-row input, .sc-row select, .sc-free input { min-height: 48px; }
+/* Tipo de comida: segmento de 4 botones (radios nativos). Si una etiqueta no cabe (letra grande, fuente ancha), app.js pone .two → 2 × 2. */
+.sc-meals { border: 0; margin: 10px 0 4px; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.sc-meals.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sc-meals legend { font-weight: 600; padding: 0; margin-bottom: 6px; }
+.sc-meals label { position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; min-width: 0; padding: 6px 4px; border: 2px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--text); font-weight: 700; cursor: pointer; text-align: center; }
+.sc-meals input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.sc-meals span { display: block; min-width: 0; max-width: 100%; white-space: nowrap; overflow: hidden; }
+.sc-meals.two span { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.sc-meals label:has(input:checked) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.sc-meals label:has(input:focus-visible) { outline: 3px solid var(--goal); outline-offset: 2px; }
 .sc-total { margin: 14px 0 4px; font-size: 1.3rem; font-weight: 800; }
 .mc-daynav { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .mc-daynav .btn { flex: none; min-width: 48px; min-height: 48px; font-size: 1.4rem; line-height: 1; padding: 0 12px; }
