@@ -86,7 +86,12 @@ test('plantillas y GIF: rutinas válidas, una animación por ejercicio marcado, 
     const r = { title: t.title, days: t.days.map((d) => ({ title: d.title, exercises: d.exercises.map((e) => ({ ...e, gif: e.gif ? '00000000-0000-4000-8000-000000000000' : '' })) })) };
     assert.ok(Rutinas.validate(r).ok, t.title);
   }
-  assert.deepStrictEqual(Object.values(DD.TEMPLATES).map((t) => t.title), ['Pecho y tríceps', 'Piernas', 'Espalda y bíceps']);
+  assert.deepStrictEqual(Object.values(DD.TEMPLATES).map((t) => t.title), ['Pecho y tríceps', 'Piernas', 'Espalda y bíceps', 'Movilidad suave']);
+  // Estilo v2: series/descanso estructurados, al menos un ejercicio con solo texto libre y una rutina sin video
+  const all = Object.values(DD.TEMPLATES).flatMap((t) => t.days.flatMap((d) => d.exercises));
+  assert.ok(all.some((e) => (Rutinas.parseSets(e.sets) || {}).rest > 0 && (Rutinas.parseSets(e.sets) || {}).weight), 'hay ejercicios con series, repeticiones, peso y descanso');
+  assert.ok(all.some((e) => !Rutinas.parseSets(e.sets)), 'hay ejercicios con solo texto libre');
+  assert.ok(DD.TEMPLATES.movilidad.days.every((d) => d.exercises.every((e) => !e.gif)), 'Movilidad suave no tiene video');
   for (const g of DD.GIFS) {
     const bytes = DD.makeGif(g.key);
     assert.strictEqual(String.fromCharCode(...bytes.slice(0, 6)), 'GIF89a');
@@ -151,7 +156,9 @@ test('siembra en el servidor falso: ids únicos, estados de pago, rutinas, una o
   assert.strictEqual(coach.businessName, 'Coach Fit Demo');
   assert.strictEqual(coach.inviteCode, DD.INVITE_CODE);
   assert.ok(be.hasConsent(r.coach.id, 'coach_agreement'));
-  assert.strictEqual(Object.values(be.templates).length, 3);
+  assert.strictEqual(Object.values(be.templates).length, 4);
+  // Estilo v2 (concepto 4): Beto reportó dolor ayer y su coach lo ve como indicador
+  assert.ok(Object.values(be.painReports).some((x) => x.userId === r.clients.beto.id && x.pain && !x.reviewedAt && !x.pausePrivate));
   assert.strictEqual(Object.keys(be.gifs).length, 4);
   const routines = Object.values(be.routines);
   assert.ok(routines.length >= 4 && routines.filter((x) => !x.visible).length === 1);

@@ -235,17 +235,19 @@
       const name = displayName(c), id = esc(c.info.clientId);
       const habitsOff = !(c.info.shares && c.info.shares.habits);
       const salud = window.Etapa2 ? Etapa2.coachHealth(c.info) : null;   // UX Etapa 2 (L4): solo el indicador, sin detalle
+      const dolor = c.info.painReported ? `Reportó dolor · ${fmtDay(c.info.painReported)}` : '';   // estilo v2 (r1 v1.12): aviso de dolor, sin detalle
       return `<li><div class="cli-pay-row" data-level="${at.level}">
-        <button type="button" class="cli-main" data-client="${id}" aria-label="${esc(name)}. ${esc(at.label)}: ${esc(at.reason)}.${salud ? ' ' + esc(salud.line) + '.' : ''} ${esc(Pagos.coachLine(p))}. Abrir su ficha">
+        <button type="button" class="cli-main" data-client="${id}" aria-label="${esc(name)}. ${esc(at.label)}: ${esc(at.reason)}.${salud ? ' ' + esc(salud.line) + '.' : ''}${dolor ? ' ' + esc(dolor) + '.' : ''} ${esc(Pagos.coachLine(p))}. Abrir su ficha">
           <span class="cli-av" aria-hidden="true">${esc(ClientStatus.initials(name))}</span>
           <span class="cli-text"><span class="cli-top"><span class="cli-name who">${esc(name)}</span><span class="sem sem-${at.level}"><span aria-hidden="true">${SEM_ICON[at.level]}</span> ${esc(at.label)}</span></span>
             <span class="cli-line cli-motivo">${esc(at.reason)}</span>
             ${salud ? `<span class="cli-line cli-salud"><span aria-hidden="true">▲</span> ${esc(salud.line)}</span>` : ''}
+            ${dolor ? `<span class="cli-line cli-salud cli-dolor"><span aria-hidden="true">▲</span> ${esc(dolor)}</span>` : ''}
             ${habitsOff ? '<span class="cli-line">🔒 No comparte sus hábitos</span>' : ''}
             <span class="cli-line cli-pago">${esc(Pagos.listLine(p))}</span></span>
         </button>
         <button type="button" class="chip-pay ${p.paid ? 'ok' : 'bad'}" data-pay="${id}" aria-label="${esc(name)}: ${p.paid ? 'pagó' : 'no pagó'}. Tocar para cambiar">${esc(Pagos.chipText(p))}</button>
-      </div></li>`;
+      </div>${dolor ? `<div class="cli-dolor-row"><button type="button" class="btn btn-ghost" data-pain-review="${id}" aria-label="Marcar revisado: ${esc(name)} reportó dolor el ${esc(fmtDay(c.info.painReported))}">Marcar revisado</button></div>` : ''}</li>`;
     }).join('');
   }
 
@@ -466,6 +468,10 @@
     const box = $('#fc-salud');
     box.classList.toggle('hidden', !salud);
     box.innerHTML = salud ? salud.parts.map((x) => `<p><strong>${esc(x.title)}</strong><br><span class="small">${esc(x.sub)}</span></p>`).join('') : '';
+    // Estilo v2 (r1 v1.12, concepto jurídico 4): «Reportó dolor · fecha» con «Marcar revisado». Sin detalle clínico (no se sabe qué duele).
+    const d = $('#fc-dolor');
+    d.classList.toggle('hidden', !c.info.painReported);
+    if (c.info.painReported) $('#fc-dolor-t').textContent = `Reportó dolor · ${fmtDay(c.info.painReported)}`;
     const g = c.info.proteinGoal;
     $('#fc-meta-val').textContent = g ? `~${g} g ›` : 'Sin meta ›';
   }
@@ -521,6 +527,20 @@
       await reloadCurrent();
       toast(`Enviado: «${label}»`);
       void undo;
+    } catch (err) { toast(errText(err), true); }
+  }
+  // Estilo v2 (r1 v1.12): el coach marca como revisado el aviso de dolor (en la lista o en la ficha).
+  async function reviewPain(clientId) {
+    const c = cache.get(clientId);
+    if (!c) return;
+    try {
+      const out = await A.remote.coach.reviewPain(clientId);
+      c.info = { ...c.info, painReported: out.painReported };
+      renderList();
+      if (current === clientId) renderDetailEtapa2(c);
+      toast(`Marcado como revisado: ${displayName(c)}`);
+      const back = document.querySelector(`#coach-clients [data-client="${CSS.escape(clientId)}"]`);
+      if (current !== clientId && back) back.focus();
     } catch (err) { toast(errText(err), true); }
   }
   // UX Etapa 2: la barra de la ficha vuelve al regresar de la meta de proteína (app.js avisa con pg:ficha-bar).
@@ -685,9 +705,12 @@
     $('#btn-invite-wa').addEventListener('click', (ev) => { if (!inviteParts()) ev.preventDefault(); });
     renderInvitePreview();
     $('#coach-clients').addEventListener('click', (ev) => {
+      const r = ev.target.closest('[data-pain-review]');
+      if (r) { reviewPain(r.dataset.painReview); return; }
       const b = ev.target.closest('[data-client]');
       if (b) openClient(b.dataset.client);
     });
+    $('#btn-fc-dolor').addEventListener('click', () => { if (current) reviewPain(current); });
     $('#btn-coach-back').addEventListener('click', () => showList(current));
     $('#btn-coach-compare').addEventListener('click', compareNow);
     wirePay();

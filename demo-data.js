@@ -40,7 +40,7 @@
   // habitDays / foodDays: cuántos días de hábitos y comidas hay (hasta «last»). paid: días de pago que le quedan (negativo = no pagó).
   const PEOPLE = [
     { key: 'ana', name: 'Ana Demo', sex: 'f', w0: 78.4, loss: 5.6, weeks: 10, last: -1, adh: 0.88, habitDays: 28, foodDays: 7, started: -72, paid: 21, notes: true, waistWeekAgo: true,
-      shares: { body: true, notes: true, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [0, 'perfil', 0], [4, 'frente', 1], [8, 'frente', 1], [10, 'frente', 1], [10, 'perfil', 1]], routines: ['pecho', 'piernas'], pattern: true, early: true, steady: true },
+      shares: { body: true, notes: true, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [0, 'perfil', 0], [4, 'frente', 1], [8, 'frente', 1], [10, 'frente', 1], [10, 'perfil', 1]], routines: ['pecho', 'piernas', 'movilidad'], pattern: true, early: true, steady: true },
     { key: 'beto', name: 'Beto Demo', sex: 'm', w0: 96.2, loss: 6.8, weeks: 10, last: 0, adh: 0.62, habitDays: 28, foodDays: 7, started: -75, paid: 4, notes: true, hard: true,
       shares: { body: true, notes: false, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [5, 'frente', 1], [10, 'frente', 1], [10, 'espalda', 1]], routines: ['espalda'] },
     { key: 'carla', name: 'Carla Demo', sex: 'f', w0: 69.5, loss: 3.9, weeks: 10, last: -2, adh: 0.5, habitDays: 28, foodDays: 7, started: -70, paid: 14, notes: true,
@@ -165,6 +165,9 @@
   }
 
   // ---------- Rutinas (plantillas del coach) ----------
+  // Estilo v2: series, repeticiones, peso y descanso ESTRUCTURADOS (forma fija de Rutinas.composeSets, sin SQL); hay ejercicios con solo texto
+  // libre («Caminata rápida», «Plancha», «Estiramiento…»), una rutina con la forma de antes («Espalda y bíceps», «4 × 12») y una SIN video
+  // («Movilidad suave»). Los videos de la demo son GIF animados generados aquí mismo (figuras de palitos), nada descargado.
   const GIFS = [
     { key: 'press', name: 'Press de banca' }, { key: 'sentadilla', name: 'Sentadilla' },
     { key: 'remo', name: 'Remo con mancuerna' }, { key: 'curl', name: 'Curl de bíceps' },
@@ -172,20 +175,20 @@
   const TEMPLATES = {
     pecho: { title: 'Pecho y tríceps', days: [
       { title: 'Día 1 – Pecho y tríceps', exercises: [
-        { name: 'Press de banca', sets: '4 × 12', note: 'Baja la barra despacio, sin rebotar.', gif: 'press' },
-        { name: 'Press inclinado con mancuernas', sets: '3 × 12', note: '' },
-        { name: 'Aperturas con mancuernas', sets: '3 × 15', note: 'Siente el estiramiento del pecho.' },
-        { name: 'Fondos en banco', sets: '3 × 12', note: '' },
-        { name: 'Extensión de tríceps con cuerda', sets: '3 × 15', note: 'Codos pegados al cuerpo.' }] },
+        { name: 'Press de banca', sets: '4×12 · 20 kg · desc. 90 s', note: 'Baja la barra despacio, sin rebotar.', gif: 'press' },
+        { name: 'Press inclinado con mancuernas', sets: '3×12 · 8 kg · desc. 60 s', note: '' },
+        { name: 'Aperturas con mancuernas', sets: '3×15 · 6 kg · desc. 45 s', note: 'Siente el estiramiento del pecho.' },
+        { name: 'Fondos en banco', sets: '3×12 · desc. 45 s', note: '' },
+        { name: 'Extensión de tríceps con cuerda', sets: '3×15 · desc. 45 s', note: 'Codos pegados al cuerpo.' }] },
       { title: 'Día 2 – Cardio suave', exercises: [{ name: 'Caminata rápida', sets: '30 minutos', note: 'A un ritmo en el que puedas conversar.' }] }] },
     piernas: { title: 'Piernas', days: [
       { title: 'Piernas y glúteos', exercises: [
-        { name: 'Sentadilla goblet', sets: '3×12', note: 'Rodillas en la dirección de los pies.', gif: 'sentadilla' },
-        { name: 'Zancadas', sets: '3×10 c/lado', note: '' },
-        { name: 'Peso muerto rumano', sets: '3×10', note: 'Espalda recta, baja hasta media pierna.' },
-        { name: 'Puente de glúteo', sets: '3×15', note: 'Aprieta arriba un segundo.' },
+        { name: 'Sentadilla goblet', sets: '4×12 · 12 kg · desc. 60 s', note: 'Rodillas en la dirección de los pies.', gif: 'sentadilla' },
+        { name: 'Zancadas', sets: '3×10 c/lado · desc. 45 s', note: '' },
+        { name: 'Peso muerto rumano', sets: '3×10 · 16 kg · desc. 60 s', note: 'Espalda recta, baja hasta media pierna.' },
+        { name: 'Puente de glúteo', sets: '3×15 · desc. 30 s', note: 'Aprieta arriba un segundo.' },
         { name: 'Elevación de talones', sets: '3×15', note: '' },
-        { name: 'Plancha', sets: '3×30 s', note: '' }] }] },
+        { name: 'Plancha', sets: 'Aguanta 30 s, 3 veces', note: 'Descansa lo que necesites entre una y otra.' }] }] },
     espalda: { title: 'Espalda y bíceps', days: [
       { title: 'Día 1 – Espalda y bíceps', exercises: [
         { name: 'Remo con mancuerna', sets: '4 × 12', note: 'Lleva el codo hacia la cadera.', gif: 'remo' },
@@ -194,6 +197,13 @@
         { name: 'Curl de bíceps', sets: '3 × 12', note: 'Sin balancear el cuerpo.', gif: 'curl' },
         { name: 'Curl martillo', sets: '3 × 12', note: '' }] },
       { title: 'Día 2 – Cardio suave', exercises: [{ name: 'Bicicleta fija', sets: '25 minutos', note: '' }] }] },
+    movilidad: { title: 'Movilidad suave', days: [
+      { title: 'Movilidad', exercises: [
+        { name: 'Gato-camello', sets: '2×10 · desc. 20 s', note: 'Sin forzar: muévete despacio.' },
+        { name: 'Círculos de cadera', sets: '2×8 c/lado', note: '' },
+        { name: 'Estiramiento de isquiotibiales', sets: '30 s por pierna', note: '' },
+        { name: 'Respiración profunda', sets: '1 minuto', note: '' },
+        { name: 'Rotación de hombros', sets: '2×10 · desc. 20 s', note: '' }] }] },
   };
 
   const COACH_COMMENTS = {
@@ -233,7 +243,8 @@
   }
 
   // ---------- GIF animado (codificador mínimo; sin dependencias) ----------
-  const PALETTE = [[0xe8, 0xf1, 0xf2], [0x0f, 0x76, 0x6e], [0x47, 0x55, 0x69], [0xf5, 0x9e, 0x0b], [0xcb, 0xd5, 0xe1], [0xef, 0x44, 0x44], [0xff, 0xff, 0xff], [0x1e, 0x29, 0x3b]];
+  // Estilo v2: fondo oscuro como el escenario del boceto E3; figura clara y barra turquesa.
+  const PALETTE = [[0x10, 0x1b, 0x1a], [0xe3, 0xf3, 0xf0], [0x2d, 0xd4, 0xbf], [0xf5, 0x9e, 0x5b], [0x24, 0x34, 0x31], [0xf8, 0x71, 0x71], [0xff, 0xff, 0xff], [0x07, 0x10, 0x0f]];
   function lzw(idx, minCode) {
     const clear = 1 << minCode, eoi = clear + 1;
     const out = [];
@@ -324,7 +335,7 @@
   function deps() {
     const get = (n, f) => root[n] || (typeof require === 'function' ? require(f) : null);
     return { RemoteFake: get('RemoteFake', './remote-fake.js'), Platos: get('Platos', './platos.js'), Schema: get('Schema', './schema.js'),
-      Sync: get('Sync', './sync.js'), CT: get('ConsentTexts', './consent-texts.js'), Rutinas: get('Rutinas', './rutinas.js'), Etapa2: get('Etapa2', './etapa2.js') };
+      Sync: get('Sync', './sync.js'), CT: get('ConsentTexts', './consent-texts.js'), Rutinas: get('Rutinas', './rutinas.js'), Etapa2: get('Etapa2', './etapa2.js'), Paso: get('Paso', './paso.js') };
   }
   async function sha256(text) {
     const c = (typeof crypto !== 'undefined' && crypto.subtle) ? crypto : require('node:crypto').webcrypto;
@@ -452,6 +463,11 @@
       await rd.sync.push({ records: Sync.toWire(auto.state, { userId: clients.diego.id }), photos: [] });
       void diego;
     }
+    // --- Estilo v2 (concepto jurídico 4): Beto respondió «Sí» a «¿Sentiste dolor…?» ayer; su coach ve «Reportó dolor» en la lista y en la ficha ---
+    if (D.Paso) {
+      const rb = asUser(be, clients.beto, D);
+      await rb.client.reportPain(addDays(be.todayBogota(), -1), true, { version: D.Paso.DOLOR.version, textHash: await sha256(D.Paso.dolorText()) });
+    }
     be._persist();
     return { today, coach: coachU, code: INVITE_CODE, clients, plan: { photos: Object.fromEntries(plan.clients.map((c) => [c.key, c.photos])) } };
   }
@@ -480,7 +496,8 @@
     return { state, meta, photos: photos.filter((p) => !p.deletedAt), session: { user: { id: who.id, email: who.email }, issuedAt: now } };
   }
 
-  const api = { HEALTH, PROTEIN_GOALS, RETO_MARKS, AUTONOMOUS, BUSINESS, COACH, PEOPLE, INVITE_CODE, BANNER, TEMPLATES, GIFS, PALETTE, buildPlan, seed, localFor, asUser, makeGif, encodeGif, lzw, uid, rng, addDays, localDay, stampOf, sha256, deps };
+  const PAIN = { beto: -1 };   // días relativos a hoy del último «Sí» al aviso de dolor (ver seed)
+  const api = { PAIN, HEALTH, PROTEIN_GOALS, RETO_MARKS, AUTONOMOUS, BUSINESS, COACH, PEOPLE, INVITE_CODE, BANNER, TEMPLATES, GIFS, PALETTE, buildPlan, seed, localFor, asUser, makeGif, encodeGif, lzw, uid, rng, addDays, localDay, stampOf, sha256, deps };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PGDemoData = api;
 })(typeof window !== 'undefined' ? window : globalThis);

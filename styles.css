@@ -1349,3 +1349,272 @@ button.fc-link { width: 100%; font: inherit; background: none; border: 0; border
 .meta-acts { display: grid; gap: 10px; margin-top: 18px; }
 .meta-acts .btn { width: 100%; margin: 0; min-height: 52px; }
 .meta-quitar { color: var(--muted); border-color: var(--line); }
+
+/* ======================================================================================================================
+   ESTILO v2 (bocetos aprobados en equipo/diseno/v2-estilo/, medidas y colores de estilo.html). Solo el producto «coach»
+   (body.producto-coach): la app oficial no cambia. Oscuro: fondo casi negro, acento turquesa con brillo, tarjetas grandes
+   redondeadas, títulos en Bricolage Grotesque gruesa, anillos y botones tipo píldora. Claro: los mismos tokens en versión
+   clara (turquesa profundo con texto blanco). Contraste AA en los dos (tests/e2e/ux1-inicio.spec.js y v2-estilo.spec.js).
+   Fuente: fonts/BricolageGrotesque-Bold.ttf (SIL OFL 1.1, fonts/BricolageGrotesque-OFL.txt), servida desde la propia app.
+   ====================================================================================================================== */
+@font-face { font-family: "Bricolage Grotesque"; src: url("fonts/BricolageGrotesque-Bold.ttf") format("truetype"); font-weight: 600 900; font-style: normal; font-display: swap; }
+body.producto-coach {
+  --bg: #f2f6f5; --card: #ffffff; --surface2: #e8f0ee; --text: #0e1a18; --muted: #4f5f5b; --line: #d6e2df;
+  --accent: #0f766e; --accent-hi: #0f766e; --accent-soft: #d3eeea; --on-accent: #ffffff; --glow: rgba(15, 118, 110, .28);
+  --warm: #b45309; --ring-sleep: #4f46e5; --stage-a: #e4efec; --stage-b: #f8fbfa;
+  --hero-a: rgba(15, 118, 110, .18); --hero-b: #e1f3ef; --hero-c: #ffffff; --hero-line: #c9e3de;
+  --font-title: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r-card: 22px;
+  background: var(--bg);
+}
+@media (prefers-color-scheme: dark) {
+  body.producto-coach {
+    --bg: #07100f; --card: #0f1918; --surface2: #16221f; --text: #eef5f3; --muted: #93a6a2; --line: #1f2e2b;
+    --accent: #2dd4bf; --accent-hi: #5eead4; --accent-soft: #123a35; --on-accent: #04201c; --glow: rgba(45, 212, 191, .45);
+    --warm: #f59e5b; --ring-sleep: #818cf8; --stage-a: #1b2a28; --stage-b: #0a1110;
+    --hero-a: rgba(45, 212, 191, .28); --hero-b: #122a27; --hero-c: #0b1413; --hero-line: #1d3532;
+    background: radial-gradient(120% 40% at 50% 112%, rgba(45, 212, 191, .14), transparent 70%) fixed #07100f;
+  }
+}
+/* --- Títulos --- */
+body.producto-coach h1, body.producto-coach h2, body.producto-coach .home-greeting, body.producto-coach #hd-title, body.producto-coach .rut-title,
+body.producto-coach .rl-name, body.producto-coach .rc-name, body.producto-coach .cli-name, body.producto-coach .back-title, body.producto-coach .view-title { font-family: var(--font-title); font-weight: 800; letter-spacing: -.01em; }
+body.producto-coach .home-greeting { font-size: 1.7rem; line-height: 1.1; }
+body.producto-coach .home-date { font-weight: 400; font-size: .98rem; }
+/* --- Barra de arriba: sobre el fondo, sin franja turquesa --- */
+body.producto-coach .topbar { background: var(--bg); color: var(--text); border-bottom: 1px solid var(--line); }
+body.producto-coach .topbar h1 { font-size: 1.25rem; }
+body.producto-coach .topbar .muted { color: var(--muted); opacity: 1; }
+body.producto-coach .topbar-btn { color: var(--accent-hi); }
+body.producto-coach .topbar-btn:focus-visible { outline: 3px solid var(--accent-hi); }
+/* --- Tarjetas, campos y botones píldora --- */
+body.producto-coach .card, body.producto-coach .home-card { background: var(--card); border-color: var(--line); border-radius: var(--r-card); }
+body.producto-coach input, body.producto-coach select, body.producto-coach textarea { border-radius: 14px; border-color: var(--line); background: var(--bg); color: var(--text); }
+body.producto-coach .btn { border-radius: 999px; font-weight: 700; padding-left: 20px; padding-right: 20px; }
+body.producto-coach .btn:not(.btn-ghost):not(.btn-danger) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 6px 22px -8px var(--glow); }
+body.producto-coach .btn-ghost { background: var(--surface2); border-color: var(--line); color: var(--text); }
+body.producto-coach .btn:disabled { opacity: .55; box-shadow: none; }
+body.producto-coach .btn-link { color: var(--accent-hi); }
+body.producto-coach .badge, body.producto-coach .rut-badge { background: var(--accent); color: var(--on-accent); }
+body.producto-coach .toast { border-radius: 999px; }
+body.producto-coach .sheet, body.producto-coach .dia-dialog { border-radius: 24px 24px 0 0; }
+body.producto-coach .dia-dialog { border-radius: 24px; border-color: var(--accent); box-shadow: 0 0 60px -10px var(--glow); }
+body.producto-coach .prog-seg button, body.producto-coach #medidas-pick button, body.producto-coach .cli-filters button, body.producto-coach .sc-tabs button,
+body.producto-coach .fc-react button, body.producto-coach .esf-chips button, body.producto-coach .mc-chips button, body.producto-coach .dia-opts button { border-radius: 999px; background: var(--surface2); border-color: var(--line); }
+body.producto-coach .prog-seg button.on, body.producto-coach .prog-seg button[aria-pressed="true"], body.producto-coach .cli-filters button[aria-pressed="true"],
+body.producto-coach .esf-chips button[aria-pressed="true"], body.producto-coach .mc-chips button[aria-pressed="true"], body.producto-coach .dia-opts button[aria-pressed="true"],
+body.producto-coach .sc-tabs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+/* --- Barra de abajo: ícono con su texto debajo (se conserva), activa en turquesa claro --- */
+body.producto-coach .tabbar { background: var(--bg); border-top: 1px solid var(--line); }
+body.producto-coach .tabbar button { color: var(--muted); }
+body.producto-coach .tabbar button.on { color: var(--accent-hi); }
+body.producto-coach .tabbar .tab-add .tab-disc { border-color: var(--bg); box-shadow: 0 0 22px -4px var(--glow); }
+
+/* ---------- E1 · Inicio del asesorado (orden del boceto: saludo → semana → rutina de hoy → anillos → nota del coach) ---------- */
+body.producto-coach #view-panel.active { display: flex; flex-direction: column; }
+body.producto-coach #view-panel > * { order: 50; }
+body.producto-coach #home-coach, body.producto-coach #home-coach2, body.producto-coach #pause-extra { display: contents; }
+body.producto-coach #home-coach.hidden, body.producto-coach #home-coach2.hidden, body.producto-coach #pause-extra.hidden { display: none; }
+body.producto-coach #view-panel > .home-head { order: 1; }
+body.producto-coach #pause-card { order: 2; }
+body.producto-coach #home-salud { order: 3; }
+body.producto-coach #home-semana { order: 4; }
+body.producto-coach #home-daily { order: 5; }
+body.producto-coach #home-dia { order: 6; }
+body.producto-coach #coach-notes { order: 7; }
+body.producto-coach #coach-notes-old { order: 8; }
+body.producto-coach #home-reto { order: 9; }
+body.producto-coach #home-toca { order: 10; }
+body.producto-coach #pay-countdown { order: 11; }
+body.producto-coach #pause-extra > * { order: 12; }
+/* Semana: círculos por día con nombre corto y número; cumplido turquesa, comodín punteado, hoy en blanco, días por venir tenues */
+body.producto-coach .semana-card { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; background: transparent; border: 0; padding: 0; }
+body.producto-coach .semana-card > .semana-days { order: 1; flex: 1 1 100%; }
+body.producto-coach .semana-card > .semana-legend { order: 2; }
+body.producto-coach .semana-card > .home-row { order: 3; }
+body.producto-coach .semana-card > #semana-line { order: 4; margin: 0; }
+body.producto-coach #semana-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+body.producto-coach .semana-count { font-size: .82rem; font-weight: 400; color: var(--muted); }
+body.producto-coach .semana-days { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 4px; margin: 2px 0 4px; }
+body.producto-coach .semana-days .sd { flex: 0 1 3em; min-width: 2.6em; width: auto; height: auto; min-height: 3.9em; padding: 4px 2px; flex-direction: column; gap: 1px; border-radius: 999px;
+  border: 2px solid var(--line); background: transparent; color: var(--muted); font-weight: 400; font-size: .72rem; line-height: 1.1; }
+body.producto-coach .semana-days .sd b { font-size: 1.05rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+body.producto-coach .semana-days .sd.on { background: transparent; border-color: var(--accent); color: var(--accent-hi); }
+body.producto-coach .semana-days .sd.comodin { border-style: dashed; border-color: var(--warm); color: var(--warm); }
+body.producto-coach .semana-days .sd.fut { border-color: var(--line); color: var(--muted); }
+body.producto-coach .semana-days .sd.fut b { color: var(--muted); }
+body.producto-coach .semana-days .sd.hoy, body.producto-coach .semana-days .sd.hoy:not(.on) { background: var(--text); border-color: var(--text); color: var(--bg); }
+body.producto-coach .semana-days .sd.hoy b { color: var(--bg); }
+.semana-legend { display: none; }
+body.producto-coach .semana-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; color: var(--muted); }
+body.producto-coach .semana-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+body.producto-coach .semana-legend .lg-ok { background: var(--accent); }
+body.producto-coach .semana-legend .lg-com { background: var(--warm); }
+/* Rutina de hoy: tarjeta grande con brillo, dibujo propio y «Empezar» */
+.hero-tag, .hero-fig { display: none; }
+body.producto-coach .hero-card { position: relative; overflow: hidden; min-height: 168px; padding: 16px; border-radius: 24px; border: 1px solid var(--hero-line);
+  background: radial-gradient(90% 120% at 100% 0%, var(--hero-a), transparent 60%), linear-gradient(160deg, var(--hero-b), var(--hero-c) 70%); }
+body.producto-coach .hero-tag { display: block; position: relative; z-index: 1; margin: 0; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--accent-hi); max-width: 70%; }
+body.producto-coach #home-daily #hd-title { position: relative; z-index: 1; margin: 2px 0 0; font-size: 1.45rem; color: var(--text); max-width: 64%; overflow-wrap: anywhere; }
+body.producto-coach #hd-text { position: relative; z-index: 1; margin: 3px 0 0; font-size: .88rem; max-width: 64%; }
+body.producto-coach .hero-fig { display: block; position: absolute; right: -6px; bottom: -4px; width: 170px; height: 150px; pointer-events: none; }
+.hf-stop { stop-color: var(--accent); }
+.hf-body { stroke: #cfe9e4; opacity: .85; } .hf-head { fill: #cfe9e4; stroke: none; } .hf-bar { fill: var(--accent); opacity: .9; }
+@media (prefers-color-scheme: light) { .hf-body { stroke: #2f5f58; } .hf-head { fill: #2f5f58; } }
+body.producto-coach #home-daily #btn-home-daily { position: relative; z-index: 1; width: auto; margin-top: 26px; padding: 11px 26px; font-size: 1rem; box-shadow: 0 6px 24px -4px var(--glow); }
+/* Agua, pasos y sueño en anillos (un toque, como en la Etapa 1); «Entrené» debajo como píldora */
+body.producto-coach .dia-card { background: transparent; border: 0; padding: 0; }
+body.producto-coach .dia-card > .home-row { padding: 0 2px; }
+body.producto-coach .dia-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+body.producto-coach .dia-tile { align-items: center; text-align: center; padding: 11px 6px 10px; border-radius: 20px; background: var(--card); border-color: var(--line); }
+body.producto-coach .dia-tile.on { background: var(--card); border-color: var(--line); }
+body.producto-coach .dia-tile b { font-size: .95rem; }
+body.producto-coach .dia-tile > span:not(.dia-ring) { font-size: .78rem; color: var(--muted); }
+body.producto-coach #dia-entrene { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 10px; min-height: 52px; border-radius: 999px; }
+body.producto-coach #dia-entrene.on { background: var(--accent-soft); border-color: var(--accent); }
+.dia-ring { display: none; }
+body.producto-coach .dia-ring { display: block; position: relative; width: 58px; height: 58px; margin: 0 auto 6px; flex: none; }
+.dia-ring svg { display: block; width: 58px; height: 58px; transform: rotate(-90deg); }
+.dr-track, .dr-arc { fill: none; stroke-width: 6; }
+.dr-track { stroke: var(--line); }
+.dr-arc { stroke: var(--accent); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; opacity: 0; transition: stroke-dashoffset .4s ease-out; }
+#dia-pasos .dr-arc { stroke: var(--warm); }
+#dia-sueno .dr-arc { stroke: var(--ring-sleep); }
+.dia-ring i { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 18px; line-height: 1; }
+body.producto-coach .dia-act { border-radius: 999px; color: var(--text); background: var(--surface2); border-color: var(--line); }
+/* Nota del coach: tarjeta de mensaje (nunca un consejo de la app) */
+body.producto-coach #coach-notes { text-align: center; padding: 13px 15px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); }
+body.producto-coach #coach-notes h2 { font-family: inherit; font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin: 0 0 4px; }
+body.producto-coach #coach-notes .note-body { font-size: 1.02rem; line-height: 1.4; }
+body.producto-coach #coach-notes .note-meta { justify-content: center; color: var(--muted); }
+body.producto-coach .reto-card, body.producto-coach .home-toca, body.producto-coach .home-salud { border-radius: var(--r-card); }
+
+/* ---------- E2 · Entrenar: tarjetas grandes con el video o GIF del coach, o un dibujo de color ---------- */
+.rcards { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 12px; }
+.rcard { margin: 0; min-width: 0; }
+.rcard-btn { position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; align-content: flex-end; justify-content: space-between; gap: 6px 10px; width: 100%; min-height: 150px;
+  padding: 14px 15px; border-radius: 22px; overflow: hidden; border: 1px solid #1c2b29; text-align: left; font: inherit; color: #eef5f3; cursor: pointer;
+  background: radial-gradient(80% 110% at 85% 20%, rgba(45, 212, 191, .40), transparent 60%), linear-gradient(135deg, #0d1d1b, #090f0e) #0b1413; }
+.rcard.g1 .rcard-btn { background: radial-gradient(80% 110% at 85% 20%, rgba(245, 158, 91, .45), transparent 60%), linear-gradient(135deg, #1d1410, #0b0f0f) #140f0c; }
+.rcard.g2 .rcard-btn { background: radial-gradient(80% 110% at 85% 20%, rgba(129, 140, 248, .40), transparent 60%), linear-gradient(135deg, #12142a, #0a0b12) #0e1020; }
+.rcard-btn:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.rcard-media, .rcard-shade { position: absolute; inset: 0; pointer-events: none; }
+.rcard-art { position: absolute; right: 30px; top: 6px; width: 140px; height: 120px; opacity: .9; stroke: #d9f3ee; }
+.rcard-art .ra-fill { fill: #d9f3ee; } .rcard-art .ra-acc { fill: #2dd4bf; } .rcard-art .ra-line { stroke: #2dd4bf; }
+.rcard.g1 .rcard-art { stroke: #f6dcc8; } .rcard.g1 .ra-fill { fill: #f6dcc8; } .rcard.g1 .ra-line { stroke: #f59e5b; }
+.rcard.g2 .rcard-art { stroke: #dcdffb; } .rcard.g2 .ra-fill { fill: #dcdffb; }
+.rcard-media .rcard-video { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; margin: 0; border-radius: 0; object-fit: cover; background: transparent; }
+.rcard.has-media .rcard-art { display: none; }
+.rcard-shade { background: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, .28)); }
+.rcard.has-media .rcard-shade { background: linear-gradient(180deg, rgba(0, 0, 0, .05) 20%, rgba(0, 0, 0, .78)); }
+.rcard-pill { position: absolute; left: 14px; top: 12px; padding: 4px 10px; border-radius: 999px; background: #2dd4bf; color: #04201c; font-size: .72rem; font-weight: 800; letter-spacing: .04em; }
+.rcard-text { position: relative; display: flex; flex-direction: column; flex: 1 1 11rem; min-width: 0; text-shadow: 0 1px 8px rgba(0, 0, 0, .5); }
+.rcard-title { font-family: var(--font-title, inherit); font-weight: 800; font-size: 1.3rem; line-height: 1.15; overflow-wrap: anywhere; }
+.rcard-meta { font-size: .86rem; color: #c9d6d3; overflow-wrap: anywhere; }
+.rcard-chip { position: relative; flex: none; padding: 5px 11px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #eef5f3; font-size: .8rem; white-space: nowrap; }
+.rcards-note { text-align: center; margin: 0 12px 14px; }
+
+/* ---------- E3 · Modo paso a paso ---------- */
+.paso { width: 100%; height: 100%; max-width: 100%; max-height: 100%; margin: 0; padding: 0; border: 0; background: var(--bg); color: var(--text); }
+.paso[open] { display: block; overflow: auto; overscroll-behavior: contain; }
+.paso::backdrop { background: #07100f; }
+.paso-run, .paso-end { box-sizing: border-box; max-width: 560px; min-height: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); }
+.paso-run.hidden, .paso-end.hidden { display: none; }
+.paso-top { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.paso-top-end { justify-content: flex-end; }
+.paso-prog { flex: 1; display: flex; gap: 5px; list-style: none; margin: 0; padding: 0 4px; }
+.paso-prog li { flex: 1; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.paso-prog li i { display: block; height: 100%; background: var(--accent); }
+.paso-x { flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font: inherit; font-size: 1.4rem; cursor: pointer; }
+.paso-stage { position: relative; height: min(250px, 34vh); min-height: 170px; border-radius: 24px; overflow: hidden; border: 1px solid var(--line);
+  background: radial-gradient(70% 60% at 50% 60%, var(--stage-a, #1b2a28), var(--stage-b, #0a1110)); }
+.paso-media { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 12px; text-align: center; color: var(--muted); font-size: .95rem; }
+.paso-media .rut-gif-img { width: 100%; height: 100%; max-width: none; min-height: 0; margin: 0; object-fit: contain; background: transparent; border-radius: 12px; }
+.paso-media .paso-still { flex: 1 1 auto; width: auto; height: auto; max-height: 75%; }
+.paso-media .paso-play { flex: none; min-height: 44px; }
+.paso-empty { margin: 0; max-width: 32ch; color: var(--text); }
+.paso-lbl { position: absolute; left: 12px; bottom: 8px; margin: 0; font-size: .75rem; color: var(--muted); }
+.paso-next { position: absolute; right: 10px; top: 10px; margin: 0; max-width: 46%; padding: 6px 10px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); color: var(--muted); font-size: .75rem; overflow-wrap: anywhere; }
+.paso-exn { text-align: center; }
+.paso-exn h2 { margin: 0; font-family: var(--font-title, inherit); font-weight: 800; font-size: 1.5rem; overflow-wrap: anywhere; }
+#paso-line { margin: 2px 0 0; color: var(--muted); font-size: .95rem; }
+.paso-note { margin: 4px 0 0; font-size: .9rem; overflow-wrap: anywhere; }
+.paso-sets { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0; padding: 0; }
+.paso-sets li { min-height: 32px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+.paso-sets li.ok { border-color: var(--accent); color: var(--accent-hi, var(--accent)); }
+.paso-sets li.now { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 700; }
+.paso-big { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.paso-side { flex: 1 1 60px; min-width: 0; margin: 0; text-align: center; font-size: .78rem; color: var(--muted); overflow-wrap: anywhere; }
+.paso-side b { display: block; color: var(--text); font-size: 1rem; }
+.paso-timer { position: relative; flex: none; width: 178px; height: 178px; display: flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: 0 0 34px 2px var(--glow); }
+.paso-timer.is-rest { box-shadow: 0 0 50px 6px var(--glow); }
+.paso-timer.flash { box-shadow: 0 0 0 6px var(--accent), 0 0 70px 16px var(--glow); }
+.paso-timer svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.pt-track { fill: var(--card); stroke: var(--line); stroke-width: 7; }
+.pt-arc { fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 0; transition: stroke-dashoffset .25s linear; }
+.paso-timer.is-paused .pt-arc { stroke: var(--muted); }
+.pt-in { position: relative; margin: 0; max-width: 140px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+#paso-t { font-family: var(--font-title, inherit); font-weight: 800; font-size: 2.6rem; line-height: 1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#paso-s { margin-top: 4px; color: var(--muted); font-size: .9rem; }
+.paso-free { flex: 1 1 12rem; margin: 0; padding: 18px 16px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); text-align: center; font-size: 1.2rem; font-weight: 700; overflow-wrap: anywhere; }
+.paso-ctrl { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.paso-cb { flex: none; width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.paso-cb:disabled { opacity: .4; cursor: default; }
+.paso-main { flex: 0 1 210px; min-width: 0; min-height: 52px; padding: 8px 18px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font: inherit; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 6px 22px -6px var(--glow); overflow-wrap: anywhere; }
+.paso-main.is-rest { background: var(--surface2, var(--card)); border-color: var(--line); color: var(--text); box-shadow: none; }
+.paso-x:focus-visible, .paso-cb:focus-visible, .paso-main:focus-visible, .paso .btn:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.paso-hint { margin: 0; text-align: center; }
+/* ---------- E4 · Entreno completo ---------- */
+.paso-end { text-align: center; }
+.paso-medal { width: 150px; height: 150px; margin: 6px auto 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--accent-hi, var(--accent));
+  background: radial-gradient(circle, var(--card) 60%, transparent 61%); box-shadow: 0 0 60px 10px var(--glow), inset 0 0 0 7px var(--accent); }
+.paso-medal svg { width: 64px; height: 64px; }
+#paso-end-title { margin: 14px 0 0; font-family: var(--font-title, inherit); font-weight: 800; font-size: 1.8rem; text-transform: uppercase; overflow-wrap: anywhere; }
+.paso-end-sub { margin: 0; color: var(--muted); }
+.paso-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr)); gap: 9px; }
+.paso-stats p { margin: 0; padding: 12px 6px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+.paso-stats p.hidden { display: none; }
+.paso-stats b { display: block; font-family: var(--font-title, inherit); font-weight: 800; font-size: 1.45rem; }
+.paso-stats span { font-size: .8rem; color: var(--muted); }
+.paso-esf { padding: 12px 13px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); text-align: left; }
+.pe-q { margin: 0 0 6px; font-weight: 700; }
+.paso-esf .esf-chips { margin: 0; }
+.paso-done { width: 100%; margin-top: auto; }
+.paso-end-foot { margin: 0; }
+@media (prefers-reduced-motion: reduce) { .dr-arc, .pt-arc { transition: none; } }
+
+/* ---------- Coach: editor (campos de series opcionales), biblioteca, lista y ficha ---------- */
+.rut-edit-sets { min-width: 0; margin: 12px 0 4px; padding: 4px 12px 10px; border: 1px solid var(--line); border-radius: 14px; }
+.rut-edit-sets legend { padding: 0 6px; font-weight: 700; font-size: .92rem; }
+.rut-edit-sets p { margin: 8px 0 0; }
+.rut-edit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: 4px 10px; }
+.rut-edit-grid > div { min-width: 0; }
+body.producto-coach .rut-edit-day, body.producto-coach .rut-edit-ex, body.producto-coach .gif-item, body.producto-coach .rc-item, body.producto-coach .cli-pay-row,
+body.producto-coach .cli-row, body.producto-coach .med-history li { border-radius: 18px; border-color: var(--line); }
+body.producto-coach .rl-item { border-radius: var(--r-card); }
+body.producto-coach .fc-sum > div, body.producto-coach .rut-ex > summary, body.producto-coach .rut-ex-row { border-radius: 16px; }
+body.producto-coach .rut-ex-how, body.producto-coach .med-mas-t, body.producto-coach .foto-nueva > summary { color: var(--accent-hi); }
+body.producto-coach .rut-day > summary::after { color: var(--accent-hi); }
+/* ---------- Concepto jurídico 4: aviso de dolor (pregunta cerrada No / Sí y bloqueo preventivo) ---------- */
+.paso-end.hidden { display: none; }
+.pd-opts button { flex: 1 1 5rem; }
+.pd-q-big { margin: 24px 0 8px; font-family: var(--font-title, inherit); font-weight: 800; font-size: 1.5rem; overflow-wrap: anywhere; }
+.pd-opts-big button { min-height: 56px; font-size: 1.1rem; }
+.pd-status { margin: 4px 0 0; }
+.paso-ask { justify-content: flex-start; }
+.paso-ask #paso-ask-back { margin-top: auto; }
+.paso-medal-warn { --glow: rgba(245, 158, 91, .35); box-shadow: 0 0 60px 10px var(--glow), inset 0 0 0 7px var(--warm, #f59e5b); color: var(--warm, #b45309); margin-top: 32px; }
+.pb-text { margin: 18px 0 0; font-size: 1.2rem; font-weight: 700; line-height: 1.45; overflow-wrap: anywhere; }
+.pb-wait { margin: 18px 0 0; font-size: 1.05rem; }
+.pb-wait:empty { display: none; }
+.cli-dolor-row { display: flex; justify-content: flex-end; padding: 6px 2px 0; }
+.cli-dolor-row .btn { min-height: 44px; }
+.fc-dolor { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.fc-dolor.hidden { display: none; }
+.fc-dolor p { flex: 1 1 14rem; }
+/* Estilo v2: la línea de series ahora es más larga («4 series · 12 repeticiones · 12 kg · descanso 60 s»): parte en varias líneas, nunca desborda */
+.rut-ex-text .rut-ex-sets { flex: initial; white-space: normal; overflow-wrap: anywhere; }
+.rut-ex > summary .rut-ex-text { flex: 1 1 auto; }
+/* El GIF o video del coach de fondo: entero (sin recortar la demostración), a la derecha, fundido hacia el texto */
+.rcard-media .rcard-video { left: auto; right: 0; width: 62%; object-fit: cover; object-position: center; -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%); mask-image: linear-gradient(90deg, transparent, #000 45%); }

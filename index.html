@@ -281,9 +281,9 @@
           <div class="home-row"><h3 id="dia-title" class="home-label">Mi día</h3><span id="dia-sub" class="home-sub">Se guarda solo</span><span id="dia-modo" class="dia-modo hidden">modo autónomo</span></div>
           <p id="dia-p1" class="dia-p1 hidden" role="note">Registro personal en modo autónomo. Durante la pausa del servicio con tu coach, tus nuevos hábitos no serán supervisados ni revisados por él.</p>
           <div class="dia-grid">
-            <button type="button" class="dia-tile" id="dia-agua"><b id="dia-agua-t">Agua 0 / 8</b><span id="dia-agua-s">Toca: +1 vaso</span></button>
-            <button type="button" class="dia-tile" id="dia-sueno" aria-expanded="false" aria-controls="dia-sueno-opts"><b id="dia-sueno-t">Sueño</b><span id="dia-sueno-s">Toca para cambiar</span></button>
-            <button type="button" class="dia-tile" id="dia-pasos" aria-expanded="false" aria-controls="dia-pasos-opts"><b id="dia-pasos-t">Pasos</b><span id="dia-pasos-s">&lt;4 mil · 4–8 mil · 8 mil+</span></button>
+            <button type="button" class="dia-tile" id="dia-agua"><span class="dia-ring" aria-hidden="true"><svg viewBox="0 0 58 58" width="58" height="58" focusable="false"><circle class="dr-track" cx="29" cy="29" r="24" pathLength="100"/><circle class="dr-arc" id="dia-agua-arc" cx="29" cy="29" r="24" pathLength="100"/></svg><i>💧</i></span><b id="dia-agua-t">Agua 0 / 8</b><span id="dia-agua-s">Toca: +1 vaso</span></button>
+            <button type="button" class="dia-tile" id="dia-pasos" aria-expanded="false" aria-controls="dia-pasos-opts"><span class="dia-ring" aria-hidden="true"><svg viewBox="0 0 58 58" width="58" height="58" focusable="false"><circle class="dr-track" cx="29" cy="29" r="24" pathLength="100"/><circle class="dr-arc" id="dia-pasos-arc" cx="29" cy="29" r="24" pathLength="100"/></svg><i>👟</i></span><b id="dia-pasos-t">Pasos</b><span id="dia-pasos-s">&lt;4 mil · 4–8 mil · 8 mil+</span></button>
+            <button type="button" class="dia-tile" id="dia-sueno" aria-expanded="false" aria-controls="dia-sueno-opts"><span class="dia-ring" aria-hidden="true"><svg viewBox="0 0 58 58" width="58" height="58" focusable="false"><circle class="dr-track" cx="29" cy="29" r="24" pathLength="100"/><circle class="dr-arc" id="dia-sueno-arc" cx="29" cy="29" r="24" pathLength="100"/></svg><i>🌙</i></span><b id="dia-sueno-t">Sueño</b><span id="dia-sueno-s">Toca para cambiar</span></button>
             <button type="button" class="dia-tile" id="dia-entrene" aria-pressed="false"><b id="dia-entrene-t">Entrené</b><span id="dia-entrene-s">Toca al terminar</span></button>
           </div>
           <div id="dia-sueno-opts" class="dia-opts hidden" role="group" aria-label="¿Cuánto dormiste?"></div>
@@ -305,10 +305,13 @@
         </section>
       </div>
       <!-- Rutina de hoy (o la rutina que armó el coach). Fuera de #home-coach: con el acceso en pausa también se ve (solo lectura). Un solo bloque: «Rutina de hoy» y «Mi rutina» se fusionan. -->
-      <section id="home-daily" class="home-card pc-only hidden" aria-labelledby="hd-title">
+      <!-- Estilo v2 (imagen E1): tarjeta grande con «Empezar», que abre el modo paso a paso (rutinas-view.js). En pausa lleva a Entrenar en solo lectura. -->
+      <section id="home-daily" class="home-card hero-card pc-only hidden" aria-labelledby="hd-title">
+        <p id="hd-tag" class="hero-tag">Rutina de hoy · de tu coach</p>
         <h3 id="hd-title" class="home-label">Rutina de hoy</h3>
         <p id="hd-text" class="small muted"></p>
-        <button type="button" class="btn btn-tall" id="btn-home-daily" data-goto="rutina">Empezar</button>
+        <svg class="hero-fig" viewBox="0 0 170 150" aria-hidden="true" focusable="false"><defs><radialGradient id="hf-glow-g"><stop offset="0" class="hf-stop" stop-opacity=".35"/><stop offset="1" class="hf-stop" stop-opacity="0"/></radialGradient></defs><circle cx="95" cy="70" r="70" fill="url(#hf-glow-g)"/><g class="hf-body" stroke-width="7" stroke-linecap="round" fill="none"><circle cx="98" cy="30" r="11" class="hf-head"/><path d="M98 43 L92 82"/><path d="M95 55 L72 66 M95 55 L118 64"/><path d="M92 82 L66 98 L74 128"/><path d="M92 82 L120 100 L118 130"/></g><rect class="hf-bar" x="60" y="62" width="70" height="7" rx="3"/></svg>
+        <button type="button" class="btn btn-tall" id="btn-home-daily">Empezar</button>
       </section>
       <div id="home-coach2" class="pc-only">
         <!-- UX Etapa 2: reto de su coach (etapa2-view.js). Proceso, nunca kilos; sin comparación con otros asesorados. -->
@@ -322,6 +325,7 @@
         <section id="home-semana" class="home-card semana-card" aria-labelledby="semana-title">
           <div class="home-row"><h3 id="semana-title" class="home-label">Tu semana</h3><b id="semana-count" class="semana-count"></b></div>
           <ol id="semana-days" class="semana-days" aria-label="Días de esta semana"></ol>
+          <p class="semana-legend small" aria-hidden="true"><span><i class="lg-ok"></i>Registré</span><span><i class="lg-com"></i>Comodín</span></p>
           <p id="semana-line" class="small muted"></p>
         </section>
         <p id="pay-countdown" class="pay-line hidden" role="status"></p>
@@ -782,6 +786,7 @@
           <div class="fc-meta"><p id="coach-detail-last" class="small pc-only"></p>
             <div id="coach-detail-pay" class="detail-pay pc-only"><p id="coach-detail-pay-line" class="small muted"></p><button type="button" class="chip-pay" id="btn-detail-pay"></button></div></div>
           <div id="fc-salud" class="fc-salud pc-only hidden" role="note"></div>
+          <div id="fc-dolor" class="fc-salud fc-dolor pc-only hidden" role="note"><p><strong><span aria-hidden="true">▲ </span><span id="fc-dolor-t">Reportó dolor</span></strong><br><span class="small">Sin detalle: la app no pregunta qué le duele. Puedes pausar o revisar su planificación.</span></p><button type="button" class="btn btn-ghost" id="btn-fc-dolor">Marcar revisado</button></div>
           <p id="coach-detail-light" class="small"></p>
           <p id="coach-detail-shares" class="small muted"></p>
         </div>
@@ -1074,6 +1079,11 @@
     <section id="view-rutina" class="view" aria-labelledby="rutina-title">
       <div class="back-row"><button type="button" class="btn-link back-btn" data-goto="mas">← Más</button><h2 class="back-title" id="rutina-title" tabindex="-1">Entrenar</h2></div>
       <p id="rutina-status" class="small muted" role="status" aria-live="polite"></p>
+      <!-- Estilo v2 (imagen E2): cada rutina (o cada día de una rutina) es una tarjeta grande que abre el modo paso a paso. Fondo: el video o GIF
+           del coach (uno a la vez, solo cuando la tarjeta se ve, sin sonido); sin video o con «Reducir movimiento», un dibujo de color. -->
+      <ul id="rutina-cards" class="rcards hidden" aria-label="Tus rutinas"></ul>
+      <p id="rutina-cards-note" class="small muted rcards-note hidden">Los fondos son los videos o GIF que sube tu coach. Si una rutina no tiene, se ve un dibujo de color.</p>
+      <h3 id="rutina-how" class="rut-section hidden">Cómo se hace cada ejercicio</h3>
       <div id="rutina-body"></div>
       <!-- UX Etapa 1: UN solo «Ya entrené»: marca el hábito «Entrené» del día y pregunta el esfuerzo (Fácil · Normal · Duro · No pude terminar), que le llega al coach. -->
       <div id="rutina-trained" class="card hidden">
@@ -1430,6 +1440,84 @@
   </dialog>
 
   <!-- UX Etapa 1: celebración al guardar. «Día completo» (aro 4/4, ≤1 s; sin animación con «reducir movimiento») o «Registrado. Mañana sumamos» (sin culpa, nunca «fallaste»). -->
+  <!-- Estilo v2 (imágenes E3 y E4): modo paso a paso y «Entreno completo». Lo que se ve lo escribió el coach (series, repeticiones, peso y descanso):
+       la app no calcula ni sugiere nada. Al terminar se marca «Ya entrené» (como el botón de Entrenar) y se pregunta el esfuerzo de la Etapa 1. -->
+  <dialog id="dlg-paso" class="paso" aria-labelledby="paso-name">
+    <div id="paso-run" class="paso-run">
+      <div class="paso-top">
+        <ol id="paso-prog" class="paso-prog" aria-hidden="true"></ol>
+        <button type="button" class="paso-x" id="paso-x" aria-label="Salir del entreno">✕</button>
+      </div>
+      <div id="paso-stage" class="paso-stage">
+        <div id="paso-media" class="paso-media" role="status" aria-live="polite"></div>
+        <p id="paso-lbl" class="paso-lbl"></p>
+        <p id="paso-next" class="paso-next hidden"></p>
+      </div>
+      <div class="paso-exn">
+        <h2 id="paso-name" tabindex="-1"></h2>
+        <p id="paso-line"></p>
+        <p id="paso-note" class="paso-note hidden"></p>
+      </div>
+      <ol id="paso-sets" class="paso-sets" aria-label="Series"></ol>
+      <div class="paso-big">
+        <p class="paso-side"><span>Hecho</span><b id="paso-pct">0 %</b></p>
+        <div id="paso-timer" class="paso-timer">
+          <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false"><circle class="pt-track" cx="60" cy="60" r="54" pathLength="100"/><circle class="pt-arc" id="paso-arc" cx="60" cy="60" r="54" pathLength="100"/></svg>
+          <p class="pt-in"><b id="paso-t"></b><span id="paso-s"></span></p>
+        </div>
+        <p id="paso-free" class="paso-free hidden"></p>
+        <p class="paso-side"><span>Ejercicio</span><b id="paso-idx">1 / 1</b></p>
+      </div>
+      <div class="paso-ctrl">
+        <button type="button" class="paso-cb" id="paso-prev" aria-label="Ejercicio anterior">‹</button>
+        <button type="button" class="paso-main" id="paso-main">Serie hecha</button>
+        <button type="button" class="paso-cb" id="paso-skip" aria-label="Siguiente">›</button>
+      </div>
+      <p id="paso-hint" class="small muted paso-hint"></p>
+      <p id="paso-live" class="sr-only" role="status" aria-live="assertive"></p>
+    </div>
+    <div id="paso-end" class="paso-end hidden">
+      <div class="paso-top paso-top-end"><button type="button" class="paso-x" id="paso-end-x" aria-label="Cerrar">✕</button></div>
+      <div class="paso-medal" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12l5 5 9-10"/></svg></div>
+      <h2 id="paso-end-title" tabindex="-1">¡Entreno completo!</h2>
+      <p id="paso-end-sub" class="paso-end-sub"></p>
+      <div class="paso-stats">
+        <p><b id="pe-ex"></b><span>ejercicios</span></p>
+        <p id="pe-sets-box"><b id="pe-sets"></b><span>series</span></p>
+        <p><b id="pe-week"></b><span>días esta semana</span></p>
+      </div>
+      <div class="paso-esf" role="group" aria-labelledby="pe-q">
+        <p id="pe-q" class="pe-q">¿Qué tan duro estuvo?</p>
+        <div class="esf-chips" id="paso-esf"></div>
+      </div>
+      <!-- Concepto jurídico 4: pregunta cerrada No / Sí (texto en paso.js). Reemplaza la pregunta abierta de molestias del boceto E4: sin campo de texto. -->
+      <div class="paso-esf paso-dolor" role="group" aria-labelledby="pd-q-end">
+        <p id="pd-q-end" class="pe-q pd-q"></p>
+        <div class="esf-chips pd-opts" id="pd-end"></div>
+        <p id="pd-end-status" class="small muted pd-status" role="status" aria-live="polite"></p>
+      </div>
+      <button type="button" class="btn btn-tall paso-done" id="paso-done">Listo</button>
+      <p id="paso-end-foot" class="small muted paso-end-foot"></p>
+    </div>
+    <!-- Al salir con ✕ a mitad del entreno: la misma pregunta cerrada (concepto jurídico 4). -->
+    <div id="paso-ask" class="paso-end paso-ask hidden">
+      <div class="paso-top paso-top-end"><button type="button" class="paso-x" id="paso-ask-x" aria-label="Salir sin responder">✕</button></div>
+      <h2 id="pd-q-ask" class="pd-q pd-q-big" tabindex="-1"></h2>
+      <div class="esf-chips pd-opts pd-opts-big" id="pd-ask" role="group" aria-labelledby="pd-q-ask"></div>
+      <p id="pd-ask-status" class="small muted pd-status" role="status" aria-live="polite"></p>
+      <button type="button" class="btn btn-ghost btn-tall" id="paso-ask-back">Volver al entreno</button>
+    </div>
+    <!-- «Sí»: pantalla de bloqueo preventivo con el texto LITERAL. Se muestra cuando el servidor confirma que el aviso le llegó al coach. -->
+    <div id="paso-block" class="paso-end paso-block hidden" role="alertdialog" aria-labelledby="pb-title" aria-describedby="pb-text">
+      <div class="paso-medal paso-medal-warn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg></div>
+      <h2 id="pb-title" class="sr-only" tabindex="-1">Aviso de dolor</h2>
+      <p id="pb-wait" class="pb-wait" role="status" aria-live="polite"></p>
+      <p id="pb-text" class="pb-text hidden"></p>
+      <button type="button" class="btn btn-ghost btn-tall hidden" id="pb-retry">Reintentar</button>
+      <button type="button" class="btn btn-tall paso-done" id="pb-ok">Entendido</button>
+    </div>
+  </dialog>
+
   <dialog id="dlg-dia" class="sheet dia-dialog" aria-labelledby="dd-title">
     <div class="dd-body">
       <div class="dd-ring" id="dd-ring" aria-hidden="true"><svg viewBox="0 0 120 120" width="120" height="120"><circle class="dd-track" cx="60" cy="60" r="50"/><circle class="dd-arc" id="dd-arc" cx="60" cy="60" r="50" pathLength="100"/></svg><b id="dd-frac">0/4</b></div>
@@ -1561,6 +1649,7 @@
   <script src="constancia.js"></script>
   <script src="platos.js"></script>
   <script src="rutinas.js"></script>
+  <script src="paso.js"></script>
   <script src="sync.js"></script>
   <script src="cloud-view.js"></script>
   <script src="acuerdo-view.js"></script>

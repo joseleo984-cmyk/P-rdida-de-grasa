@@ -201,3 +201,23 @@ test('concepto 2 · P1: el aviso del modo autónomo está LITERAL en la pausa (i
   const p1 = html.slice(html.indexOf('id="dia-p1"'), html.indexOf('</p>', html.indexOf('id="dia-p1"')));
   assert.strictEqual(norm(visible('<p ' + p1 + '</p>')), norm(t));
 });
+
+// ---------- Concepto jurídico 4 (aviso de dolor al terminar el entreno, estilo v2) ----------
+test('concepto 4: la pregunta cerrada, sus opciones y el bloqueo preventivo están LITERALES en la app (paso.js)', () => {
+  const md = read('equipo/legal/concepto-4-2026-10-25.md');
+  const sec = md.slice(md.indexOf('## Textos exactos'), md.indexOf('Notas de integración'));
+  const q = [...sec.matchAll(/«([\s\S]*?)»/g)].map((m) => m[1]).filter((t) => t !== 'Sí');
+  assert.strictEqual(q.length, 2, 'pregunta y bloqueo');
+  const P = require('../paso.js');
+  assert.strictEqual(P.DOLOR.question, q[0]);
+  assert.strictEqual(P.DOLOR.block, q[1]);
+  assert.ok(sec.includes('Opciones: [No] / [Sí]'));
+  assert.deepStrictEqual(P.DOLOR.options.map((o) => o[1]), ['No', 'Sí']);
+  assert.strictEqual(P.dolorText(), `${q[0]}\nNo / Sí`);
+  // El primer párrafo del concepto cita los mismos textos
+  assert.ok(md.includes(`«${q[0]} [No] / [Sí]»`) && md.includes(`«${q[1]}»`));
+  // No se construye «¿Alguna molestia?» ni ningún campo de texto para el dolor
+  const html = read('index.html');
+  assert.ok(!/Alguna molestia/i.test(html + read('rutinas-view.js') + read('paso.js')));
+  assert.ok(!/<(textarea|input)[^>]*(dolor|pd-)/i.test(html), 'sin campo de texto para el dolor');
+});
