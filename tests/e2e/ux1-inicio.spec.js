@@ -246,14 +246,16 @@ test('Inicio: «Igual que ayer», «+ Comida», mensaje de regreso sin culpa y �
   await H.seedState(r.p, { habits: { [H.iso(-9)]: { water: 1 } } });
   await expect(r.p.locator('#home-sub')).toHaveText('Volver también es parte del proceso. Empecemos con lo más fácil: ¿cuántos vasos de agua llevas?');
   for (const t of [await q.p.locator('#view-panel').innerText(), await r.p.locator('#view-panel').innerText()]) expect(t).not.toMatch(/fallaste|perdiste|racha|castigo/i);
-  // En pausa por pago (Etapa 1): se ve, pero no se registra
+  // En pausa por pago (UX Etapa 2, P1): Mi día sigue en modo autónomo (agua y sueño)
   await H.setPaid(p, -3);
   await p.evaluate(() => PGAccount.refreshLink());
   await p.locator('#tab-panel').click();
   await expect(p.locator('#pause-card')).toBeVisible();
-  await expect(p.locator('#pause-text')).toContainText('está en pausa desde el');
+  await expect(p.locator('#pause-title')).toContainText('está en pausa');
   await expect(p.locator('#pause-text')).toContainText('Tu progreso está guardado');
-  await expect(p.locator('#home-dia')).toBeHidden();
+  await expect(p.locator('#home-dia')).toBeVisible();
+  await expect(p.locator('#dia-modo')).toHaveText('modo autónomo');
+  await expect(p.locator('#pause-const')).toHaveText('congelada, no se pierde');
   expect(errors).toEqual([]);
 });
 

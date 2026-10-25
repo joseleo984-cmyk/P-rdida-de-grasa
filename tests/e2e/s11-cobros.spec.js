@@ -135,10 +135,12 @@ test('cliente: aviso de pago solo a ≤ 7 días, bloqueo M4 con ver, descargar y
   expect(Object.values(be.records).some((r) => r.kind === 'entry' && r.data.waist === 83)).toBe(false);   // el servidor NO guardó lo nuevo
   await a.locator('#tab-panel').click();
   await expect(a.locator('#pause-title')).toBeVisible();
-  await expect(a.locator('#pause-title')).toHaveText('Tu acceso está en pausa');
-  await expect(a.locator('#pause-text')).toContainText('Tu plan con Laura Fit está en pausa desde el');
-  await expect(a.locator('#pause-text')).toContainText('Habla con tu coach, Laura Fit,');
-  await expect(a.locator('#home-coach')).toBeHidden();
+  await expect(a.locator('#pause-title')).toHaveText('Tu plan con Laura Fit está en pausa');   // UX Etapa 2 (imagen A12)
+  await expect(a.locator('#pause-text')).toContainText('Desde el');
+  await expect(a.locator('#pause-text')).toContainText('Tu progreso está guardado');
+  await expect(a.locator('#btn-pause-write')).toHaveAttribute('href', /^https:\/\/wa\.me\/\?text=/);
+  await expect(a.locator('#dia-p1')).toHaveText('Registro personal en modo autónomo. Durante la pausa del servicio con tu coach, tus nuevos hábitos no serán supervisados ni revisados por él.');
+  await expect(a.locator('#dia-pasos')).toBeHidden();
   await H.layout(a); await H.tall(a, '#pause-card');
   await H.shot(a, 's11-pausa-m4.png', { fullPage: true });
   // No se puede registrar nada nuevo: formularios escondidos y el servidor lo rechazaría

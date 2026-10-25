@@ -175,7 +175,7 @@ test('asesorado que no pagó: ve la pantalla de pausa; Reiniciar demo restaura l
   await openDemo(page, site);
   await page.getByRole('button', { name: /no pagó/ }).click();
   await expect(page.locator('#pause-title')).toBeVisible();
-  await expect(page.locator('#pause-title')).toHaveText('Tu acceso está en pausa');
+  await expect(page.locator('#pause-title')).toHaveText('Tu plan con Coach Fit Demo está en pausa');
   // Reiniciar demo vuelve a la misma persona con los datos de ejemplo
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('perdida-grasa-demo:v1')); s.entries = []; localStorage.setItem('perdida-grasa-demo:v1', JSON.stringify(s)); });
   await page.locator('#tab-mas').click();

@@ -147,3 +147,57 @@ test('concepto 2 · L1: el aviso previo a la primera foto, su botón «Entendido
   assert.ok(!html.includes('id="photo-share-notice"'), 'el recuadro fijo anterior ya no está');
   assert.ok(!/Puedes ocultar una foto abriéndola/.test(html + app), 'el texto anterior ya no se muestra');
 });
+
+// ---------- UX Etapa 2: L4 (anexo 2 del concepto 2), embarazo/lactancia/posparto (concepto 3), L5 y P1 (tabla del concepto 2) ----------
+const E2 = require('../etapa2.js');
+const quotes = (md) => [...md.matchAll(/«([\s\S]*?)»/g)].map((m) => m[1]);
+function annex2() {
+  const md = read('equipo/legal/concepto-2-2026-10-24.md');
+  const sec = md.slice(md.indexOf('### 2. Autorización integrada para la pregunta de salud (L4)'), md.indexOf('### 3. Cláusulas'));
+  return quotes(sec);
+}
+function concept3() {
+  const md = read('equipo/legal/concepto-3-2026-10-24.md');
+  return quotes(md.slice(md.indexOf('## Texto exacto'), md.indexOf('## Justificación')));
+}
+
+test('concepto 2 · L4 (anexo 2): encabezado, pregunta, opciones y micro-texto del «Sí» están LITERALES en la app', () => {
+  const q = annex2();
+  assert.strictEqual(q.length, 4, 'encabezado, pregunta, micro-texto (+ la cita «Sí» dentro del micro-texto)');
+  const [head, question, yes] = [q[0], q[1], q.find((t) => t.startsWith('Al marcar'))];
+  assert.strictEqual(E2.HEALTH.condition.head, head);
+  assert.strictEqual(E2.HEALTH.condition.question, question);
+  assert.strictEqual(E2.HEALTH.condition.yes, yes);
+  const md = read('equipo/legal/concepto-2-2026-10-24.md');
+  assert.ok(md.includes('Opciones: [ Sí ] [ No ] [ Prefiero no responder ]'));
+  assert.deepStrictEqual(E2.OPTIONS.map((o) => o[1]), ['Sí', 'No', 'Prefiero no responder']);
+});
+
+test('concepto 3 · pregunta de embarazo, lactancia o posparto: encabezado, pregunta, opciones y micro-texto del «Sí» LITERALES (aprobados)', () => {
+  const q = concept3();
+  const head = q.find((t) => t.startsWith('Información sobre tu etapa actual'));
+  const question = q.find((t) => t.startsWith('¿Estás en embarazo'));
+  const yes = q.find((t) => t.startsWith('Al marcar'));
+  assert.ok(head && question && yes, 'el concepto 3 se lee bien');
+  assert.strictEqual(question, '¿Estás en embarazo, en periodo de lactancia o en los primeros meses de posparto?');
+  assert.strictEqual(E2.HEALTH.pregnancy.head, head);
+  assert.strictEqual(E2.HEALTH.pregnancy.question, question);
+  assert.strictEqual(E2.HEALTH.pregnancy.yes, yes);
+  assert.ok(read('equipo/legal/concepto-3-2026-10-24.md').includes('[ Sí ] [ No ] [ Prefiero no responder ]'));
+  assert.ok(!/pendiente de confirmar/i.test(read('etapa2.js') + read('etapa2-view.js')), 'ya no está pendiente: el abogado lo aprobó');
+});
+
+test('concepto 2 · L5: el texto junto a la meta es el aprobado, cambiando SOLO la cifra que puso el coach', () => {
+  const [t] = B.L5;
+  assert.match(t, /\(~110 g\)/);
+  assert.strictEqual(E2.L5(110), t);
+  assert.strictEqual(E2.L5(150), t.replace('~110 g', '~150 g'));
+});
+
+test('concepto 2 · P1: el aviso del modo autónomo está LITERAL en la pausa (index.html) y en etapa2.js', () => {
+  const [t] = B.P1;
+  assert.strictEqual(E2.P1, t);
+  const html = read('index.html');
+  const p1 = html.slice(html.indexOf('id="dia-p1"'), html.indexOf('</p>', html.indexOf('id="dia-p1"')));
+  assert.strictEqual(norm(visible('<p ' + p1 + '</p>')), norm(t));
+});

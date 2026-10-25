@@ -17,6 +17,8 @@ No se conecta a ningún servidor: corre con el servidor falso en memoria del nav
 - 6 asesorados al día en pagos con vencimientos distintos, 1 «no pagó» (Diego) y 1 recién llegado casi sin datos (Hugo).
 - Ana, Beto y Carla: ~10 semanas de peso/abdomen/cadera semanales y cuello, brazos, espalda, cintura y muslos cada 2 semanas (altibajos), hábitos de 4 semanas,
   comidas de 7 días del catálogo (platos.js, kcal = las del plato por su porción), fotos de progreso (siluetas dibujadas en canvas, nunca fotos reales).
+- UX Etapa 2: Ana con «Sí» en la pregunta de salud (el coach ve el indicador) y meta de proteína de 110 g; Elena con «Sí» en la de embarazo, lactancia o posparto;
+  reto «7 días de agua» para todos menos Diego; Diego en pausa con hábitos anotados en modo autónomo que el coach NO ve.
 - Coach: 3 plantillas («Pecho y tríceps», «Piernas», «Espalda y bíceps») con 4 animaciones GIF **generadas por código** (figuras de palitos), asignadas a algunos
   asesorados (una oculta), «Rutina de hoy» publicada, mensajes del coach, bitácora «Quién vio mis fotos», código de invitación `FTDM72` y su QR.
 

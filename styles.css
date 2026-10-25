@@ -595,7 +595,7 @@ body.producto-coach .detail-pay { display: flex; }
 body.paused .pause-banner { display: block; }
 /* Acceso en pausa: solo se ve y se descarga; no se registra ni se sube nada nuevo */
 body.paused #form-habitos, body.paused #form-medidas, body.paused #form-photo, body.paused #viewer-delete, body.paused #viewer-share-row,
-body.paused #photos-coach-card, body.paused [data-del-med], body.paused #home-coach { display: none !important; }
+body.paused #photos-coach-card, body.paused [data-del-med] { display: none !important; }
 body.paused #view-fotos > .card:has(#form-photo) { display: none; }
 
 /* Hábitos y barras */
@@ -1231,3 +1231,121 @@ body.producto-coach #coach-list-status { position: absolute; width: 1px; height:
 .fc-weeks { justify-content: space-between; padding: 6px 4px; }
 .fc-weeks li { background: color-mix(in srgb, var(--text) 8%, var(--card)); color: var(--muted); width: 38px; height: 38px; }
 #btn-fc-felicitar { width: 100%; margin-top: 4px; }
+
+/* ===================== UX Etapa 2 ===================== */
+/* --- P1 · Pausa (imagen A12): pausa respetuosa arriba, Mi día en modo autónomo (agua y sueño), constancia congelada y derechos del titular --- */
+#pause-extra { display: none; }
+body.paused #pause-extra { display: block; }
+body.paused.producto-coach .home-head, body.paused #home-daily, body.paused #home-toca, body.paused #dia-pasos, body.paused #dia-entrene,
+body.paused .dia-acts, body.paused .dia-links, body.paused #dia-status, body.paused #dia-pasos-opts, body.paused #backup-banner { display: none !important; }
+.pause-card { padding: 18px; border-radius: 20px; }
+.pause-card .pause-icon { font: 800 1.9rem/1 ui-monospace, "SF Mono", Menlo, monospace; color: var(--accent); letter-spacing: 2px; margin: 4px 0 8px; }
+.pause-card h2 { font-size: 1.2rem; margin: 0 0 6px; }
+.pause-card #pause-text { margin: 0 0 10px; }
+.pause-card a.btn { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+.dia-modo { margin-left: auto; padding: 4px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; color: var(--muted); background: color-mix(in srgb, var(--text) 8%, var(--card)); }
+.dia-p1 { margin: 6px 0 10px; padding: 12px 14px; border-left: 4px solid var(--late-dot); border-radius: 12px; background: var(--late-bg); color: var(--late-fg); font-size: .92rem; }
+.pause-rows { padding: 6px 18px; }
+.pause-row { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0; font-size: .92rem; }
+.pause-row-btn { width: 100%; min-height: 44px; align-items: center; padding: 0; font: inherit; color: var(--text); background: none; border: 0; cursor: pointer; text-align: left; }
+.pause-row-btn:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; border-radius: 8px; }
+.pause-foot { text-align: center; color: var(--muted); }
+.pause-foot .btn-link { font-weight: 700; color: var(--accent); min-height: 44px; padding: 0 2px; }
+.pause-foot .pause-del { color: var(--danger); }
+@media (prefers-color-scheme: dark) { .pause-foot .pause-del { color: #f8a5a0; } }
+
+/* --- L5 · Barra de proteína con la meta del coach (A06) --- */
+.mc-bar > div { background: var(--accent); }
+#mc-prot-goal, #mp-goal { font-weight: 500; }
+.mc-l5 { margin-top: 8px; }
+
+/* --- L4 · Pregunta de salud (A03 / A03b) --- */
+body.salud-open main, body.salud-open .tabbar, body.salud-open .backup-confirm, body.salud-open .topbar { display: none !important; }
+body.salud-open { padding-bottom: 16px; }
+.salud-card { border: 0; background: transparent; padding: 4px 2px; min-height: calc(100vh - 80px); display: flex; flex-direction: column; }
+.steps3 { display: flex; gap: 6px; margin: 4px 0 8px; }
+.steps3 i { flex: 1; height: 6px; border-radius: 99px; background: color-mix(in srgb, var(--text) 10%, var(--card)); }
+.steps3 i.on { background: var(--accent); }
+.salud-step { margin: 0 0 10px; }
+#salud-title { font-size: 1.7rem; line-height: 1.15; margin: 0 0 14px; }
+.salud-head { margin: 0 0 12px; padding: 12px 14px; border-left: 4px solid var(--accent); border-radius: 12px; background: var(--accent-soft); font-size: .92rem; }
+.salud-box { margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); min-width: 0; }
+.salud-q { float: left; width: 100%; margin: 0 0 12px; padding: 0; font-weight: 800; font-size: 1.05rem; line-height: 1.35; }
+.salud-opts { clear: both; display: grid; gap: 10px; }
+.salud-opt { min-height: 52px; font: inherit; font-weight: 800; color: var(--accent); background: transparent; border: 1.5px solid var(--accent); border-radius: 14px; cursor: pointer; }
+.salud-opts.has-sel .salud-opt[aria-pressed="false"] { color: var(--muted); border-color: var(--line); font-weight: 700; min-height: 46px; }
+.salud-opt[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.salud-opt:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.salud-yes { margin: 12px 0 0; padding: 12px 14px; border-left: 4px solid var(--late-dot); border-radius: 12px; background: var(--late-bg); color: var(--late-fg); font-size: .92rem; }
+.salud-ok { margin-top: auto; width: 100%; min-height: 52px; }
+#salud-yes:not(.hidden), #salud-error:not(.hidden) { margin-bottom: 16px; }
+.salud-box { margin-bottom: 16px; }
+.salud-card #salud-error { margin-top: 10px; }
+.salud-ok:disabled { opacity: .45; }
+
+/* --- L4 · Indicador al coach (C01 / C02), sin detalle --- */
+.cli-pay-row .cli-salud { color: var(--late-fg); font-weight: 600; }
+@media (prefers-color-scheme: dark) { .cli-pay-row .cli-salud { color: var(--late-dot); } }
+.fc-salud { margin: 8px 0; padding: 10px 14px; border-left: 4px solid var(--late-dot); border-radius: 12px; background: var(--late-bg); color: var(--late-fg); }
+.fc-salud p { margin: 0; }
+.fc-salud p + p { margin-top: 8px; }
+.fc-salud strong { font-size: .98rem; }
+button.fc-link { width: 100%; font: inherit; background: none; border: 0; border-top: 1px solid var(--line); padding: 0; cursor: pointer; text-align: left; }
+.fc-weeks li.fz { outline: 1.5px dashed var(--muted); }
+
+/* --- Retos del coach (C04) y tarjeta del asesorado --- */
+.retos-step { margin: 4px 0 10px; color: var(--muted); font-size: .92rem; }
+.retos-step b { color: var(--text); }
+.retos-tpls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.reto-tpl { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-height: 92px; padding: 12px 14px; text-align: left; font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 16px; cursor: pointer; min-width: 0; }
+.reto-tpl strong { font-size: 1.02rem; overflow-wrap: anywhere; }
+.reto-tpl span { color: var(--muted); font-size: .85rem; }
+.reto-tpl[aria-pressed="true"] { background: var(--accent-soft); border: 1.5px solid var(--accent); }
+.reto-tpl:focus-visible, .retos-chips button:focus-visible { outline: 3px solid var(--goal); outline-offset: 2px; }
+.retos-who { border-radius: 20px; }
+.retos-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.retos-chips button { min-height: 48px; padding: 6px 18px; font: inherit; font-weight: 600; color: var(--text); background: transparent; border: 1px solid var(--line); border-radius: 999px; cursor: pointer; }
+.retos-chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 800; }
+.retos-pick { display: grid; gap: 4px; margin: 0 0 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.retos-pick .check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.retos-pick input { width: 22px; height: 22px; accent-color: var(--accent); }
+.retos-range { margin: 6px 0 10px; font-size: .95rem; }
+.retos-custom { margin: 0 0 12px; }
+.retos-custom summary { min-height: 44px; display: flex; align-items: center; color: var(--accent); font-weight: 700; cursor: pointer; }
+.retos-custom input { width: 100%; font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+.retos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.retos-grid label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); min-width: 0; }
+#btn-reto-lanzar { width: 100%; min-height: 52px; }
+.reto-act { border-radius: 20px; }
+.reto-act h3 { margin: 0 0 6px; font-size: 1.1rem; }
+.reto-act .home-row { display: flex; justify-content: space-between; gap: 8px; margin: 0; }
+.reto-act .btn { width: 100%; margin-top: 12px; }
+.reto-act .reto-quitar { display: block; margin: 6px auto 0; min-height: 44px; color: var(--muted); }
+.reto-members summary { min-height: 44px; display: flex; align-items: center; color: var(--accent); font-weight: 700; cursor: pointer; margin-top: 6px; }
+.reto-members ul { list-style: none; margin: 0; padding: 0; }
+.reto-members li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.retos-foot { margin: 4px 2px 16px; }
+.reto-card .reto-label { margin: 0; }
+.reto-title { margin: 4px 0 2px; font-weight: 800; font-size: 1.08rem; }
+.reto-prog { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 10px; }
+.reto-dots { color: var(--accent); letter-spacing: 3px; font-size: 1.1rem; }
+.reto-card #btn-reto-mark { width: 100%; }
+.reto-card #btn-reto-mark[aria-pressed="true"] { background: var(--accent-soft); }
+.reto-card #reto-status:empty { display: none; }
+
+/* --- L5 · Meta de proteína del coach (C05) --- */
+.meta-card { border-radius: 20px; }
+.meta-label { display: block; font-weight: 600; font-size: 1.05rem; margin: 0 0 10px; }
+.meta-step { display: grid; grid-template-columns: 56px 1fr 56px; gap: 10px; align-items: stretch; }
+.meta-btn { min-height: 52px; font-size: 1.3rem; font-weight: 800; border-radius: 14px; margin: 0; }
+.meta-field { display: flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); min-width: 0; }
+.meta-field input { flex: 1; min-width: 0; width: 100%; font: inherit; font-size: 1.3rem; font-weight: 800; border: 0; background: transparent; color: var(--text); padding: 10px 0; }
+.meta-field input:focus { outline: none; }
+.meta-field:focus-within { outline: 3px solid var(--goal); outline-offset: 2px; }
+.meta-field .muted { white-space: nowrap; }
+#meta-help { margin: 10px 0 0; }
+.meta-prev-title { margin: 18px 2px 8px; color: var(--accent); font-weight: 800; font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; }
+.meta-prev { padding: 16px; border: 1.5px dashed var(--accent); border-radius: 18px; }
+.meta-acts { display: grid; gap: 10px; margin-top: 18px; }
+.meta-acts .btn { width: 100%; margin: 0; min-height: 52px; }
+.meta-quitar { color: var(--muted); border-color: var(--line); }
