@@ -52,7 +52,7 @@ test('barra del asesorado: Inicio · Comidas · Entrenar · Progreso · Más; H�
   expect(errors).toEqual([]);
 });
 
-test('barra del coach: Asesorados · Rutinas · Invitar · Más; «Mis rutinas» pasa a la barra', async ({ browser }, testInfo) => {
+test('barra del coach: Asesorados · Analítica · Rutinas · Invitar · Más; «Mis rutinas» pasa a la barra', async ({ browser }, testInfo) => {
   const ph = await H.phone(browser, testInfo, { prefs: {} });
   const { p, errors } = ph;
   await p.goto('index.html');
@@ -70,7 +70,7 @@ test('barra del coach: Asesorados · Rutinas · Invitar · Más; «Mis rutinas»
     localStorage.setItem('perdida-grasa:owner', user.id);
   });
   await p.reload(); await H.ready(p);
-  expect(await labels(p)).toEqual(['Asesorados', 'Rutinas', 'Invitar', 'Más']);
+  expect(await labels(p)).toEqual(['Asesorados', 'Analítica', 'Rutinas', 'Invitar', 'Más']);
   await expect(p.locator('#tab-coach')).toHaveAttribute('aria-current', 'page');
   await p.locator('#tab-rutinas').click();
   await expect(p.locator('#view-rutinas')).toBeVisible();
