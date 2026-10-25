@@ -3,7 +3,7 @@
 
 # Acuerdo del coach con la plataforma "Pérdida de Grasa"
 
-**Versión:** 0.3 (borrador) + Cláusula 13 (texto en la app de pruebas: 0.4-A7-coach, 24/10/2026) · **Vigente desde:** [FECHA DE VIGENCIA]
+**Versión:** 0.3 (borrador) + Cláusula 13 (texto en la app de pruebas: 0.4-A7-coach, 24/10/2026) + Cláusula 14 (0.5-A7-coach, 25/10/2026) · **Vigente desde:** [FECHA DE VIGENCIA]
 **Entre:** José Granados, persona natural, Barranquilla (correo joseleo984@gmail.com) ("la plataforma") y tú, el coach que aceptas este acuerdo.
 
 ## 1. Tu papel
@@ -64,3 +64,9 @@ Cláusula 13. Contenidos Cargados, Propiedad Intelectual y Derechos de Imagen:
 - Queda estrictamente prohibido cargar material que contenga la imagen de terceras personas sin su autorización previa y expresa, o que infrinja derechos de propiedad intelectual, intimidad, o constituya publicidad engañosa.
 - En caso de que el material reproduzca la imagen personal del propio Coach, este autoriza expresamente a José Granados a hospedarla, reproducirla y exhibirla temporalmente dentro del entorno privado de la plataforma exclusivamente para los asesorados vinculados a su cuenta.
 - La plataforma se reserva el derecho de retirar de manera unilateral y sin previo aviso cualquier contenido que sea objeto de reclamo por parte de terceros o que infrinja las políticas del servicio, sin derecho a indemnización. El Coach mantendrá indemne a José Granados frente a cualquier reclamo, demanda, sanción o perjuicio derivado del material subido.
+
+## 14. Descarga y custodia local de datos de los asesorados
+*(Cláusula nueva, texto LITERAL aprobado por la asesoría jurídica el 25 de octubre de 2026, concepto 6, punto 1. «[Número]» es la numeración correlativa: la siguiente libre tras la 13. Su aceptación se registra con la versión 0.5-A7-coach. Quien aceptó la 0.4-A7-coach no tiene que volver a aceptar para usar la app; la versión nueva se le pide solo la primera vez que exporta a Excel.)*
+
+Cláusula 14. Descarga y custodia local de datos de los asesorados
+Al utilizar la función de exportación o descarga de registros de sus asesorados (archivos en formato Excel, CSV o similares), el Coach asume la condición de Responsable directo e independiente del tratamiento de dicha información a partir del momento de la descarga. El Coach se obliga expresamente a: (i) almacenar los archivos en dispositivos seguros, privados y protegidos contra accesos no autorizados; (ii) utilizar la información exclusivamente para la planificación y seguimiento de la asesoría del cliente; (iii) abstenerse de divulgar, transferir o comercializar estos datos con terceros; y (iv) eliminar de forma definitiva los archivos locales una vez finalice la relación comercial con el asesorado. La Plataforma queda totalmente indemne y exenta de responsabilidad ante cualquier pérdida, filtración o uso indebido de los datos que ocurra fuera de sus servidores una vez exportados por el Coach.

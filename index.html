@@ -187,6 +187,7 @@
             <div class="acc-share" id="acc-a7-box">
               <p class="small" id="acc-a7-intro"></p>
               <p class="small a7-clause hidden" id="acc-a7-clause"></p>
+              <p class="small a7-clause-export hidden" id="acc-a7-clause-export"></p>
               <div class="auth-row"><label class="check"><input type="checkbox" name="a7" id="acc-a7"> <span id="acc-a7-text"></span></label><span class="auth-links" id="acc-a7-links"></span></div>
             </div>
           </div>
@@ -239,6 +240,11 @@
   </section>
 
   <main>
+    <!-- Política v1.1: aviso informativo (texto LITERAL del concepto 2, anexo 1, en aviso-politica.js). Una vez al iniciar sesión; no tapa nada ni pide re-aceptar. -->
+    <div id="aviso-politica" class="card aviso-pol hidden" role="region" aria-label="Aviso: política de datos actualizada">
+      <p id="aviso-politica-text"></p>
+      <button type="button" class="btn btn-ghost aviso-pol-ok" id="btn-aviso-politica">Entendido</button>
+    </div>
     <section id="install-card" class="card install-card hidden" aria-labelledby="install-card-title">
       <h2 id="install-card-title">Instala la app en tu iPhone</h2>
       <p class="small">Así la abres con un toque, sin buscar la dirección.</p>
@@ -742,6 +748,7 @@
         <h2 class="a7-title" tabindex="-1">Antes de ver a tus clientes</h2>
         <p class="small a7-intro"></p>
         <p class="small a7-clause hidden"></p>
+        <p class="small a7-clause-export hidden"></p>
         <form class="a7-form" novalidate>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
           <p class="acc-error a7-error hidden" role="alert"></p>
@@ -903,6 +910,7 @@
         <h2 class="a7-title" tabindex="-1">Antes de ver a tus clientes</h2>
         <p class="small a7-intro"></p>
         <p class="small a7-clause hidden"></p>
+        <p class="small a7-clause-export hidden"></p>
         <form class="a7-form" novalidate>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
           <p class="acc-error a7-error hidden" role="alert"></p>
@@ -1287,6 +1295,7 @@
         <li class="coach-only pc-only hidden"><button type="button" class="more-row" id="row-c-rutinas"><span class="more-text"><strong>Mis rutinas</strong><span class="more-sub">Crea rutinas, asígnalas y publica la de hoy</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="coach-only pc-only hidden"><button type="button" class="more-row" id="row-c-retos"><span class="more-text"><strong>Retos</strong><span class="more-sub">Lanza un reto de hábitos a tus asesorados</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="admin-only hidden"><button type="button" class="more-row" id="row-admin"><span class="more-text"><strong id="row-admin-t">Panel admin</strong><span class="more-sub" id="row-admin-s">Coaches, cobro, uso y avisos (solo cantidades)</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="coach-only pc-only hidden"><button type="button" class="more-row" id="row-c-exportar"><span class="more-text"><strong>Exportar a Excel</strong><span class="more-sub">Medidas, comidas, hábitos y entrenos de tus asesorados</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="coach-only hidden"><button type="button" class="more-row" id="row-c-acuerdo"><span class="more-text"><strong>Mi acuerdo</strong><span class="more-sub">El Acuerdo del coach que aceptaste, con copia</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-link hidden"><button type="button" class="more-row" id="row-coach"><span class="more-text"><strong>Mi coach</strong><span class="more-sub">Qué puede ver y cómo dejar de compartir</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-link pc-only hidden"><button type="button" class="more-row" id="row-salud"><span class="more-text"><strong>Tu salud</strong><span class="more-sub">La pregunta para tu coach (voluntaria)</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
@@ -1297,6 +1306,40 @@
         <li><button type="button" class="more-row" id="row-ayuda"><span class="more-text"><strong>Ayuda</strong><span class="more-sub">Respuestas a las dudas más comunes</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-login hidden"><button type="button" class="more-row" id="row-salir"><span class="more-text"><strong>Cerrar sesión</strong><span class="more-sub">Salir de tu cuenta en este teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
       </ul>
+    </section>
+
+    <!-- M6: EXPORTAR A EXCEL (coach, producto «coach»; concepto jurídico 6). Solo lo que el coach ya ve (coach_pull); nunca fotos. Casilla LITERAL antes de CADA descarga;
+         la primera vez pide la versión del acuerdo con la cláusula 14; cada exportación queda registrada en el servidor (sin contenido). Lógica: exportar.js; vista: exportar-view.js. -->
+    <section id="view-exportar" class="view" aria-labelledby="xl-title">
+      <div class="back-row"><button type="button" class="btn-link back-btn" data-goto="mas">← Más</button><h2 class="back-title" id="xl-title" tabindex="-1">Exportar a Excel</h2></div>
+      <div class="card xl-card">
+        <div class="xl-head"><h3 class="xl-step" id="xl-who-t">1 · Asesorados</h3><button type="button" class="xl-all" id="xl-all" aria-pressed="true">Todos</button></div>
+        <div id="xl-who" class="xl-avs" role="group" aria-labelledby="xl-who-t"></div>
+        <p id="xl-who-sum" class="small muted xl-sum" aria-live="polite"></p>
+      </div>
+      <div class="card xl-card">
+        <h3 class="xl-step" id="xl-dates-t">2 · Fechas</h3>
+        <div class="an-chips xl-range" role="group" aria-labelledby="xl-dates-t">
+          <button type="button" data-range="mes" aria-pressed="false">Este mes</button><button type="button" data-range="3m" aria-pressed="true">Últimos 3 meses</button><button type="button" data-range="todo" aria-pressed="false">Todo</button>
+        </div>
+        <div class="xl-dates"><label class="xl-date"><span>Desde</span><input type="date" id="xl-from"></label><label class="xl-date"><span>Hasta</span><input type="date" id="xl-to"></label></div>
+      </div>
+      <fieldset class="card xl-card xl-cats">
+        <legend class="xl-step">3 · Qué datos</legend>
+        <div id="xl-cats"></div>
+        <label class="xl-cat xl-off"><input type="checkbox" disabled aria-describedby="xl-foto-s"><span class="xl-cat-t">Fotos</span><span class="xl-cat-s" id="xl-foto-s">no se exportan</span></label>
+      </fieldset>
+      <p id="xl-gate" class="acc-note small xl-gate hidden" role="note"></p>
+      <label class="xl-custody"><input type="checkbox" id="xl-custody"><span id="xl-custody-t"></span></label>
+      <p id="xl-error" class="acc-error hidden" role="alert"></p>
+      <button type="button" class="btn btn-tall xl-go" id="btn-xl" disabled><span aria-hidden="true">⬇</span> Descargar Excel</button>
+      <p id="xl-status" class="small muted xl-status" role="status" aria-live="polite"></p>
+      <button type="button" class="btn btn-ghost btn-tall xl-share hidden" id="btn-xl-share">Compartir el archivo</button>
+      <div class="card xl-card xl-hist">
+        <h3 class="xl-step" id="xl-hist-t">Tus exportaciones</h3>
+        <ul id="xl-hist" class="xl-hist-list" aria-labelledby="xl-hist-t"></ul>
+        <p class="small muted">Solo tú ves este historial. Guarda quién exportó, cuándo, cuántos asesorados, qué datos y qué fechas; nunca el contenido.</p>
+      </div>
     </section>
 
     <!-- Sprint 10: MI ACUERDO (coach): el texto exacto aceptado, con fecha, versión, huella y copia descargable / por correo -->
@@ -1497,6 +1540,23 @@
         <div class="btnrow"><button type="button" class="btn btn-ghost btn-tall" id="ss-cancel">Cancelar</button><button type="submit" class="btn btn-tall" id="ss-ok"></button></div>
       </div>
     </form>
+  </dialog>
+
+  <!-- M6: la PRIMERA vez que el coach exporta, si no aceptó la versión del acuerdo con la cláusula 14, se le muestra y debe aceptarla (se registra en el servidor). -->
+  <dialog id="sheet-xl-acuerdo" class="sheet sheet-tall" aria-labelledby="xla-title">
+    <div class="sheet-head"><h2 id="xla-title" tabindex="-1">Antes de tu primera descarga</h2></div>
+    <div class="a8-body">
+      <p class="small">Para descargar datos de tus asesorados, acepta la versión <b id="xla-ver"></b> del Acuerdo del coach. Añade esta cláusula:</p>
+      <p class="small a7-clause xla-clause" id="xla-clause"></p>
+      <details class="xla-more"><summary>Ver el resto del acuerdo</summary><p class="small" id="xla-intro"></p><p class="small a7-clause" id="xla-clause13"></p></details>
+      <label class="xl-custody xla-check"><input type="checkbox" id="xla-ok"><span id="xla-body"></span></label>
+      <div class="xla-links" id="xla-links"></div>
+      <p id="xla-error" class="acc-error hidden" role="alert"></p>
+      <div class="row-actions a8-actions">
+        <button type="button" class="btn btn-tall" id="btn-xla-ok">Aceptar y descargar</button>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-xla-cancel">Cancelar</button>
+      </div>
+    </div>
   </dialog>
 
   <dialog id="sheet-pago" class="sheet" aria-labelledby="pago-title">
@@ -1771,6 +1831,7 @@
   <script src="acuerdo-view.js"></script>
   <script src="install-guide.js"></script>
   <script src="coach.js"></script>
+  <script src="exportar.js"></script>
   <script src="analitica.js"></script>
   <script src="admin.js"></script>
   <script src="estado-cliente.js"></script>
@@ -1789,5 +1850,7 @@
   <script src="etapa2-view.js"></script>
   <script src="analitica-view.js"></script>
   <script src="admin-view.js"></script>
+  <script src="exportar-view.js"></script>
+  <script src="aviso-politica.js"></script>
 </body>
 </html>

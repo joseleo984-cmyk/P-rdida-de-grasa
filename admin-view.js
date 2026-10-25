@@ -127,6 +127,9 @@
       <div class="card"><div class="an-ch"><span class="an-tag">Actividad del coach</span><span class="small muted">${pw.count} de 7 días</span></div>
         <ul class="adm-days">${pw.days.map((d) => `<li class="${d.on ? 'on' : ''}"><span>${d.dow}</span><b>${d.n}</b><span class="sr-only">${d.on ? 'abrió el panel' : 'no abrió el panel'}</span></li>`).join('')}</ul>
         <p class="small muted">Días en que abrió el panel de coach.</p></div>
+      <div class="card adm-exports"><div class="an-ch"><span class="an-tag">Exportaciones a Excel</span><span class="small muted">este mes</span></div>
+        <p class="adm-exp-n"><b>${Number(u.exports) || 0}</b> <span class="small muted">${Number(u.exports) === 1 ? 'exportación' : 'exportaciones'}</span></p>
+        <p class="small muted">Solo la cantidad: nunca qué asesorados ni qué datos.</p></div>
       <div class="card"><p class="an-tag">Éxito del coach · negocio y adherencia</p>
         <div class="an-two adm-success">${k(Adm.pctText(s.habitsPct), 'completan hábitos')}${k(Adm.pctText(s.onTimePct), 'pagos al día')}${k(Adm.pctText(s.retention90), 'retención a 3 meses')}${k(Adm.pctText(s.retention180), 'retención a 6 meses')}</div>
         <p class="small muted an-note">Nunca kilos, centímetros ni cambios corporales.</p></div>`;

@@ -106,7 +106,7 @@ test('A1 y A2 vienen sin marcar y sin ellas no sale el correo; A3 y A4 son un pa
   await expect(a1).not.toBeChecked();
   await expect(a2).not.toBeChecked();
   await expect(page.locator('#acc-a1-text')).toHaveText('Declaro que soy mayor de 18 años. Esta app no es para menores de edad.');
-  await expect(page.locator('#acc-a2-text')).toHaveText('Leí y acepto los Términos y Condiciones y la Política de Tratamiento de Datos (versión 0.1).');
+  await expect(page.locator('#acc-a2-text')).toHaveText('Leí y acepto los Términos y Condiciones y la Política de Tratamiento de Datos (versión 0.1 / 1.1).');   // Términos 0.1 · Política 1.1 (legal/VERSIONS.json)
   await expect(page.locator('#acc-brevo')).toContainText('Te enviaremos un código con Brevo');
   await expect(page.locator('#acc-a2-links a')).toHaveCount(2);
   await expect(page.locator('#acc-a2-links a').first()).toHaveAttribute('href', 'legal/terminos.html');
@@ -153,7 +153,7 @@ test('A1 y A2 vienen sin marcar y sin ellas no sale el correo; A3 y A4 son un pa
   await expect.poll(async () => kinds(await eventsOf(page, 'ana@ejemplo.com')).sort()).toEqual(['adult', 'privacy', 'terms']);
   const ev = await eventsOf(page, 'ana@ejemplo.com');
   expect(ev.find((e) => e.kind === 'adult')).toMatchObject({ granted: true, version: CT.version('A1'), textHash: sha(CT.fullText('A1')) });
-  expect(ev.find((e) => e.kind === 'terms')).toMatchObject({ granted: true, version: CT.version('A2'), textHash: sha(CT.fullText('A2', { legalVersion: '0.1' })) });
+  expect(ev.find((e) => e.kind === 'terms')).toMatchObject({ granted: true, version: CT.version('A2'), textHash: sha(CT.fullText('A2', { legalVersion: '0.1 / 1.1' })) });
   await page.waitForTimeout(500);
   expect(Object.keys((await backend(page)).records)).toHaveLength(0);       // sin A3+A4 no se sube nada
   await app.goPerfil('datos');

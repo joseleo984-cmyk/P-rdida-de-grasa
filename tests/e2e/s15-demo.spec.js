@@ -283,3 +283,29 @@ test('la raíz y /pruebas/ no cargan nada de la demo', async ({ page, site }) =>
   expect(seen.filter((u) => /demo/.test(new URL(u).pathname))).toEqual([]);
   expect(seen.some((u) => u.includes('remote-fake.js'))).toBe(false);
 });
+
+// M6 · Exportar a Excel en la demo (?rol=coach): datos ficticios, servidor falso; el historial trae la exportación sembrada y la nueva.
+test('M6 en la demo: el coach exporta un .xlsx con las 4 hojas y el Léame, sin pedir nada a ningún servidor', async ({ page, site }) => {
+  test.setTimeout(90_000);
+  const { workbook } = require('../xlsx-reader');
+  const log = await openDemo(page, site, '?rol=coach');
+  await expect(page.locator('#coach-clients .cli-pay-row')).toHaveCount(8);
+  if (await page.locator('#btn-aviso-politica').isVisible()) await page.locator('#btn-aviso-politica').click();
+  await page.locator('#tab-mas').click();
+  await page.locator('#row-c-exportar').click();
+  await expect(page.locator('#xl-who .xl-av')).toHaveCount(8);
+  await expect(page.locator('#xl-hist .xl-hist-row')).toHaveCount(1);
+  await page.locator('#xl-custody').check();
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#btn-xl').click()]);
+  expect(dl.suggestedFilename()).toMatch(/^exportacion-\d{4}-\d{2}-\d{2}\.xlsx$/);
+  const wb = workbook(fs.readFileSync(await dl.path()));
+  expect(wb.sheets.map((s) => s.name)).toEqual(['Leame', 'Medidas', 'Comidas', 'Hábitos', 'Entrenos']);
+  expect(wb.sheets[1].rows.length).toBeGreaterThan(10);
+  expect(JSON.stringify(wb.sheets[3].rows)).not.toContain('Carla Demo');   // Carla no comparte hábitos
+  if (process.env.XL_SHOTS) { fs.mkdirSync(process.env.XL_SHOTS, { recursive: true }); fs.copyFileSync(await dl.path(), path.join(process.env.XL_SHOTS, dl.suggestedFilename().replace('.xlsx', '-demo.xlsx'))); }
+  await expect(page.locator('#xl-hist .xl-hist-row')).toHaveCount(2);
+  await noOverflow(page);
+  expect(log.external).toEqual([]);
+  expect(log.errors).toEqual([]);
+});
+

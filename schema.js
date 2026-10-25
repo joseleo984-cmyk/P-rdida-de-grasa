@@ -34,7 +34,10 @@
 
   // LEGAL-01: versiones vigentes de los textos legales (deben coincidir con "**Versión:**" de los .md;
   // lo comprueba tests/legal.test.js). Si cambian, la app pide aceptar de nuevo.
-  const LEGAL_VERSIONS = { terms: '0.1', privacy: '0.1' };
+  // v1.1 de la Política (25/10/2026): cambio INFORMATIVO (aviso en pantalla, sin re-aceptación forzada, concepto 2): quien aceptó la 0.1 sigue
+  // vigente (LEGAL_COMPAT). Ambas cosas deben coincidir con legal/VERSIONS.json (lo comprueba tests/legal.test.js).
+  const LEGAL_VERSIONS = { terms: '0.1', privacy: '1.1' };
+  const LEGAL_COMPAT = { terms: [], privacy: ['0.1'] };
   // Edad mínima (decisión del Stakeholder, 2026-10-22): 18 años. Con menos no se guarda el perfil; si ya había uno
   // guardado, no se borra: queda como borrador para que la persona lo corrija (ver normalizeProfile).
   const AGE_MIN = 18;
@@ -560,7 +563,8 @@
   function consentStatus(consent, versions = LEGAL_VERSIONS) {
     const c = normalizeConsent(consent);
     if (!c) return 'missing';
-    if (c.termsVersion !== versions.terms || c.privacyVersion !== versions.privacy) return 'outdated';
+    const okV = (k, v) => v === versions[k] || (versions === LEGAL_VERSIONS && LEGAL_COMPAT[k].includes(v));
+    if (!okV('terms', c.termsVersion) || !okV('privacy', c.privacyVersion)) return 'outdated';
     return 'ok';
   }
 
@@ -663,7 +667,7 @@
   }
 
   const api = { ENTRY_FIELDS, RANGES, AGE_MIN, AGE_UNDER_MSG, CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, EFFORTS, CLOSES, normalizeStoredPhoto, isSafeKey,
-    LEGAL_VERSIONS, normalizeConsent, consentStatus, buildConsent, setConsentFlag,
+    LEGAL_VERSIONS, LEGAL_COMPAT, normalizeConsent, consentStatus, buildConsent, setConsentFlag,
     EPOCH, uuid, isUUID, stampChanges, purgeDeleted, mergeRecords, toRecords, fromRecords, mergeState, clampStamp, MAX_SKEW_MS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Schema = api;

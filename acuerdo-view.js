@@ -14,7 +14,8 @@
   }
 
   // meta = meta de account.js (consents.coach_agreement = { granted, version, textHash, clientAt }); CT = ConsentTexts; hashFn = Remote.textHash.
-  // state: 'none' (sin aceptar o retirado) | 'ok' (vigente) | 'outdated' (hay una versión más nueva: pedir re-aceptar) | 'mismatch' (no se puede probar el texto).
+  // state: 'none' (sin aceptar o retirado) | 'ok' (vigente) | 'outdated' (hay una versión más nueva: pedir re-aceptar) | 'mismatch' (no se puede probar el texto)
+  //        | 'previous' (M6: hay una versión más nueva, pero la aceptada SIGUE valiendo para la app; la nueva se pide solo al exportar).
   async function resolve(meta, CT, hashFn) {
     const c = meta && meta.consents && meta.consents.coach_agreement;
     if (!c || c.granted !== true) return { state: 'none', currentVersion: CT.version('A7') };
@@ -22,7 +23,8 @@
     const base = { version: c.version, hash: c.textHash || '', hashShort: shortHash(c.textHash), at: c.clientAt || null, currentVersion };
     const text = CT.agreementText(c.version);
     const proven = text != null && (await hashFn(text)) === c.textHash;
-    const state = c.version !== currentVersion ? 'outdated' : proven ? 'ok' : 'mismatch';
+    const stillValid = Array.isArray(CT.A7_STILL_VALID) && CT.A7_STILL_VALID.includes(c.version);   // solo producto coach (consent-texts-solo.js)
+    const state = c.version !== currentVersion ? (stillValid ? 'previous' : 'outdated') : proven ? 'ok' : 'mismatch';
     return { ...base, state, text: proven ? text : null };
   }
 
