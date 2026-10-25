@@ -296,13 +296,14 @@ test('«Tipo de comida» a 390 px con letra al 200 % y fuente ancha: los 4 boton
     const r = await p.evaluate(() => {
       const fs = document.querySelector('#sc-meals'), sheet = document.querySelector('#sheet-comida');
       const box = sheet.getBoundingClientRect();
-      const labels = [...fs.querySelectorAll('label')].map((l) => { const b = l.getBoundingClientRect(), sp = l.querySelector('span'); return { h: b.height, left: b.left, right: b.right, top: Math.round(b.top), cut: sp.scrollWidth > sp.clientWidth + 1 }; });
-      return { two: fs.classList.contains('two'), rows: new Set(labels.map((l) => l.top)).size, labels, inside: labels.every((l) => l.left >= box.left - 0.5 && l.right <= box.right + 0.5), sheetScroll: sheet.scrollWidth <= sheet.clientWidth + 1, pageScroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth };
+      const labels = [...fs.querySelectorAll('label')].map((l) => { const b = l.getBoundingClientRect(), sp = l.querySelector('span'); return { h: b.height, left: b.left, right: b.right, top: Math.round(b.top), cut: sp.scrollWidth > sp.clientWidth + 1, lines: (() => { const rg = document.createRange(); rg.selectNodeContents(sp); return new Set([...rg.getClientRects()].map((q) => Math.round(q.top))).size; })() }; });
+      return { two: fs.classList.contains('two'), one: fs.classList.contains('one'), rows: new Set(labels.map((l) => l.top)).size, labels, inside: labels.every((l) => l.left >= box.left - 0.5 && l.right <= box.right + 0.5), sheetScroll: sheet.scrollWidth <= sheet.clientWidth + 1, pageScroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth };
     });
     expect(r.labels.every((l) => !l.cut), `${donde}: etiqueta cortada`).toBe(true);
+    expect(r.labels.every((l) => l.lines === 1), `${donde}: una palabra partida`).toBe(true);
     expect(r.labels.every((l) => l.h >= 47.5), `${donde}: alto`).toBe(true);
     expect(r.inside && r.sheetScroll && r.pageScroll, `${donde}: desborde`).toBe(true);
-    expect(r.rows, `${donde}: filas`).toBe(r.two ? 2 : 1);
+    expect(r.rows, `${donde}: filas`).toBe(r.one ? 4 : r.two ? 2 : 1);
     return r;
   };
   for (const scheme of ['dark', 'light']) {
@@ -318,7 +319,7 @@ test('«Tipo de comida» a 390 px con letra al 200 % y fuente ancha: los 4 boton
     await p.addStyleTag({ content: H.WIDE });
     await p.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
     const big = await check(`${scheme} 200 %`);
-    expect(big.two).toBe(true);
+    expect(big.two || big.one).toBe(true);   // 2 × 2 (o, si ni así cabe la palabra más larga, uno debajo de otro): nunca «Desayun-o»
     if (scheme === 'dark') { await H.shot(p, 's13-tipo-200-oscuro.png'); }
     await p.locator('#sc-close').evaluate((b) => b.click());
     await p.reload(); await H.ready(p);

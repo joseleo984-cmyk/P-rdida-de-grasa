@@ -2492,9 +2492,10 @@
     const cs = getComputedStyle(scMeals), key = `${w}|${cs.fontSize}|${cs.fontFamily}|${cs.letterSpacing}`;
     if (!force && key === scMealsKey) return;   // el cambio de 1 fila a 2 no vuelve a medir (sin bucles)
     scMealsKey = key;
-    scMeals.classList.remove('two');
-    const tight = [...scMeals.querySelectorAll('span')].some((x) => x.scrollWidth > x.clientWidth + 1);
-    scMeals.classList.toggle('two', tight);
+    // 4 en una fila → 2 × 2 → (si ni así cabe una palabra) uno debajo de otro. Nunca se parte una palabra.
+    const tight = () => [...scMeals.querySelectorAll('span')].some((x) => x.scrollWidth > x.clientWidth + 1);
+    scMeals.classList.remove('two', 'one');
+    if (tight()) { scMeals.classList.add('two'); if (tight()) { scMeals.classList.remove('two'); scMeals.classList.add('one'); } }
   }
   if (window.ResizeObserver) { const ro = new ResizeObserver(() => scFitMeals()); ro.observe(scMeals); for (const x of scMeals.querySelectorAll('span')) ro.observe(x); }
   window.addEventListener('resize', () => scFitMeals(true));

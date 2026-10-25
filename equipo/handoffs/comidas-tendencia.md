@@ -5,7 +5,7 @@ Dos cambios pequeños aprobados por el usuario. **Sin SQL nuevo.** `config.js` n
 ## 1. Comidas: «Tipo de comida» visible y elegido por la hora
 
 - En la hoja de agregar/editar (`#sheet-comida`), el tipo pasa **arriba del paso 2, justo debajo del título del plato**, como 4 botones (Desayuno · Almuerzo · Cena · Snack). Son radios nativos dentro de `<fieldset id="sc-meals">` con `<legend>Tipo de comida</legend>`: el activo va relleno de turquesa (`--on-accent`), las flechas cambian de opción y el foco se ve. Cada botón mide 48 px o más.
-- **Si no caben en una fila** (letra al 200 %, fuente ancha como la de CI), `app.js` (`scFitMeals`) mide las etiquetas y pone `.two`: quedan en **2 × 2**. Vuelve a medir con un `ResizeObserver` cuando cambian el ancho, la letra o la fuente.
+- **Si no caben en una fila** (letra al 200 %, fuente ancha como la de CI), `app.js` (`scFitMeals`) mide las etiquetas y pone `.two`: quedan en **2 × 2**. Si ni así cabe la palabra más larga, pone `.one` (uno debajo de otro): nunca se parte una palabra. Vuelve a medir con un `ResizeObserver` cuando cambian el ancho, la letra o la fuente. A 390 px con letra normal caben los 4 en una fila; al 200 % con DejaVu quedan en 2 × 2.
 - Regla: `Platos.defaultMeal({ day, today, time, nowHour })` en `platos.js`, con pruebas en `tests/platos.test.js`:
   - antes de las 10 → Desayuno; de 10 a 15 → Almuerzo; de 15 a 18 → Snack; desde las 18 → Cena;
   - si hay hora escrita, se usa esa hora (sea hoy u otro día);

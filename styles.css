@@ -762,11 +762,12 @@ body.paused #rutina-trained { display: none !important; }
 /* Tipo de comida: segmento de 4 botones (radios nativos). Si una etiqueta no cabe (letra grande, fuente ancha), app.js pone .two → 2 × 2. */
 .sc-meals { border: 0; margin: 10px 0 4px; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .sc-meals.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sc-meals.one { grid-template-columns: minmax(0, 1fr); }
 .sc-meals legend { font-weight: 600; padding: 0; margin-bottom: 6px; }
-.sc-meals label { position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; min-width: 0; padding: 6px 4px; border: 2px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--text); font-weight: 700; cursor: pointer; text-align: center; }
+.sc-meals label { position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; min-width: 0; padding: 6px 2px; border: 2px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--text); font-size: .92rem; font-weight: 700; cursor: pointer; text-align: center; }
 .sc-meals input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .sc-meals span { display: block; min-width: 0; max-width: 100%; white-space: nowrap; overflow: hidden; }
-.sc-meals.two span { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.sc-meals.one span { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
 .sc-meals label:has(input:checked) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .sc-meals label:has(input:focus-visible) { outline: 3px solid var(--goal); outline-offset: 2px; }
 .sc-total { margin: 14px 0 4px; font-size: 1.3rem; font-weight: 800; }
