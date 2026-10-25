@@ -250,11 +250,10 @@
     const kind = TREND_SHAPE[p.key];
     const ws = entries.filter((e) => typeof e.weight === 'number');
     if (!kind || ws.length < 3) return entries;
-    if (kind === 'up') { const last = ws[ws.length - 1], prev = ws[ws.length - 2]; last.weight = r1(prev.weight + 0.8); return entries; }
     const from = addDays(today, -24);
     const base = (ws.filter((e) => e.date <= from).pop() || ws[0]).weight;
     let k = 0;
-    for (const e of ws) if (e.date > from) e.weight = r1(base + ((k++ % 3) - 1) * 0.1);
+    for (const e of ws) if (e.date > from) e.weight = kind === 'up' ? r1(base + 0.3 * ++k) : r1(base + ((k++ % 3) - 1) * 0.1);
     return entries;
   }
   function buildPlan(today, { Platos } = {}) {

@@ -1817,3 +1817,4 @@ body.producto-coach .prog-seg button { padding: 8px 13px; }
    La columna del título toma el espacio libre y parte solo entre palabras. */
 body.producto-coach .topbar.has-back { grid-template-columns: auto minmax(0, 1fr) auto; }
 body.producto-coach .topbar.has-back h1 { overflow-wrap: break-word; min-width: 0; }
+.fc-metric button { padding: 6px 10px; font-size: .86rem; }
