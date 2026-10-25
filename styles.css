@@ -1815,6 +1815,9 @@ body.producto-coach .prog-seg button { padding: 8px 13px; }
 .adm-av .btn-link { margin-left: auto; min-height: 44px; }
 /* r1 v1.13: con letra al 200 % el nombre de la ficha («‹ Anterior · Nombre · Siguiente ›») se partía letra por letra y la barra tapaba la pantalla.
    La columna del título toma el espacio libre y parte solo entre palabras. */
-body.producto-coach .topbar.has-back { grid-template-columns: auto minmax(0, 1fr) auto; }
+body.producto-coach .topbar.has-back { grid-template-columns: minmax(0, max-content) minmax(0, 1fr) minmax(0, max-content); }
 body.producto-coach .topbar.has-back h1 { overflow-wrap: break-word; min-width: 0; }
+body.producto-coach .topbar.has-back .topbar-btn { white-space: normal; min-width: 0; line-height: 1.15; }
+body.producto-coach .topbar.has-back #btn-coach-prev, body.producto-coach .topbar.has-back #topbar-back { text-align: start; }
+body.producto-coach .topbar.has-back #btn-coach-next, body.producto-coach .topbar.has-back #btn-foto-add { text-align: end; }
 .fc-metric button { padding: 6px 10px; font-size: .86rem; }
