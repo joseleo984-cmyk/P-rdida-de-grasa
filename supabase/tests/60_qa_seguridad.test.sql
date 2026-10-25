@@ -60,7 +60,8 @@ select tests.ok(not exists (
       'grasa.save_template', 'grasa.list_templates', 'grasa.delete_template', 'grasa.assign_template', 'grasa.list_client_routines',
       'grasa.save_client_routine', 'grasa.delete_client_routine', 'grasa.set_routine_visible', 'grasa.publish_daily', 'grasa.get_daily',
       'grasa.clear_daily', 'grasa.my_routines', 'grasa.my_daily', 'grasa.my_photo_views',
-      'grasa.set_protein_goal', 'grasa.create_challenge', 'grasa.list_challenges', 'grasa.delete_challenge', 'grasa.my_challenges', 'grasa.mark_challenge')),
+      'grasa.set_protein_goal', 'grasa.create_challenge', 'grasa.list_challenges', 'grasa.delete_challenge', 'grasa.my_challenges', 'grasa.mark_challenge',
+      'grasa.report_pain', 'grasa.review_pain')),
   'authenticated solo ejecuta las SECURITY DEFINER de la lista blanca del contrato');
 select tests.ok(not exists (
   select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace

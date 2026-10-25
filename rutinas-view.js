@@ -61,24 +61,28 @@
     return { blob: video && blob.type !== mime ? new Blob([blob], { type: mime }) : blob, video, mime };
   }
   // <video> que se reproduce solo, en bucle y sin sonido, como un GIF. Si el sistema no deja arrancarlo solo (ahorro de batería), aparecen los controles.
-  function buildVideo(url, label) {
+  // Estilo v2: { autoplay: false } (con «Reducir movimiento») deja el video quieto con sus controles; { decorative: true } es el fondo de una tarjeta
+  // (sin nombre para el lector de pantalla y sin controles aunque el sistema no deje arrancarlo solo).
+  function buildVideo(url, label, { autoplay = true, decorative = false } = {}) {
     const v = document.createElement('video');
     v.className = 'rut-gif-img rut-gif-video';
-    v.muted = true; v.defaultMuted = true; v.loop = true; v.autoplay = true; v.playsInline = true;
-    v.setAttribute('muted', ''); v.setAttribute('loop', ''); v.setAttribute('autoplay', ''); v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
-    v.disablePictureInPicture = true; v.preload = 'auto';
-    v.setAttribute('aria-label', label);
+    v.muted = true; v.defaultMuted = true; v.loop = true; v.autoplay = autoplay; v.playsInline = true;
+    v.setAttribute('muted', ''); v.setAttribute('loop', ''); if (autoplay) v.setAttribute('autoplay', ''); v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
+    v.disablePictureInPicture = true; v.preload = autoplay ? 'auto' : 'metadata';
+    if (decorative) v.setAttribute('aria-hidden', 'true'); else v.setAttribute('aria-label', label);
     v.src = url;
+    if (!autoplay) { v.controls = true; return v; }
     const p = v.play();
-    if (p && typeof p.catch === 'function') p.catch(() => { v.controls = true; });
+    if (p && typeof p.catch === 'function') p.catch(() => { if (!decorative) v.controls = true; });
     return v;
   }
-  function buildMedia(info, url, label) {
-    if (info.video) return buildVideo(url, label);
+  function buildMedia(info, url, label, opts) {
+    if (info.video) return buildVideo(url, label, opts);
     const img = document.createElement('img');
-    img.className = 'rut-gif-img'; img.alt = label; img.src = url;
+    img.className = 'rut-gif-img'; img.alt = opts && opts.decorative ? '' : label; img.src = url;
     return img;
   }
+  const reduceMotion = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   // Suelta el archivo en memoria: un <video> con la URL sin soltar mantiene el blob vivo.
   function dropMedia(slot) {
     if (!slot) return;
@@ -143,8 +147,41 @@
     // UX Etapa 1: UN solo bloque en Inicio. «Rutina de hoy: Piernas» si el coach publicó una para hoy; si no, «Mi rutina» con lo que armó (y solo si ya tiene alguna).
     const card = $('#home-daily');
     card.classList.toggle('hidden', !(d || (on && n)));
-    if (d) { $('#hd-title').textContent = `Rutina de hoy: ${d.title}`; const nEx = ((d && d.days) || []).reduce((a, x) => a + ((x && x.exercises) || []).length, 0); $('#hd-text').textContent = `${nEx} ${nEx === 1 ? 'ejercicio' : 'ejercicios'}`; }
-    else if (on && n) { $('#hd-title').textContent = 'Mi rutina'; $('#hd-text').textContent = R.homeLine(routines); }
+    // Estilo v2 (imagen E1): «RUTINA DE HOY · DE TU COACH», el nombre grande y «N ejercicios · Día 1 de 2»; «Empezar» abre el paso a paso en ese día.
+    const t = heroTarget();
+    if (!t) return;
+    const day = t.r.days[t.di], nEx = day.exercises.length;
+    $('#hd-tag').textContent = d ? 'Rutina de hoy · de tu coach' : n > 1 ? `Tu rutina · tienes ${n}` : 'Tu rutina · de tu coach';
+    $('#hd-title').textContent = t.r.title;
+    $('#hd-text').textContent = `${plural(nEx, 'ejercicio', 'ejercicios')}${t.r.days.length > 1 ? ` · Día ${t.di + 1} de ${t.r.days.length}` : ''}`;
+    $('#btn-home-daily').setAttribute('aria-label', `Empezar ${t.r.title}${t.r.days.length > 1 ? `, día ${t.di + 1}` : ''}`);
+    // Concepto jurídico 4: el día que reporta dolor no se ofrece volver a «Empezar» (el resto de la app sigue igual).
+    const locked = painLocked();
+    $('#btn-home-daily').classList.toggle('hidden', locked);
+    if (locked) $('#hd-text').textContent = PAIN_LOCK_TEXT;
+  }
+  // ---------- Estilo v2: qué día toca de cada rutina (el siguiente al último que terminó en este teléfono; no se sincroniza) ----------
+  const DAYS_KEY = (window.PGNS && PGNS.key ? PGNS.key('paso-dias') : 'perdida-grasa:paso-dias');
+  const routineKey = (r) => (r.id ? `r:${r.id}` : `hoy:${r.title}`);
+  const readDays = () => { try { const v = JSON.parse(localStorage.getItem(DAYS_KEY) || '{}'); return v && typeof v === 'object' ? v : {}; } catch { return {}; } };
+  function nextDay(r) {
+    const usable = r.days.map((d, i) => (d.exercises.length ? i : -1)).filter((i) => i >= 0);
+    if (!usable.length) return -1;
+    const last = readDays()[routineKey(r)];
+    return usable.find((i) => typeof last === 'number' && i > last) ?? usable[0];
+  }
+  function rememberDay(r, di) { const v = readDays(); v[routineKey(r)] = di; try { localStorage.setItem(DAYS_KEY, JSON.stringify(v)); } catch { /* sin espacio */ } }
+  const sameRoutine = (a, b) => a.title === b.title && JSON.stringify(a.days) === JSON.stringify(b.days);
+  // La de hoy (si hay) y después las demás, sin repetir la de hoy.
+  function routineOrder() {
+    const d = dailyNow();
+    const list = routines || [];
+    return d ? [{ r: d, isDaily: true }, ...list.filter((r) => !sameRoutine(r, d)).map((r) => ({ r, isDaily: false }))] : list.map((r) => ({ r, isDaily: false }));
+  }
+  function heroTarget() {
+    if (!myLink()) return null;
+    for (const { r, isDaily } of routineOrder()) { const di = nextDay(r); if (di >= 0) return { r, di, isDaily }; }
+    return null;
   }
   // UX Etapa 1: UN solo «Ya entrené» (siempre disponible para el asesorado: entrene con la rutina de su coach o por su cuenta). Marca el hábito del día y pregunta el esfuerzo.
   function renderTrained() {
@@ -158,11 +195,12 @@
   }
   // Todos los ejercicios llevan «Cómo se hace ›»: con la animación o el video del coach, su nota o, si no hay nada, un aviso amable.
   function exerciseHTML(e, coachId) {
-    const head = `<span class="rut-ex-text"><span class="rut-ex-name">${esc(e.name)}</span><span class="rut-ex-sets">${esc(e.sets)}</span></span><span class="rut-ex-how">Cómo se hace ›</span>`;
+    const line = R.setsLine(e);   // estilo v2: «4 series · 12 repeticiones · 12 kg · descanso 90 s», o el texto libre del coach tal cual
+    const head = `<span class="rut-ex-text"><span class="rut-ex-name">${esc(e.name)}</span><span class="rut-ex-sets">${esc(line)}</span></span><span class="rut-ex-how">Cómo se hace ›</span>`;
     const none = !e.gif && !e.note;
     const key = `${coachId}|${e.name}`;
     return `<li class="rut-exrow"><button type="button" class="rut-check" data-check="${esc(key)}" aria-pressed="${checked(key)}" aria-label="Marcar «${esc(e.name)}» como hecho"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <details class="rut-ex" data-gif="${esc(e.gif)}" data-name="${esc(e.name)}" data-coach="${esc(coachId)}"><summary aria-label="${esc(e.name)}, ${esc(e.sets)}. Cómo se hace">${head}</summary>
+      <details class="rut-ex" data-gif="${esc(e.gif)}" data-name="${esc(e.name)}" data-coach="${esc(coachId)}"><summary aria-label="${esc(e.name)}, ${esc(line)}. Cómo se hace">${head}</summary>
       <div class="rut-ex-body">${e.note ? `<p class="rut-note">${esc(e.note)}</p>` : ''}${e.gif ? '<div class="rut-gif" role="status" aria-live="polite"></div>' : ''}${none ? '<p class="rut-note muted">Tu coach todavía no agregó una demostración de este ejercicio. Si tienes dudas de cómo hacerlo, pregúntale.</p>' : ''}</div></details></li>`;
   }
   // Ejercicios marcados como hechos HOY (solo en este teléfono; no se sincroniza y no sustituye al «Ya entrené»).
@@ -189,9 +227,94 @@
       r.days.map((d, i) => `<details class="card rut-day"${openFirst && i === 0 ? ' open' : ''}><summary><span class="rut-day-title">${esc(d.title)}</span><span class="small muted">${esc(R.dayLine(d))}</span></summary>
         <ul class="rut-ex-list">${d.exercises.map((e) => exerciseHTML(e, r.coachId)).join('')}</ul></details>`).join('') + '</section>';
   }
+  // ---------- Estilo v2 (imagen E2): tarjetas grandes de Entrenar ----------
+  // Dibujos de color propios (sin fotos de modelos ni imágenes ajenas): sentadilla, plancha y de pie.
+  const ART = [
+    '<svg class="rcard-art" viewBox="0 0 140 120" aria-hidden="true" focusable="false"><g stroke-width="7" stroke-linecap="round" fill="none"><circle cx="78" cy="22" r="10" class="ra-fill" stroke="none"/><path d="M78 34 L72 66"/><path d="M75 44 L52 54 M75 44 L98 52"/><path d="M72 66 L48 80 L56 108"/><path d="M72 66 L98 84 L96 112"/></g><rect x="40" y="50" width="70" height="7" rx="3" class="ra-acc"/></svg>',
+    '<svg class="rcard-art" viewBox="0 0 140 120" aria-hidden="true" focusable="false"><g stroke-width="7" stroke-linecap="round" fill="none"><circle cx="40" cy="58" r="10" class="ra-fill" stroke="none"/><path d="M52 64 L104 74"/><path d="M60 66 L58 96 M96 72 L100 100"/></g><path d="M20 102 H124" stroke-width="4" stroke-linecap="round" class="ra-line"/></svg>',
+    '<svg class="rcard-art" viewBox="0 0 140 120" aria-hidden="true" focusable="false"><g stroke-width="7" stroke-linecap="round" fill="none"><circle cx="70" cy="18" r="10" class="ra-fill" stroke="none"/><path d="M70 30 L70 70"/><path d="M70 40 L46 62 M70 40 L94 62"/><path d="M70 70 L54 108 M70 70 L86 108"/></g></svg>',
+  ];
+  let cards = [];          // [{ r, di, isDaily }] en el orden de la pantalla
+  function cardsHTML(biz) {
+    cards = [];
+    for (const { r, isDaily } of routineOrder()) r.days.forEach((d, di) => { if (d.exercises.length) cards.push({ r, di, isDaily }); });
+    return cards.map((c, k) => {
+      const d = c.r.days[c.di], multi = c.r.days.length > 1, n = d.exercises.length;
+      const title = multi ? d.title : c.r.title;
+      const meta = multi ? `Día ${c.di + 1} de ${c.r.days.length} · ${c.r.title}` : biz ? `De ${biz}` : 'De tu coach';
+      const gif = Paso.coverGif(d);
+      const hoy = c.isDaily && c.di === nextDay(c.r);
+      return `<li class="rcard g${k % 3}"${gif ? ` data-gif="${esc(gif)}" data-coach="${esc(c.r.coachId)}"` : ''}>
+        <button type="button" class="rcard-btn" data-start="${k}" aria-label="Empezar ${esc(title)}${hoy ? ' (hoy)' : ''}. ${esc(meta)}. ${plural(n, 'ejercicio', 'ejercicios')}">
+          <span class="rcard-media" aria-hidden="true">${ART[k % 3]}</span><span class="rcard-shade" aria-hidden="true"></span>
+          ${hoy ? '<span class="rcard-pill" aria-hidden="true">HOY</span>' : ''}
+          <span class="rcard-text" aria-hidden="true"><span class="rcard-title">${esc(title)}</span><span class="rcard-meta">${esc(meta)}</span></span>
+          <span class="rcard-chip" aria-hidden="true">${plural(n, 'ejercicio', 'ejercicios')}</span>
+        </button></li>`;
+    }).join('');
+  }
+  // Fondo con el video o GIF del coach: SOLO la tarjeta que más se ve (una reproducción a la vez); al salir de la vista se suelta el archivo.
+  // Con «Reducir movimiento» no se carga nada: queda el dibujo de color.
+  let cardObs = null, cardActive = null;
+  function unmountCard(li) {
+    li._tok = (li._tok || 0) + 1;
+    for (const m of li.querySelectorAll('.rcard-video')) { if (m.tagName === 'VIDEO') { try { m.pause(); } catch { /* ya parado */ } m.removeAttribute('src'); try { m.load(); } catch { /* sin soporte */ } } m.remove(); }
+    if (li._url) URL.revokeObjectURL(li._url);
+    li._url = null;
+    li.classList.remove('has-media');
+    if (cardActive === li) cardActive = null;
+  }
+  async function mountCard(li) {
+    cardActive = li;
+    const tok = (li._tok = (li._tok || 0) + 1);
+    try {
+      const info = await mediaInfo(await A.remote.client.gifBlob(li.dataset.coach, li.dataset.gif));
+      if (cardActive !== li || li._tok !== tok || !li.isConnected) return;
+      li._url = URL.createObjectURL(info.blob);
+      const m = buildMedia(info, li._url, '', { decorative: true });
+      m.classList.add('rcard-video');
+      li.querySelector('.rcard-media').appendChild(m);
+      li.classList.add('has-media');
+    } catch { /* sin conexión: queda el dibujo */ }
+  }
+  function stopCardMedia() {
+    if (cardObs) cardObs.disconnect();
+    cardObs = null;
+    for (const li of document.querySelectorAll('#rutina-cards .rcard')) unmountCard(li);
+    cardActive = null;
+  }
+  function startCardMedia() {
+    stopCardMedia();
+    if (reduceMotion() || px) return;
+    const lis = [...document.querySelectorAll('#rutina-cards .rcard[data-gif]')];
+    if (!lis.length) return;
+    if (!('IntersectionObserver' in window)) { mountCard(lis[0]); return; }
+    const seen = new Map();
+    cardObs = new IntersectionObserver((entries) => {
+      for (const en of entries) seen.set(en.target, en.isIntersecting ? en.intersectionRatio : 0);
+      let best = null, top = 0.5;
+      for (const [el, r] of seen) if (r > top) { best = el; top = r; }
+      if (best === cardActive) return;
+      if (cardActive) unmountCard(cardActive);
+      if (best) mountCard(best);
+    }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
+    lis.forEach((li) => cardObs.observe(li));
+  }
+  function renderCards(biz) {
+    const ul = $('#rutina-cards');
+    stopCardMedia();
+    const html = myLink() && routines ? cardsHTML(biz) : '';
+    ul.innerHTML = html;
+    ul.classList.toggle('hidden', !html);
+    $('#rutina-cards-note').classList.toggle('hidden', !html);
+    $('#rutina-how').classList.toggle('hidden', !html);
+    if (html) startCardMedia();
+  }
+
   function renderRoutine() {
     freeAllGifs();
     renderEntrances();
+    if (!myLink() || routines === undefined) renderCards('');
     const box = $('#rutina-body');
     box.after($('#rutina-trained'));   // vuelve a su sitio (debajo de la lista) antes de repintarla
     const status = $('#rutina-status');
@@ -212,6 +335,7 @@
     const l = myLink();
     const d = dailyNow();
     if (!routines.length && !d) {
+      renderCards('');
       box.innerHTML = `<div class="card"><p><strong>Todavía no tienes una rutina.</strong></p><p class="small muted">${esc(l && l.businessName ? l.businessName : 'Tu coach')} la armará para ti y, cuando lo haga, la verás aquí con la animación de cada ejercicio.</p></div>`;
       renderTrained();
       return;
@@ -219,6 +343,7 @@
     const by = l && l.businessName ? `Armada por ${esc(l.businessName)} · ` : '';
     let html = '';
     const biz = l && l.businessName ? l.businessName : '';
+    renderCards(biz);
     // La rutina de hoy ya es una de «Mis rutinas»: no se repite debajo.
     const same = (a, b) => a.title === b.title && JSON.stringify(a.days) === JSON.stringify(b.days);
     const others = d ? routines.filter((r) => !same(r, d)) : routines;
@@ -249,6 +374,307 @@
     }
     renderRoutine();
   }
+
+  // ============================== Estilo v2: modo PASO A PASO (imagen E3) y «Entreno completo» (imagen E4) ==============================
+  // Lo que se muestra lo escribió el coach (Paso.plan → Rutinas.parseSets): la app no calcula ni sugiere series, repeticiones, kilos ni descansos.
+  // Al terminar el descanso: vibración corta si el teléfono la tiene y un aviso visual; nada de sonido. La pantalla se mantiene encendida (Wake Lock) si se puede.
+  let px = null;   // { r, di, steps, st, opener, shown, url, tok, wake, timer }
+  const P = () => window.Paso;
+  function stageMedia(s) {
+    const slot = $('#paso-media'), lbl = $('#paso-lbl');
+    if (px.url) URL.revokeObjectURL(px.url);
+    px.url = null;
+    dropMedia(slot);
+    const tok = (px.tok = (px.tok || 0) + 1);
+    $('#paso-stage').classList.toggle('no-media', !s.gif);
+    if (!s.gif) {
+      lbl.textContent = '';
+      const p = document.createElement('p');
+      p.className = 'paso-empty';
+      p.textContent = 'Tu coach todavía no agregó una demostración de este ejercicio. Si tienes dudas de cómo hacerlo, pregúntale.';
+      slot.replaceChildren(p);
+      return;
+    }
+    lbl.textContent = '';
+    slot.textContent = 'Cargando la demostración…';
+    const my = px;
+    A.remote.client.gifBlob(px.coachId, s.gif).then(mediaInfo).then(async (info) => {
+      if (px !== my || px.tok !== tok) return;
+      px.url = URL.createObjectURL(info.blob);
+      const label = `${info.video ? 'Video' : 'Animación'} del ejercicio: ${s.name}`;
+      lbl.textContent = info.video ? 'Video del coach' : 'Animación del coach';
+      if (!reduceMotion()) { slot.replaceChildren(buildMedia(info, px.url, label)); return; }
+      // «Reducir movimiento»: el video queda quieto con sus controles; el GIF, como imagen fija (primer cuadro) con «Ver la animación».
+      if (info.video) { slot.replaceChildren(buildVideo(px.url, label, { autoplay: false })); return; }
+      const img = new Image();
+      img.src = px.url;
+      try { await img.decode(); } catch { /* se intenta igual */ }
+      if (px !== my || px.tok !== tok) return;
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth || 120; c.height = img.naturalHeight || 120;
+      c.className = 'rut-gif-img paso-still';
+      c.setAttribute('role', 'img'); c.setAttribute('aria-label', `${label} (imagen fija)`);
+      try { c.getContext('2d').drawImage(img, 0, 0); } catch { /* sin lienzo */ }
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn btn-ghost paso-play'; b.textContent = '▶ Ver la animación';
+      b.addEventListener('click', () => { const im = buildMedia(info, px.url, label); slot.replaceChildren(im); });
+      slot.replaceChildren(c, b);
+    }).catch(() => {
+      if (px !== my || px.tok !== tok) return;
+      slot.textContent = 'No pudimos cargar la demostración. Revisa tu internet; puedes seguir con el entreno.';
+    });
+  }
+  const repsBig = (r) => { const m = /^(\d+(?:\s*[-–]\s*\d+)?)$/.exec(r); return m ? { big: m[1], small: m[1] === '1' ? 'repetición' : 'repeticiones' } : { big: r, small: 'por serie' }; };
+  function renderPaso({ announce } = {}) {
+    if (!px) return;
+    const Pz = P(), { steps, st } = px, now = Date.now();
+    if (st.finished) { showEnd(); return; }
+    const s = steps[st.i];
+    $('#paso-prog').innerHTML = steps.map((x, i) => `<li class="${i < st.i ? 'ok' : i === st.i ? 'cur' : ''}"><i style="width:${i < st.i ? 100 : i > st.i ? 0 : Math.round((st.done[i] / x.series) * 100)}%"></i></li>`).join('');
+    if (px.shown !== st.i) {
+      px.shown = st.i;
+      $('#paso-name').textContent = s.name;
+      $('#paso-line').textContent = s.mode === 'sets' ? s.line : 'Indicación de tu coach';
+      $('#paso-note').textContent = s.note;
+      $('#paso-note').classList.toggle('hidden', !s.note);
+      const nx = steps[st.i + 1];
+      $('#paso-next').textContent = nx ? `Sigue: ${nx.name}` : 'Es el último';
+      $('#paso-next').classList.remove('hidden');
+      stageMedia(s);
+    }
+    const free = s.mode === 'free', rest = st.phase === 'rest', cur = Pz.setNo(st, steps);
+    $('#paso-sets').classList.toggle('hidden', free);
+    $('#paso-sets').innerHTML = free ? '' : Array.from({ length: s.series }, (_, k) => k + 1).map((k) => (k <= st.done[st.i]
+      ? `<li class="ok"><span class="sr-only">Serie ${k}: hecha</span><span aria-hidden="true">${k} ✓</span></li>`
+      : k === cur ? `<li class="now" aria-current="step">Serie ${k}</li>` : `<li><span class="sr-only">Serie </span>${k}</li>`)).join('');
+    const pr = Pz.progress(st, steps);
+    $('#paso-pct').textContent = `${pr.pct} %`;
+    $('#paso-idx').textContent = `${pr.index} / ${pr.count}`;
+    $('#paso-timer').classList.toggle('hidden', free);
+    $('#paso-free').classList.toggle('hidden', !free);
+    $('#paso-free').textContent = free ? s.text : '';
+    $('#paso-timer').classList.toggle('is-rest', rest);
+    $('#paso-timer').classList.toggle('is-paused', rest && st.paused);
+    tickView(now);
+    const main = $('#paso-main');
+    main.textContent = rest ? (st.paused ? '▶ Seguir' : '❚❚ Pausa') : free ? 'Hecho ›' : 'Serie hecha ✓';
+    main.setAttribute('aria-label', rest ? (st.paused ? 'Seguir con el descanso' : 'Pausar el descanso') : free ? `Hecho: ${s.name}` : `Serie ${cur} de ${s.series} hecha`);
+    main.classList.toggle('is-rest', rest);
+    $('#paso-skip').setAttribute('aria-label', rest ? 'Saltar el descanso' : st.i + 1 < steps.length ? 'Siguiente ejercicio' : 'Terminar el entreno');
+    $('#paso-prev').disabled = st.i === 0 && st.done[0] === 0;
+    $('#paso-hint').textContent = rest ? 'Al terminar el descanso, el teléfono vibra (si lo permite) y pasa a la siguiente serie.'
+      : free ? 'Cuando termines, toca «Hecho».'
+        : s.rest ? `Al terminar la serie, toca «Serie hecha»: empieza el descanso de ${s.rest} s que puso tu coach.` : 'Al terminar cada serie, toca «Serie hecha».';
+    if (announce) $('#paso-live').textContent = announce;
+  }
+  // Solo el reloj (cada 250 ms): número y anillo.
+  function tickView(now) {
+    const Pz = P(), { steps, st } = px, s = steps[st.i];
+    if (!s || s.mode === 'free') return;
+    const arc = $('#paso-arc');
+    if (st.phase === 'rest') {
+      $('#paso-t').textContent = Pz.clock(Pz.left(st, now));
+      $('#paso-s').textContent = st.paused ? 'En pausa' : 'Descanso';
+      arc.style.strokeDashoffset = String(100 - Pz.restRatio(st, steps, now) * 100);
+    } else {
+      const r = repsBig(s.reps);
+      $('#paso-t').textContent = r.big;
+      $('#paso-s').textContent = r.small;
+      arc.style.strokeDashoffset = '0';
+    }
+  }
+  function onTick() {
+    if (!px || px.st.finished) return;
+    const now = Date.now();
+    const { st, ended } = P().tick(px.st, px.steps, now);
+    if (!ended) { if (px.st.phase === 'rest') tickView(now); return; }
+    px.st = st;
+    try { if (navigator.vibrate) navigator.vibrate(200); } catch { /* sin vibración */ }
+    const t = $('#paso-timer');
+    t.classList.add('flash');
+    clearTimeout(px.flash);
+    px.flash = setTimeout(() => t.classList.remove('flash'), 1500);
+    renderPaso({ announce: `Descanso terminado. Serie ${P().setNo(st, px.steps)}.` });
+  }
+  async function wakeOn() {
+    if (!px || px.wake || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+    try { const w = await navigator.wakeLock.request('screen'); if (!px) { w.release(); return; } px.wake = w; w.addEventListener('release', () => { if (px && px.wake === w) px.wake = null; }); } catch { /* sin permiso o sin soporte */ }
+  }
+  function wakeOff() { if (px && px.wake) { try { px.wake.release(); } catch { /* ya suelto */ } px.wake = null; } }
+  // ---------- Concepto jurídico 4: aviso de dolor (al terminar, o al salir con ✕ a mitad) ----------
+  const PAIN_KEY = (window.PGNS && PGNS.key ? PGNS.key('dolor-dia') : 'perdida-grasa:dolor-dia');
+  const painLocked = () => { try { return localStorage.getItem(PAIN_KEY) === today(); } catch { return false; } };
+  const PAIN_LOCK_TEXT = 'Hoy reportaste dolor: el entreno guiado vuelve mañana.';
+  async function sha256(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  async function reportPain(pain) {
+    const D = P().DOLOR;
+    return A.remote.client.reportPain(today(), pain, { version: D.version, textHash: await sha256(P().dolorText()) });
+  }
+  function panel(name) {
+    for (const [k, id] of [['run', '#paso-run'], ['end', '#paso-end'], ['ask', '#paso-ask'], ['block', '#paso-block']]) $(id).classList.toggle('hidden', k !== name);
+    if (px) px.panel = name;
+  }
+  function painOpts(box, pressed) {
+    $(box).innerHTML = P().DOLOR.options.map(([k, label]) => `<button type="button" data-dolor="${k}" aria-pressed="${pressed === k}">${esc(label)}</button>`).join('');
+  }
+  function askPain() {
+    if (!px) return;
+    clearInterval(px.timer);
+    wakeOff();
+    if (px.url) URL.revokeObjectURL(px.url);
+    px.url = null;
+    dropMedia($('#paso-media'));
+    px.shown = -1;
+    $('#pd-q-ask').textContent = P().DOLOR.question;
+    painOpts('#pd-ask', null);
+    $('#pd-ask-status').textContent = '';
+    panel('ask');
+    $('#pd-q-ask').focus();
+  }
+  function backToRun() {
+    if (!px) return;
+    panel('run');
+    renderPaso();
+    px.timer = setInterval(onTick, 250);
+    wakeOn();
+    $('#paso-name').focus();
+  }
+  // «Sí»: se bloquea el entreno guiado de hoy, se avisa al coach por el servidor y, cuando el servidor lo confirma, se muestra el texto literal.
+  async function painYes() {
+    try { localStorage.setItem(PAIN_KEY, today()); } catch { /* sin espacio: igual se avisa */ }
+    clearInterval(px && px.timer);
+    panel('block');
+    $('#pb-text').textContent = P().DOLOR.block;
+    $('#pb-text').classList.add('hidden');
+    $('#pb-retry').classList.add('hidden');
+    $('#pb-wait').textContent = 'Avisando a tu coach…';
+    $('#pb-title').focus();
+    renderEntrances();
+    let out = null, err = null;
+    try { out = await reportPain(true); } catch (e) { err = e; }
+    if (!px || px.panel !== 'block') return;
+    if (out && out.notified) {
+      $('#pb-wait').textContent = '';
+      $('#pb-text').classList.remove('hidden');
+      $('#pb-ok').focus();
+    } else {
+      $('#pb-wait').textContent = err && err.code === 'not_found' ? 'No tienes un coach vinculado a quien avisar. Suspende el ejercicio de hoy.'
+        : out ? 'Tu plan está en pausa: tu coach no recibirá este aviso. Suspende el ejercicio de hoy.'
+          : 'No pudimos avisar a tu coach. Revisa tu conexión y toca «Reintentar».';
+      $('#pb-retry').classList.toggle('hidden', !!out || (err && err.code === 'not_found'));
+    }
+  }
+  async function painAnswer(where, key) {
+    if (!px) return;
+    if (key === 'si') { painYes(); return; }
+    painOpts(where === 'ask' ? '#pd-ask' : '#pd-end', 'no');
+    const st = $(where === 'ask' ? '#pd-ask-status' : '#pd-end-status');
+    st.textContent = 'Gracias.';
+    const p = reportPain(false).catch(() => null);
+    if (where === 'ask') { await p; closePaso(); }
+  }
+
+  function openPaso(target, opener) {
+    if (!window.Paso || !target) return;
+    if (document.body.classList.contains('paused')) { toast('Tu plan está en pausa: la rutina queda en solo lectura.'); return; }
+    if (painLocked()) { toast(PAIN_LOCK_TEXT); return; }
+    const steps = P().plan(target.r.days[target.di]);
+    if (!steps.length) return;
+    stopCardMedia();
+    px = { ...target, steps, st: P().start(steps), opener, shown: -1, coachId: target.r.coachId };
+    panel('run');
+    const dlg = $('#dlg-paso');
+    if (!dlg.open) dlg.showModal();
+    renderPaso({ announce: `${target.r.title}. ${plural(steps.length, 'ejercicio', 'ejercicios')}.` });
+    $('#paso-name').focus();
+    px.timer = setInterval(onTick, 250);
+    wakeOn();
+  }
+  function showEnd() {
+    const Pz = P(), sum = Pz.summary(px.st, px.steps);
+    if (!sum.exercisesDone) { closePaso(); toast('Saliste sin hacer ningún ejercicio: no anotamos el entreno.'); return; }
+    clearInterval(px.timer);
+    if (px.url) URL.revokeObjectURL(px.url);
+    px.url = null;
+    dropMedia($('#paso-media'));
+    wakeOff();
+    if (!px.ended) {
+      px.ended = true;
+      rememberDay(px.r, px.di);
+      // Igual que «Ya entrené» en Entrenar: marca el hábito del día, y el coach lo ve.
+      document.dispatchEvent(new CustomEvent('pg:rutina-trained', { detail: { paso: true } }));
+    }
+    panel('end');
+    $('#pd-q-end').textContent = P().DOLOR.question;
+    painOpts('#pd-end', null);
+    $('#pd-end-status').textContent = '';
+    $('#paso-end-sub').textContent = `${px.r.title}${px.r.days.length > 1 ? ` · Día ${px.di + 1}` : ''}`;
+    $('#pe-ex').textContent = `${sum.exercisesDone}/${sum.exercises}`;
+    $('#pe-sets').textContent = String(sum.sets);
+    $('#pe-sets-box').classList.toggle('hidden', !sum.anySets);
+    $('#pe-week').textContent = `${window.PGNav && PGNav.weekDays ? PGNav.weekDays() : 0}/7`;
+    renderEntrances();
+    $('#paso-end-title').focus();
+  }
+  function closePaso() { const dlg = $('#dlg-paso'); if (dlg.open) dlg.close(); }
+  function onPasoClosed() {
+    if (!px) return;
+    clearInterval(px.timer);
+    clearTimeout(px.flash);
+    if (px.url) URL.revokeObjectURL(px.url);
+    dropMedia($('#paso-media'));
+    wakeOff();
+    const o = px.opener;
+    px = null;
+    renderEntrances();
+    if ($('#view-rutina').classList.contains('active')) startCardMedia();
+    if (o && o.isConnected) o.focus();
+  }
+  function wirePaso() {
+    const dlg = $('#dlg-paso');
+    dlg.addEventListener('close', onPasoClosed);
+    // Esc a mitad del entreno = ✕: primero la pregunta de dolor. En el bloqueo, Esc = «Entendido».
+    dlg.addEventListener('cancel', (ev) => { if (px && px.panel === 'run') { ev.preventDefault(); askPain(); } });
+    $('#paso-x').addEventListener('click', askPain);
+    $('#paso-ask-x').addEventListener('click', closePaso);
+    $('#paso-ask-back').addEventListener('click', backToRun);
+    $('#pd-ask').addEventListener('click', (ev) => { const b = ev.target.closest('[data-dolor]'); if (b) painAnswer('ask', b.dataset.dolor); });
+    $('#pd-end').addEventListener('click', (ev) => { const b = ev.target.closest('[data-dolor]'); if (b) painAnswer('end', b.dataset.dolor); });
+    $('#pb-ok').addEventListener('click', closePaso);
+    $('#pb-retry').addEventListener('click', () => { if (px) painYes(); });
+    $('#paso-end-x').addEventListener('click', closePaso);
+    $('#paso-done').addEventListener('click', closePaso);
+    $('#paso-main').addEventListener('click', () => {
+      if (!px) return;
+      const Pz = P(), now = Date.now(), st = px.st;
+      if (st.phase === 'rest') { px.st = st.paused ? Pz.resume(st, now) : Pz.pause(st, now); renderPaso({ announce: px.st.paused ? 'Descanso en pausa.' : 'Sigue el descanso.' }); return; }
+      const s = px.steps[st.i];
+      px.st = Pz.complete(st, px.steps, now);
+      renderPaso({ announce: px.st.finished ? '' : px.st.i !== st.i ? `Siguiente: ${px.steps[px.st.i].name}.` : px.st.phase === 'rest' ? `Serie hecha. Descanso de ${s.rest} segundos.` : `Serie hecha. Serie ${Pz.setNo(px.st, px.steps)}.` });
+    });
+    $('#paso-skip').addEventListener('click', () => {
+      if (!px) return;
+      const before = px.st;
+      px.st = P().next(before, px.steps);
+      renderPaso({ announce: px.st.finished ? '' : before.phase === 'rest' ? 'Descanso saltado.' : `Siguiente: ${px.steps[px.st.i].name}.` });
+    });
+    $('#paso-prev').addEventListener('click', () => {
+      if (!px) return;
+      px.st = P().prev(px.st);
+      renderPaso({ announce: `${px.steps[px.st.i].name}. Desde la serie 1.` });
+    });
+    document.addEventListener('visibilitychange', () => { if (px && document.visibilityState === 'visible') { if (!px.ended) wakeOn(); onTick(); } });
+    $('#rutina-cards').addEventListener('click', (ev) => { const b = ev.target.closest('[data-start]'); if (b) openPaso(cards[Number(b.dataset.start)], b); });
+    $('#btn-home-daily').addEventListener('click', (ev) => {
+      const t = heroTarget();
+      if (!t || document.body.classList.contains('paused')) { $('#tab-entrenar').click(); return; }   // en pausa: Entrenar en solo lectura
+      openPaso(t, ev.currentTarget);
+    });
+  }
+
   function wireClient() {
     const body = $('#view-rutina');
     body.addEventListener('toggle', (ev) => {   // 'toggle' no sube por el árbol: se escucha en la captura
@@ -269,7 +695,7 @@
     const open = () => { $('#rutina-trained-status').textContent = ''; renderRoutine(); loadRoutine({ silent: routines !== undefined }); };
     $('#row-rutina').addEventListener('click', open);
     $('#tab-entrenar').addEventListener('click', open);   // UX Etapa 1: «Entrenar» está en la barra
-    $('#btn-home-daily').addEventListener('click', open);
+    wirePaso();
     for (const ev of ['pg:link-changed', 'pg:account-changed']) document.addEventListener(ev, () => {
       if (!myLink()) { routines = undefined; daily = null; freeAllGifs(); renderEntrances(); return; }
       if (routines === undefined) loadRoutine({ silent: true }); else renderEntrances();
@@ -303,8 +729,21 @@
         <ol class="rut-edit-list">${d.exercises.map((e, j) => `<li class="rut-edit-ex"><h3>Ejercicio ${j + 1}</h3>
           <label class="acc-label" for="${idOf(i, j, 'name')}">Nombre del ejercicio</label>
           <input type="text" id="${idOf(i, j, 'name')}" data-f="name" data-d="${i}" data-e="${j}" maxlength="${L.name}" autocomplete="off" value="${esc(e.name)}" placeholder="Por ejemplo: Press de banca">
-          <label class="acc-label" for="${idOf(i, j, 'sets')}">Series × repeticiones</label>
-          <input type="text" id="${idOf(i, j, 'sets')}" data-f="sets" data-d="${i}" data-e="${j}" maxlength="${L.sets}" autocomplete="off" value="${esc(e.sets)}" placeholder="Por ejemplo: 4 × 12">
+          <fieldset class="rut-edit-sets"><legend>Series, repeticiones, peso y descanso <span class="muted small">(opcional)</span></legend>
+            <div class="rut-edit-grid">
+              <div><label class="acc-label" for="${idOf(i, j, 'series')}">Series</label>
+              <input type="text" inputmode="numeric" id="${idOf(i, j, 'series')}" data-f="series" data-d="${i}" data-e="${j}" maxlength="2" autocomplete="off" value="${esc(e.series)}" placeholder="Ej.: 4"></div>
+              <div><label class="acc-label" for="${idOf(i, j, 'reps')}">Repeticiones</label>
+              <input type="text" id="${idOf(i, j, 'reps')}" data-f="reps" data-d="${i}" data-e="${j}" maxlength="${L.reps}" autocomplete="off" value="${esc(e.reps)}" placeholder="12, 10-12, 30 s"></div>
+              <div><label class="acc-label" for="${idOf(i, j, 'weight')}">Peso</label>
+              <input type="text" id="${idOf(i, j, 'weight')}" data-f="weight" data-d="${i}" data-e="${j}" maxlength="${L.weight}" autocomplete="off" value="${esc(e.weight)}" placeholder="Ej.: 12 kg"></div>
+              <div><label class="acc-label" for="${idOf(i, j, 'rest')}">Descanso (segundos)</label>
+              <input type="text" inputmode="numeric" id="${idOf(i, j, 'rest')}" data-f="rest" data-d="${i}" data-e="${j}" maxlength="3" autocomplete="off" value="${esc(e.rest)}" placeholder="Ej.: 90"></div>
+            </div>
+            <p class="small muted">Con esto tu asesorado sigue el ejercicio paso a paso, con el descanso en cuenta regresiva. La app no calcula ni sugiere nada: verá lo que escribas.</p>
+          </fieldset>
+          <label class="acc-label" for="${idOf(i, j, 'sets')}">O una indicación en texto libre <span class="muted small">(si no usas series)</span></label>
+          <input type="text" id="${idOf(i, j, 'sets')}" data-f="sets" data-d="${i}" data-e="${j}" maxlength="${L.sets}" autocomplete="off" value="${esc(e.sets)}" placeholder="Por ejemplo: 4 × 12 o 30 minutos">
           <label class="acc-label" for="${idOf(i, j, 'note')}">Nota <span class="muted small">(opcional)</span></label>
           <input type="text" id="${idOf(i, j, 'note')}" data-f="note" data-d="${i}" data-e="${j}" maxlength="${L.note}" autocomplete="off" value="${esc(e.note)}" placeholder="Por ejemplo: Baja despacio, 2 segundos">
           <label class="acc-label" for="${idOf(i, j, 'gif')}">Animación <span class="muted small">(opcional)</span></label>
@@ -334,7 +773,7 @@
     if (!t) return;
     target = t;
     const saved = t.routine;
-    draft = saved ? { title: saved.title, days: clone(saved.days) } : R.blankRoutine();
+    draft = saved ? { title: saved.title, days: clone(R.toEditable(saved).days) } : R.blankRoutine();   // estilo v2: series, repeticiones, peso y descanso en sus casillas
     dirty = false;
     showError('');
     const isTpl = t.kind === 'template';

@@ -214,7 +214,8 @@
   // Ayudante para las pruebas y para otros módulos: ir a una vista (Perfil con todas sus tarjetas: show('perfil', 'all')).
   window.PGNav = { show: (view, mode) => show(view, mode), applyNav: (isCoach) => applyNav(isCoach), resetAll: (ask) => resetAll(ask),
     photosGrant: async () => { await grant('photos'); return a6aGranted(); },
-    trainedToday: () => !!(state.habits[today()] || {}).trained };   // Etapa 2: «Hoy entrené» en Mi rutina
+    trainedToday: () => !!(state.habits[today()] || {}).trained,   // Etapa 2: «Hoy entrené» en Mi rutina
+    weekDays: () => Constancia.summary(state, today(), constOpts()).daysThisWeek };   // Estilo v2: «5/7 días esta semana» al terminar el paso a paso
 
   // Qué botones tiene la barra según la cuenta: el coach ve Clientes | Invitar | Más; todos los demás, las cinco de siempre.
   function applyNav(isCoach) {
@@ -1981,6 +1982,11 @@
     setText($('#dia-pasos-t'), tier ? `Pasos ${tier.label}` : 'Pasos');
     setText($('#dia-pasos-s'), tier ? 'Toca para cambiar' : '<4 mil · 4–8 mil · 8 mil+');
     $$('#dia-pasos-opts [data-steps]').forEach((b) => { const on = !!tier && tier.key === b.dataset.steps; b.setAttribute('aria-pressed', String(on)); });
+    // Estilo v2 (imagen E1): agua, pasos y sueño también en anillos (el toque y lo que se guarda no cambian).
+    const arc = (id, f) => { const el = $(id); if (!el) return; const v = Math.max(0, Math.min(1, f)); el.style.strokeDashoffset = String(100 - Math.round(v * 100)); el.style.opacity = v > 0 ? '1' : '0'; };
+    arc('#dia-agua-arc', glasses / Habitos.GLASSES_GOAL);
+    arc('#dia-pasos-arc', tier ? (Habitos.STEP_TIERS.indexOf(tier) + 1) / Habitos.STEP_TIERS.length : 0);
+    arc('#dia-sueno-arc', sleepOpt ? Math.min(1, (Number(h.sleep) || 0) / Habitos.SLEEP_GOAL) : 0);
     const ent = $('#dia-entrene');
     ent.classList.toggle('on', trained);
     ent.setAttribute('aria-pressed', String(trained));
@@ -1998,7 +2004,9 @@
     if (must.length) setText($('#toca-text'), `Hoy toca: ${Constancia.joinEs(must.map((i) => i.label.toLowerCase()))}.`);
     // Tu semana
     setText($('#semana-count'), week.weekLine);
-    $('#semana-days').innerHTML = week.week.days.map((x) => `<li class="sd${x.registered ? ' on' : ''}${x.comodin ? ' comodin' : ''}${x.today ? ' hoy' : ''}${x.future ? ' fut' : ''}" aria-label="${esc(x.name)}: ${x.registered ? 'con registro' : x.comodin ? 'comodín' : x.future ? 'todavía no llega' : x.today ? 'hoy' : 'sin registro'}"><span aria-hidden="true">${esc(x.letter)}</span></li>`).join('');
+    // Estilo v2 (imagen E1): cada día es un círculo con su nombre corto y su número (cumplido, comodín punteado, hoy en blanco, días por venir).
+    const shortDay = (iso) => { const t = new Date(iso + 'T12:00:00').toLocaleDateString('es', { weekday: 'short' }).replace('.', ''); return t.charAt(0).toUpperCase() + t.slice(1, 3); };
+    $('#semana-days').innerHTML = week.week.days.map((x) => `<li class="sd${x.registered ? ' on' : ''}${x.comodin ? ' comodin' : ''}${x.today ? ' hoy' : ''}${x.future ? ' fut' : ''}" aria-label="${esc(x.name)}: ${x.registered ? 'con registro' : x.comodin ? 'comodín' : x.future ? 'todavía no llega' : x.today ? 'hoy' : 'sin registro'}"><span class="sd-d" aria-hidden="true">${esc(shortDay(x.date))}</span><b aria-hidden="true">${Number(x.date.slice(8, 10))}</b></li>`).join('');
     setText($('#semana-line'), week.line);
     // Aviso de pago: solo si faltan 7 días o menos (SOON_DAYS), como una línea discreta al final y con tono sereno
     // UX Etapa 2: tarjeta del reto de su coach (etapa2-view.js) y, en pausa, la constancia congelada.
@@ -2011,27 +2019,35 @@
   }
 
   // ---- Entrenar: «Ya entrené» marca el hábito y pregunta el esfuerzo (Fácil · Normal · Duro · No pude terminar) ----
-  document.addEventListener('pg:rutina-trained', () => {
-    if (!setHabit({ trained: true }, { msg: 'Entrenamiento anotado' })) return;
+  document.addEventListener('pg:rutina-trained', (ev) => {
+    // Desde el modo paso a paso (estilo v2) la pantalla «Entreno completo» ya celebra: sin el aro de «Día completo» encima.
+    const paso = !!(ev.detail && ev.detail.paso);
+    if (!setHabit({ trained: true }, { msg: 'Entrenamiento anotado', celebrate: !paso })) return;
+    if (paso) return;
     document.dispatchEvent(new CustomEvent('pg:rutina-trained-done'));
     const t = $('#esf-title');
     if (t && t.offsetParent) t.focus();
   });
-  $('#esf-chips').addEventListener('click', (ev) => {
+  // El mismo esfuerzo de la Etapa 1, en Entrenar y en «Entreno completo» (estilo v2, imagen E4).
+  for (const box of ['#esf-chips', '#paso-esf']) $(box).addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-effort]');
     if (!b) return;
     const cur = (state.habits[today()] || {}).effort;
-    setHabit({ effort: cur === b.dataset.effort ? null : b.dataset.effort }, { msg: 'Gracias por contarlo' });
-    const nb = $(`#esf-chips [data-effort="${b.dataset.effort}"]`);
+    setHabit({ effort: cur === b.dataset.effort ? null : b.dataset.effort }, { msg: 'Gracias por contarlo', celebrate: box === '#esf-chips' });
+    const nb = $(`${box} [data-effort="${b.dataset.effort}"]`);
     if (nb) nb.focus();
   });
   function renderEntrenar() {
     if (!PROD.coach || navCoach) return;
     const h = state.habits[today()] || {};
     $('#rutina-esfuerzo').classList.toggle('hidden', h.trained !== true);
-    $('#esf-chips').innerHTML = Habitos.EFFORTS.map((e) => `<button type="button" data-effort="${e.key}" aria-pressed="${h.effort === e.key}">${esc(e.label)}</button>`).join('');
+    const chips = Habitos.EFFORTS.map((e) => `<button type="button" data-effort="${e.key}" aria-pressed="${h.effort === e.key}">${esc(e.label)}</button>`).join('');
+    $('#esf-chips').innerHTML = chips;
+    $('#paso-esf').innerHTML = chips;
     const l = myLinkNow();
-    setText($('#esf-note'), l && l.shares && l.shares.habits ? `Tu respuesta le llega a ${coachNameNow()}.` : 'Tu respuesta queda en tu registro.');
+    const shared = !!(l && l.shares && l.shares.habits);
+    setText($('#esf-note'), shared ? `Tu respuesta le llega a ${coachNameNow()}.` : 'Tu respuesta queda en tu registro.');
+    setText($('#paso-end-foot'), shared ? `${capFirst1(coachNameNow())} verá que entrenaste y cómo te sentiste.` : 'Queda anotado en tu registro.');
   }
 
   // ---- Medirme ----

@@ -94,6 +94,7 @@
       this.daily = {};          // v1.8: «Rutina de hoy», coachId → { coachId, templateId, title, days, day:'AAAA-MM-DD', publishedAt } (una copia por coach)
       this.revoked = {};        // userId → ms desde el que las sesiones anteriores no valen
       this.healthAnswers = {};  // UX Etapa 2 (r1 v1.11): `${userId}|${question}` → { userId, question, answer, version, textHash, answeredAt } (solo la dueña la lee y escribe)
+      this.painReports = {};    // v1.12 (aviso de dolor): `${userId}|${day}` → { userId, day, pain, version, textHash, pausePrivate, reportedAt, reviewedAt } (nadie la lee: solo funciones)
       this.linkPauses = [];     // v1.11: pausas cerradas { linkId, from, to } (las registra setPayment al pasar de vencido a pagado)
       this.challenges = {};     // v1.11: retos del coach, id → { id, coachId, title, habit, target, start, end, createdAt, deletedAt, members: [clientId], marks: { clientId: { day: { private } } } }
       this._online = true;
@@ -180,6 +181,8 @@
       return out;
     }
     pauseStart(link) { return link.paidUntil ? addDay(link.paidUntil, 1) : new Date(Date.parse(link.paidMarkedAt || link.createdAt) - 5 * 3600000).toISOString().slice(0, 10); }
+    // v1.12: día del último «Sí» sin revisar y fuera de la pausa (como grasa.pain_flag).
+    painFlag(userId) { const d = Object.values(this.painReports).filter((x) => x.userId === userId && x.pain && !x.reviewedAt && !x.pausePrivate).map((x) => x.day).sort(); return d.length ? d[d.length - 1] : null; }
     healthFlag(userId, q) { const h = this.healthAnswers[`${userId}|${q}`]; return !!h && h.answer === 'yes'; }
     // Solo pruebas: deja el vínculo activo de ese correo pagado hasta esa fecha (como tests.paid en SQL).
     setPaidUntil(email, iso) { const u = this.users[normEmail(email)]; const l = u && this.activeLink(u.id); if (!l) throw new Error('Sin vínculo activo'); l.paidUntil = iso; l.paidMarkedAt = new Date(this.clock.now()).toISOString(); this._persist(); }
@@ -212,13 +215,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, linkPauses, challenges, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, linkPauses, challenges, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'linkPauses', 'challenges']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'challenges']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -366,6 +369,7 @@
         for (const [k, t] of Object.entries(be.templates)) if (t.coachId === u.id) delete be.templates[k];
         delete be.daily[u.id];
         for (const k of Object.keys(be.healthAnswers)) if (k.startsWith(u.id + '|')) delete be.healthAnswers[k];
+        for (const k of Object.keys(be.painReports)) if (k.startsWith(u.id + '|')) delete be.painReports[k];
         for (const [k, ch] of Object.entries(be.challenges)) { if (ch.coachId === u.id) delete be.challenges[k]; else { ch.members = ch.members.filter((m) => m !== u.id); delete ch.marks[u.id]; } }
         be.linkPauses = be.linkPauses.filter((x) => be.links.some((l) => l.id === x.linkId));
         // Sprint 6: antes de borrar, copia mínima y seudonimizada (sin uuid, correo ni nombre), como core.delete_my_account().
@@ -627,6 +631,19 @@
         be.healthAnswers[`${u.id}|${question}`] = { userId: u.id, question, answer, version, textHash, answeredAt: iso(be.clock.now()) };
         return done({ question, answer });
       },
+      // v1.12 (concepto jurídico 4): reporte cerrado No / Sí del día. Exige A3 + A4 y un coach activo vinculado; en pausa queda privado.
+      async reportPain(day, pain, { version, textHash } = {}) {
+        const u = await authed();
+        be.requireCloudConsent(u.id);
+        const today = be.todayBogota();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(day || '')) || day < addDay(today, -1) || day > addDay(today, 1) || typeof pain !== 'boolean' || !version || String(version).length > 20 || !HASH_RE.test(textHash || '')) fail('invalid', 'Respuesta no válida');
+        const l = be.activeLink(u.id);
+        if (!l || !be.coaches[l.coachId] || !be.coaches[l.coachId].active) fail('not_found', 'no_coach');
+        const key = `${u.id}|${day}`, cur = be.painReports[key];
+        const priv = !!(cur && cur.pausePrivate) || be.pausePrivate(u.id, day);
+        be.painReports[key] = { userId: u.id, day, pain, version, textHash, pausePrivate: priv, reportedAt: iso(be.clock.now()), reviewedAt: pain ? null : (cur ? cur.reviewedAt : null) };
+        return done({ day, pain, notified: pain && !priv });
+      },
       async myChallenges() {
         const u = await authed();
         const l = be.activeLink(u.id);
@@ -714,7 +731,7 @@
           return { clientId: l.clientId, displayName: (be.profiles[l.clientId] || {}).displayName || '', linkId: l.id, since: l.createdAt,
             shares: { ...l.shares }, lastActivity: stamps.length && cloud ? stamps[stamps.length - 1] : null, overFreeLimit: i >= be.coaches[u.id].freeClients, ...be.payState(l),
             proteinGoal: l.proteinGoal == null ? null : l.proteinGoal, healthRestriction: cloud && be.healthFlag(l.clientId, 'condition'), pregnancyState: cloud && be.healthFlag(l.clientId, 'pregnancy'),
-            pauses: be.pausesOf(l) };
+            pauses: be.pausesOf(l), painReported: cloud ? be.painFlag(l.clientId) : null };
         });
       },
       async clientData(clientId, since) {
@@ -922,6 +939,14 @@
         c.deletedAt = iso(be.clock.now());
         c.serverUpdatedAt = be._serverStamp();
         return done(undefined);
+      },
+      // v1.12: marcar como revisado el aviso de dolor (solo su coach con vínculo activo).
+      async reviewPain(clientId) {
+        const u = await asCoach();
+        activeLinkCoachOnly(u.id, clientId);
+        const now = iso(be.clock.now());
+        for (const x of Object.values(be.painReports)) if (x.userId === clientId && x.pain && !x.reviewedAt && !x.pausePrivate) x.reviewedAt = now;
+        return done({ painReported: be.painFlag(clientId) });
       },
       // v1.11 (L5): la meta de proteína la escribe el coach (20–400 g; null la quita). La app nunca la calcula.
       async setProteinGoal(clientId, grams) {

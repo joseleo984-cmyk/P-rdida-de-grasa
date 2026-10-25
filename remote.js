@@ -519,6 +519,14 @@
         const r = await rpc('grasa', 'set_health_answer', { p_question: question, p_answer: answer, p_version: version, p_text_hash: textHash });
         return { question: r && r.question, answer: r && r.answer };
       },
+      // Estilo v2 (r1 v1.12, concepto jurídico 4): «¿Sentiste dolor que te impidiera entrenar con normalidad?» No / Sí para un día.
+      // Devuelve { day, pain, notified }: notified = el servidor dejó el aviso para su coach (false en pausa). Sin coach: not_found.
+      async reportPain(day, pain, { version, textHash } = {}) {
+        await me();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(day || '')) || typeof pain !== 'boolean' || !version || !/^[0-9a-f]{64}$/.test(String(textHash || ''))) throw new RemoteError('invalid', 'Respuesta no válida');
+        const r = await rpc('grasa', 'report_pain', { p_day: day, p_pain: pain, p_version: version, p_text_hash: textHash });
+        return { day: r && r.day, pain: !!(r && r.pain), notified: !!(r && r.notified) };
+      },
       // Retos de su coach (con SUS marcas; nunca los demás miembros) y marcar o desmarcar un día.
       async myChallenges() { await me(); return rows(await rpc('grasa', 'my_challenges')).map(challengeOut).filter(Boolean); },
       async markChallenge(id, day, done) {
@@ -560,7 +568,7 @@
           linkId: c.link_id, since: c.since, shares: sharesOut(c.shares || {}), lastActivity: c.last_activity || null, overFreeLimit: !!c.over_free_limit,
           paidUntil: c.paid_until || null, paidMarkedAt: isoOrNull(c.paid_marked_at), paid: c.paid === true, daysLeft: c.days_left == null ? null : Number(c.days_left),
           proteinGoal: c.protein_goal_g == null ? null : Number(c.protein_goal_g), healthRestriction: c.health_restriction === true, pregnancyState: c.pregnancy_state === true,
-          pauses: pausesOut(c.pauses) }));
+          pauses: pausesOut(c.pauses), painReported: c.pain_reported ? String(c.pain_reported).slice(0, 10) : null }));
       },
       async clientData(clientId, since) {
         await me();
@@ -668,6 +676,12 @@
         if (g != null && !(Number.isInteger(g) && g >= 20 && g <= 400)) throw new RemoteError('invalid', 'La meta va de 20 a 400 g');
         const r = await rpc('grasa', 'set_protein_goal', { p_client: clientId, p_grams: g });
         return { proteinGoal: r && r.protein_goal_g != null ? Number(r.protein_goal_g) : null };
+      },
+      // Estilo v2 (r1 v1.12): el coach marca como revisado el aviso de dolor de su asesorado. Devuelve el indicador que queda (null).
+      async reviewPain(clientId) {
+        await me();
+        const r = await rpc('grasa', 'review_pain', { p_client: clientId });
+        return { painReported: r && r.pain_reported ? String(r.pain_reported).slice(0, 10) : null };
       },
       async createChallenge({ id, title, habit, target, start, end, clients } = {}) {
         await me();

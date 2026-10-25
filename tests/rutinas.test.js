@@ -152,7 +152,7 @@ test('summary, dayLine, gifIds y fmtSize', () => {
   assert.match(R.fmtSize(3 * 1048576), /^3 MB$/);
 });
 test('blankRoutine: un día con un ejercicio vacío listo para escribir', () => {
-  assert.deepStrictEqual(R.blankRoutine(), { title: '', days: [{ title: 'Día 1', exercises: [{ name: '', sets: '', note: '', gif: '' }] }] });
+  assert.deepStrictEqual(R.blankRoutine(), { title: '', days: [{ title: 'Día 1', exercises: [{ name: '', sets: '', note: '', gif: '', series: '', reps: '', weight: '', rest: '' }] }] });
 });
 
 // ---------- v1.8: biblioteca, asignación y rutina de hoy ----------
@@ -185,4 +185,64 @@ test('homeLine: una rutina → título y resumen; varias → «Tienes N rutinas:
   assert.strictEqual(R.homeLine([r('A'), r('B')]), 'Tienes 2 rutinas: A y B.');
   assert.strictEqual(R.homeLine([r('A'), r('B'), r('C')]), 'Tienes 3 rutinas: A, B y C.');
   assert.strictEqual(R.homeLine([r('A'), r('B'), r('C'), r('D'), r('E')]), 'Tienes 5 rutinas: A, B, C y 2 más.');
+});
+
+// ---------- Estilo v2: series, repeticiones, peso y descanso del coach (opcionales), guardados dentro de «sets» sin SQL ----------
+test('parseSets / composeSets: forma fija y legible; lo demás es texto libre', () => {
+  assert.deepStrictEqual(R.parseSets('4×12 · 12 kg · desc. 90 s'), { series: 4, reps: '12', weight: '12 kg', rest: 90 });
+  assert.deepStrictEqual(R.parseSets('4 × 12'), { series: 4, reps: '12', weight: '', rest: 0 }, 'lo que ya escribían los coaches también se entiende');
+  assert.deepStrictEqual(R.parseSets('3×30 s · desc. 45 s'), { series: 3, reps: '30 s', weight: '', rest: 45 });
+  assert.deepStrictEqual(R.parseSets('4×12 · desc. 60 s'), { series: 4, reps: '12', weight: '', rest: 60 });
+  for (const t of ['30 minutos', 'Hasta sentir el glúteo', '', '0×12', '25×10', '4×', '4×12 · desc. 900 s']) assert.strictEqual(R.parseSets(t), null, t);
+  assert.strictEqual(R.composeSets({ series: '4', reps: '10-12', weight: '12,5', rest: '90' }), '4×10-12 · 12,5 kg · desc. 90 s');
+  assert.strictEqual(R.composeSets({ series: '3', reps: '12', weight: 'banda roja', rest: '' }), '3×12 · banda roja');
+  assert.strictEqual(R.composeSets({ series: '3', reps: '12', weight: '', rest: '0' }), '3×12');
+  assert.strictEqual(R.composeSets({ series: '', reps: '12' }), '');
+  assert.ok(R.composeSets({ series: '4', reps: '10-12', weight: '12,5', rest: '90' }).length <= R.LIMITS.sets);
+});
+
+test('setsLine: lo que ve el asesorado; el texto libre va tal cual (la app no inventa nada)', () => {
+  assert.strictEqual(R.setsLine({ sets: '4×12 · 12 kg' }), '4 series · 12 repeticiones · 12 kg');
+  assert.strictEqual(R.setsLine({ series: '1', reps: '1', weight: '', rest: '30' }), '1 serie · 1 repetición · descanso 30 s');
+  assert.strictEqual(R.setsLine({ sets: '3×30 s' }), '3 series · 30 s');
+  assert.strictEqual(R.setsLine({ sets: '30 minutos' }), '30 minutos');
+});
+
+test('validate: campos estructurados opcionales con mensajes claros; el texto libre sigue valiendo', () => {
+  const ok = { title: 'Piernas', days: [{ title: 'Día 1', exercises: [
+    { name: 'Sentadilla', series: '4', reps: '10-12', weight: '12', rest: '90' },
+    { name: 'Caminata', sets: '30 minutos' },
+    { name: 'Plancha', series: '3', reps: '30 s' }] }] };
+  assert.deepStrictEqual(R.validate(ok), { ok: true, errors: [] });
+  const bad = (e) => R.validate({ title: 'X', days: [{ title: 'D', exercises: [{ name: 'Sentadilla', ...e }] }] }).errors.map((x) => x.field + ': ' + x.message);
+  assert.match(bad({ reps: '12' })[0], /^series: .*escribe cuántas series/);
+  assert.match(bad({ series: '0', reps: '12' })[0], /^series: .*de 1 a 20/);
+  assert.match(bad({ series: '21', reps: '12' })[0], /^series: /);
+  assert.match(bad({ series: '2.5', reps: '12' })[0], /^series: /);
+  assert.match(bad({ series: '4' })[0], /^reps: .*«10-12» o «30 s»/);
+  assert.match(bad({ series: '4', reps: '12345678901' })[0], /^reps: .*máximo 10/);
+  assert.match(bad({ series: '4', reps: '12 · 3' })[0], /^reps: /);
+  assert.match(bad({ series: '4', reps: '12', weight: 'muy pesado!!' })[0], /^weight: .*máximo 10/);
+  assert.match(bad({ series: '4', reps: '12', weight: 'desc. 3' })[0], /^weight: /);
+  assert.match(bad({ series: '4', reps: '12', rest: '601' })[0], /^rest: .*de 0 a 600/);
+  assert.match(bad({ series: '4', reps: '12', rest: '1,5' })[0], /^rest: /);
+  assert.match(bad({ series: '10', reps: '10-12 c/l', weight: '12,5 kg', rest: '120' })[0], /no caben \(máximo 30 letras\)/);
+  assert.match(bad({})[0], /^sets: .*«4 × 12»/);
+  assert.match(bad({ sets: '4 × 12', series: '4', reps: '12' })[0], /^sets: .*no los dos/);
+});
+
+test('toContent / toEditable: lo estructurado viaja en «sets» con la forma fija (el servidor no cambia) y vuelve a separarse al editar', () => {
+  const r = { title: 'Piernas', days: [{ title: 'Día 1', exercises: [
+    { name: 'Sentadilla', sets: '', series: '4', reps: '12', weight: '12', rest: '90', note: '', gif: '' },
+    { name: 'Caminata', sets: '30 minutos', series: '', reps: '', weight: '', rest: '' }] }] };
+  const c = R.toContent(r);
+  assert.deepStrictEqual(c, { days: [{ title: 'Día 1', exercises: [{ name: 'Sentadilla', sets: '4×12 · 12 kg · desc. 90 s' }, { name: 'Caminata', sets: '30 minutos' }] }] });
+  for (const e of c.days[0].exercises) assert.deepStrictEqual(Object.keys(e).sort(), ['name', 'sets'], 'sin claves nuevas: grasa.routine_content_ok las rechazaría');
+  const ed = R.toEditable({ title: 'Piernas', ...c });
+  assert.deepStrictEqual(ed.days[0].exercises[0], { name: 'Sentadilla', sets: '', series: '4', reps: '12', weight: '12 kg', rest: '90' });
+  assert.deepStrictEqual(ed.days[0].exercises[1], { name: 'Caminata', sets: '30 minutos', series: '', reps: '', weight: '', rest: '' });
+  assert.deepStrictEqual(R.toContent(ed), c, 'ida y vuelta sin cambios');
+  // Lo escrito a mano antes («4 × 12») sigue como texto libre en el editor; el paso a paso igual lo entiende como 4 series
+  assert.deepStrictEqual(R.toEditable({ days: [{ title: 'D', exercises: [{ name: 'Press', sets: '4 × 12' }] }] }).days[0].exercises[0], { name: 'Press', sets: '4 × 12', series: '', reps: '', weight: '', rest: '' });
+  assert.deepStrictEqual(R.parseSets('4 × 12').series, 4);
 });

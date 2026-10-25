@@ -843,3 +843,18 @@ Una sola migración aditiva e idempotente encima de v1.10: `supabase/migrations/
 **Remote (real y fake):** `client.myHealth()`, `client.setHealthAnswer(question, answer, { version, textHash })`, `client.myChallenges()`, `client.markChallenge(id, day, done)`; `coach.setProteinGoal(clientId, grams|null)`, `coach.createChallenge({...})`, `coach.listChallenges()`, `coach.deleteChallenge(id)`. `myLink()` y `coach.clients()` traen `proteinGoal`, `pauses` y (coach) `healthRestriction`, `pregnancyState`.
 
 **Compatibilidad:** pegar el SQL antes de publicar la app. Con la app nueva y el SQL viejo, la pregunta de salud y los retos muestran un error amable y la meta no aparece; nada más se rompe.
+
+## 21. Cambios v1.12 (estilo v2: aviso de dolor del concepto jurídico 4)
+
+Una sola migración aditiva e idempotente encima de v1.11: `supabase/migrations/20261030120000_r1_aviso_dolor.sql` (regenera `supabase/r1.sql`). Pruebas: `supabase/tests/160_aviso_dolor.test.sql` (nueva), conteo de tablas de `10_estructura` (23) y lista blanca de `60_qa_seguridad`. Detalle: `equipo/handoffs/estilo-v2.md`.
+
+| # | Cambio | Error / resultado |
+|---|---|---|
+| 21.1 | `grasa.pain_reports (user_id, day, pain boolean, version, text_hash, pause_private, reported_at, reviewed_at)`, PK `(user_id, day)`. RLS activada SIN políticas ni permisos: nadie (tampoco la dueña ni el coach) la lee o escribe por la API de tablas. Sin campos de texto libre. | `permission denied` |
+| 21.2 | `grasa.report_pain(p_day, p_pain, p_version, p_text_hash)` (SECURITY DEFINER, `auth.uid()`): solo la persona escribe la suya. Exige A3 + A4 y un vínculo activo con un coach activo; día = hoy ± 1 (Bogotá). Devuelve `{ day, pain, notified }` (`notified` = el aviso le llega al coach). Un «Sí» nuevo vuelve a quedar sin revisar. En pausa (o día dentro de una pausa cerrada) la fila queda `pause_private` para siempre. | `consent_required`, `invalid`, `not_found` (`no_coach`) |
+| 21.3 | `coach_clients()` añade `pain_reported date`: el día del último «Sí» sin revisar y no privado, solo si el asesorado mantiene A3 + A4. **No depende de los permisos opcionales** (hábitos, cuerpo…). `grasa.pain_flag(uuid)` es interna. | |
+| 21.4 | `grasa.review_pain(p_client)`: solo el coach activo con acuerdo y vínculo activo con esa persona; marca revisado y devuelve `{ client_id, pain_reported }`. | `forbidden` |
+
+**Remote (real y fake):** `client.reportPain(day, pain, { version, textHash })`, `coach.reviewPain(clientId)`; `coach.clients()` trae `painReported` (AAAA-MM-DD o null).
+
+**Compatibilidad:** pegar el SQL antes de publicar la app. Con la app nueva y el SQL viejo, el «Sí» no se puede enviar (la función no existe): la app NO muestra «Tu coach ha sido notificado» y ofrece «Reintentar».
