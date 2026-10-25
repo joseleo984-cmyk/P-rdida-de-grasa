@@ -875,3 +875,18 @@ Una sola migración aditiva e idempotente encima de v1.12: `supabase/migrations/
 **Remote (real y fake):** `client.myLink().goals`; `coach.clients()[i].goals`, `coach.myCoach().active`, `coach.setGoals(clientId, goals)`, `coach.analytics(from, to)`, `coach.panelOpened(day)`, `coach.notices(day)`; nuevo grupo `admin`: `coaches(month)`, `setCoachActive(coachId, active, reason)`, `usage(month)`, `coachUsage(coachId, month)`, `success(month)`, `saveNotice({ id, title, body, from, to })`, `listNotices()`, `deleteNotice(id)`.
 
 **Compatibilidad:** pegar el SQL antes de publicar la app. Con la app nueva y el SQL viejo: Analítica, metas, panel admin y avisos muestran un error amable (la función no existe); la lista del coach y el resto siguen igual.
+
+## 23. Cambios v1.14 (M6: exportar a Excel del coach)
+
+Una sola migración aditiva e idempotente encima de v1.13: `supabase/migrations/20261101120000_r1_exportar_excel.sql` (regenera `supabase/r1.sql`). Pruebas: `supabase/tests/180_exportar_excel.test.sql` (nueva), conteo de tablas de `10_estructura` (27), lista blanca de `60_qa_seguridad` y claves de `admin_coach_usage` en `170`. Detalle: `equipo/handoffs/exportar-excel.md`. Concepto jurídico 6 (`equipo/legal/concepto-6-2026-10-25.md`).
+
+| # | Cambio | Error / resultado |
+|---|---|---|
+| 23.1 | `grasa.coach_exports`: una fila por exportación con `coach_id, created_at, clients_count` (un NÚMERO, nunca quiénes), `categories text[]` ⊆ {medidas, comidas, habitos, entrenos}, `date_from, date_to`, `custody_ack` (check: siempre true) y `agreement_version`. NUNCA contenido de los datos. Sin acceso por la API de tablas. | |
+| 23.2 | `grasa.log_export(p_clients int, p_categories text[], p_from date, p_to date, p_custody boolean)`: coach ACTIVO con acuerdo y cuya ÚLTIMA aceptación del acuerdo sea una versión con la cláusula 14 (`0.5-A7-coach`); casilla marcada; 1 ≤ asesorados ≤ vinculados visibles; categorías conocidas (sin fotos, sin repetir); rango válido (hasta ≤ hoy + 1, ≤ 10 años); máx. 60 por día. Devuelve `{ id, created_at, clients, categories, from, to }`. La app la llama ANTES de entregar el archivo. | `forbidden` (detail `export_agreement_required`), `invalid` (detail `custody_required`), `rate_limited` |
+| 23.3 | `grasa.my_exports()`: el historial del coach en sesión (50 últimas): `id, created_at, clients, categories, date_from, date_to`. Un asesorado o el admin que no es coach: `forbidden`. | `forbidden` |
+| 23.4 | `admin_coach_usage(p_coach, p_month)` añade `exports` = CUÁNTAS exportaciones hizo ese coach en el mes. Solo la cantidad. | |
+
+**Remote (real y fake):** `coach.logExport({ clients, categories, from, to, custody })`, `coach.exports()`; `admin.coachUsage(...).exports`.
+
+**Compatibilidad:** pegar el SQL antes de publicar la app. Con la app nueva y el SQL viejo: «Descargar Excel» muestra un error amable y NO entrega el archivo (no se pudo registrar la exportación); el resto sigue igual.

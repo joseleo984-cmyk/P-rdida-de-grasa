@@ -165,7 +165,8 @@ select tests.ok(not exists (select k from tests.keys(current_setting('t.u')::jso
   where k not in ('coaches_active', 'coaches_total', 'coaches_new', 'clients_active', 'signups', 'drops', 'retention30', 'cohort', 'kept', 'sizes', 's1_5', 's6_10', 's11',
                   'weeks', 'start', 'records', 'ref')), 'admin_usage: todas las claves en la lista blanca');
 select tests.ok(not exists (select k from tests.keys(current_setting('t.cu')::jsonb) k
-  where k not in ('active_clients', 'retention30', 'cohort', 'kept', 'last_action_at', 'last_panel_day', 'panel_days', 'weeks', 'start', 'pct_logging', 'trained', 'ref')),
+  where k not in ('active_clients', 'retention30', 'cohort', 'kept', 'last_action_at', 'last_panel_day', 'panel_days', 'weeks', 'start', 'pct_logging', 'trained', 'ref',
+                  'exports')),   -- v1.14 (M6): solo la CANTIDAD de exportaciones del mes
   'admin_coach_usage: todas las claves en la lista blanca');
 select tests.ok(not exists (select k from tests.keys(current_setting('t.u')::jsonb || current_setting('t.cu')::jsonb) k
   where k ~* '(weight|waist|peso|cintura|kg|cm|medida|food|kcal|protein|photo|health|pain|water|steps|sleep|name|client_id)'),
