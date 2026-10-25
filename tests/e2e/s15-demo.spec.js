@@ -103,7 +103,7 @@ test('coach: lista con el «sin pagar», ficha con medidas, hábitos, comidas, f
   await expect(page.locator('#coach-detail-view')).toContainText('Hábitos de la semana');
   await expect(page.locator('#coach-detail-view')).toContainText('Comidas');
   await expect(page.locator('#coach-detail-view')).toContainText('kcal');
-  await expect(page.locator('#coach-detail-rutina-line')).toContainText('2 rutinas');
+  await expect(page.locator('#coach-detail-rutina-line')).toContainText('3 rutinas');   // estilo v2: + «Movilidad suave» (sin video)
   await expect(page.locator('#coach-detail-view')).toContainText('Pecho y tríceps');
   await expect(page.locator('#coach-detail-view')).toContainText('Piernas');
   await page.getByRole('button', { name: /Ver foto:/ }).first().click();
@@ -139,7 +139,8 @@ test('asesorado: Inicio «Mi día», Comidas, Entrenar (con animación), Progres
   await expect(page.locator('#home-dia')).toBeVisible();
   await expect(page.locator('#dia-agua-t')).toHaveText('Agua 3 / 8');
   await expect(page.locator('#dia-sueno-t')).toHaveText('Sueño 7–8 h');
-  await expect(page.locator('#hd-title')).toHaveText('Rutina de hoy: Piernas');
+  await expect(page.locator('#hd-tag')).toHaveText('Rutina de hoy · de tu coach');
+  await expect(page.locator('#hd-title')).toHaveText('Piernas');
   await expect(page.locator('#semana-line')).toContainText('semanas constantes');
   expect(await page.locator('#view-panel').evaluate((v) => v.innerText)).not.toMatch(/kcal/i);
   await page.locator('#tab-comidas').click();

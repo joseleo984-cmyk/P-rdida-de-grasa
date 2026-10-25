@@ -189,13 +189,15 @@ test('cliente: ve «Mi rutina» (solo lectura) con días plegables y la animaci�
   const a = ana.p;
   await a.addStyleTag({ content: H.WIDE });
   // La animación solo se pide al abrir el ejercicio (cada vez, con una URL nueva): se cuentan las llamadas
-  await a.evaluate(() => { window.__gifCalls = 0; const c = PGAccount.remote.client; const o = c.gifBlob.bind(c); c.gifBlob = (...x) => { window.__gifCalls++; return o(...x); }; });
+  await a.evaluate(() => { window.__gifCalls = 0; const c = PGAccount.remote.client; const o = c.gifBlob.bind(c); c.gifBlob = (...x) => { if (!/mountCard/.test(new Error().stack)) window.__gifCalls++; return o(...x); }; });   // estilo v2: el fondo de la tarjeta de Entrenar (mountCard) no cuenta: aquí se mide la lista
   // Inicio: una sola tarjeta («Mi rutina» y «Rutina de hoy» se fusionan) y «Entrenar» en la barra
   expect((await a.locator('.tabbar button:visible').allTextContents()).map((x) => x.trim())).toEqual(['Inicio', 'Comidas', 'Entrenar', 'Progreso', 'Más']);
   await a.locator('#tab-panel').click();
   await expect(a.locator('#home-daily')).toBeVisible();
-  await expect(a.locator('#hd-title')).toHaveText('Mi rutina');
-  await expect(a.locator('#hd-text')).toHaveText('Fuerza en 2 días · 2 días · 3 ejercicios');
+  // Estilo v2 (E1): tarjeta grande con la rutina y «Empezar» (abre el paso a paso en el día que toca)
+  await expect(a.locator('#hd-tag')).toHaveText('Tu rutina · de tu coach');
+  await expect(a.locator('#hd-title')).toHaveText('Fuerza en 2 días');
+  await expect(a.locator('#hd-text')).toHaveText('3 ejercicios · Día 1 de 2');
   await expect(a.locator('#btn-home-daily')).toHaveText('Empezar');
   await a.locator('#tab-entrenar').click();
   await expect(a.locator('#rutina-body .rut-title')).toHaveText('Fuerza en 2 días');
@@ -225,7 +227,7 @@ test('cliente: ve «Mi rutina» (solo lectura) con días plegables y la animaci�
   expect(await a.evaluate(() => window.__gifCalls)).toBe(2);
   expect(await press.locator('img').getAttribute('src')).not.toBe(url1);
   // Todos los ejercicios llevan «Cómo se hace ›»; solo lectura: no hay formularios de edición
-  await expect(a.locator('.rut-ex').filter({ hasText: 'Fondos' })).toContainText('3 × 10');
+  await expect(a.locator('.rut-ex').filter({ hasText: 'Fondos' })).toContainText('3 series · 10 repeticiones');   // estilo v2: lo que escribió el coach, dicho en palabras
   await expect(a.locator('.rut-ex-how')).toHaveCount(3);
   await expect(a.locator('#view-rutina input:not([type=hidden]), #view-rutina textarea, #view-rutina select')).toHaveCount(0);
   await H.layout(a); await H.tall(a, '#view-rutina');
@@ -318,7 +320,7 @@ test('el coach cambia la rutina y el cliente la ve actualizada al volver a la pa
     await r.coach.saveRoutine(ana, { ...cur, title: 'Fuerza en 3 días' });
   });
   await a.locator('#tab-panel').click();
-  await a.locator('#btn-home-daily').click();
+  await a.locator('#tab-entrenar').click();   // estilo v2: «Empezar» de Inicio abre el paso a paso; a la lista se llega por Entrenar
   await expect(a.locator('#rutina-body .rut-title')).toHaveText('Fuerza en 3 días');
   await a.evaluate(async () => {
     const be = window.__pgFakeBackend;
@@ -328,8 +330,11 @@ test('el coach cambia la rutina y el cliente la ve actualizada al volver a la pa
     await r.coach.deleteRoutine(Object.values(be.users).find((u) => u.email === 'ana@c.co').id);
   });
   await a.locator('#tab-panel').click();
-  await a.locator('#btn-home-daily').click();
+  await a.locator('#tab-entrenar').click();
   await expect(a.locator('#rutina-body')).toContainText('Todavía no tienes una rutina.');
+  await expect(a.locator('#rutina-cards')).toBeHidden();
+  await a.locator('#tab-panel').click();
+  await expect(a.locator('#home-daily')).toBeHidden();
 });
 
 // ======================= v1.8: biblioteca, asignar, mostrar/ocultar y rutina de hoy =======================
@@ -468,8 +473,9 @@ test('coach: crea una rutina en «Mis rutinas» con su animación, la asigna a 2
   await expect.poll(() => ana.p.locator('.rut-ex img').evaluate((i) => i.naturalWidth)).toBe(1);
   const beto = await clientPhone(browser, testInfo, coach, 'beto@c.co', 'Beto Ruiz');
   await beto.p.locator('#tab-panel').click();
-  await expect(beto.p.locator('#hd-title')).toHaveText('Mi rutina');
-  await expect(beto.p.locator('#hd-text')).toHaveText('Pecho v2 · 1 día · 1 ejercicio');
+  await expect(beto.p.locator('#hd-tag')).toHaveText('Tu rutina · de tu coach');
+  await expect(beto.p.locator('#hd-title')).toHaveText('Pecho v2');
+  await expect(beto.p.locator('#hd-text')).toHaveText('1 ejercicio');
   await beto.p.locator('#tab-entrenar').click();
   await expect(beto.p.locator('#rutina-body .rut-title')).toHaveText(['Pecho v2']);   // la oculta («Pecho») no aparece
   await expect(beto.p.locator('#rutina-body')).not.toContainText('Pecho de Ana');
@@ -512,12 +518,18 @@ test('rutina de hoy: el coach publica una de su biblioteca para TODOS sus asesor
   for (const c of [ana, beto]) {
     await c.p.addStyleTag({ content: H.WIDE });
     await c.p.locator('#tab-panel').click();
-    await expect(c.p.locator('#hd-title')).toHaveText('Rutina de hoy: Pecho');
+    await expect(c.p.locator('#hd-tag')).toHaveText('Rutina de hoy · de tu coach');
+    await expect(c.p.locator('#hd-title')).toHaveText('Pecho');
     await expect(c.p.locator('#hd-text')).toHaveText('2 ejercicios');
     expect(await c.p.evaluate(async () => (await PGAccount.remote.client.myRoutines()).length)).toBe(0);
   }
   await H.layout(ana.p);
-  await ana.p.getByRole('button', { name: 'Empezar' }).click();
+  // Estilo v2: «Empezar» abre el paso a paso con la rutina de hoy; la lista con «Cómo se hace» sigue en Entrenar
+  await ana.p.getByRole('button', { name: 'Empezar Pecho' }).click();
+  await expect(ana.p.locator('#paso-name')).toHaveText('Press de banca');
+  await ana.p.locator('#paso-x').click();
+  await ana.p.locator('#paso-ask-x').click();
+  await ana.p.locator('#tab-entrenar').click();
   await expect(ana.p.locator('#view-rutina')).toBeVisible();
   await expect(ana.p.locator('#rutina-body .rut-daily .rut-badge')).toHaveText('Rutina de hoy');
   await expect(ana.p.locator('#rutina-body .rut-title')).toHaveText(['Pecho']);
@@ -632,7 +644,7 @@ test('claro y oscuro, letra ancha a 390 px: Mis rutinas, «Asignar a…», la fi
     await ana.p.locator('#tab-panel').click();
     await expect(ana.p.locator('#home-daily')).toBeVisible();
     await H.layout(ana.p);
-    await ana.p.getByRole('button', { name: 'Empezar' }).click();
+    await ana.p.locator('#tab-entrenar').click();   // estilo v2: «Empezar» abre el paso a paso
     await ana.p.locator('.rut-ex').filter({ hasText: 'Press de banca' }).locator('summary').click();
     await expect(ana.p.locator('.rut-ex img')).toBeVisible();
     await H.layout(ana.p); await H.tall(ana.p, '#view-rutina');
@@ -786,7 +798,7 @@ test('cliente: el ejercicio con video se ve como <video muted loop playsinline a
   const ana = await clientPhone(browser, testInfo, coach, 'ana@c.co', 'Ana Martínez');
   const a = ana.p;
   await a.addStyleTag({ content: H.WIDE });
-  await a.evaluate(() => { window.__gifCalls = 0; window.__revoked = []; const rv = URL.revokeObjectURL.bind(URL); URL.revokeObjectURL = (u) => { window.__revoked.push(u); return rv(u); }; const c = PGAccount.remote.client; const o = c.gifBlob.bind(c); c.gifBlob = (...x) => { window.__gifCalls++; return o(...x); }; });
+  await a.evaluate(() => { window.__gifCalls = 0; window.__revoked = []; const rv = URL.revokeObjectURL.bind(URL); URL.revokeObjectURL = (u) => { window.__revoked.push(u); return rv(u); }; const c = PGAccount.remote.client; const o = c.gifBlob.bind(c); c.gifBlob = (...x) => { if (!/mountCard/.test(new Error().stack)) window.__gifCalls++; return o(...x); }; });   // estilo v2: el fondo de la tarjeta de Entrenar (mountCard) no cuenta: aquí se mide la lista
   await a.locator('#tab-entrenar').click();
   await expect(a.locator('#rutina-body .rut-title')).toHaveText('Piernas con video');
   expect(await a.evaluate(() => window.__gifCalls)).toBe(0);                       // nada se pide hasta abrir un ejercicio

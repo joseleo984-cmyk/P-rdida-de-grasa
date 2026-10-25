@@ -1413,7 +1413,7 @@ body.producto-coach .tabbar .tab-add .tab-disc { border-color: var(--bg); box-sh
 /* ---------- E1 · Inicio del asesorado (orden del boceto: saludo → semana → rutina de hoy → anillos → nota del coach) ---------- */
 body.producto-coach #view-panel.active { display: flex; flex-direction: column; }
 body.producto-coach #view-panel > * { order: 50; }
-body.producto-coach #home-coach, body.producto-coach #home-coach2, body.producto-coach #pause-extra { display: contents; }
+body.producto-coach #home-coach, body.producto-coach #home-coach2, body.producto-coach.paused #pause-extra { display: contents; }
 body.producto-coach #home-coach.hidden, body.producto-coach #home-coach2.hidden, body.producto-coach #pause-extra.hidden { display: none; }
 body.producto-coach #view-panel > .home-head { order: 1; }
 body.producto-coach #pause-card { order: 2; }
@@ -1617,4 +1617,4 @@ body.producto-coach .rut-day > summary::after { color: var(--accent-hi); }
 .rut-ex-text .rut-ex-sets { flex: initial; white-space: normal; overflow-wrap: anywhere; }
 .rut-ex > summary .rut-ex-text { flex: 1 1 auto; }
 /* El GIF o video del coach de fondo: entero (sin recortar la demostración), a la derecha, fundido hacia el texto */
-.rcard-media .rcard-video { left: auto; right: 0; width: 62%; object-fit: cover; object-position: center; -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%); mask-image: linear-gradient(90deg, transparent, #000 45%); }
+.rcard-media .rcard-video { left: auto; right: 0; width: 62%; object-fit: contain; object-position: right center; -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%); mask-image: linear-gradient(90deg, transparent, #000 45%); }

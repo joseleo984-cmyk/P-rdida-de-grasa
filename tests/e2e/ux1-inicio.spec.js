@@ -102,12 +102,16 @@ test('contraste: el texto sobre turquesa (botones, barra de arriba, chips) pasa 
     expect(await H.contrast(p, '.tabbar button.on .tb-label'), `${scheme}: pestaña activa de la barra`).toBeGreaterThanOrEqual(4.5);
     expect(await H.contrast(p, '#mc-bienestar'), `${scheme}: texto secundario`).toBeGreaterThanOrEqual(4.5);
   }
-  // En oscuro el texto de los botones es oscuro (antes era blanco sobre #2dd4bf: 1,9:1); en claro, blanco sobre el turquesa profundo
+  // Estilo v2: la barra de arriba va sobre el fondo (casi negro en oscuro) y el texto sobre turquesa sigue oscuro (#04201c) en oscuro y blanco
+  // sobre el turquesa profundo en claro.
   await p.emulateMedia({ colorScheme: 'dark' });
   await p.locator('#tab-panel').click();
-  expect(await p.evaluate(() => getComputedStyle(document.querySelector('.topbar h1')).color)).toBe('rgb(6, 32, 28)');
+  expect(await p.evaluate(() => [getComputedStyle(document.querySelector('.topbar h1')).color, getComputedStyle(document.querySelector('.topbar')).backgroundColor])).toEqual(['rgb(238, 245, 243)', 'rgb(7, 16, 15)']);
+  expect(await p.evaluate(() => [getComputedStyle(document.querySelector('#btn-home-daily, .btn:not(.btn-ghost)')).color])).toEqual(['rgb(4, 32, 28)']);
   await p.emulateMedia({ colorScheme: 'light' });
-  expect(await p.evaluate(() => [getComputedStyle(document.querySelector('.topbar h1')).color, getComputedStyle(document.querySelector('.topbar')).backgroundColor])).toEqual(['rgb(255, 255, 255)', 'rgb(15, 118, 110)']);
+  expect(await p.evaluate(() => [getComputedStyle(document.querySelector('.topbar h1')).color, getComputedStyle(document.querySelector('.topbar')).backgroundColor])).toEqual(['rgb(14, 26, 24)', 'rgb(242, 246, 245)']);
+  await p.locator('#tab-comidas').click();
+  expect(await p.evaluate(() => [getComputedStyle(document.querySelector('#btn-mc-add')).color, getComputedStyle(document.querySelector('#btn-mc-add')).backgroundColor])).toEqual(['rgb(255, 255, 255)', 'rgb(15, 118, 110)']);
   expect(errors).toEqual([]);
 });
 
@@ -151,12 +155,12 @@ test('letra grande (texto al 200 %) a 390 px: la barra de arriba y las pestañas
   expect(errors).toEqual([]);
 });
 
-test('Inicio «Mi día»: nota del coach sin leer arriba; agua +1 por toque, sueño con selector, pasos en tramos y «Entrené» se guardan solos, con Deshacer', async ({ browser }, testInfo) => {
+test('Inicio «Mi día»: nota del coach como tarjeta bajo los anillos (estilo v2); agua +1 por toque, sueño con selector, pasos en tramos y «Entrené» se guardan solos, con Deshacer', async ({ browser }, testInfo) => {
   const { p, errors } = await H.clientApp(browser, testInfo);
   await p.addStyleTag({ content: H.WIDE });
   await expect(p.locator('#home-greeting')).toHaveText('Hola, Ana');
   await expect(p.locator('#home-sub')).toHaveText('Hoy solo hay una tarea: registrar tu día. Te toma menos de un minuto.');
-  // Una nota del coach SIN LEER va arriba de todo (antes de «Mi día»); ya leída baja a «Mensajes anteriores»
+  // Estilo v2 (boceto E1): la nota del coach es una tarjeta de mensaje DEBAJO de los anillos de «Mi día»; ya leída baja a «Mensajes anteriores»
   await p.evaluate(() => {
     const m = PGAccount.meta();
     localStorage.setItem('perdida-grasa:comments', JSON.stringify([{ id: '00000000-0000-4000-8000-00000000c001', clientId: m.userId, body: 'Ana, esta semana registraste 6 de 7 días. ¿Qué te funcionó mejor?', refDate: '2026-10-20', createdAt: '2026-10-20T15:00:00.000Z', readAt: null }]));
@@ -165,7 +169,7 @@ test('Inicio «Mi día»: nota del coach sin leer arriba; agua +1 por toque, sue
   await expect(p.locator('#coach-notes')).toBeVisible();
   await expect(p.locator('#coach-notes-title')).toContainText('te escribió');
   const y = (sel) => p.locator(sel).evaluate((e) => e.getBoundingClientRect().top);
-  expect(await y('#coach-notes')).toBeLessThan(await y('#home-dia'));
+  expect(await y('#coach-notes')).toBeGreaterThan(await y('#home-dia'));
   await H.layout(p); await H.tall(p, '#home-dia');
   await H.shot(p, 'ux1-inicio-mi-dia.png', { fullPage: true });
   // Agua: +1 vaso por toque, guardado al instante (sin botón «Guardar»)
@@ -266,7 +270,7 @@ test('Tu semana: constancia SEMANAL (≥ 4 días con registro), 2 comodines por 
   await H.seedState(p, { habits: { ...wk(-2, [0]), ...wk(-9, [0, 1, 2, 3]), ...wk(-16, [0, 1, 2, 4, 5]), ...wk(-23, [1, 3]) }, foods: { [H.iso(-1)]: [{ name: 'Arepa', kcal: 200 }] } });
   await expect(p.locator('#semana-count')).toHaveText('2 de 7 días');
   const cls = await p.locator('#semana-days li').evaluateAll((l) => l.map((x) => [x.textContent, x.className.replace(/\s+/g, ' ').trim()]));
-  expect(cls.map((c) => c[0]).join('')).toBe('LMMJVSD');
+  expect(cls.map((c) => c[0]).join(' ')).toBe('Lun19 Mar20 Mié21 Jue22 Vie23 Sáb24 Dom25');   // estilo v2: nombre corto y número en cada círculo
   expect(cls[0][1]).toBe('sd on');
   expect(cls[1][1]).toBe('sd on');
   expect(cls[2][1]).toContain('hoy');
