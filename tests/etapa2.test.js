@@ -204,3 +204,25 @@ test('P1 (sync): en modo autónomo solo se suben los hábitos; lo demás espera 
   assert.deepStrictEqual(data.records.filter((r) => r.kind === 'habit').map((r) => r.nkey), [day(be, -3)], 'el coach solo ve lo de antes de la pausa');
   assert.strictEqual(data.records.some((r) => r.kind === 'entry'), false, 'la medida es de un día en pausa: tampoco la ve');
 });
+
+test('aviso de dolor (fake, r1 v1.12): solo la persona reporta; el coach vinculado recibe «Reportó dolor» sin depender de los hábitos, lo marca revisado; en pausa no le llega', async () => {
+  const { x, y, ana, be } = await world();
+  const opt = { version: '1.0-D4', textHash: H };
+  await rejects(ana.r.client.reportPain(day(be, -5), true, opt), 'invalid');
+  await rejects(ana.r.client.reportPain(day(be, 0), 'si', opt), 'invalid');
+  assert.deepStrictEqual(await ana.r.client.reportPain(day(be, 0), false, opt), { day: day(be, 0), pain: false, notified: false });
+  assert.strictEqual((await x.coach.clients()).find((c) => c.clientId === ana.u.id).painReported, null, '«No» no avisa');
+  assert.deepStrictEqual(await ana.r.client.reportPain(day(be, 0), true, opt), { day: day(be, 0), pain: true, notified: true });
+  const row = (await x.coach.clients()).find((c) => c.clientId === ana.u.id);
+  assert.strictEqual(row.painReported, day(be, 0));
+  assert.ok(!JSON.stringify(row).includes('1.0-D4'), 'el coach no recibe la respuesta ni la versión');
+  assert.strictEqual((await y.coach.clients()).length, 0, 'otro coach no ve nada');
+  await rejects(y.coach.reviewPain(ana.u.id), 'forbidden');
+  await rejects(ana.r.coach.reviewPain(ana.u.id), 'forbidden');
+  assert.deepStrictEqual(await x.coach.reviewPain(ana.u.id), { painReported: null });
+  assert.strictEqual((await x.coach.clients()).find((c) => c.clientId === ana.u.id).painReported, null, 'revisado');
+  // En pausa (vencido): queda privado y no llega
+  be.setPaidUntil('ana@c.co', day(be, -3));
+  assert.strictEqual((await ana.r.client.reportPain(day(be, 0), true, opt)).notified, false);
+  assert.strictEqual((await x.coach.clients()).find((c) => c.clientId === ana.u.id).painReported, null);
+});
