@@ -101,6 +101,89 @@ test('M3 + M5: Analítica (Resumen y Ranking privado) con Semana/Mes; quien no c
   expect(errors).toEqual([]);
 });
 
+test('M3 · Tendencia de peso con clic: tocar «estancados» muestra exactamente a esos asesorados (cambio y último pesaje), una fila abre la ficha con Anterior/Siguiente; Cerrar y Esc; nada de la pausa privada', async ({ browser }, testInfo) => {
+  const TEND = [
+    { email: 'ana@c.co', name: 'Ana Martínez', measures: pesos([[-21, 74], [-14, 73.5], [-7, 73.1], [-1, 72.6]]) },
+    { email: 'beto@c.co', name: 'Beto Gómez', habits: false, measures: pesos([[-20, 90], [-13, 90.1], [-6, 90], [0, 90.1]]) },
+    { email: 'dani@c.co', name: 'Dani López', measures: pesos([[-20, 80], [-13, 80.1], [-6, 80], [-2, 80.1]]) },
+    { email: 'eva@c.co', name: 'Eva Ríos', measures: pesos([[-14, 60], [-1, 60.6]]) },
+    { email: 'carla@c.co', name: 'Carla Ruiz', measures: [] },
+  ];
+  const { p, errors } = await H.coachApp(browser, testInfo, TEND);
+  // Carla se pesó durante su pausa privada: el servidor lo guarda como pause_private y el coach NUNCA lo ve (ni en la tendencia ni la fecha)
+  await p.evaluate(() => {
+    const be = window.__pgFakeBackend;
+    const id = Object.values(be.users).find((u) => u.email === 'carla@c.co').id;
+    [[-15, 70], [-8, 69.4], [-1, 68.8]].forEach(([d, w], i) => {
+      const day = new Date(be.clock.now() - 5 * 3600000 + d * 86400000).toISOString().slice(0, 10);
+      be.records[`${id}|entry|${day}`] = { id: `00000000-0000-4000-8000-0000000009${String(i).padStart(2, '0')}`, kind: 'entry', nkey: day, date: day, data: { weight: w }, updatedAt: '2026-10-21T10:00:00.000Z', deletedAt: null, userId: id, pausePrivate: true, serverUpdatedAt: be._serverStamp() };
+    });
+    be._persist();
+  });
+  await p.locator('#tab-coach').click();
+  await expect(p.locator('#coach-clients [data-client]')).toHaveCount(5);
+  await p.locator('#tab-analitica').click();
+  const res = p.locator('#an-resumen');
+  await expect(res.locator('.an-lgd')).toContainText('2 estancados 3+ sem.');
+  await expect(res.locator('.an-lgd')).toContainText('1 van bajando');
+  await expect(res.locator('.an-lgd')).toContainText('1 subiendo');
+  await expect(res.locator('.an-lgd')).toContainText('1 sin datos');
+  // Cada leyenda es un botón (48 px) y la barra también se toca
+  const lg = (k) => res.locator(`.an-lgd-btn[data-trend="${k}"]`);
+  for (const k of ['bajando', 'estancado', 'subiendo', 'sin_datos']) { await expect(lg(k)).toBeVisible(); expect((await lg(k).boundingBox()).height).toBeGreaterThanOrEqual(47.5); }
+  const sheet = p.locator('#sheet-tend');
+  const filas = sheet.locator('#st-list .st-li');
+  await lg('estancado').click();
+  await expect(sheet).toBeVisible();
+  await expect(p.locator('#st-title')).toHaveText('Estancados 3+ sem. · 2');
+  await expect(p.locator('#st-title')).toBeFocused();
+  await expect(filas).toHaveCount(2);
+  await expect(filas.locator('.an-li-t b')).toHaveText(['Beto Gómez', 'Dani López']);
+  await expect(filas.nth(0)).toContainText('BG');
+  await expect(filas.nth(0).locator('.st-pill')).toHaveText('estable 3 sem.');
+  await expect(filas.nth(0)).toContainText('Último pesaje: 21 oct');
+  await expect(filas.nth(1)).toContainText('Último pesaje: 19 oct');
+  await expect(p.locator('#st-rule')).toContainText('Bajando o subiendo: cambio de 0,3 kg o más en el promedio semanal; estancado: menos que eso durante 3 semanas o más. Es una tendencia, no una evaluación.');
+  expect(await sheet.textContent()).not.toMatch(/deber[ií]a|te recomendamos|recomendaci[oó]n|consejo|\bbien\b|\bmal\b/i);
+  await H.shot(p, 'v3-tendencia-estancados.png');
+  // Esc cierra y el foco vuelve a la categoría
+  await p.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+  await expect(lg('estancado')).toBeFocused();
+  // La barra de color: bajando → Ana (−0,5 kg/sem); Cerrar
+  await res.locator('.an-seg-b[data-trend="bajando"]').click();
+  await expect(p.locator('#st-title')).toHaveText('Van bajando · 1');
+  await expect(filas.locator('.an-li-t b')).toHaveText(['Ana Martínez']);
+  await expect(filas.nth(0).locator('.st-pill')).toHaveText('−0,5 kg/sem');
+  await expect(filas.nth(0)).toContainText('Último pesaje: 20 oct');
+  await sheet.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await expect(sheet).toBeHidden();
+  await lg('subiendo').click();
+  await expect(filas.locator('.an-li-t b')).toHaveText(['Eva Ríos']);
+  await expect(filas.nth(0).locator('.st-pill')).toHaveText('+0,3 kg/sem');
+  await p.keyboard.press('Escape');
+  // Sin datos: Carla, con el motivo neutro; lo de su pausa privada no aparece (ni la fecha)
+  await lg('sin_datos').click();
+  await expect(p.locator('#st-title')).toHaveText('Sin datos · 1');
+  await expect(p.locator('#st-sub')).toHaveText('No hay pesajes suficientes en las últimas semanas para ver una tendencia.');
+  await expect(filas.locator('.an-li-t b')).toHaveText(['Carla Ruiz']);
+  await expect(filas.nth(0).locator('.st-pill')).toHaveText('sin pesajes suficientes');
+  await expect(filas.nth(0)).toContainText('Sin pesajes');
+  await expect(sheet).not.toContainText('Último pesaje');
+  await p.keyboard.press('Escape');
+  // Una fila abre la ficha; ahí Anterior / Siguiente siguen funcionando
+  await lg('estancado').click();
+  await filas.filter({ hasText: 'Dani López' }).click();
+  await expect(sheet).toBeHidden();
+  await expect(p.locator('#coach-detail-title')).toHaveText('Dani López');
+  await expect(p.locator('#coach-detail-view')).toBeVisible();
+  await p.locator('#btn-coach-next').click();
+  await expect(p.locator('#coach-detail-title')).not.toHaveText('Dani López');
+  await p.locator('#btn-coach-prev').click();
+  await expect(p.locator('#coach-detail-title')).toHaveText('Dani López');
+  expect(errors).toEqual([]);
+});
+
 test('M1 + M5: el asesorado ve SOLO sus metas (con el pie literal) y jamás un ranking, su puesto ni datos de otros; sin metas no hay ninguna meta', async ({ browser }, testInfo) => {
   const { p, errors } = await H.clientApp(browser, testInfo, { habits: true });
   await H.seedClient(p, 'rival@c.co', 'Rival Secreto', await como(p, 'laura@coach.co', 'return (await r.coach.myCoach()).inviteCode;'), { paidDays: 20, habits: true, measures: pesos([[-3, 60]]) });
@@ -260,6 +343,15 @@ test('390 px con letra al 200 %: Analítica, Ranking, Gráficas, Fijar metas, Me
     await expect(p.locator('#an-resumen .an-glow')).toBeVisible();
     await sinDesborde(`${scheme}: Analítica`);
     await aa(['#an-resumen .an-tag', '#an-range', '#an-resumen .an-k span', '#an-resumen .an-pill', '#an-resumen .an-lgd li', '#an-resumen .an-tag.w', '#an-resumen .an-li-t small', '#view-analitica [data-atab][aria-selected="true"]'], scheme);
+    // Tendencia con clic: la lista de una categoría, sin desborde y con AA
+    await aa(['#an-resumen .an-lgd-btn span'], scheme);
+    await tap('#an-resumen .an-lgd-btn[data-trend="estancado"]');
+    await expect(p.locator('#sheet-tend')).toBeVisible();
+    await sinDesborde(`${scheme}: Tendencia (lista)`);
+    await aa(['#st-title', '#st-sub', '#st-list .an-li-t b', '#st-list .an-li-t small', '#st-list .st-pill', '#st-close', '#st-rule'], `${scheme}: lista`);
+    if (scheme === 'dark') await H.shot(p, 'v3-tendencia-200-oscuro.png');
+    await p.keyboard.press('Escape');
+    await expect(p.locator('#sheet-tend')).toBeHidden();
     await tap('#ant-ranking');
     await tap('[data-by="meta"]');
     await sinDesborde(`${scheme}: Ranking`);

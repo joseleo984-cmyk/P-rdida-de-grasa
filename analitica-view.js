@@ -98,6 +98,7 @@
     for (const b of document.querySelectorAll('#view-analitica [data-per]')) b.setAttribute('aria-pressed', String(b.dataset.per === AN.per));
     for (const b of document.querySelectorAll('#view-analitica [data-atab]')) b.setAttribute('aria-selected', String(b.dataset.atab === AN.tab));
     box.hidden = AN.tab !== 'resumen'; rk.hidden = AN.tab !== 'ranking';
+    AN.rows = rows;
     if (AN.tab === 'resumen') box.innerHTML = resumenHtml(p, rows, list);
     else rk.innerHTML = rankingHtml(p, rows, names, list);
   }
@@ -107,7 +108,8 @@
     const d = s.constancia.delta;
     const k = (big, of, sub) => `<div class="an-k"><b>${big}<small> / ${of}</small></b><span>${sub}</span></div>`;
     const tr = s.trend, tot = rows.length || 1;
-    const seg = An.TREND_ORDER.filter((x) => tr[x]).map((x) => `<i class="tr-${x}" style="flex:${tr[x]}"></i>`).join('');
+    // Cada categoría se toca (barra y leyenda) y abre la lista de esas personas. La barra repite lo de la leyenda: fuera del orden del teclado y oculta al lector.
+    const seg = An.TREND_ORDER.filter((x) => tr[x]).map((x) => `<button type="button" class="an-seg-b" style="flex:${tr[x]}" data-trend="${x}" tabindex="-1" aria-hidden="true"><i class="tr-${x}"></i></button>`).join('');
     const att = attention(list);
     return `<div class="card an-glow"><div class="an-const">${ring(s.constancia.pct, { size: 82, stroke: 9, label: `${s.constancia.pct} %` })}
         <div><p class="an-tag">Constancia promedio</p><p class="small muted">Días con registro de todos, sobre ${p.days}.</p>${d == null ? '' : `<p><span class="an-pill${d < 0 ? ' w' : ''}">${esc(An.deltaText(s, p))}</span></p>`}</div></div></div>
@@ -115,12 +117,52 @@
         ${s.trained.of ? k(s.trained.people, s.trained.of, `entrenaron · ${s.trained.total} ${s.trained.total === 1 ? 'entreno' : 'entrenos'}`) : '<div class="an-k"><b>—</b><span>nadie comparte sus hábitos</span></div>'}</div>
       ${s.trained.notSharing ? `<p class="small muted an-note">${s.trained.notSharing} no ${s.trained.notSharing === 1 ? 'comparte' : 'comparten'} sus hábitos: no cuentan en los entrenos.</p>` : ''}
       <div class="card"><div class="an-ch"><span class="an-tag">Tendencia de peso</span><span class="small muted">últimas 3 semanas</span></div>
-        <div class="an-stack" role="img" aria-label="${An.TREND_ORDER.map((x) => `${tr[x]} ${An.TREND_TEXT[x]}`).join(', ')}">${seg}</div>
-        <ul class="an-lgd">${An.TREND_ORDER.map((x) => `<li><i class="tr-${x}" aria-hidden="true"></i><b>${tr[x]}</b> ${An.TREND_TEXT[x]}</li>`).join('')}</ul>
+        <div class="an-stack">${seg}</div>
+        <ul class="an-lgd an-lgd-b">${An.TREND_ORDER.map((x) => `<li><button type="button" class="an-lgd-btn" data-trend="${x}" aria-haspopup="dialog" aria-label="${tr[x]} ${esc(An.TREND_TEXT[x])}. Ver quiénes"><i class="tr-${x}" aria-hidden="true"></i><span><b>${tr[x]}</b> ${An.TREND_TEXT[x]}</span><span class="an-lgd-go" aria-hidden="true">›</span></button></li>`).join('')}</ul>
         <p class="small muted an-note">Bajando o subiendo: cambio de ${num(An.STALL_KG)} kg o más en el promedio semanal; estancado: menos que eso durante 3 semanas o más. Es una tendencia, no una evaluación.</p></div>
       <div class="card an-att"><div class="an-ch"><span class="an-tag w">Necesitan atención · ${att.length}</span><button type="button" class="btn-link" id="an-ver-todos">Ver todos ›</button></div>
         ${att.length ? `<ul class="an-list">${att.slice(0, 5).map((r) => `<li><button type="button" class="an-li" data-open="${esc(r.clientId)}" aria-label="${esc(r.name)}: ${esc(r.label)}, ${esc(r.reason)}. Abrir su ficha"><span class="an-av ${TONE[r.level]}" aria-hidden="true">${esc(initials(r.name))}</span><span class="an-li-t"><b>${esc(r.name)}</b><small>${esc(r.reason)}</small></span><span class="an-pill ${TONE[r.level]}">${esc(r.label)}</span></button></li>`).join('')}</ul>` : '<p class="small muted">Nadie necesita atención ahora.</p>'}
       </div><p class="small muted an-note">${tot} asesorado${tot === 1 ? '' : 's'} con vínculo activo. Solo cuenta lo que cada uno te comparte.</p>`;
+  }
+  // Lista de UNA categoría de la tendencia: nombre, iniciales, cambio del promedio semanal y último pesaje. Tocar una fila abre la ficha.
+  // Las cifras salen de grasa.coach_analytics (permisos y sin pause_private) y la fecha, de lo que la lista del coach ya descargó.
+  let stOpener = null;
+  function openTrend(kind) {
+    if (!An.TREND_ORDER.includes(kind)) return;
+    const list = people(), names = Object.fromEntries(list.map((x) => [x.clientId, x.name]));
+    const last = Object.fromEntries(list.map((x) => [x.clientId, An.lastWeigh(x.state && x.state.entries)]));
+    const ppl = An.trendPeople(AN.rows || [], kind, { names, last });
+    const known = new Set(list.map((x) => x.clientId));
+    const tone = { bajando: 't', estancado: 'p', subiendo: 'w', sin_datos: 'g' }[kind];
+    $('#st-title').textContent = `${An.TREND_TITLE[kind]} · ${ppl.length}`;
+    $('#st-sub').textContent = kind === 'sin_datos' ? 'No hay pesajes suficientes en las últimas semanas para ver una tendencia.' : 'Cambio del promedio semanal de peso en las últimas semanas. Toca una persona para abrir su ficha.';
+    $('#st-list').innerHTML = ppl.length ? ppl.map((x) => {
+      const can = known.has(x.clientId);
+      return `<li><button type="button" class="an-li st-li" data-st-open="${esc(x.clientId)}"${can ? '' : ' disabled'} aria-label="${esc(x.name)}: ${esc(x.change)}. ${esc(x.lastText)}.${can ? ' Abrir su ficha' : ''}"><span class="an-av ${tone}" aria-hidden="true">${esc(initials(x.name))}</span><span class="an-li-t"><b>${esc(x.name)}</b><small>${esc(x.lastText)}</small></span><span class="an-pill st-pill ${tone}">${esc(x.change)}</span>${can ? '<span class="an-lgd-go" aria-hidden="true">›</span>' : ''}</button></li>`;
+    }).join('') : '<li class="small muted">Nadie en este grupo ahora.</li>';
+    $('#st-rule').textContent = `Bajando o subiendo: cambio de ${num(An.STALL_KG)} kg o más en el promedio semanal; estancado: menos que eso durante 3 semanas o más. Es una tendencia, no una evaluación.`;
+    stOpener = kind;
+    $('#sheet-tend').showModal();
+    $('#st-title').focus();
+  }
+  function wireTrend() {
+    const d = $('#sheet-tend');
+    $('#st-close').addEventListener('click', () => d.close());
+    d.addEventListener('click', (ev) => {
+      if (ev.target === d) { d.close(); return; }   // toque en el fondo
+      const b = ev.target.closest('[data-st-open]');
+      if (!b || b.disabled) return;
+      stOpener = null;
+      d.close();
+      PGCoachPanel.open(b.dataset.stOpen);
+    });
+    // Esc cierra (lo hace el propio <dialog>); el foco vuelve a la categoría que se tocó.
+    // (si se tocó la barra, el foco va a la leyenda de esa categoría, que es el control del teclado)
+    d.addEventListener('close', () => {
+      const k = stOpener; stOpener = null;
+      const t = k && document.querySelector(`#an-resumen .an-lgd-btn[data-trend="${k}"]`);
+      if (t) { try { t.focus(); } catch { /* sin foco */ } }
+    });
   }
   // «Necesitan atención» = el semáforo de la Etapa 1 (Coach.atencion) + el aviso de dolor sin revisar.
   function attention(list) {
@@ -156,6 +198,7 @@
       const t = ev.target.closest('[data-atab]'); if (t) { AN.tab = t.dataset.atab; renderAnalitica(); return; }
       const pe = ev.target.closest('[data-per]'); if (pe) { AN.per = pe.dataset.per; renderAnalitica(); return; }
       const by = ev.target.closest('[data-by]'); if (by && !by.disabled) { AN.by = by.dataset.by; renderAnalitica(); const nb = v.querySelector(`[data-by="${AN.by}"]`); if (nb) nb.focus(); return; }
+      const tg = ev.target.closest('[data-trend]'); if (tg) { openTrend(tg.dataset.trend); return; }
       const o = ev.target.closest('[data-open]'); if (o) { PGCoachPanel.open(o.dataset.open); return; }
       const f = ev.target.closest('[data-fijar]'); if (f) { if (PGCoachPanel.open(f.dataset.fijar)) { setFtab('metas'); openGoals(); } return; }
       if (ev.target.closest('#an-ver-todos')) $('#tab-coach').click();
@@ -359,6 +402,7 @@
   // ================= Arranque =================
   function start() {
     wireAnalitica();
+    wireTrend();
     wireFicha();
     wireNotices();
     document.addEventListener('pg:view', (ev) => { const v = ev.detail && ev.detail.view; if (v === 'metas' || v === 'progreso') renderMetas(); });

@@ -137,3 +137,20 @@ test('«Mis platos»: favoritos sin repetidos, con clave estable, validados', ()
   assert.deepStrictEqual(clean.map((x) => x.key), ['d:arepa-con-huevo:large', 'l:a:1']);
   assert.deepStrictEqual(P.favsClean('basura'), []);
 });
+
+test('tipo de comida por la hora del registro: antes de 10 desayuno, 10–15 almuerzo, 15–18 snack, desde 18 cena', () => {
+  const byH = [[0, 'Desayuno'], [6, 'Desayuno'], [9, 'Desayuno'], [10, 'Almuerzo'], [14, 'Almuerzo'], [15, 'Snack'], [17, 'Snack'], [18, 'Cena'], [20, 'Cena'], [23, 'Cena']];
+  for (const [h, m] of byH) assert.strictEqual(P.mealByHour(h), m, `hora ${h}`);
+  const T = '2026-10-21', Y = '2026-10-20';
+  // Hoy sin hora escrita: la hora actual
+  assert.strictEqual(P.defaultMeal({ day: T, today: T, time: '', nowHour: 20 }), 'Cena');
+  assert.strictEqual(P.defaultMeal({ day: T, today: T, nowHour: 7 }), 'Desayuno');
+  // Con hora escrita manda esa hora (hoy u otro día)
+  assert.strictEqual(P.defaultMeal({ day: T, today: T, time: '16:30', nowHour: 8 }), 'Snack');
+  assert.strictEqual(P.defaultMeal({ day: Y, today: T, time: '07:15', nowHour: 20 }), 'Desayuno');
+  assert.strictEqual(P.defaultMeal({ day: Y, today: T, time: '19:00', nowHour: 8 }), 'Cena');
+  // Otro día sin hora: Almuerzo (no depende de la hora actual)
+  assert.strictEqual(P.defaultMeal({ day: Y, today: T, time: '', nowHour: 20 }), 'Almuerzo');
+  assert.strictEqual(P.defaultMeal({ day: Y, today: T, time: 'basura', nowHour: 6 }), 'Almuerzo');
+  assert.strictEqual(P.defaultMeal(), 'Almuerzo');
+});

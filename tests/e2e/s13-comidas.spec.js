@@ -24,6 +24,9 @@ async function clientApp(browser, testInfo, { habits = true, wide = true } = {})
   if (wide) await p.addStyleTag({ content: H.WIDE });
   return { ...ph, code };
 }
+// «Tipo de comida» es un grupo de 4 botones (radios) arriba del paso 2.
+const pickMeal = (p, meal) => p.locator('#sc-meals').getByRole('radio', { name: meal, exact: true }).check();
+const mealNow = (p) => p.locator('#sc-meals input:checked');
 const foodsOf = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('perdida-grasa:v1')).foods);
 // Agrega un plato del catálogo desde «Mis comidas»: busca, elige, escoge la porción y guarda.
 async function addDish(p, query, { portion, meal, date } = {}) {
@@ -32,7 +35,7 @@ async function addDish(p, query, { portion, meal, date } = {}) {
   await p.locator('#sc-q').fill(query);
   await p.locator('#sc-results .sc-item').first().click();
   if (portion) await p.locator('#sc-portions label', { hasText: portion }).click();
-  if (meal) await p.locator('#sc-meal').selectOption(meal);
+  if (meal) await pickMeal(p, meal);
   if (date) await p.locator('#sc-date').fill(date);
   await p.getByRole('button', { name: 'Agregar', exact: true }).click();
   await expect(p.locator('#sheet-comida')).toBeHidden();
@@ -75,7 +78,10 @@ test('cliente: agrega un plato del catálogo con porción y una comida libre, ve
   await p.locator('#sc-results .sc-item').first().click();
   await expect(p.locator('#sc-step2-title')).toHaveText('Arepa de huevo (costeña)');
   await expect(p.locator('#sc-dish-sub')).toHaveText('Porción normal: 1 arepa de huevo frita · ~280 kcal aprox.');
-  await expect(p.locator('#sc-meal')).toHaveValue('Desayuno');
+  // El tipo sale de la hora del registro (12:00 → Almuerzo), no de la categoría del plato; se cambia con un toque
+  await expect(mealNow(p)).toHaveValue('Almuerzo');
+  await pickMeal(p, 'Desayuno');
+  await expect(mealNow(p)).toHaveValue('Desayuno');
   await expect(p.locator('#sc-date')).toHaveValue(D0);   // hoy por defecto
   await expect(p.locator('#sc-portions label')).toHaveText([/Media porción\s*P ~4 g · ~140 kcal/, /Porción normal\s*P ~8 g · ~280 kcal/, /Porción grande\s*P ~12 g · ~420 kcal/, /Doble porción\s*P ~16 g · ~560 kcal/]);
   await expect(p.locator('#sc-total')).toHaveText('Proteína ~8 g · ~280 kcal aprox.');
@@ -96,7 +102,7 @@ test('cliente: agrega un plato del catálogo con porción y una comida libre, ve
   await p.locator('#sc-free-open').click();
   await expect(p.locator('#sc-step2-title')).toHaveText('Escribir otra comida');
   await expect(p.locator('#sc-portions')).toBeHidden();
-  await p.locator('#sc-meal').selectOption('Almuerzo');
+  await expect(mealNow(p)).toHaveValue('Almuerzo');   // escrita a mano: también por la hora
   await p.getByRole('button', { name: 'Agregar', exact: true }).click();
   await expect(p.locator('#sc-error')).toHaveText('Escribe qué comiste.');
   await p.locator('#sc-name').fill('Pollo con papas');
@@ -139,7 +145,8 @@ test('cliente: agrega un plato del catálogo con porción y una comida libre, ve
   await expect(p.locator('#sc-title')).toHaveText('Editar comida');
   await expect(p.locator('#sc-portions input:checked')).toHaveValue('large');
   await p.locator('#sc-portions label', { hasText: 'Media porción' }).click();
-  await p.locator('#sc-meal').selectOption('Snack');
+  await expect(mealNow(p)).toHaveValue('Desayuno');   // al editar se respeta el tipo guardado
+  await pickMeal(p, 'Snack');
   await p.getByRole('button', { name: 'Guardar cambios' }).click();
   await expect(p.locator('#toast')).toHaveText('Comida actualizada');
   await expect(p.locator('#mc-kcal')).toHaveText('~590');
@@ -200,6 +207,127 @@ test('cliente: elige otro día, repite la de ayer y no puede anotar días futuro
   expect(errors).toEqual([]);
 });
 
+test('tipo de comida por la hora del registro: a las 20:00 un plato del catálogo queda en Cena; tocarlo a mano no se pisa al cambiar la hora; editar respeta el tipo', async ({ browser }, testInfo) => {
+  const { p, errors } = await clientApp(browser, testInfo);
+  await p.clock.setSystemTime(new Date('2026-10-21T20:00:00-05:00'));
+  await p.locator('#tab-comidas').click();
+  // Catálogo: «Arroz con pollo» es de la categoría almuerzo, pero a las 20:00 se propone Cena
+  await p.locator('#btn-mc-add').click();
+  await p.locator('#sc-q').fill('arroz con pollo');
+  await p.locator('#sc-results .sc-item').first().click();
+  await expect(p.locator('#sc-step2-title')).toHaveText('Arroz con pollo');
+  // El tipo va arriba, justo debajo del título, como un grupo de 4 botones con su leyenda
+  await expect(p.locator('#sc-meals legend')).toHaveText('Tipo de comida');
+  expect(await p.locator('#sc-meals').getByRole('radio').evaluateAll((xs) => xs.map((x) => x.value))).toEqual(['Desayuno', 'Almuerzo', 'Cena', 'Snack']);
+  expect(await p.evaluate(() => document.querySelector('#sc-step2-title').nextElementSibling.id)).toBe('sc-meals');
+  for (const b of await p.locator('#sc-meals label').all()) expect((await b.boundingBox()).height).toBeGreaterThanOrEqual(48);
+  await expect(mealNow(p)).toHaveValue('Cena');
+  await expect(p.locator('#sc-time')).toHaveValue(/^20:\d\d$/);
+  // Sin tocarlo a mano, cambiar la hora lo recalcula (antes de 10, 10–15, 15–18, desde 18)
+  await p.locator('#sc-time').fill('08:30');
+  await expect(mealNow(p)).toHaveValue('Desayuno');
+  await p.locator('#sc-time').fill('16:00');
+  await expect(mealNow(p)).toHaveValue('Snack');
+  await p.locator('#sc-time').fill('12:15');
+  await expect(mealNow(p)).toHaveValue('Almuerzo');
+  // Otro día sin hora: Almuerzo
+  await p.locator('#sc-time').fill('');
+  await p.locator('#sc-date').fill(D1);
+  await expect(mealNow(p)).toHaveValue('Almuerzo');
+  // Otro día con hora escrita: esa hora
+  await p.locator('#sc-time').fill('19:00');
+  await expect(mealNow(p)).toHaveValue('Cena');
+  await p.locator('#sc-date').fill(D0);
+  await p.locator('#sc-time').fill('20:05');
+  await p.getByRole('button', { name: 'Agregar', exact: true }).click();
+  await expect(p.locator('#sheet-comida')).toBeHidden();
+  expect((await foodsOf(p))[D0][0]).toMatchObject({ dish: 'arroz-con-pollo', meal: 'Cena', time: '20:05' });
+  // Escrita a mano a las 20:00: Cena; si la persona elige Snack y luego cambia la hora, no se pisa
+  await p.locator('#btn-mc-add').click();
+  await p.locator('#sc-free-open').click();
+  await expect(mealNow(p)).toHaveValue('Cena');
+  await p.locator('#sc-meals label', { hasText: 'Snack' }).click();
+  const bg = (t) => p.locator('#sc-meals label', { hasText: t }).evaluate((l) => getComputedStyle(l).backgroundColor);
+  expect(await bg('Snack')).not.toBe(await bg('Cena'));   // el activo se distingue (no solo por color de borde)
+  await p.locator('#sc-time').fill('08:00');
+  await expect(mealNow(p)).toHaveValue('Snack');
+  await p.locator('#sc-name').fill('Yogur con fruta');
+  await p.locator('#sc-kcal-in').fill('180');
+  await p.getByRole('button', { name: 'Agregar', exact: true }).click();
+  await expect(p.locator('#sheet-comida')).toBeHidden();
+  // Desde el teclado: flechas dentro del grupo y foco visible
+  await p.locator('#btn-mc-add').click();
+  await p.locator('#sc-free-open').click();
+  await p.locator('#sc-meals input:checked').focus();
+  await p.keyboard.press('ArrowLeft');
+  await expect(mealNow(p)).toHaveValue('Almuerzo');
+  expect(await p.locator('#sc-meals label:has(input:focus-visible)').evaluate((l) => getComputedStyle(l).outlineStyle)).toBe('solid');
+  await p.locator('#sc-time').fill('19:00');
+  await expect(mealNow(p)).toHaveValue('Almuerzo');   // lo cambió con el teclado: tampoco se pisa
+  await p.locator('#sc-close').click();
+  // Editar respeta el tipo guardado (aunque la hora diga otra cosa) y cambiar la hora no lo recalcula
+  await H.openMeal(p, 'Yogur con fruta');
+  await p.getByRole('button', { name: 'Editar: Yogur con fruta' }).click();
+  await expect(mealNow(p)).toHaveValue('Snack');
+  await p.locator('#sc-time').fill('21:00');
+  await expect(mealNow(p)).toHaveValue('Snack');
+  await p.getByRole('button', { name: 'Guardar cambios' }).click();
+  expect((await foodsOf(p))[D0].find((x) => x.name === 'Yogur con fruta')).toMatchObject({ meal: 'Snack', time: '21:00' });
+  await H.openMeal(p, 'Arroz con pollo');
+  await p.getByRole('button', { name: 'Editar: Arroz con pollo' }).click();
+  await expect(mealNow(p)).toHaveValue('Cena');
+  await p.locator('#sc-close').click();
+  // «Mis platos» guarda el tipo: al usarlo a otra hora se respeta
+  await H.openMeal(p, 'Yogur con fruta');
+  await p.getByRole('button', { name: 'Guardar en Mis platos: Yogur con fruta' }).click();
+  await p.clock.setSystemTime(new Date('2026-10-21T21:30:00-05:00'));
+  await p.locator('#btn-mc-platos').click();
+  await p.locator('#sc-mine .sc-item', { hasText: 'Yogur con fruta' }).click();
+  await expect(mealNow(p)).toHaveValue('Snack');
+  await p.locator('#sc-close').click();
+  expect(errors).toEqual([]);
+});
+
+test('«Tipo de comida» a 390 px con letra al 200 % y fuente ancha: los 4 botones caben (o bajan a 2 × 2), miden 48 px y el activo pasa AA en oscuro y claro', async ({ browser }, testInfo) => {
+  const { p, errors } = await clientApp(browser, testInfo);
+  const { contrast } = require('./ux1-helpers');
+  await p.locator('#tab-comidas').click();
+  const check = async (donde) => {
+    const r = await p.evaluate(() => {
+      const fs = document.querySelector('#sc-meals'), sheet = document.querySelector('#sheet-comida');
+      const box = sheet.getBoundingClientRect();
+      const labels = [...fs.querySelectorAll('label')].map((l) => { const b = l.getBoundingClientRect(), sp = l.querySelector('span'); return { h: b.height, left: b.left, right: b.right, top: Math.round(b.top), cut: sp.scrollWidth > sp.clientWidth + 1, lines: (() => { const rg = document.createRange(); rg.selectNodeContents(sp); return new Set([...rg.getClientRects()].map((q) => Math.round(q.top))).size; })() }; });
+      return { two: fs.classList.contains('two'), one: fs.classList.contains('one'), rows: new Set(labels.map((l) => l.top)).size, labels, inside: labels.every((l) => l.left >= box.left - 0.5 && l.right <= box.right + 0.5), sheetScroll: sheet.scrollWidth <= sheet.clientWidth + 1, pageScroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth };
+    });
+    expect(r.labels.every((l) => !l.cut), `${donde}: etiqueta cortada`).toBe(true);
+    expect(r.labels.every((l) => l.lines === 1), `${donde}: una palabra partida`).toBe(true);
+    expect(r.labels.every((l) => l.h >= 47.5), `${donde}: alto`).toBe(true);
+    expect(r.inside && r.sheetScroll && r.pageScroll, `${donde}: desborde`).toBe(true);
+    expect(r.rows, `${donde}: filas`).toBe(r.one ? 4 : r.two ? 2 : 1);
+    return r;
+  };
+  for (const scheme of ['dark', 'light']) {
+    await p.emulateMedia({ colorScheme: scheme });
+    await p.evaluate(() => { document.documentElement.style.fontSize = ''; });
+    await p.locator('#btn-mc-add').click();
+    await p.locator('#sc-q').fill('arroz con pollo');
+    await p.locator('#sc-results .sc-item').first().click();
+    await check(`${scheme} 100 %`);
+    expect(await contrast(p, '#sc-meals label:has(input:checked) span'), scheme).toBeGreaterThanOrEqual(4.5);
+    expect(await contrast(p, '#sc-meals label:has(input:not(:checked)) span'), scheme).toBeGreaterThanOrEqual(4.5);
+    // Letra al 200 % y fuente ancha (como la de CI): no caben 4 en una fila → 2 × 2
+    await p.addStyleTag({ content: H.WIDE });
+    await p.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+    const big = await check(`${scheme} 200 %`);
+    expect(big.two || big.one).toBe(true);   // 2 × 2 (o, si ni así cabe la palabra más larga, uno debajo de otro): nunca «Desayun-o»
+    if (scheme === 'dark') { await H.shot(p, 's13-tipo-200-oscuro.png'); }
+    await p.locator('#sc-close').evaluate((b) => b.click());
+    await p.reload(); await H.ready(p);
+    await p.locator('#tab-comidas').evaluate((b) => b.click());
+  }
+  expect(errors).toEqual([]);
+});
+
 test('el coach ve las comidas en la ficha: últimos 7 días con total por día, plato, porción, tipo y hora', async ({ browser }, testInfo) => {
   const cli = await clientApp(browser, testInfo);
   const a = cli.p;
@@ -211,9 +339,9 @@ test('el coach ve las comidas en la ficha: últimos 7 días con total por día, 
   await a.locator('#sc-name').fill('Pollo con papas');
   await a.locator('#sc-kcal-in').fill('450');
   await a.locator('#sc-time').fill('19:30');
-  await a.locator('#sc-meal').selectOption('Cena');
+  await expect(mealNow(a)).toHaveValue('Cena');   // al escribir la hora se recalcula (no lo tocó a mano)
   await a.getByRole('button', { name: 'Agregar', exact: true }).click();
-  await addDish(a, 'tamal', { date: '2026-10-18', portion: 'Doble porción' });
+  await addDish(a, 'tamal', { date: '2026-10-18', portion: 'Doble porción', meal: 'Desayuno' });
   await addDish(a, 'banano', { date: '2026-10-10' });   // fuera de los 7 días
   await expect.poll(async () => Object.values((await H.backend(a)).records).filter((r) => r.kind === 'food').length).toBe(5);
   // Teléfono del coach: mismo «servidor», sesión de Laura

@@ -14,7 +14,7 @@ async function addDish(p, query, { portion, meal } = {}) {
   await p.locator('#sc-q').fill(query);
   await p.locator('#sc-results .sc-item').first().click();
   if (portion) await p.locator('#sc-portions label', { hasText: portion }).click();
-  if (meal) await p.locator('#sc-meal').selectOption(meal);
+  if (meal) await p.locator('#sc-meals').getByRole('radio', { name: meal, exact: true }).check();
   await p.getByRole('button', { name: 'Agregar', exact: true }).click();
   await expect(p.locator('#sheet-comida')).toBeHidden();
 }

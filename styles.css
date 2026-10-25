@@ -759,6 +759,17 @@ body.paused #rutina-trained { display: none !important; }
 .sc-pk { color: var(--muted); font-size: .9rem; }
 .sc-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 12px; }
 .sc-row input, .sc-row select, .sc-free input { min-height: 48px; }
+/* Tipo de comida: segmento de 4 botones (radios nativos). Si una etiqueta no cabe (letra grande, fuente ancha), app.js pone .two → 2 × 2. */
+.sc-meals { border: 0; margin: 10px 0 4px; padding: 0; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.sc-meals.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sc-meals.one { grid-template-columns: minmax(0, 1fr); }
+.sc-meals legend { font-weight: 600; padding: 0; margin-bottom: 6px; }
+.sc-meals label { position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; min-width: 0; padding: 6px 2px; border: 2px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--text); font-size: .92rem; font-weight: 700; cursor: pointer; text-align: center; }
+.sc-meals input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.sc-meals span { display: block; min-width: 0; max-width: 100%; white-space: nowrap; overflow: hidden; }
+.sc-meals.one span { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.sc-meals label:has(input:checked) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.sc-meals label:has(input:focus-visible) { outline: 3px solid var(--goal); outline-offset: 2px; }
 .sc-total { margin: 14px 0 4px; font-size: 1.3rem; font-weight: 800; }
 .mc-daynav { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .mc-daynav .btn { flex: none; min-width: 48px; min-height: 48px; font-size: 1.4rem; line-height: 1; padding: 0 12px; }
@@ -1671,6 +1682,26 @@ body.producto-coach {
 /* Tendencia de peso: barra apilada + leyenda (los colores marcan tendencia, no juicio) */
 .an-stack { display: flex; height: 14px; gap: 2px; border-radius: 7px; overflow: hidden; background: var(--c-g); margin: 4px 0 8px; }
 .an-stack i, .an-lgd i { display: block; }
+/* Tendencia de peso: cada categoría (barra y leyenda) abre la lista de esas personas. */
+/* La barra mide 48 px para el dedo; el color es una franja de 22 px en el centro. */
+.an-stack { height: 48px; align-items: center; border-radius: 0; overflow: visible; background: none; margin: 0 0 4px; }
+.an-seg-b { display: flex; align-items: center; min-width: 12px; height: 48px; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; }
+.an-seg-b i { display: block; width: 100%; height: 22px; }
+.an-seg-b:first-child i { border-radius: 8px 0 0 8px; } .an-seg-b:last-child i { border-radius: 0 8px 8px 0; } .an-seg-b:only-child i { border-radius: 8px; }
+.an-seg-b:hover i { filter: brightness(1.12); }
+.an-lgd-b { gap: 6px 8px; }
+.an-lgd-b li { display: block; flex: 1 1 auto; }
+.an-lgd-btn { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--muted); font: inherit; font-size: .9rem; text-align: left; cursor: pointer; }
+.an-lgd-btn span { min-width: 0; overflow-wrap: anywhere; }
+.an-lgd-btn .an-lgd-go, .st-li .an-lgd-go { margin-left: auto; color: var(--muted); font-weight: 800; }
+.an-lgd-btn:focus-visible, .an-seg-b:focus-visible, .st-li:focus-visible, .st-close:focus-visible { outline: 3px solid var(--accent-hi, var(--accent)); outline-offset: 2px; }
+.an-pill.p { background: var(--p-bg); color: var(--p-fg); }
+.an-av.p { color: var(--p-fg); } .an-av.g { color: var(--g-fg); }
+#sheet-tend .st-close { width: auto; min-height: 48px; margin: 0; padding: 6px 16px; flex: none; }
+.st-list { margin: 4px 0; }
+.st-li { min-height: 64px; }
+.st-li .st-pill { flex: none; max-width: 45%; text-align: right; }
+.st-li:disabled { cursor: default; opacity: 1; }
 .tr-bajando { background: var(--c-t); } .tr-estancado { background: var(--c-p); } .tr-subiendo { background: var(--c-w); } .tr-sin_datos { background: var(--c-g); }
 .an-lgd { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .85rem; color: var(--muted); }
 .an-lgd li { display: flex; align-items: center; gap: 6px; }

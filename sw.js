@@ -2,7 +2,7 @@
 // Cada entorno (raíz / pruebas) tiene su propia caché: config.js + ns.js deciden el nombre (ver ns.js).
 self.window = self;
 importScripts('config.js', 'ns.js');
-const CACHE = PGNS.cacheName(51);
+const CACHE = PGNS.cacheName(52);
 const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'consent-texts.js', 'producto.js', 'consent-texts-solo.js', 'pagos.js', 'medidas.js', 'habitos.js', 'constancia.js', 'platos.js', 'rutinas.js', 'paso.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'etapa2.js', 'app.js', 'config.js', 'ns.js', 'vendor/supabase-2.117.2.js', 'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'rutinas-view.js', 'etapa2-view.js', 'analitica.js', 'admin.js', 'analitica-view.js', 'admin-view.js', 'manifest.webmanifest', 'icon.svg', 'fonts/BricolageGrotesque-Bold.ttf', 'legal/terminos.html', 'legal/privacidad.html'];
 
 self.addEventListener('install', (e) => {

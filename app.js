@@ -2301,7 +2301,6 @@
   const capFirst = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   const longDay = (d) => capFirst(new Date(d + 'T12:00:00').toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', ''));
   const nowHM = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
-  const mealByHour = (h) => (h < 10 ? 'Desayuno' : h < 15 ? 'Almuerzo' : h < 18 ? 'Snack' : 'Cena');
   const plural1 = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   // Compartir las comidas con el coach es OBLIGATORIO en este producto: hasta confirmarlo (Más → Mi coach) no se agrega nada.
   function shareGate() {
@@ -2473,10 +2472,37 @@
     const v = Platos.scale(scSt.dish, formC.elements.portion.value || 'normal');
     setText($('#sc-total'), `Proteína ${Platos.approx(v.protein)} g · ${Platos.kcalApprox(v.kcal)}`);
   }
-  formC.addEventListener('change', (ev) => { if (ev.target.name === 'portion') scUpdateTotal(); });
+  formC.addEventListener('change', (ev) => {
+    if (ev.target.name === 'portion') scUpdateTotal();
+    if (ev.target.name === 'meal' && scSt) scSt.mealHand = true;   // lo eligió a mano: ya no se recalcula por la hora
+  });
+  // Tipo de comida propuesto por la hora del registro (Platos.defaultMeal). Solo al AGREGAR y mientras la persona no lo toque.
+  const scAutoMeal = () => Platos.defaultMeal({ day: formC.elements.date.value, today: today(), time: formC.elements.time.value, nowHour: new Date().getHours() });
+  function scRecalcMeal() {
+    if (!scSt || scSt.mealHand || scSt.mealFixed) return;
+    formC.elements.meal.value = scAutoMeal();
+  }
+  for (const id of ['#sc-time', '#sc-date']) for (const evt of ['input', 'change']) $(id).addEventListener(evt, scRecalcMeal);
+  // 4 botones en una fila; si no caben (letra grande o fuente ancha), 2 × 2.
+  const scMeals = $('#sc-meals');
+  let scMealsKey = '';
+  function scFitMeals(force) {
+    const w = scMeals.clientWidth;
+    if (!w) return;
+    const cs = getComputedStyle(scMeals), key = `${w}|${cs.fontSize}|${cs.fontFamily}|${cs.letterSpacing}`;
+    if (!force && key === scMealsKey) return;   // el cambio de 1 fila a 2 no vuelve a medir (sin bucles)
+    scMealsKey = key;
+    // 4 en una fila → 2 × 2 → (si ni así cabe una palabra) uno debajo de otro. Nunca se parte una palabra.
+    const tight = () => [...scMeals.querySelectorAll('span')].some((x) => x.scrollWidth > x.clientWidth + 1);
+    scMeals.classList.remove('two', 'one');
+    if (tight()) { scMeals.classList.add('two'); if (tight()) { scMeals.classList.remove('two'); scMeals.classList.add('one'); } }
+  }
+  if (window.ResizeObserver) { const ro = new ResizeObserver(() => scFitMeals()); ro.observe(scMeals); for (const x of scMeals.querySelectorAll('span')) ro.observe(x); }
+  window.addEventListener('resize', () => scFitMeals(true));
   function scOpenForm({ dish, edit, day, fav }) {
     const free = !dish;
-    scSt = { mode: free ? 'free' : 'dish', dish: dish || null, edit: edit || null, day };
+    // mealFixed: al editar (o desde «Mis platos» con su tipo guardado) se respeta el tipo; mealHand: la persona lo tocó.
+    scSt = { mode: free ? 'free' : 'dish', dish: dish || null, edit: edit || null, day, mealFixed: !!edit || !!(fav && fav.meal), mealHand: false };
     const f = formC.elements;
     $('#sc-error').classList.add('hidden');
     $('#sc-free').classList.toggle('hidden', !free);
@@ -2486,13 +2512,15 @@
     if (!free) $('#sc-portions').innerHTML = '<legend>¿Cuánto comiste?</legend>' + scPortionsHTML(dish, (edit && edit.portion) || (fav && fav.portion) || 'normal');
     f.name.value = free ? (edit ? edit.name : fav ? fav.name : '') : '';
     f.kcal.value = free ? (edit ? String(edit.kcal) : fav ? String(fav.kcal) : '') : '';
-    f.meal.value = edit ? edit.meal : fav && fav.meal ? fav.meal : free ? mealByHour(new Date().getHours()) : (Platos.categoryOf(dish.category) || {}).meal || 'Snack';
     f.date.value = day; f.date.max = today();
     f.time.value = edit ? edit.time || '' : day === today() ? nowHM() : '';
+    // Al agregar, el tipo SIEMPRE sale de la hora del registro (catálogo o escrita a mano); al editar o desde «Mis platos», el guardado.
+    f.meal.value = edit ? edit.meal : fav && fav.meal ? fav.meal : scAutoMeal();
     setText($('#sc-save'), edit ? 'Guardar cambios' : 'Agregar');
     setText($('#sc-back'), edit ? 'Cancelar' : 'Volver a la lista');
     scUpdateTotal();
     scShow('form');
+    scFitMeals(true);
     $('#sc-step2-title').focus();
   }
   function openComida({ edit, day, opener, tab } = {}) {
@@ -2545,7 +2573,7 @@
     const date = f.date.value;
     if (!Schema.isISODate(date)) { fail('Elige el día.', f.date); return; }
     if (date > today()) { fail('Ese día todavía no llega: elige hoy o un día anterior.', f.date); return; }
-    const meal = f.meal.value, time = /^\d{2}:\d{2}$/.test(f.time.value) ? f.time.value : '';
+    const meal = f.meal.value || scAutoMeal(), time = /^\d{2}:\d{2}$/.test(f.time.value) ? f.time.value : '';
     let fields;
     if (scSt.mode === 'dish') {
       fields = Platos.toFood(scSt.dish, f.portion.value || 'normal', { meal, time: time || undefined });
