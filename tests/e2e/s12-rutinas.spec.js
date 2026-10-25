@@ -373,7 +373,7 @@ test('coach: crea una rutina en «Mis rutinas» con su animación, la asigna a 2
   const p = coach.p;
   await p.addStyleTag({ content: H.WIDE });
   // La barra del coach es Asesorados · Rutinas · Invitar · Más: «Mis rutinas» pasó a la barra
-  expect((await p.locator('.tabbar button:visible').allTextContents()).map((x) => x.trim())).toEqual(['Asesorados', 'Rutinas', 'Invitar', 'Más']);
+  expect((await p.locator('.tabbar button:visible').allTextContents()).map((x) => x.trim())).toEqual(['Asesorados', 'Analítica', 'Rutinas', 'Invitar', 'Más']);
   await openLibrary(p);
   await expect(p.locator('#tab-rutinas')).toHaveAttribute('aria-current', 'page');
   await expect(p.locator('#rl-status')).toContainText('Todavía no tienes rutinas');

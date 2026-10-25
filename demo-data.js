@@ -224,16 +224,43 @@
     diego: { condition: 'no', pregnancy: 'no' }, elena: { condition: 'no', pregnancy: 'yes' }, fabio: { condition: 'no', pregnancy: 'skip' }, gina: { condition: 'no', pregnancy: 'no' },
   };
   const PROTEIN_GOALS = { ana: 110, beto: 150 };
+  // r1 v1.13 (concepto 5): metas OPCIONALES que fija el coach (Hugo sin metas: queda «Sin meta fijada» en el ranking). La proteína es la de PROTEIN_GOALS.
+  const GOALS = { ana: { weight_kg: 69.7, waist_cm: 74, water_days: 7, steps_days: 5, sleep_days: 6, trained_days: 3 }, fabio: { weight_kg: 98.6 }, elena: { weight_kg: 68.7 },
+    carla: { waist_cm: 73 }, beto: { weight_kg: 85 }, gina: { weight_kg: 60 }, diego: { weight_kg: 82 } };
+  // r1 v1.13: plataforma para el modo admin de la demo (?rol=admin). Coaches y asesorados FICTICIOS; el admin solo ve cantidades.
+  const ADMIN = { key: 'admin', name: 'José Demo', email: 'admin.demo@example.com' };
+  const OTHER_COACHES = [
+    { key: 'fuerza', business: 'Fuerza Studio', name: 'Andrés R.', clients: 12, created: -80, newThisMonth: 4 },
+    { key: 'laura', business: 'Laura Entrena', name: 'Laura M.', clients: 6, created: -60, newThisMonth: 2, ended: 1 },
+    { key: 'vida', business: 'Vida Activa', name: 'Marta P.', clients: 4, created: -20, newThisMonth: 3, ended: 1 },
+    { key: 'pablo', business: 'Pablo Coach', name: 'Pablo T.', clients: 0, created: -100, suspended: 'Pidió pausar su cuenta' },
+  ];
+  const NOTICES = [{ title: 'Nueva función: analítica de tus asesorados', body: 'En la pestaña «Analítica» ves la constancia de todos y un ranking que solo ves tú.', from: -5, to: 6 },
+    { title: 'Cobro de octubre', body: 'Esta semana te escribimos para el cobro del mes, por fuera de la app.', from: -24, to: -20 }];
+  const PANEL_DAYS = [-6, -5, -3, -2, 0];   // el coach de la demo abrió su panel 5 de los últimos 7 días
   const RETO_MARKS = { ana: 4, beto: 3, carla: 3, elena: 4, fabio: 3, gina: 1, hugo: 0 };   // Diego (en pausa) no está en el reto: su Inicio queda como la imagen A12
   // Lo que Diego anota en modo autónomo durante la pausa (días relativos a hoy): el coach NO lo ve.
   const AUTONOMOUS = [[-2, { water: 1.5, sleep: 7 }], [-1, { water: 1, sleep: 6.5 }], [0, { water: 0.5 }]];
 
   // ---------- Plan completo (puro) ----------
+  // r1 v1.13: la «Tendencia de peso» de la Analítica (M3) tiene de todo, como el boceto: Beto y Gina estables las últimas semanas (estancados)
+  // y Diego sube un poco al final. Se aplica sobre las series ya generadas (mismos datos cada día, solo cambian las fechas).
+  const TREND_SHAPE = { beto: 'flat', gina: 'flat', diego: 'up' };
+  function shapeTrend(p, entries, today) {
+    const kind = TREND_SHAPE[p.key];
+    const ws = entries.filter((e) => typeof e.weight === 'number');
+    if (!kind || ws.length < 3) return entries;
+    const from = addDays(today, -24);
+    const base = (ws.filter((e) => e.date <= from).pop() || ws[0]).weight;
+    let k = 0;
+    for (const e of ws) if (e.date > from) e.weight = kind === 'up' ? r1(base + 0.3 * ++k) : r1(base + ((k++ % 3) - 1) * 0.1);
+    return entries;
+  }
   function buildPlan(today, { Platos } = {}) {
     const P = Platos || deps().Platos;
     const clients = PEOPLE.map((p) => {
       const rnd = rng('demo:' + p.key);
-      return { ...p, entries: buildEntries(p, today, rnd), habits: buildHabits(p, today, rnd), foods: p.foodDays ? buildFoods(p, today, rnd, P) : [],
+      return { ...p, entries: shapeTrend(p, buildEntries(p, today, rnd), today), habits: buildHabits(p, today, rnd), foods: p.foodDays ? buildFoods(p, today, rnd, P) : [],
         photos: p.photos.map(([wk, pose, shared], i) => {
           const date = addDays(today, p.last - 7 * (p.weeks - wk));
           return { id: uid(`foto:${p.key}:${i}`), date: date > today ? today : date, pose, shared: shared === 1, week: wk, progress: p.weeks ? wk / p.weeks : 0, width: 360, height: 480 };
@@ -448,6 +475,7 @@
         for (const q of E2.QUESTIONS) await r.client.setHealthAnswer(q, ans[q], { version: E2.HEALTH[q].version, textHash: await sha256(E2.healthText(q, ans[q])) });
       }
       for (const [key, g] of Object.entries(PROTEIN_GOALS)) await rc.coach.setProteinGoal(clients[key].id, g);
+      for (const [key, g] of Object.entries(GOALS)) await rc.coach.setGoals(clients[key].id, { ...g, ...(PROTEIN_GOALS[key] ? { protein_g: PROTEIN_GOALS[key] } : {}) });
       const tb = be.todayBogota();
       const reto = await rc.coach.createChallenge({ id: uid('reto:agua'), title: '7 días de agua', habit: 'water', target: 5, start: addDays(tb, -5), end: addDays(tb, 1),
         clients: plan.clients.filter((c) => c.key !== 'diego').map((c) => clients[c.key].id) });
@@ -468,8 +496,61 @@
       const rb = asUser(be, clients.beto, D);
       await rb.client.reportPain(addDays(be.todayBogota(), -1), true, { version: D.Paso.DOLOR.version, textHash: await sha256(D.Paso.dolorText()) });
     }
+    // --- r1 v1.13: cupo gratis de 5 (como los términos), días en que abrió el panel, avisos y el resto de la plataforma (modo admin) ---
+    be.coaches[coachU.id].freeClients = 5;
+    be.panelDays[coachU.id] = PANEL_DAYS.map((n) => addDays(be.todayBogota(), n));
+    const admin = makeUser({ ...ADMIN, started: -120 });
+    be._grant(admin.id, 'client'); be._grant(admin.id, 'admin');
+    await asUser(be, admin, D).account.recordConsents([await ev('sensitive_health', 'AU', {}, dayMs(-120)), await ev('cloud_transfer', 'AU', {}, dayMs(-120))]);
+    const ra = asUser(be, admin, D);
+    for (const n of NOTICES) {
+      const out = await ra.admin.saveNotice({ title: n.title, body: n.body, from: addDays(be.todayBogota(), n.from), to: addDays(be.todayBogota(), Math.max(n.to, -1)) });
+      be.notices[out.id].endsOn = addDays(be.todayBogota(), n.to);
+      be.notices[out.id].createdAt = iso(dayMs(n.from - 1));
+    }
+    seedPlatform(be, today, nowMs);
     be._persist();
-    return { today, coach: coachU, code: INVITE_CODE, clients, plan: { photos: Object.fromEntries(plan.clients.map((c) => [c.key, c.photos])) } };
+    return { today, coach: coachU, admin, code: INVITE_CODE, clients, plan: { photos: Object.fromEntries(plan.clients.map((c) => [c.key, c.photos])) } };
+  }
+
+  // Coaches y asesorados ficticios para el panel admin: solo hábitos sueltos (nadie los ve por nombre; el admin solo recibe cantidades).
+  function seedPlatform(be, today, nowMs) {
+    const iso = (ms) => new Date(ms).toISOString();
+    const at = (off) => nowMs + off * 86400000;
+    const t0 = be.todayBogota();
+    const ev = (userId, kind) => ({ id: uid(`consent:${userId}:${kind}`), userId, appId: 'grasa', kind, granted: true, version: 't', textHash: 'a'.repeat(64), coachId: null, clientAt: iso(at(-90)), createdAt: iso(at(-90)) });
+    for (const c of OTHER_COACHES) {
+      const cid = uid('coach:' + c.key);
+      const email = `${c.key}.coach.demo@example.com`;
+      be.users[email] = { id: cid, email, createdAt: iso(at(c.created)) };
+      be.profiles[cid] = { displayName: c.name };
+      be._grant(cid, 'client'); be._grant(cid, 'coach');
+      be.consentEvents.push(ev(cid, 'coach_agreement'));
+      be.coaches[cid] = { businessName: c.business, inviteCode: uid('code:' + c.key).replace(/[^A-HJ-KM-NP-Z2-9]/gi, '').toUpperCase().replace(/[01ILO]/g, 'A').slice(0, 6).padEnd(6, 'X'),
+        freeClients: 5, active: !c.suspended, codeRotatedAt: iso(at(c.created)), createdAt: iso(at(c.created)) };
+      if (c.suspended) be.coachEvents.push({ coachId: cid, active: false, reason: c.suspended, at: iso(at(-12)) });
+      be.panelDays[cid] = c.suspended ? [] : [-4, -1, 0].map((n) => addDays(t0, n));
+      const total = c.clients + (c.ended || 0);
+      for (let i = 0; i < total; i++) {
+        const id = uid(`asesorado:${c.key}:${i}`), em = `a${i}.${c.key}.demo@example.com`;
+        const started = i < (c.newThisMonth || 0) ? -Math.min(Number(t0.slice(8, 10)) - 1, 3 + i * 2) : -(20 + i * 9);
+        be.users[em] = { id, email: em, createdAt: iso(at(started)) };
+        be.profiles[id] = { displayName: `Asesorado ${i + 1} Demo` };
+        be._grant(id, 'client');
+        be.consentEvents.push(ev(id, 'sensitive_health'), ev(id, 'cloud_transfer'));
+        const endedNow = i >= c.clients;
+        be.links.push({ id: uid(`vinculo:${c.key}:${i}`), coachId: cid, clientId: id, status: endedNow ? 'ended' : 'active', shares: { body: true, notes: false, nutrition: true, habits: true, photos: false },
+          createdAt: iso(at(started)), endedAt: endedNow ? iso(at(-2)) : null, updatedAt: iso(at(started)), paidUntil: addDays(t0, 5 + (i % 20)), paidMarkedAt: iso(at(-10)) });
+        const rnd = rng(`plataforma:${c.key}:${i}`);
+        for (let d = Math.max(started, -55); d <= 0; d++) {
+          if (rnd() > 0.45 + (i % 3) * 0.1) continue;
+          const date = addDays(today, d);
+          const stamp = stampOf(date, nowMs);
+          be.records[`${id}|habit|${date}`] = { id: uid(`habito:${c.key}:${i}:${date}`), kind: 'habit', nkey: date, date, data: { water: 2, trained: rnd() < 0.4, updatedAt: stamp }, updatedAt: stamp,
+            deletedAt: null, userId: id, pausePrivate: false, serverUpdatedAt: stamp };
+        }
+      }
+    }
   }
 
   // ---------- Lo que guarda cada «teléfono» ----------
@@ -497,7 +578,7 @@
   }
 
   const PAIN = { beto: -1 };   // días relativos a hoy del último «Sí» al aviso de dolor (ver seed)
-  const api = { PAIN, HEALTH, PROTEIN_GOALS, RETO_MARKS, AUTONOMOUS, BUSINESS, COACH, PEOPLE, INVITE_CODE, BANNER, TEMPLATES, GIFS, PALETTE, buildPlan, seed, localFor, asUser, makeGif, encodeGif, lzw, uid, rng, addDays, localDay, stampOf, sha256, deps };
+  const api = { PAIN, HEALTH, PROTEIN_GOALS, GOALS, ADMIN, OTHER_COACHES, NOTICES, PANEL_DAYS, RETO_MARKS, AUTONOMOUS, BUSINESS, COACH, PEOPLE, INVITE_CODE, BANNER, TEMPLATES, GIFS, PALETTE, buildPlan, seed, localFor, asUser, makeGif, encodeGif, lzw, uid, rng, addDays, localDay, stampOf, sha256, deps };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PGDemoData = api;
 })(typeof window !== 'undefined' ? window : globalThis);

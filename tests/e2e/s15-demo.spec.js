@@ -147,6 +147,10 @@ test('asesorado: Inicio «Mi día», Comidas, Entrenar (con animación), Progres
   await expect(page.locator('#view-micomidas')).toContainText('comidas anotadas');
   await expect(page.locator('#view-micomidas')).toContainText('kcal aprox.');
   await page.locator('#tab-registro').click();
+  // r1 v1.13 (M1): Ana tiene metas de su coach → Progreso abre en «Metas», con el pie literal del concepto 5; «Medidas» sigue a un toque.
+  await expect(page.locator('#view-metas')).toBeVisible();
+  await expect(page.locator('#metas-foot')).toHaveText(/^Metas orientativas fijadas exclusivamente por tu coach\./);
+  await page.locator('#view-metas .prog-seg button', { hasText: 'Medidas' }).click();
   await expect(page.locator('#view-progreso svg').first()).toBeVisible();
   expect(await page.locator('#medidas-chart svg circle').count()).toBeGreaterThanOrEqual(5);   // pesajes tenues + línea de tendencia
   await expect(page.locator('#medidas-chart-sub')).not.toHaveText('');
@@ -183,6 +187,35 @@ test('asesorado que no pagó: ve la pantalla de pausa; Reiniciar demo restaura l
   await page.locator('#row-demo-reset').click();
   await expect(page.locator('#pause-title')).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('perdida-grasa-demo:v1')).entries.length)).toBeGreaterThan(5);
+});
+
+test('r1 v1.13: ?rol=admin abre el panel admin con coaches ficticios (cifras del boceto M7) y el coach de la demo ve Analítica, Ranking y el aviso', async ({ page, site }) => {
+  const log = await openDemo(page, site, '?rol=admin');
+  await expect(page.locator('#adm-coaches .adm-row')).toHaveCount(5);
+  await expect(page.locator('#adm-coaches .an-k').nth(0)).toContainText('4 / 5');
+  await expect(page.locator('#adm-coaches .an-k').nth(1)).toContainText('11');
+  await expect(page.locator('#adm-coaches .an-k').nth(2)).toContainText('USD 55');
+  for (const t of ['Fuerza Studio', 'Laura Entrena', 'Vida Activa', 'Pablo Coach']) await expect(page.locator('#adm-coaches')).toContainText(t);
+  await expect(page.locator('#adm-coaches .adm-row', { hasText: 'Pablo Coach' })).toContainText('Suspendido');
+  expect(await page.locator('#view-admin-coaches').textContent()).not.toMatch(/Ana Demo|Beto Demo|Asesorado \d/);
+  await page.locator('#tab-adm-uso').click();
+  await expect(page.locator('#adm-uso .an-k').first()).toContainText('4');
+  await page.locator('#tab-adm-coach').click();
+  await expect(page.locator('#adm-coach .adm-days li.on')).toHaveCount(5);
+  await page.locator('#tab-adm-avisos').click();
+  await expect(page.locator('#adm-avisos li')).toHaveCount(2);
+  expect(log.errors).toEqual([]);
+  expect(log.external).toEqual([]);
+  // El coach de la demo
+  await page.evaluate(() => localStorage.clear());
+  await openDemo(page, site, '?rol=coach');
+  await expect(page.locator('#coach-avisos .pa-card')).toContainText('Aviso de la plataforma');
+  await page.locator('#tab-analitica').click();
+  await expect(page.locator('#an-resumen .an-glow')).toContainText('Constancia promedio');
+  await expect(page.locator('#an-resumen .an-lgd')).toContainText('estancados 3+ sem.');
+  await page.locator('#ant-ranking').click();
+  await expect(page.locator('.rk-li')).toHaveCount(7);
+  await expect(page.locator('.rk-apart')).toContainText('Hugo Demo');
 });
 
 test('enlace directo ?rol=coach entra sin pasar por la pantalla de elegir', async ({ page, site }) => {

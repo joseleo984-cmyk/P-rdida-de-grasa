@@ -34,7 +34,7 @@ test('coach: lista de asesorados con filtros (Necesitan atención · Todos · Ve
   const { p, errors } = await coachWithClients(browser, testInfo);
   await expect(p.locator('#tab-coach .tb-label')).toHaveText('Asesorados');
   const labels = (await p.locator('.tabbar button:visible').allTextContents()).map((x) => x.trim());
-  expect(labels).toEqual(['Asesorados', 'Rutinas', 'Invitar', 'Más']);
+  expect(labels).toEqual(['Asesorados', 'Analítica', 'Rutinas', 'Invitar', 'Más']);
   await p.locator('#tab-coach').click();
   await p.addStyleTag({ content: H.WIDE });
   await expect(p.locator('#coach-title-list')).toHaveText('Mis asesorados');

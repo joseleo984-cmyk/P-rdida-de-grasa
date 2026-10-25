@@ -221,3 +221,15 @@ test('concepto 4: la pregunta cerrada, sus opciones y el bloqueo preventivo est�
   assert.ok(!/Alguna molestia/i.test(html + read('rutinas-view.js') + read('paso.js')));
   assert.ok(!/<(textarea|input)[^>]*(dolor|pd-)/i.test(html), 'sin campo de texto para el dolor');
 });
+
+test('concepto 5 · metas: el ÚNICO pie de Progreso es el texto aprobado, LITERAL (analitica.js), y no queda «Meta orientativa propuesta por tu coach» por tarjeta', () => {
+  const md = read('equipo/legal/concepto-5-2026-10-25.md');
+  const A = require('../analitica.js');
+  const m = md.match(/> «(Metas orientativas fijadas exclusivamente por tu coach\.[^»]+)»/);
+  assert.ok(m, 'el concepto 5 trae el pie de Progreso');
+  assert.strictEqual(A.GOALS_FOOTER, m[1]);
+  assert.ok(!read('analitica-view.js').includes('Meta orientativa propuesta por tu coach'), 'sin la línea por tarjeta del boceto');
+  assert.strictEqual(A.RANKING_LABEL, 'Solo tú lo ves. Tus asesorados nunca ven un ranking.');
+  assert.ok(read('analitica-view.js').includes('<b>Solo tú lo ves.</b> Tus asesorados nunca ven un ranking.'), 'el rótulo del ranking en la vista');
+  assert.ok(read('index.html').includes('Solo comunicación operativa, técnica o de servicio.'), 'ayuda de los avisos (concepto 5, punto 5)');
+});

@@ -141,14 +141,19 @@
   // Coach: Clientes | ＋ Invitar | Más (su propio seguimiento sigue en Más). Las vistas conservan sus ids (#view-…).
   const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas', micomidas: 'mas', rutina: 'mas', rutinas: 'mas', 'rutina-edit': 'coach', fotovistas: 'fotos' };
   // UX Etapa 1 (producto 'coach'): a qué botón de la barra pertenece cada pantalla. Cliente: Inicio · Comidas · Entrenar · Progreso · Más. Coach: Asesorados · Rutinas · Invitar · Más.
-  const TAB_COACH_CLIENT = { panel: 'panel', habitos: 'panel', micomidas: 'comidas', rutina: 'entrenar', progreso: 'registro', medidas: 'registro', fotos: 'registro', insignias: 'registro', fotovistas: 'registro' };
-  const TAB_COACH_COACH = { coach: 'coach', rutinas: 'rutinas', invitar: 'invitar', meta: 'coach' };
+  const TAB_COACH_CLIENT = { panel: 'panel', habitos: 'panel', micomidas: 'comidas', rutina: 'entrenar', progreso: 'registro', metas: 'registro', medidas: 'registro', fotos: 'registro', insignias: 'registro', fotovistas: 'registro' };
+  const TAB_COACH_COACH = { coach: 'coach', analitica: 'analitica', rutinas: 'rutinas', invitar: 'invitar', meta: 'coach' };
+  // r1 v1.13: panel admin (solo con el rol admin): su propia barra Coaches · Uso · Por coach · Avisos · Más.
+  const TAB_ADMIN = { 'admin-coaches': 'adm-coaches', 'admin-uso': 'adm-uso', 'admin-coach': 'adm-coach', 'admin-avisos': 'adm-avisos' };
   // Título de la barra de arriba en el producto coach (la fecha corta va a la derecha).
   const TITLE_COACH = { panel: 'Inicio', habitos: 'Corregir otro día', micomidas: 'Comidas', rutina: 'Entrenar', progreso: 'Progreso', medidas: 'Medirme', fotos: 'Fotos', insignias: 'Insignias', fotovistas: 'Quién vio mis fotos',
-    mas: 'Más', ayuda: 'Ayuda', acuerdo: 'Mi acuerdo', coach: 'Asesorados', invitar: 'Invitar', rutinas: 'Rutinas', 'rutina-edit': 'Editar rutina', retos: 'Retos', meta: 'Meta de proteína' };
+    mas: 'Más', ayuda: 'Ayuda', acuerdo: 'Mi acuerdo', coach: 'Asesorados', invitar: 'Invitar', rutinas: 'Rutinas', 'rutina-edit': 'Editar rutina', retos: 'Retos', meta: 'Meta de proteína',
+    analitica: 'Analítica', metas: 'Progreso', 'admin-coaches': 'Panel admin', 'admin-uso': 'Panel admin', 'admin-coach': 'Panel admin', 'admin-avisos': 'Panel admin' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
-  let navCoach = false;
+  let navCoach = false, navAdmin = false;
   function show(view, mode) {
+    // r1 v1.13 (M1): Progreso abre en «Metas» si el coach fijó alguna; «Medidas» llega con el modo 'medidas'.
+    if (PROD.coach && !navCoach && view === 'progreso' && mode !== 'medidas' && window.PGMetas && PGMetas.has()) view = 'metas';
     if (view === 'perfil') {
       // Sin autorización de datos de salud las tarjetas del plan no se muestran: se enseña todo Perfil (privacidad incluida) para poder autorizar.
       let m = PERFIL_TITLES[mode] ? mode : 'plan';
@@ -159,6 +164,7 @@
     let tabView = navCoach && ['panel', 'comidas', 'registro', 'habitos', 'medidas', 'fotos'].includes(view) ? 'mas' : PROD.coach && view === 'fotos' ? 'fotos' : (view === 'rutina-edit' || view === 'fotovistas') && mode === 'mas' ? 'mas' : TAB_OF[view] || view;   // v1.8: la rutina de la biblioteca se edita desde Más
     if (PROD.coach) {
       tabView = navCoach ? (view === 'rutina-edit' ? (mode === 'mas' ? 'rutinas' : 'coach') : view === 'fotovistas' ? 'mas' : TAB_COACH_COACH[view] || 'mas') : TAB_COACH_CLIENT[view] || 'mas';
+      if (navAdmin) tabView = TAB_ADMIN[view] || 'mas';
       topTitle(view, mode);
     }
     $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + view));
@@ -187,11 +193,11 @@
     const bar = $('.topbar');
     $('#topbar-back').classList.toggle('hidden', !back);
     if (backTo) { setText($('#topbar-back'), backTo[0]); $('#topbar-back').dataset.goto = backTo[1]; }
-    $('#btn-medirme').classList.toggle('hidden', !(client && view === 'progreso'));
+    $('#btn-medirme').classList.toggle('hidden', !(client && (view === 'progreso' || view === 'metas')));
     $('#btn-foto-add').classList.toggle('hidden', !(client && view === 'fotos'));
     bar.classList.toggle('has-back', back);
     bar.classList.remove('has-ficha');
-    bar.classList.toggle('has-act', client && (view === 'progreso' || view === 'fotos'));
+    bar.classList.toggle('has-act', client && (view === 'progreso' || view === 'metas' || view === 'fotos'));
   }
   // Como show(), pero para las filas de Más: el foco va al título de la pantalla nueva.
   let moreReturn = null;
@@ -215,19 +221,26 @@
   window.PGNav = { show: (view, mode) => show(view, mode), applyNav: (isCoach) => applyNav(isCoach), resetAll: (ask) => resetAll(ask),
     photosGrant: async () => { await grant('photos'); return a6aGranted(); },
     trainedToday: () => !!(state.habits[today()] || {}).trained,   // Etapa 2: «Hoy entrené» en Mi rutina
-    weekDays: () => Constancia.summary(state, today(), constOpts()).daysThisWeek };   // Estilo v2: «5/7 días esta semana» al terminar el paso a paso
+    weekDays: () => Constancia.summary(state, today(), constOpts()).daysThisWeek,
+    state: () => state,   // r1 v1.13: metas del asesorado (M1), solo lectura
+    setAdmin: (on) => { navAdmin = !!on; document.body.classList.toggle('mode-admin', navAdmin); applyNav(navCoach, true); },
+    isAdmin: () => navAdmin };   // Estilo v2: «5/7 días esta semana» al terminar el paso a paso
 
   // Qué botones tiene la barra según la cuenta: el coach ve Clientes | Invitar | Más; todos los demás, las cinco de siempre.
-  function applyNav(isCoach) {
+  function applyNav(isCoach, adminChanged) {
     const was = navCoach;
     navCoach = !!isCoach;
     document.body.classList.toggle('mode-coach', navCoach);
-    // Sprint 11 (producto 'coach'): cliente = Inicio · Hábitos · Medidas · Fotos · Más; coach = Asesorados · Invitar · Más.
-    const order = PROD.coach ? (navCoach ? ['coach', 'rutinas', 'invitar', 'mas'] : ['panel', 'comidas', 'entrenar', 'registro', 'mas'])
+    // Sprint 11 (producto 'coach'): cliente = Inicio · Hábitos · Medidas · Fotos · Más; coach = Asesorados · Analítica · Rutinas · Invitar · Más (r1 v1.13).
+    // Panel admin (r1 v1.13, solo producto coach y con el rol): Coaches · Uso · Por coach · Avisos · Más.
+    const order = PROD.coach && navAdmin ? ['adm-coaches', 'adm-uso', 'adm-coach', 'adm-avisos', 'mas']
+      : PROD.coach ? (navCoach ? ['coach', 'analitica', 'rutinas', 'invitar', 'mas'] : ['panel', 'comidas', 'entrenar', 'registro', 'mas'])
       : navCoach ? ['coach', 'invitar', 'mas'] : ['panel', 'comidas', 'registrar', 'registro', 'mas'];
     const bar = $('#tabbar');
-    for (const id of ['panel', 'comidas', 'registrar', 'registro', 'mas', 'coach', 'invitar', 'entrenar', 'rutinas']) $('#tab-' + id).classList.toggle('hidden', !order.includes(id));
+    for (const id of ['panel', 'comidas', 'registrar', 'registro', 'mas', 'coach', 'invitar', 'entrenar', 'rutinas', 'analitica', 'adm-coaches', 'adm-uso', 'adm-coach', 'adm-avisos']) $('#tab-' + id).classList.toggle('hidden', !order.includes(id));
     order.forEach((id) => bar.appendChild($('#tab-' + id))); // el orden de lectura es el orden visual
+    if (adminChanged) { if (navAdmin) $('#tab-adm-coaches').click(); else if (navCoach) $('#tab-coach').click(); else show('panel'); return; }
+    if (navAdmin) return;
     if (navCoach && !was) $('#tab-coach').click(); // el coach empieza en su lista de clientes
     else if (!navCoach && was) {
       const cur = document.querySelector('.view.active');
@@ -257,7 +270,8 @@
     setText($('#more-sub'), signed ? meta.email : remoteOn ? 'Sin cuenta: tus datos están solo en este teléfono.' : 'Tus datos están solo en este teléfono.');
     setText($('#more-saved'), signed ? CloudView.savedLine(syncSt) : '');
     $('#btn-more-login').classList.toggle('hidden', !remoteOn || signed);
-    $$('#view-mas .coach-only').forEach((el) => el.classList.toggle('hidden', !navCoach));
+    $$('#view-mas .coach-only').forEach((el) => el.classList.toggle('hidden', !navCoach || navAdmin));
+    $$('#view-mas .admin-only').forEach((el) => el.classList.toggle('hidden', !(PROD.coach && signed && (meta.roles || []).includes('admin'))));
     $$('#view-mas .needs-link').forEach((el) => el.classList.toggle('hidden', !(signed && !navAcct.isCoach && meta.link)));
     $('#view-mas .needs-login').classList.toggle('hidden', !signed);
   }
@@ -2265,7 +2279,7 @@
     const nav = document.createElement('nav');
     nav.className = 'prog-seg';
     nav.setAttribute('aria-label', 'Progreso');
-    nav.innerHTML = [['progreso', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias']].map(([v, t]) => `<button type="button" data-goto="${v}"${v === 'progreso' ? ' aria-current="page" class="on"' : ''}>${t}</button>`).join('');
+    nav.innerHTML = [['progreso:medidas', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias']].map(([v, t]) => `<button type="button" data-goto="${v}"${v === 'progreso:medidas' ? ' aria-current="page" class="on"' : ''}>${t}</button>`).join('');
     $('#view-progreso').prepend(nav);
     $('#btn-foto-add').addEventListener('click', () => {
       const det = $('#foto-nueva');
@@ -2634,6 +2648,7 @@
       const act = document.querySelector('.view.active');
       const id = act ? act.id : '';
       if (navCoach && id === 'view-coach' && $('#coach-detail-view').classList.contains('hidden') && document.body.dataset.stamp) t = document.body.dataset.stamp;
+      else if (navCoach && id === 'view-analitica' && document.body.dataset.anStamp) t = document.body.dataset.anStamp;   // r1 v1.13: «8 asesorados»
       else if (!navCoach && id === 'view-micomidas') { const day = Schema.isISODate(mcDate.value) ? mcDate.value : today(); t = (day === today() ? 'Hoy, ' : '') + short(day === today() ? null : day); }
       else t = short();
     }

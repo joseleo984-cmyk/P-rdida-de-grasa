@@ -96,6 +96,9 @@
       this.healthAnswers = {};  // UX Etapa 2 (r1 v1.11): `${userId}|${question}` → { userId, question, answer, version, textHash, answeredAt } (solo la dueña la lee y escribe)
       this.painReports = {};    // v1.12 (aviso de dolor): `${userId}|${day}` → { userId, day, pain, version, textHash, pausePrivate, reportedAt, reviewedAt } (nadie la lee: solo funciones)
       this.linkPauses = [];     // v1.11: pausas cerradas { linkId, from, to } (las registra setPayment al pasar de vencido a pagado)
+      this.panelDays = {};      // v1.13: coachId → ['AAAA-MM-DD', …] días en que abrió su panel (solo la fecha)
+      this.notices = {};        // v1.13: avisos de la plataforma, id → { id, title, body, startsOn, endsOn, createdAt, deletedAt }
+      this.coachEvents = [];    // v1.13: suspensiones / reactivaciones { coachId, active, reason, at } (solo el admin)
       this.challenges = {};     // v1.11: retos del coach, id → { id, coachId, title, habit, target, start, end, createdAt, deletedAt, members: [clientId], marks: { clientId: { day: { private } } } }
       this._online = true;
       // Sprint 9 (solo pruebas, no se persiste): simula Supabase Auth con CAPTCHA activado. account.js lo enciende cuando
@@ -168,7 +171,8 @@
       return { paidUntil: (link && link.paidUntil) || null, paidMarkedAt: (link && link.paidMarkedAt) || null, paid: left != null && left >= 0, daysLeft: left };
     }
     // ¿Tiene vínculo ACTIVO y no está al día? (sin vínculo nunca se bloquea). Solo sync.push y la subida de fotos lo exigen.
-    paymentBlocked(userId) { const l = this.activeLink(userId); return !!l && !this.payState(l).paid; }
+    // v1.13: un asesorado de un coach SUSPENDIDO no queda en pausa (su coach no puede marcar pagos), como grasa.client_payment_blocked.
+    paymentBlocked(userId) { const l = this.activeLink(userId); return !!l && !!this.coaches[l.coachId] && this.coaches[l.coachId].active !== false && !this.payState(l).paid; }
     requirePayment(userId) { if (this.paymentBlocked(userId)) fail('payment_required', 'Tu acceso está en pausa: habla con tu coach'); }
     // v1.11 (P1): ¿ese día cae en una pausa cerrada del vínculo activo? ¿La fila nace privada (en pausa ahora o con fecha dentro de una pausa)?
     dayInPause(userId, day) { const l = this.activeLink(userId); return !!l && !!day && this.linkPauses.some((x) => x.linkId === l.id && day >= x.from && day <= x.to); }
@@ -215,13 +219,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'challenges']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'challenges', 'panelDays', 'notices', 'coachEvents']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -368,6 +372,7 @@
         for (const [k, r] of Object.entries(be.routines)) if (r.coachId === u.id || r.clientId === u.id) delete be.routines[k];
         for (const [k, t] of Object.entries(be.templates)) if (t.coachId === u.id) delete be.templates[k];
         delete be.daily[u.id];
+        delete be.panelDays[u.id];
         for (const k of Object.keys(be.healthAnswers)) if (k.startsWith(u.id + '|')) delete be.healthAnswers[k];
         for (const k of Object.keys(be.painReports)) if (k.startsWith(u.id + '|')) delete be.painReports[k];
         for (const [k, ch] of Object.entries(be.challenges)) { if (ch.coachId === u.id) delete be.challenges[k]; else { ch.members = ch.members.filter((m) => m !== u.id); delete ch.marks[u.id]; } }
@@ -483,7 +488,12 @@
         habits: o.habits === true, photos: o.photos === true };
     };
     const linkOut = (l) => (l ? { id: l.id, coachId: l.coachId, businessName: (be.coaches[l.coachId] || {}).businessName || '', shares: { ...l.shares }, since: l.createdAt, ...be.payState(l),
-      proteinGoal: l.proteinGoal == null ? null : l.proteinGoal, pauses: be.pausesOf(l) } : null);
+      proteinGoal: l.proteinGoal == null ? null : l.proteinGoal, pauses: be.pausesOf(l), goals: goalsOf(l) } : null);
+    // v1.13: metas del coach (la proteína es la MISMA proteinGoal de v1.11). Solo las fijadas.
+    function goalsOf(l) {
+      const g = { ...(l.goals || {}), protein_g: l.proteinGoal == null ? undefined : l.proteinGoal };
+      return Object.fromEntries(Object.entries(g).filter(([, v]) => typeof v === 'number'));
+    }
     // v1.11: retos. Para el asesorado (forClient = su id) solo SUS marcas; para el coach, los miembros con vínculo activo y sus días SIN las marcas de la pausa.
     const challengeOut = (ch, forClient) => ({ id: ch.id, coachId: ch.coachId, businessName: (be.coaches[ch.coachId] || {}).businessName || '', title: ch.title, habit: ch.habit,
       target: ch.target, start: ch.start, end: ch.end, createdAt: ch.createdAt,
@@ -706,7 +716,7 @@
       async myCoach() {
         const u = await authed();
         const c = be.coaches[u.id];
-        return c ? { businessName: c.businessName, inviteCode: c.inviteCode, freeClients: c.freeClients,
+        return c ? { businessName: c.businessName, inviteCode: c.inviteCode, freeClients: c.freeClients, active: c.active !== false,
           expiresAt: c.inviteExpiresAt || null, maxUses: c.inviteMaxUses || null, uses: c.inviteUses || 0 } : null;
       },
       // v1.1 §10.2: rotateCode({ validDays, maxUses }); sin opciones = sin caducidad ni límite.
@@ -731,7 +741,7 @@
           return { clientId: l.clientId, displayName: (be.profiles[l.clientId] || {}).displayName || '', linkId: l.id, since: l.createdAt,
             shares: { ...l.shares }, lastActivity: stamps.length && cloud ? stamps[stamps.length - 1] : null, overFreeLimit: i >= be.coaches[u.id].freeClients, ...be.payState(l),
             proteinGoal: l.proteinGoal == null ? null : l.proteinGoal, healthRestriction: cloud && be.healthFlag(l.clientId, 'condition'), pregnancyState: cloud && be.healthFlag(l.clientId, 'pregnancy'),
-            pauses: be.pausesOf(l), painReported: cloud ? be.painFlag(l.clientId) : null };
+            pauses: be.pausesOf(l), painReported: cloud && be.coaches[u.id].active !== false ? be.painFlag(l.clientId) : null, goals: goalsOf(l) };
         });
       },
       async clientData(clientId, since) {
@@ -995,9 +1005,200 @@
         l.endedAt = iso(be.clock.now());
         return done(undefined);
       },
+      // ---------- r1 v1.13 ----------
+      async setGoals(clientId, goals) {
+        const u = await asCoach();
+        activeLinkCoachOnly(u.id, clientId);
+        const g = goals && typeof goals === 'object' ? goals : {};
+        const out = {};
+        for (const [k, v] of Object.entries(g)) {
+          const f = GOAL_RANGES[k];
+          if (!f) invalid('meta desconocida: ' + k);
+          if (v == null) continue;
+          if (typeof v !== 'number' || !Number.isFinite(v)) invalid('la meta debe ser un número');
+          const val = f.dec ? Math.round(v * 10) / 10 : Math.round(v);
+          if (val < f.min || val > f.max) invalid('meta fuera de rango');
+          out[k] = val;
+        }
+        const l = be.links.find((x) => x.coachId === u.id && x.clientId === clientId && x.status === 'active');
+        l.proteinGoal = out.protein_g == null ? null : out.protein_g;
+        delete out.protein_g;
+        l.goals = out;
+        l.updatedAt = iso(be.clock.now());
+        return done({ goals: goalsOf(l) });
+      },
+      // Cifras por asesorado vinculado y activo (como grasa.coach_analytics): sin pause_private, respetando lo que comparte; hábitos null si no los comparte.
+      async analytics(from, to) {
+        const u = await asCoach();
+        if (!be.coaches[u.id] || be.coaches[u.id].active === false) fail('forbidden', 'Coach suspendido');
+        const today = be.todayBogota(), F = String(from), T = String(to);
+        const span = Math.round((Date.parse(T) - Date.parse(F)) / 86400000);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(F) || !/^\d{4}-\d{2}-\d{2}$/.test(T) || span < 0 || span > 92 || T > addDay(today, 2) || F < addDay(today, -400)) invalid('rango de fechas no válido');
+        const links = be.links.filter((l) => l.coachId === u.id && l.status === 'active' && be.hasConsent(l.clientId, 'sensitive_health') && be.hasConsent(l.clientId, 'cloud_transfer'))
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+        const numOf = (d, k) => (d && typeof d[k] === 'number' && Number.isFinite(d[k]) ? d[k] : null);
+        return links.map((l) => {
+          const rec = Object.values(be.records).filter((r) => r.userId === l.clientId && !r.pausePrivate && !r.deletedAt
+            && (r.kind === 'entry' || (r.kind === 'food' && l.shares.nutrition) || (r.kind === 'habit' && l.shares.habits)))
+            .map((r) => ({ kind: r.kind, d: r.date || (/^\d{4}-\d{2}-\d{2}$/.test(r.nkey) ? r.nkey : null), data: r.data || {} })).filter((x) => x.d);
+          const uniq = (xs) => [...new Set(xs)].sort();
+          const inR = (x) => x.d >= F && x.d <= T;
+          const ws = rec.filter((x) => x.kind === 'entry' && numOf(x.data, 'weight') != null && x.d <= T).sort((a, b) => a.d.localeCompare(b.d));
+          const wa = rec.filter((x) => x.kind === 'entry' && numOf(x.data, 'waist') != null && x.d <= T).sort((a, b) => a.d.localeCompare(b.d));
+          const weeks = {};
+          for (const x of ws) { const k = Math.floor(Math.round((Date.parse(T) - Date.parse(x.d)) / 86400000) / 7); if (k < 6) (weeks[k] ||= []).push(numOf(x.data, 'weight')); }
+          return { clientId: l.clientId, sharesHabits: !!l.shares.habits, sharesNutrition: !!l.shares.nutrition, since: new Date(Date.parse(l.createdAt) - 5 * 3600000).toISOString().slice(0, 10),
+            logDays: uniq(rec.filter((x) => inR(x) && (x.kind !== 'habit' || Object.keys(x.data).length)).map((x) => x.d)),
+            trainedDays: l.shares.habits ? uniq(rec.filter((x) => inR(x) && x.kind === 'habit' && x.data.trained === true).map((x) => x.d)) : null,
+            weightWeeks: Object.keys(weeks).map(Number).sort((a, b) => a - b).map((k) => ({ w: k, kg: Math.round((weeks[k].reduce((a, b) => a + b, 0) / weeks[k].length) * 100) / 100 })),
+            weightFirst: ws.length ? numOf(ws[0].data, 'weight') : null, weightLast: ws.length ? numOf(ws[ws.length - 1].data, 'weight') : null,
+            waistFirst: wa.length ? numOf(wa[0].data, 'waist') : null, waistLast: wa.length ? numOf(wa[wa.length - 1].data, 'waist') : null };
+        });
+      },
+      async panelOpened(day) {
+        const u = await authed();
+        if (!be.coaches[u.id]) fail('forbidden', 'No eres coach');
+        const today = be.todayBogota(), d = String(day);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || d < addDay(today, -1) || d > addDay(today, 1)) invalid('día no válido');
+        const list = new Set(be.panelDays[u.id] || []);
+        list.add(d);
+        be.panelDays[u.id] = [...list].filter((x) => x >= addDay(today, -120)).sort();
+        return done(undefined);
+      },
+      async notices(day) {
+        const u = await authed();
+        if (!be.coaches[u.id] || be.coaches[u.id].active === false) fail('forbidden', 'Solo coaches activos');
+        const today = be.todayBogota(), d = String(day);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || d < addDay(today, -1) || d > addDay(today, 1)) invalid('día no válido');
+        return Object.values(be.notices).filter((n) => !n.deletedAt && n.startsOn <= d && n.endsOn >= d)
+          .sort((a, b) => b.startsOn.localeCompare(a.startsOn) || b.createdAt.localeCompare(a.createdAt)).slice(0, 3).map(noticeOut);
+      },
+    };
+    const GOAL_RANGES = { weight_kg: { min: 30, max: 300, dec: 1 }, waist_cm: { min: 40, max: 200, dec: 1 }, protein_g: { min: 20, max: 400, dec: 0 },
+      water_days: { min: 1, max: 7, dec: 0 }, steps_days: { min: 1, max: 7, dec: 0 }, sleep_days: { min: 1, max: 7, dec: 0 }, trained_days: { min: 1, max: 7, dec: 0 } };
+    const noticeOut = (n) => ({ id: n.id, title: n.title, body: n.body, startsOn: n.startsOn, endsOn: n.endsOn, createdAt: n.createdAt });
+
+    // ---------- r1 v1.13: panel admin (solo con el rol 'admin', que se da a mano). Solo cantidades: nunca salud ni asesorados. ----------
+    async function asAdmin() {
+      const u = await authed();
+      if (!be.roles(u.id, app).includes('admin')) fail('forbidden', 'Solo el admin');
+      return u;
+    }
+    const monthOf = (m) => { const s = String(m || ''); if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) invalid('mes no válido'); return s.slice(0, 7) + '-01'; };
+    const nextMonth = (m0) => { let y = Number(m0.slice(0, 4)), mm = Number(m0.slice(5, 7)) + 1; if (mm === 13) { mm = 1; y++; } return `${y}-${String(mm).padStart(2, '0')}-01`; };
+    const monthRef = (m0) => { const end = addDay(nextMonth(m0), -1), t = be.todayBogota(); return end < t ? end : t; };
+    const bogDay = (isoTs) => new Date(Date.parse(isoTs) - 5 * 3600000).toISOString().slice(0, 10);
+    // MISMA regla que grasa.billing_active_clients: vínculo activo y ≥ 1 registro sincronizado en los 30 días previos al cierre del mes.
+    function clientActive(coachId, clientId, m0) {
+      const end = Date.parse(nextMonth(m0) + 'T00:00:00Z'), start = end - 30 * 86400000;
+      return be.links.some((l) => l.coachId === coachId && l.clientId === clientId && l.status === 'active')
+        && Object.values(be.records).some((r) => r.userId === clientId && Date.parse(r.serverUpdatedAt) >= start && Date.parse(r.serverUpdatedAt) < end);
+    }
+    const activeCount = (coachId, m0) => new Set(be.links.filter((l) => l.coachId === coachId && l.status === 'active' && clientActive(coachId, l.clientId, m0)).map((l) => l.clientId)).size;
+    const cohort30 = (links, ref) => { const c = links.filter((l) => { const d = bogDay(l.createdAt); return d >= addDay(ref, -60) && d < addDay(ref, -30); }); return { cohort: c.length, kept: c.filter((l) => l.status === 'active').length }; };
+    const admin = {
+      async coaches(month) {
+        await asAdmin();
+        const m0 = monthOf(month);
+        return Object.entries(be.coaches).map(([id, c]) => {
+          const act = activeCount(id, m0);
+          const ev = be.coachEvents.filter((e) => e.coachId === id).pop();
+          return { coachId: id, businessName: c.businessName, coachName: (be.profiles[id] || {}).displayName || '', active: c.active !== false, freeClients: c.freeClients,
+            activeClients: act, overFree: Math.max(0, act - c.freeClients), linkedClients: be.links.filter((l) => l.coachId === id && l.status === 'active').length,
+            createdAt: c.createdAt || null, lastReason: (ev && ev.reason) || '' };
+        }).sort((a, b) => (b.active - a.active) || a.businessName.localeCompare(b.businessName));
+      },
+      async setCoachActive(coachId, active, reason) {
+        await asAdmin();
+        const c = be.coaches[coachId];
+        if (!c) fail('not_found', 'Coach no encontrado');
+        const r = String(reason || '').trim();
+        if (r.length > 200) invalid('motivo demasiado largo');
+        c.active = !!active;
+        be.coachEvents.push({ coachId, active: !!active, reason: r || null, at: iso(be.clock.now()) });
+        return done({ coachId, active: !!active });
+      },
+      async usage(month) {
+        await asAdmin();
+        const m0 = monthOf(month), m1 = nextMonth(m0), ref = monthRef(m0);
+        const inMonth = (ts) => ts && bogDay(ts) >= m0 && bogDay(ts) < m1;
+        const ids = Object.keys(be.coaches);
+        const sizes = ids.filter((id) => be.coaches[id].active !== false).map((id) => activeCount(id, m0));
+        const activeClients = new Set(be.links.filter((l) => l.status === 'active').map((l) => l.clientId));
+        const weeks = [];
+        for (let k = 7; k >= 0; k--) {
+          const a = addDay(ref, -7 * k - 6), b = addDay(ref, -7 * k);
+          weeks.push({ start: a, records: Object.values(be.records).filter((r) => ['entry', 'food', 'habit'].includes(r.kind) && !r.deletedAt && r.date && r.date >= a && r.date <= b && activeClients.has(r.userId)).length });
+        }
+        return { coachesActive: ids.filter((id) => be.coaches[id].active !== false).length, coachesTotal: ids.length, coachesNew: ids.filter((id) => inMonth(be.coaches[id].createdAt)).length,
+          clientsActive: sizes.reduce((s, x) => s + x, 0), signups: be.links.filter((l) => inMonth(l.createdAt)).length, drops: be.links.filter((l) => inMonth(l.endedAt)).length,
+          retention30: cohort30(be.links, ref), sizes: { s1_5: sizes.filter((n) => n >= 1 && n <= 5).length, s6_10: sizes.filter((n) => n >= 6 && n <= 10).length, s11: sizes.filter((n) => n >= 11).length },
+          weeks, ref };
+      },
+      async coachUsage(coachId, month) {
+        await asAdmin();
+        if (!be.coaches[coachId]) fail('not_found', 'Coach no encontrado');
+        const m0 = monthOf(month), ref = monthRef(m0);
+        const lk = be.links.filter((l) => l.coachId === coachId && l.status === 'active');
+        const weeks = [];
+        for (let k = 7; k >= 0; k--) {
+          const a = addDay(ref, -7 * k - 6), b = addDay(ref, -7 * k);
+          const base = lk.filter((l) => bogDay(l.createdAt) <= b);
+          const recs = (l, pred) => Object.values(be.records).some((r) => r.userId === l.clientId && !r.deletedAt && !r.pausePrivate && r.date && r.date >= a && r.date <= b && pred(r));
+          const sh = lk.filter((l) => l.shares.habits);
+          weeks.push({ start: a,
+            pctLogging: base.length >= 3 ? Math.round((100 * base.filter((l) => recs(l, (r) => ['entry', 'food', 'habit'].includes(r.kind))).length) / base.length) : null,
+            trained: sh.length >= 3 ? Object.values(be.records).filter((r) => r.kind === 'habit' && !r.deletedAt && !r.pausePrivate && r.date >= a && r.date <= b && r.data && r.data.trained === true && sh.some((l) => l.clientId === r.userId)).length : null });
+        }
+        const stamps = [...Object.values(be.comments).filter((c) => c.coachId === coachId).map((c) => c.createdAt), ...be.links.filter((l) => l.coachId === coachId).map((l) => l.paidMarkedAt),
+          ...Object.values(be.templates).filter((t) => t.coachId === coachId).map((t) => t.updatedAt), ...Object.values(be.routines).filter((t) => t.coachId === coachId).map((t) => t.updatedAt),
+          ...Object.values(be.challenges).filter((t) => t.coachId === coachId).map((t) => t.createdAt)].filter(Boolean).sort();
+        const pd = (be.panelDays[coachId] || []).slice().sort();
+        return { activeClients: activeCount(coachId, m0), retention30: cohort30(be.links.filter((l) => l.coachId === coachId), ref), lastActionAt: stamps.length ? stamps[stamps.length - 1] : null,
+          lastPanelDay: pd.length ? pd[pd.length - 1] : null, panelDays: pd.filter((d) => d >= addDay(ref, -6) && d <= ref), weeks, ref };
+      },
+      // «Coaches con mayor éxito»: solo negocio y adherencia (concepto 5, punto 6). Nunca kilos ni centímetros.
+      async success(month) {
+        await asAdmin();
+        const ref = monthRef(monthOf(month)), today = be.todayBogota();
+        const okDay = (d) => (Number(d.water) || 0) >= 2 || (Number(d.steps) || 0) >= 8000 || (Number(d.sleep) || 0) >= 7 || d.trained === true;
+        return Object.entries(be.coaches).map(([id, c]) => {
+          const lk = be.links.filter((l) => l.coachId === id && l.status === 'active');
+          const hab = lk.filter((l) => l.shares.habits).map((l) => new Set(Object.values(be.records).filter((r) => r.userId === l.clientId && r.kind === 'habit' && !r.deletedAt && !r.pausePrivate
+            && r.date >= addDay(ref, -6) && r.date <= ref && okDay(r.data || {})).map((r) => r.date)).size);
+          const all = be.links.filter((l) => l.coachId === id);
+          const coh = (a, b) => all.filter((l) => { const d = bogDay(l.createdAt); return d >= addDay(ref, -a) && d <= addDay(ref, -b); });
+          const c90 = coh(180, 90), c180 = coh(365, 181);
+          const pctOf = (k, n) => (n ? Math.round((100 * k) / n) : null);
+          return { coachId: id, businessName: c.businessName, habitsPct: hab.length >= 3 ? pctOf(hab.filter((n) => n >= 4).length, hab.length) : null, habitsGroup: hab.length,
+            retention90: pctOf(c90.filter((l) => l.status === 'active').length, c90.length), cohort90: c90.length, retention180: pctOf(c180.filter((l) => l.status === 'active').length, c180.length), cohort180: c180.length,
+            onTimePct: pctOf(lk.filter((l) => l.paidUntil && l.paidUntil >= today).length, lk.length), payingGroup: lk.length };
+        }).sort((a, b) => a.businessName.localeCompare(b.businessName));
+      },
+      async saveNotice({ id = null, title, body, from, to } = {}) {
+        await asAdmin();
+        const t = String(title || '').trim(), b = String(body || '').trim(), F = String(from || ''), T = String(to || '');
+        const ok = /^\d{4}-\d{2}-\d{2}$/;
+        if (t.length < 3 || t.length > 80 || b.length < 3 || b.length > 400 || !ok.test(F) || !ok.test(T) || F > T || (Date.parse(T) - Date.parse(F)) / 86400000 > 90 || T < addDay(be.todayBogota(), -1)) invalid('aviso no válido');
+        let n;
+        if (id) { n = be.notices[id]; if (!n || n.deletedAt) fail('not_found', 'Aviso no encontrado'); Object.assign(n, { title: t, body: b, startsOn: F, endsOn: T }); }
+        else { n = { id: randUUID(), title: t, body: b, startsOn: F, endsOn: T, createdAt: iso(be.clock.now()), deletedAt: null }; be.notices[n.id] = n; }
+        return done(noticeOut(n));
+      },
+      async listNotices() {
+        await asAdmin();
+        return Object.values(be.notices).filter((n) => !n.deletedAt).sort((a, b) => b.startsOn.localeCompare(a.startsOn) || b.createdAt.localeCompare(a.createdAt)).slice(0, 50).map(noticeOut);
+      },
+      async deleteNotice(id) {
+        await asAdmin();
+        const n = be.notices[id];
+        if (!n || n.deletedAt) fail('not_found', 'Aviso no encontrado');
+        n.deletedAt = iso(be.clock.now());
+        return done(undefined);
+      },
     };
 
-    return { kind: 'fake', backend: be, auth, account, sync, client, coach };
+    return { kind: 'fake', backend: be, auth, account, sync, client, coach, admin };
   }
 
   // Backend persistido en localStorage (solo E2E en el origen de pruebas): sobrevive recargas.

@@ -246,8 +246,12 @@
       shares: sharesOut({ body: l.share_body, notes: l.share_notes, nutrition: l.share_nutrition, habits: l.share_habits, photos: l.share_photos }),
       since: l.since || l.created_at,
       paidUntil: l.paid_until || null, paidMarkedAt: isoOrNull(l.paid_marked_at), paid: l.paid === true, daysLeft: l.days_left == null ? null : Number(l.days_left),
-      proteinGoal: l.protein_goal_g == null ? null : Number(l.protein_goal_g), pauses: pausesOut(l.pauses) } : null);
+      proteinGoal: l.protein_goal_g == null ? null : Number(l.protein_goal_g), pauses: pausesOut(l.pauses), goals: goalsOut(l.goals) } : null);
     // UX Etapa 2 (r1 v1.11): pausas [{ from, to }] (to = null: la pausa sigue) y retos del coach.
+    // r1 v1.13: metas del coach (solo las que fijó; las vacías no vienen). Claves del servidor tal cual: weight_kg, waist_cm, protein_g, water_days, steps_days, sleep_days, trained_days.
+    const GOAL_KEYS = ['weight_kg', 'waist_cm', 'protein_g', 'water_days', 'steps_days', 'sleep_days', 'trained_days'];
+    function goalsOut(g) { const o = {}; if (g && typeof g === 'object') for (const k of GOAL_KEYS) if (g[k] != null && Number.isFinite(Number(g[k]))) o[k] = Number(g[k]); return o; }
+    const dayOut = (d) => (d ? String(d).slice(0, 10) : null);
     function pausesOut(p) { return rows(p).filter((x) => x && x.from).map((x) => ({ from: String(x.from), to: x.to ? String(x.to) : null })); }
     const challengeOut = (c) => (c && c.id ? { id: c.id, coachId: c.coach_id, businessName: c.business_name || '', title: c.title, habit: c.habit,
       target: Number(c.target_days) || 0, start: c.start_day, end: c.end_day, createdAt: isoOrNull(c.created_at),
@@ -554,8 +558,8 @@
       async myCoach() {
         const u = await me();
         const c = await call(() => table('grasa', 'coaches')
-          .select('business_name, invite_code, free_clients, invite_expires_at, invite_max_uses, invite_uses').eq('user_id', u.id).maybeSingle());
-        return c ? { businessName: c.business_name, inviteCode: c.invite_code, freeClients: c.free_clients,
+          .select('business_name, invite_code, free_clients, invite_expires_at, invite_max_uses, invite_uses, active').eq('user_id', u.id).maybeSingle());
+        return c ? { businessName: c.business_name, inviteCode: c.invite_code, freeClients: c.free_clients, active: c.active !== false,
           expiresAt: isoOrNull(c.invite_expires_at), maxUses: c.invite_max_uses == null ? null : c.invite_max_uses, uses: c.invite_uses || 0 } : null;
       },
       async rotateCode({ validDays = null, maxUses = null } = {}) {
@@ -568,7 +572,7 @@
           linkId: c.link_id, since: c.since, shares: sharesOut(c.shares || {}), lastActivity: c.last_activity || null, overFreeLimit: !!c.over_free_limit,
           paidUntil: c.paid_until || null, paidMarkedAt: isoOrNull(c.paid_marked_at), paid: c.paid === true, daysLeft: c.days_left == null ? null : Number(c.days_left),
           proteinGoal: c.protein_goal_g == null ? null : Number(c.protein_goal_g), healthRestriction: c.health_restriction === true, pregnancyState: c.pregnancy_state === true,
-          pauses: pausesOut(c.pauses), painReported: c.pain_reported ? String(c.pain_reported).slice(0, 10) : null }));
+          pauses: pausesOut(c.pauses), painReported: c.pain_reported ? String(c.pain_reported).slice(0, 10) : null, goals: goalsOut(c.goals) }));
       },
       async clientData(clientId, since) {
         await me();
@@ -694,9 +698,75 @@
       async listChallenges() { await me(); return rows(await rpc('grasa', 'list_challenges')).map(challengeOut).filter(Boolean); },
       async deleteChallenge(id) { await me(); await rpc('grasa', 'delete_challenge', { p_id: id }); },
       async endClient(clientId) { await me(); await rpc('grasa', 'end_client', { p_client: clientId }); },
+      // r1 v1.13: metas del coach (todas de una vez: lo que no viene queda vacío), analítica agregada, días de panel y avisos de la plataforma.
+      async setGoals(clientId, goals) {
+        await me();
+        const r = await rpc('grasa', 'set_goals', { p_client: clientId, p_goals: goalsOut(goals) });
+        return { goals: goalsOut(r && r.goals) };
+      },
+      async analytics(from, to) {
+        await me();
+        if (!DAY_RE.test(String(from)) || !DAY_RE.test(String(to))) throw new RemoteError('invalid', 'Fecha no válida');
+        return rows(await rpc('grasa', 'coach_analytics', { p_from: from, p_to: to })).map(analyticsOut);
+      },
+      async panelOpened(day) { await me(); await rpc('grasa', 'coach_panel_opened', { p_day: day }); },
+      async notices(day) {
+        await me();
+        return rows(await rpc('grasa', 'coach_notices', { p_today: day })).map(noticeOut);
+      },
     };
 
-    return { kind: 'real', auth, account, sync, client, coach };
+    const num = (v) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+    const days = (a) => (Array.isArray(a) ? a.map(dayOut).filter(Boolean) : null);
+    function analyticsOut(r) {
+      return { clientId: r.client_id, sharesHabits: r.shares_habits === true, sharesNutrition: r.shares_nutrition === true, since: dayOut(r.since),
+        logDays: days(r.log_days) || [], trainedDays: r.trained_days == null ? null : days(r.trained_days),
+        weightWeeks: rows(r.weight_weeks).map((x) => ({ w: Number(x.w), kg: Number(x.kg) })),
+        weightFirst: num(r.weight_first), weightLast: num(r.weight_last), waistFirst: num(r.waist_first), waistLast: num(r.waist_last) };
+    }
+    const noticeOut = (n) => ({ id: n.id, title: n.title || '', body: n.body || '', startsOn: dayOut(n.starts_on), endsOn: dayOut(n.ends_on), createdAt: n.created_at ? isoOrNull(n.created_at) : null });
+    // r1 v1.13: panel admin. El servidor exige core.has_role('grasa','admin') en cada función y solo entrega cantidades (nunca salud ni asesorados).
+    const admin = {
+      async coaches(month) {
+        await me();
+        return rows(await rpc('grasa', 'admin_coaches', { p_month: month })).map((c) => ({ coachId: c.coach_id, businessName: c.business_name || '', coachName: c.coach_name || '',
+          active: c.active !== false, freeClients: Number(c.free_clients) || 0, activeClients: Number(c.active_clients) || 0, overFree: Number(c.over_free) || 0,
+          linkedClients: Number(c.linked_clients) || 0, createdAt: isoOrNull(c.created_at), lastReason: c.last_reason || '' }));
+      },
+      async setCoachActive(coachId, active, reason) {
+        await me();
+        const r = await rpc('grasa', 'admin_set_coach_active', { p_coach: coachId, p_active: !!active, p_reason: reason ? String(reason).trim().slice(0, 200) : null });
+        return { coachId: r && r.coach_id, active: !!(r && r.active) };
+      },
+      async usage(month) { await me(); return usageOut(await rpc('grasa', 'admin_usage', { p_month: month })); },
+      async coachUsage(coachId, month) { await me(); return coachUsageOut(await rpc('grasa', 'admin_coach_usage', { p_coach: coachId, p_month: month })); },
+      async success(month) {
+        await me();
+        return rows(await rpc('grasa', 'admin_success', { p_month: month })).map((x) => ({ coachId: x.coach_id, businessName: x.business_name || '', habitsPct: num(x.habits_pct), habitsGroup: Number(x.habits_group) || 0,
+          retention90: num(x.retention_90), cohort90: Number(x.cohort_90) || 0, retention180: num(x.retention_180), cohort180: Number(x.cohort_180) || 0, onTimePct: num(x.on_time_pct), payingGroup: Number(x.paying_group) || 0 }));
+      },
+      async saveNotice({ id = null, title, body, from, to } = {}) {
+        await me();
+        return noticeOut(await rpc('grasa', 'admin_save_notice', { p_id: id, p_title: String(title || '').trim(), p_body: String(body || '').trim(), p_from: from, p_to: to }));
+      },
+      async listNotices() { await me(); return rows(await rpc('grasa', 'admin_list_notices')).map(noticeOut); },
+      async deleteNotice(id) { await me(); await rpc('grasa', 'admin_delete_notice', { p_id: id }); },
+    };
+    function usageOut(u) {
+      const x = u || {};
+      return { coachesActive: Number(x.coaches_active) || 0, coachesTotal: Number(x.coaches_total) || 0, coachesNew: Number(x.coaches_new) || 0, clientsActive: Number(x.clients_active) || 0,
+        signups: Number(x.signups) || 0, drops: Number(x.drops) || 0, retention30: { cohort: Number((x.retention30 || {}).cohort) || 0, kept: Number((x.retention30 || {}).kept) || 0 },
+        sizes: { s1_5: Number((x.sizes || {}).s1_5) || 0, s6_10: Number((x.sizes || {}).s6_10) || 0, s11: Number((x.sizes || {}).s11) || 0 },
+        weeks: rows(x.weeks).map((w) => ({ start: dayOut(w.start), records: Number(w.records) || 0 })), ref: dayOut(x.ref) };
+    }
+    function coachUsageOut(u) {
+      const x = u || {};
+      return { activeClients: Number(x.active_clients) || 0, retention30: { cohort: Number((x.retention30 || {}).cohort) || 0, kept: Number((x.retention30 || {}).kept) || 0 },
+        lastActionAt: isoOrNull(x.last_action_at), lastPanelDay: dayOut(x.last_panel_day), panelDays: rows(x.panel_days).map(dayOut).filter(Boolean),
+        weeks: rows(x.weeks).map((w) => ({ start: dayOut(w.start), pctLogging: num(w.pct_logging), trained: num(w.trained) })), ref: dayOut(x.ref) };
+    }
+
+    return { kind: 'real', auth, account, sync, client, coach, admin };
   }
 
   const api = { config, create, createFake, fakeAllowed, CAPTCHA_SITEKEY_RE, textHash, mapError, RemoteError, PRODUCTION_HOSTS, BUCKET, GIF_BUCKET };
