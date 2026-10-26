@@ -1,4 +1,4 @@
-// Política v1.1 (25/10/2026): versiones PUBLICADAS de los textos legales (legal/VERSIONS.json) y aviso informativo en pantalla.
+// Política v1.1 (25/10/2026) y v1.2 (26/10/2026, concepto 7): versiones PUBLICADAS de los textos legales (legal/VERSIONS.json) y aviso informativo en pantalla.
 // - Texto y botón LITERALES del anexo del concepto 2, punto 1 (tests/legal-literal.test.js). «[enlace]» es variable de formato: se reemplaza por
 //   el enlace real a la política (la palabra «aquí» queda enlazada y el marcador no se escribe).
 // - Sale UNA vez al iniciar sesión, para asesorados y coaches (cuenta con sesión), no tapa nada (va en el flujo de la página, no flotando) y no exige
@@ -9,7 +9,9 @@
 // - versions(): lee legal/VERSIONS.json (el SW lo precachea). Lo usa también «Exportar a Excel» para habilitar la descarga (Exportar.policyGate).
 (function (root) {
   'use strict';
-  const TEXT = 'Actualizamos nuestra Política de Tratamiento de Datos Personales (v1.1) para detallar el uso de tus registros (peso, medidas y comidas), el alcance de las estimaciones nutricionales y el funcionamiento de las alertas operativas de seguridad. Conócela aquí [enlace].';
+  // v1.2 (concepto 7, punto 5): el aviso vigente. El de la v1.1 (concepto 2, anexo 1) queda como historial: quien no lo vio, ve solo el de la v1.2.
+  const TEXT = 'Actualizamos nuestra Política de Tratamiento de Datos (v1.2) para incluir la opción voluntaria de retos y ligas de constancia en equipo. Conócela aquí [enlace].';
+  const TEXT_V11 = 'Actualizamos nuestra Política de Tratamiento de Datos Personales (v1.1) para detallar el uso de tus registros (peso, medidas y comidas), el alcance de las estimaciones nutricionales y el funcionamiento de las alertas operativas de seguridad. Conócela aquí [enlace].';
   const BUTTON = 'Entendido';
   const HREF = 'legal/privacidad.html';
   const MARK = ' [enlace]';
@@ -25,7 +27,7 @@
     if (!userId || !n || n.active !== true || !n.id) return false;
     return !(Array.isArray(seen) && seen.includes(seenKey(userId, versions)));
   }
-  const api = { TEXT, BUTTON, HREF, parts, shouldShow, seenKey };
+  const api = { TEXT, TEXT_V11, BUTTON, HREF, parts, shouldShow, seenKey };
 
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.AvisoPolitica = api;

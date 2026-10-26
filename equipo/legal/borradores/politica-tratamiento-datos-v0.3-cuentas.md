@@ -58,6 +58,10 @@ Finalidad 4.8 Desarrollar análisis y procesamientos automatizados sobre las var
 
 *NOTA v1.1 (25/10/2026): «[Finalidad X.X]» del anexo del concepto 2 es variable de formato y se reemplaza por la numeración correlativa; las alertas L6 descritas en esta finalidad siguen APAGADAS en la app (Etapa 3).*
 
+Finalidad 4.9 Calcular indicadores de cumplimiento y adherencia deportiva ("puntos de constancia") a partir del reporte voluntario de hábitos, y facilitar la visualización comparativa de dichos puntajes entre miembros del mismo equipo deportivo bajo alias disociados, única y exclusivamente cuando el Titular haya otorgado su consentimiento expreso y voluntario para participar en dinámicas comunitarias o ligas semanales.
+
+*NOTA v1.2 (26/10/2026): «[Finalidad X.X]» del concepto 7, punto 5, es variable de formato y se reemplaza por la numeración correlativa. Las ligas y la comparación entre asesorados bajo alias NO están construidas (exigen el consentimiento del punto 4 del concepto 7); lo que hay son puntos personales (los ven la persona y su coach) y la meta colectiva del team (solo una suma, con mínimo 5 participantes).*
+
 **No vendemos tus datos**, no los usamos para publicidad y **no publicamos tus fotos**.
 
 ## 5. Datos sensibles: salud, medidas y fotos
@@ -160,6 +164,7 @@ Esta adenda se **añade** a la política y no reemplaza ningún apartado anterio
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 0.3 (borrador, textos v1.2) | 2026-10-26 | Se añade, literal, la finalidad 4.9 de puntos de constancia (concepto 7, punto 5). La política publicada (legal/privacidad.html) es la 1.2. |
 | 0.3 (borrador, textos v1.1) | 2026-10-25 | Se añaden, literales, la finalidad 4.8 de análisis automatizado (anexo del concepto 2, punto 4; alertas apagadas) y el párrafo §7.1.1 de copias de trabajo del coach (concepto 6). La política publicada (legal/privacidad.html) es la 1.1. |
 | 0.3 (borrador, adenda) | 2026-10-24 | **Adenda 24/10/2026**: se añaden, literales, los párrafos §6 (categorías de datos sensibles recolectados) y §7.1 (finalidad y alcance técnico) del concepto jurídico del 24 de octubre de 2026. En este borrador el §6 y el §7.1 tratan otros temas (fotos y coach), por eso van como adenda y no reemplazan nada. |
 | 0.3 (borrador) | 2026-10-23 | Adopta las respuestas P1–P18: roles, retención de 365 días con avisos a los días 335 y 358, prueba del consentimiento 3 años disociada, Brevo nombrado, incidentes 24 h / 15 días hábiles, menores con borrado en 48 h, sin copias automáticas en el piloto, destrucción por el coach en 30 días. No vigente. |

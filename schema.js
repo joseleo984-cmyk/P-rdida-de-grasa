@@ -36,8 +36,9 @@
   // lo comprueba tests/legal.test.js). Si cambian, la app pide aceptar de nuevo.
   // v1.1 de la Política (25/10/2026): cambio INFORMATIVO (aviso en pantalla, sin re-aceptación forzada, concepto 2): quien aceptó la 0.1 sigue
   // vigente (LEGAL_COMPAT). Ambas cosas deben coincidir con legal/VERSIONS.json (lo comprueba tests/legal.test.js).
-  const LEGAL_VERSIONS = { terms: '0.1', privacy: '1.1' };
-  const LEGAL_COMPAT = { terms: [], privacy: ['0.1'] };
+  // v1.2 (26/10/2026, concepto 7, punto 5): también informativa: la 0.1 y la 1.1 siguen vigentes.
+  const LEGAL_VERSIONS = { terms: '0.1', privacy: '1.2' };
+  const LEGAL_COMPAT = { terms: [], privacy: ['0.1', '1.1'] };
   // Edad mínima (decisión del Stakeholder, 2026-10-22): 18 años. Con menos no se guarda el perfil; si ya había uno
   // guardado, no se borra: queda como borrador para que la persona lo corrija (ver normalizeProfile).
   const AGE_MIN = 18;
@@ -45,6 +46,7 @@
 
   const EFFORTS = ['facil', 'normal', 'duro', 'no_termine'];   // esfuerzo al entrenar (v6)
   const CLOSES = ['si', 'casi', 'no'];                          // «¿Registraste todo lo de hoy?» (v6)
+  const RESTS = ['plan', 'sick'];                               // v1.15: «Hoy descanso (está en mi plan)» / «Hoy no entreno: me siento mal» (dan puntos de descanso)
   const MEALS = ['Desayuno', 'Almuerzo', 'Cena', 'Snack'];
   const POSES = ['frente', 'perfil', 'espalda'];
   const ACTIVITY = [1.2, 1.375, 1.55, 1.725, 1.9];
@@ -313,6 +315,7 @@
         const out = { trained: h.trained === true };
         if (EFFORTS.includes(h.effort)) out.effort = h.effort;
         if (CLOSES.includes(h.close)) out.close = h.close;
+        if (RESTS.includes(h.rest) && h.trained !== true) out.rest = h.rest;
         for (const k of ['steps', 'water', 'sleep']) {
           const v = num(h[k], RANGES[k]);
           if (Number.isNaN(v)) warn(`Hábitos ${d}: "${k}" no válido, se descarta`);
@@ -666,7 +669,7 @@
     return { foods: out, copied: copies.length, skipped };
   }
 
-  const api = { ENTRY_FIELDS, RANGES, AGE_MIN, AGE_UNDER_MSG, CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, EFFORTS, CLOSES, normalizeStoredPhoto, isSafeKey,
+  const api = { ENTRY_FIELDS, RANGES, AGE_MIN, AGE_UNDER_MSG, CURRENT_VERSION, MIGRATIONS, emptyState, migrate, normalize, normalizePhotos, profileError, isISODate, addDays, copyMeals, MEALS, EFFORTS, CLOSES, RESTS, normalizeStoredPhoto, isSafeKey,
     LEGAL_VERSIONS, LEGAL_COMPAT, normalizeConsent, consentStatus, buildConsent, setConsentFlag,
     EPOCH, uuid, isUUID, stampChanges, purgeDeleted, mergeRecords, toRecords, fromRecords, mergeState, clampStamp, MAX_SKEW_MS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

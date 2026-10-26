@@ -1,6 +1,6 @@
 > ⚠️ **Borrador — debe revisarlo un abogado antes de usarse con datos reales; no es asesoría legal.**
 > Autor: Agente Analista de Producto · 2026-10-21 · Edición **piloto** (rev. 2): describe la app **sin servidor**. Lo previsto para la versión con cuentas está en §13 y exigirá aceptar de nuevo. Las notas en *cursiva* marcadas "NOTA" son internas: no se publican (`npm run legal` las quita).
-> Número de versión: 1.1 desde el 25/10/2026 (concepto 2, «Versión de la política», y concepto 6): sube a versión formal con aviso informativo en pantalla al iniciar sesión y SIN re-aceptación forzada. La versión publicada vive en `legal/VERSIONS.json` (fuente única que leen la app y las pruebas).
+> Número de versión: 1.2 desde el 26/10/2026 (concepto 7, punto 5: finalidad 4.6 de puntos de constancia, aviso en pantalla, sin re-aceptación). Antes, 1.1 desde el 25/10/2026 (concepto 2, «Versión de la política», y concepto 6): sube a versión formal con aviso informativo en pantalla al iniciar sesión y SIN re-aceptación forzada. La versión publicada vive en `legal/VERSIONS.json` (fuente única que leen la app y las pruebas).
 >
 > **Datos que debe completar el Stakeholder** (buscar y reemplazar cada marcador; no debe quedar ninguno):
 >
@@ -18,7 +18,7 @@
 
 # Política de Tratamiento de Datos Personales — "Pérdida de Grasa"
 
-**Versión:** 1.1 · **Edición:** piloto, sin servidor · **Vigente desde:** [FECHA DE VIGENCIA]
+**Versión:** 1.2 · **Edición:** piloto, sin servidor · **Vigente desde:** [FECHA DE VIGENCIA]
 
 **Normas:** Ley Estatutaria 1581 de 2012 y Decreto 1377 de 2013, compilado en el Decreto Único 1074 de 2015 (Libro 2, Parte 2, Título 2, Capítulo 25), y demás normas que los modifiquen o complementen.
 
@@ -62,6 +62,10 @@ La app **no** recoge tu ubicación, **no** usa cookies de publicidad y **no** en
 Finalidad 4.5 Desarrollar análisis y procesamientos automatizados sobre las variables, hábitos y métricas registrados voluntariamente por el Titular (tales como peso, ingesta nutricional reportada y horas de sueño) con el objetivo exclusivo de emitir señales operativas y alertas preventivas de seguridad dirigidas a su coach. Dichas alertas tienen naturaleza meramente orientativa, orientada a advertir posibles patrones de riesgo físico o alimentario y a facilitar la sugerencia oportuna de consulta con profesionales de la salud. La Plataforma no realiza diagnósticos clínicos, valoraciones médicas automatizadas ni prescripciones nutricionales o de entrenamiento a partir de estos análisis.
 
 *NOTA v1.1 (25/10/2026): «[Finalidad X.X]» del anexo del concepto 2 es variable de formato y se reemplaza por la numeración correlativa; las alertas L6 descritas en esta finalidad siguen APAGADAS en la app (Etapa 3).*
+
+Finalidad 4.6 Calcular indicadores de cumplimiento y adherencia deportiva ("puntos de constancia") a partir del reporte voluntario de hábitos, y facilitar la visualización comparativa de dichos puntajes entre miembros del mismo equipo deportivo bajo alias disociados, única y exclusivamente cuando el Titular haya otorgado su consentimiento expreso y voluntario para participar en dinámicas comunitarias o ligas semanales.
+
+*NOTA v1.2 (26/10/2026): «[Finalidad X.X]» del concepto 7, punto 5, es variable de formato y se reemplaza por la numeración correlativa. Las ligas y la comparación entre asesorados bajo alias NO están construidas (exigen el consentimiento del punto 4 del concepto 7); lo que hay son puntos personales (los ven la persona y su coach) y la meta colectiva del team (solo una suma, con mínimo 5 participantes).*
 
 **No vendemos tus datos**, no los usamos para publicidad y **no publicamos tus fotos**.
 
@@ -174,5 +178,6 @@ Esta adenda se **añade** a la política y no reemplaza ningún apartado anterio
 | 0.1 (edición piloto, rev. 2) | 2026-10-21 | Describe solo la fase piloto sin servidor (datos en el teléfono, envío por WhatsApp, coach como encargado). Supabase y la transmisión internacional pasan a §13 (R1). La versión se subirá cuando el abogado apruebe el texto definitivo. |
 | 0.1 (edición piloto, rev. 3) | 2026-10-24 | **Adenda 24/10/2026**: se añaden, literales, los párrafos §6 (categorías de datos sensibles: medidas y comidas) y §7.1 (finalidad y alcance técnico) del concepto jurídico del 24 de octubre de 2026. No se borra nada anterior. Sin cambio del número de versión (aún no es el texto definitivo). |
 | 1.1 | 2026-10-25 | Versión formal (concepto 2, «Versión de la política», y concepto 6). Se añaden, literales: la finalidad 4.5 de análisis automatizado (anexo del concepto 2, punto 4; las alertas siguen apagadas) y el párrafo §6.5 de copias de trabajo que descarga el coach (concepto 6, punto 2). Se mantiene la adenda del 24/10/2026. Aviso informativo en pantalla al iniciar sesión; sin re-aceptación forzada (quien aceptó la 0.1 sigue vigente). |
+| 1.2 | 2026-10-26 | Concepto 7, punto 5: se añade, literal, la finalidad 4.6 (puntos de constancia y, solo con consentimiento expreso, comparación bajo alias en ligas, que no están construidas). Aviso informativo en pantalla al iniciar sesión, una vez; sin re-aceptación forzada (quien aceptó la 0.1 o la 1.1 sigue vigente). |
 
-*NOTA de versión para Dev: el test tests/legal.test.js exige que la Versión de este archivo coincida con LEGAL_VERSIONS en schema.js y con legal/VERSIONS.json (hoy 1.1; la 0.1 sigue aceptada sin re-aceptación, ver LEGAL_COMPAT). Cuando el abogado apruebe el texto definitivo, para subir la versión hay que cambiar a la vez este archivo, LEGAL_VERSIONS, LEGAL_CHANGES (resumen de cambios para la re-aceptación) y la expectativa de buildConsent en el test.*
+*NOTA de versión para Dev: el test tests/legal.test.js exige que la Versión de este archivo coincida con LEGAL_VERSIONS en schema.js y con legal/VERSIONS.json (hoy 1.2; la 0.1 y la 1.1 siguen aceptadas sin re-aceptación, ver LEGAL_COMPAT). Cuando el abogado apruebe el texto definitivo, para subir la versión hay que cambiar a la vez este archivo, LEGAL_VERSIONS, LEGAL_CHANGES (resumen de cambios para la re-aceptación) y la expectativa de buildConsent en el test.*
