@@ -246,3 +246,19 @@ test('fake: un coach suspendido no ve analítica ni avisos; sus asesorados no qu
   await adm.admin.setCoachActive(xid, true);
   assert.strictEqual(be.paymentBlocked(ana.u.id), true);
 });
+
+test('lista del coach (concepto 7, punto 10): filtros por estado operativo y dato neutro de peso y cintura, sin ordenar por kilos', () => {
+  const today = '2026-10-21';
+  const d = (n) => A.addDays(today, n);
+  const flat = [[-20, 90], [-13, 90.1], [-6, 90], [0, 90.1]].map(([n, w]) => ({ date: d(n), weight: w }));
+  const down = [[-20, 80], [-13, 79.2], [-6, 78.6], [0, 78]].map(([n, w]) => ({ date: d(n), weight: w }));
+  assert.strictEqual(A.needsReview(flat, today), true, 'estancado 3+ semanas: requiere revisión (misma regla de la tendencia)');
+  assert.strictEqual(A.needsReview(down, today), false);
+  assert.strictEqual(A.weighStale(flat, today), false);
+  assert.strictEqual(A.weighStale([{ date: d(-11), weight: 70 }], today), true, 'más de 10 días sin pesaje');
+  assert.strictEqual(A.weighStale([{ date: d(-10), weight: 70 }], today), false);
+  assert.strictEqual(A.weighStale([], today), true);
+  assert.strictEqual(A.lastMeasureLine([...down, { date: d(-3), waist: 82 }]), 'Peso 78 kg · 21 oct · Cintura 82 cm · 18 oct');
+  assert.strictEqual(A.lastMeasureLine([]), 'Sin pesajes ni medidas todavía');
+  assert.ok(!/[▲▼↑↓]|bajó|subió|mejor|peor/i.test(A.lastMeasureLine(down)), 'sin flechas ni juicios');
+});

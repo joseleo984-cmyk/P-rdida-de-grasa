@@ -86,6 +86,31 @@
       .sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }
 
+  // ---------- Lista «Asesorados» del coach: filtros por ESTADO OPERATIVO y dato neutro (concepto 7, punto 10; guía aprobada) ----------
+  // Nunca se ordena ni se filtra por cuánto bajó alguien. «Requieren revisión» = la MISMA regla «estancado 3+ sem.» de la tarjeta de tendencia,
+  // con promedios semanales calculados como grasa.coach_analytics (6 semanas hacia atrás desde hoy) sobre lo que el coach ya ve (coach_pull, sin pausa privada).
+  function weightWeeksOf(entries, today) {
+    const w = {};
+    for (const e of Array.isArray(entries) ? entries : []) {
+      if (!e || typeof e.date !== 'string' || typeof e.weight !== 'number' || !Number.isFinite(e.weight) || e.date > today) continue;
+      const k = Math.floor((dayNum(today) - dayNum(e.date)) / 7);
+      if (k < 6) (w[k] ||= []).push(e.weight);
+    }
+    return Object.keys(w).map(Number).sort((a, b) => a - b).map((k) => ({ w: k, kg: Math.round((w[k].reduce((s, x) => s + x, 0) / w[k].length) * 100) / 100 }));
+  }
+  const NO_WEIGH_DAYS = 10;
+  const needsReview = (entries, today) => trend(weightWeeksOf(entries, today)).kind === 'estancado';
+  const weighStale = (entries, today) => { const l = lastWeigh(entries); return !l || dayNum(today) - dayNum(l) > NO_WEIGH_DAYS; };
+  // «Peso 72,9 kg · 21 oct · Cintura 80 cm · 14 oct»: el último registro de cada uno, con su fecha. Sin flechas, sin colores, sin comparar.
+  function lastMeasureLine(entries) {
+    const last = (k) => { let b = null; for (const e of Array.isArray(entries) ? entries : []) if (e && typeof e.date === 'string' && typeof e[k] === 'number' && Number.isFinite(e[k]) && (!b || e.date > b.date)) b = e; return b; };
+    const w = last('weight'), c = last('waist');
+    const parts = [];
+    if (w) parts.push(`Peso ${num(w.weight)} kg · ${dm(w.date)}`);
+    if (c) parts.push(`Cintura ${num(c.waist)} cm · ${dm(c.date)}`);
+    return parts.length ? parts.join(' · ') : 'Sin pesajes ni medidas todavía';
+  }
+
   // ---------- M3: resumen de todos ----------
   // rows: salida de remote.coach.analytics(from, to) pedida con from = p.prevFrom y to = p.to.
   function summary(rows, p, today) {
@@ -288,7 +313,7 @@
     return { ok: !Object.keys(errors).length, goals, errors };
   }
 
-  const api = { RANKING_LABEL, GOALS_FOOTER, STALL_KG, TREND_TEXT, TREND_TITLE, TREND_ORDER, trendChange, trendPeople, lastWeigh, SIN_PESAJES, METRICS, GOAL_FIELDS, period, trend, summary, deltaText, progress, hasGoals, ranking, RANK_BY, RANK_LABEL,
+  const api = { RANKING_LABEL, GOALS_FOOTER, STALL_KG, TREND_TEXT, TREND_TITLE, TREND_ORDER, trendChange, trendPeople, lastWeigh, SIN_PESAJES, METRICS, GOAL_FIELDS, period, trend, summary, deltaText, progress, hasGoals, ranking, RANK_BY, RANK_LABEL, weightWeeksOf, needsReview, weighStale, lastMeasureLine, NO_WEIGH_DAYS,
     buckets, series, compare, metas, parseGoals, addDays, rangeText, dm, num, signed };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Analitica = api;
