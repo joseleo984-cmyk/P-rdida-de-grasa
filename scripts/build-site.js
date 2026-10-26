@@ -11,8 +11,8 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const arg = process.argv.indexOf('--out');
 const OUT = path.resolve(ROOT, arg > 0 ? process.argv[arg + 1] : '_site');
-const FILES = ['index.html', 'styles.css', 'ns.js', 'calc.js', 'schema.js', 'consent-texts.js', 'producto.js', 'consent-texts-solo.js', 'pagos.js', 'medidas.js', 'habitos.js', 'constancia.js', 'platos.js', 'rutinas.js', 'paso.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'exportar.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'etapa2.js', 'app.js', 'config.js',
-  'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'rutinas-view.js', 'etapa2-view.js', 'analitica.js', 'admin.js', 'analitica-view.js', 'admin-view.js', 'exportar-view.js', 'aviso-politica.js', 'sw.js', 'manifest.webmanifest', 'icon.svg'];
+const FILES = ['index.html', 'styles.css', 'ns.js', 'calc.js', 'schema.js', 'consent-texts.js', 'producto.js', 'consent-texts-solo.js', 'pagos.js', 'medidas.js', 'habitos.js', 'constancia.js', 'puntos.js', 'platos.js', 'rutinas.js', 'paso.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'exportar.js', 'estado-cliente.js', 'inicio-view.js', 'photos.js', 'etapa2.js', 'app.js', 'config.js',
+  'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'rutinas-view.js', 'etapa2-view.js', 'analitica.js', 'admin.js', 'analitica-view.js', 'puntos-view.js', 'admin-view.js', 'exportar-view.js', 'aviso-politica.js', 'sw.js', 'manifest.webmanifest', 'icon.svg'];
 const DEMO_FILES = ['remote-fake.js', 'demo-data.js', 'demo.js', 'demo.css'];   // solo en /demo/
 const DIRS = [['legal', 'legal'], ['fonts', 'fonts'], ['vendor/supabase-2.117.2.js', 'vendor/supabase-2.117.2.js']];
 const { checkCaptcha } = require('./check-conexion.js');

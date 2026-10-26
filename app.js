@@ -141,12 +141,12 @@
   // Coach: Clientes | ＋ Invitar | Más (su propio seguimiento sigue en Más). Las vistas conservan sus ids (#view-…).
   const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', exportar: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas', micomidas: 'mas', rutina: 'mas', rutinas: 'mas', 'rutina-edit': 'coach', fotovistas: 'fotos' };
   // UX Etapa 1 (producto 'coach'): a qué botón de la barra pertenece cada pantalla. Cliente: Inicio · Comidas · Entrenar · Progreso · Más. Coach: Asesorados · Rutinas · Invitar · Más.
-  const TAB_COACH_CLIENT = { panel: 'panel', habitos: 'panel', micomidas: 'comidas', rutina: 'entrenar', progreso: 'registro', metas: 'registro', medidas: 'registro', fotos: 'registro', insignias: 'registro', fotovistas: 'registro' };
+  const TAB_COACH_CLIENT = { panel: 'panel', habitos: 'panel', micomidas: 'comidas', rutina: 'entrenar', progreso: 'registro', metas: 'registro', medidas: 'registro', fotos: 'registro', insignias: 'registro', fotovistas: 'registro', puntos: 'registro' };
   const TAB_COACH_COACH = { coach: 'coach', analitica: 'analitica', rutinas: 'rutinas', invitar: 'invitar', meta: 'coach' };
   // r1 v1.13: panel admin (solo con el rol admin): su propia barra Coaches · Uso · Por coach · Avisos · Más.
   const TAB_ADMIN = { 'admin-coaches': 'adm-coaches', 'admin-uso': 'adm-uso', 'admin-coach': 'adm-coach', 'admin-avisos': 'adm-avisos' };
   // Título de la barra de arriba en el producto coach (la fecha corta va a la derecha).
-  const TITLE_COACH = { panel: 'Inicio', habitos: 'Corregir otro día', micomidas: 'Comidas', rutina: 'Entrenar', progreso: 'Progreso', medidas: 'Medirme', fotos: 'Fotos', insignias: 'Insignias', fotovistas: 'Quién vio mis fotos',
+  const TITLE_COACH = { panel: 'Inicio', habitos: 'Corregir otro día', micomidas: 'Comidas', rutina: 'Entrenar', progreso: 'Progreso', medidas: 'Medirme', fotos: 'Fotos', insignias: 'Insignias', puntos: 'Puntos', ajpuntos: 'Puntos y meta del team', fotovistas: 'Quién vio mis fotos',
     mas: 'Más', ayuda: 'Ayuda', acuerdo: 'Mi acuerdo', exportar: 'Exportar a Excel', coach: 'Asesorados', invitar: 'Invitar', rutinas: 'Rutinas', 'rutina-edit': 'Editar rutina', retos: 'Retos', meta: 'Meta de proteína',
     analitica: 'Analítica', metas: 'Progreso', 'admin-coaches': 'Panel admin', 'admin-uso': 'Panel admin', 'admin-coach': 'Panel admin', 'admin-avisos': 'Panel admin' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
@@ -188,7 +188,7 @@
     // Barra superior de las pantallas de Progreso: «‹ Progreso» a la izquierda en Medirme, Fotos e Insignias; acción a la derecha («Medirme ›», «+ Foto»).
     const client = !navCoach;
     // UX Etapa 2 (coach): «‹ Más» en Retos y «‹ Nombre» en la meta de proteína (vuelve a la ficha).
-    const backTo = client && ['medidas', 'fotos', 'insignias'].includes(view) ? ['‹ Progreso', 'progreso']
+    const backTo = client && ['medidas', 'fotos', 'insignias', 'puntos'].includes(view) ? ['‹ Progreso', 'progreso']
       : navCoach && view === 'retos' ? ['‹ Más', 'mas'] : navCoach && view === 'meta' ? ['‹ ' + ($('#meta-name').textContent || 'Asesorado'), 'coach'] : null;
     const back = !!backTo;
     const bar = $('.topbar');
@@ -280,7 +280,7 @@
   $('#view-mas').addEventListener('click', (ev) => {
     const b = ev.target.closest('.more-row');
     if (!b) return;
-    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-c-exportar': ['exportar'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-micomidas': ['micomidas'], 'row-coach': ['perfil', 'coach'], 'row-rutina': ['rutina'], 'row-c-rutinas': ['rutinas'], 'row-c-retos': ['retos'],
+    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-c-exportar': ['exportar'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-micomidas': ['micomidas'], 'row-coach': ['perfil', 'coach'], 'row-rutina': ['rutina'], 'row-c-rutinas': ['rutinas'], 'row-c-retos': ['retos'], 'row-puntos': ['ajpuntos'],
       'row-datos': ['perfil', 'datos'], 'row-copia': ['perfil', 'copia'], 'row-ayuda': ['ayuda'] }[b.id];
     if (to) goTo(to[0], to[1], b.id);
     else if (b.id === 'row-salir') { goTo('perfil', 'datos', b.id); $('#btn-account-logout').click(); const f = $('#form-logout'); if (f && f.scrollIntoView) f.scrollIntoView({ block: 'center' }); }
@@ -1950,6 +1950,17 @@
     if (on) { setHabit({ trained: false }, { msg: 'Quitamos «Entrené» de hoy' }); return; }
     setHabit({ trained: true }, { msg: 'Entrenamiento anotado', action: { label: 'Contar cómo te sentiste', run: () => { show('rutina'); $('#esf-title').focus(); } } });
   });
+  // v1.15: «Hoy descanso (está en mi plan)» / «Hoy no entreno: me siento mal». Excluye «Entrené» ese día; volver a tocar lo quita.
+  $('#dia-rest').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-rest]');
+    if (!b) return;
+    const cur = (state.habits[today()] || {}).rest;
+    const k = b.dataset.rest;
+    if (cur === k) setHabit({ rest: null }, { msg: 'Lo quitamos de hoy' });
+    else setHabit({ rest: k }, { msg: k === 'sick' ? 'Anotado. Cuidarte también cuenta: si el malestar sigue, consulta a un profesional de la salud.' : 'Descanso anotado. El descanso también es parte del plan.' });
+    const nb = $(`#dia-rest [data-rest="${k}"]`);
+    if (nb) nb.focus();
+  });
   $('#dia-igual').addEventListener('click', () => {
     const y = state.habits[Schema.addDays(today(), -1)];
     if (!y || !(y.water > 0 || y.steps > 0 || y.sleep > 0)) { toast('Ayer no hay agua, pasos ni sueño anotados para repetir'); return; }
@@ -2006,6 +2017,8 @@
     ent.classList.toggle('on', trained);
     ent.setAttribute('aria-pressed', String(trained));
     setText($('#dia-entrene-s'), trained ? 'Anotado ✓' : 'Toca al terminar');
+    $('#dia-rest').innerHTML = trained ? '' : Habitos.RESTS.map((r) => `<button type="button" data-rest="${r.key}" aria-pressed="${h.rest === r.key}">${esc(r.label)}</button>`).join('');
+    $('#dia-rest').classList.toggle('hidden', trained);
     const week = Constancia.summary(state, d, constOpts());
     const idle = !Constancia.noted(state, d).length;
     setText($('#dia-status'), idle ? 'Cada toque se guarda solo.' : `Guardado. Llevas ${daysWord(week.daysThisWeek)} esta semana.`);
@@ -2280,7 +2293,7 @@
     const nav = document.createElement('nav');
     nav.className = 'prog-seg';
     nav.setAttribute('aria-label', 'Progreso');
-    nav.innerHTML = [['progreso:medidas', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias']].map(([v, t]) => `<button type="button" data-goto="${v}"${v === 'progreso:medidas' ? ' aria-current="page" class="on"' : ''}>${t}</button>`).join('');
+    nav.innerHTML = [['progreso:medidas', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias'], ['puntos', 'Puntos']].map(([v, t]) => `<button type="button" data-goto="${v}"${v === 'progreso:medidas' ? ' aria-current="page" class="on"' : ''}>${t}</button>`).join('');
     $('#view-progreso').prepend(nav);
     $('#btn-foto-add').addEventListener('click', () => {
       const det = $('#foto-nueva');
@@ -2828,6 +2841,7 @@
     if (st.state === 'idle') return;
     syncSt = { state: st.state, lastOkAt: st.lastOkAt || null };
     showSync(CloudView.stateKey(st));
+    if (st.lastOkAt && st.lastOkAt !== onSyncStatus.lastOk) { onSyncStatus.lastOk = st.lastOkAt; document.dispatchEvent(new CustomEvent('pg:synced')); }   // v1.15: los puntos se vuelven a pedir
     if (st.state === 'consent') document.dispatchEvent(new CustomEvent('pg:consent-required')); // account.js envía lo pendiente y reintenta
     if (st.state === 'paused') document.dispatchEvent(new CustomEvent('pg:payment-required'));  // Sprint 11: el servidor dice «payment_required»: se vuelve a mirar el vínculo
     if (st.nextRetryAt && (st.state === 'offline' || st.state === 'error')) scheduleSync(Math.max(1000, Date.parse(st.nextRetryAt) - Date.now()));

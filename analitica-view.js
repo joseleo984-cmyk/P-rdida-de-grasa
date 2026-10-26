@@ -355,7 +355,7 @@
   const myGoals = () => { const A = acc(); const m = A && A.meta(); return (m && m.link && m.link.goals) || {}; };
   window.PGMetas = { has: () => !isCoach() && An.hasGoals(myGoals()) };
   function progSeg(active) {
-    return `<nav class="prog-seg" aria-label="Progreso">${[['metas', 'Metas'], ['progreso:medidas', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias']]
+    return `<nav class="prog-seg" aria-label="Progreso">${[['metas', 'Metas'], ['progreso:medidas', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias'], ['puntos', 'Puntos']]
       .map(([v, t]) => `<button type="button" data-goto="${v}"${v === active ? ' aria-current="page" class="on"' : ''}>${t}</button>`).join('')}</nav>`;
   }
   function syncProgSeg() {

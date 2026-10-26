@@ -95,12 +95,11 @@ test('M3 + M5: Analítica (Resumen y Ranking privado) con Semana/Mes; quien no c
   await p.locator('#tab-analitica').click();
   await p.locator('#ant-ranking').click();
   await expect(p.locator('[data-by="meta"]')).toHaveCount(0);
-  expect(await p.locator('#an-ranking').innerText()).not.toMatch(/kg|kilo|cintura|Faltan|Progreso a la meta/i);
-  await p.locator('[data-by="puntos"]').click();
-  await expect(p.locator('.rk-li')).toHaveCount(2);
-  await expect(p.locator('.rk-li small').first()).toContainText('puntos de constancia');
+  expect(await p.locator('#an-ranking .rk-list').innerText()).not.toMatch(/kg|kilo|cintura|Faltan|Progreso a la meta/i);
+  await p.locator('[data-by="puntos"]').click();   // aquí nadie comparte comidas: los puntos (salen de hábitos y comidas) quedan aparte, nunca 0
   await expect(p.locator('.rk-apart')).toContainText('Beto Gómez (no comparte sus hábitos y comidas)');
   await p.locator('[data-by="habitos"]').click();
+  await expect(p.locator('.rk-li')).toHaveCount(2);
   await expect(p.locator('.rk-li small').first()).toContainText('metas de agua, pasos y sueño');
   expect(errors).toEqual([]);
 });
