@@ -529,12 +529,16 @@
   function renderDetailConst(c, sh) {
     void sh;
     const today = todayBo();
-    const sm = Constancia.summary(c.state, today, { pauses: c.info.pauses || [] }), list = Constancia.badges(c.state, today), bc = Constancia.badgeCount(list);   // UX Etapa 2: congelada en pausa
+    const sm = Constancia.summary(c.state, today, { pauses: c.info.pauses || [] });   // UX Etapa 2: congelada en pausa
+    // Insignias v4 (diseño B): las mismas siluetas y niveles que ve la persona, solo con SUS registros. Sin ranking ni comparación con nadie.
+    // Retos y Equipo no se muestran aquí: viven en el teléfono de la persona (sus marcas y la meta del team, que el coach ve agregada en Retos).
+    const lg = window.PGLogros ? PGLogros.coachHtml(c.state, today, { pauses: c.info.pauses || [] }) : null;
+    const bc = lg ? { earned: lg.earned, total: lg.total } : Constancia.badgeCount(Constancia.badges(c.state, today));
     $('#fc-const-sum').innerHTML = [[sm.constantWeeks, sm.constantWeeks === 1 ? 'semana constante' : 'semanas constantes'], [`${sm.week.comodines} de 2`, 'comodines esta semana'], [`${bc.earned} de ${bc.total}`, 'insignias']]
       .map(([a, b]) => `<div><b>${esc(a)}</b><small>${esc(b)}</small></div>`).join('');
     const weeks = [...sm.history.slice(-5), sm.week];
     $('#fc-weeks').innerHTML = weeks.map((w) => `<li class="${w.frozen ? 'fz' : ''}" aria-label="Semana del ${esc(fmtDay(w.start))}: ${w.registered} días con registro${w.frozen ? ' (con días en pausa: no cuentan)' : ''}">${w.registered}</li>`).join('');
-    $('#fc-ins').innerHTML = list.map((b, i) => `<li class="insig ${b.earned ? 'earned' : 'pending'}"><span class="insig-n" aria-hidden="true">${i + 1}</span><span class="insig-t"><strong>${esc(b.name)}</strong><small>${esc(b.earned ? fmtDay(b.date) : b.hint)}</small><span class="sr-only">${esc(b.desc)}. ${b.earned ? 'Ganada' : 'Aún no'}</span></span></li>`).join('');
+    $('#fc-ins').innerHTML = lg ? lg.html : '';
     const first = displayName(c).split(/\s+/)[0];
     $('#btn-fc-felicitar').textContent = `Felicitar a ${first}`;
     $('#fc-link-const').textContent = `${bc.earned} de ${bc.total} ›`;

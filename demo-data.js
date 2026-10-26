@@ -39,7 +39,7 @@
   // weeks: semanas de historial de medidas (0 = una sola medición); last: día del último registro (0 = hoy, -2 = hace 2 días).
   // habitDays / foodDays: cuántos días de hábitos y comidas hay (hasta «last»). paid: días de pago que le quedan (negativo = no pagó).
   const PEOPLE = [
-    { key: 'ana', name: 'Ana Demo', sex: 'f', w0: 78.4, loss: 5.6, weeks: 10, last: -1, adh: 0.88, habitDays: 28, foodDays: 7, started: -72, paid: 21, notes: true, waistWeekAgo: true,
+    { key: 'ana', name: 'Ana Demo', sex: 'f', w0: 78.4, loss: 5.6, weeks: 10, last: -1, adh: 0.88, habitDays: 96, foodDays: 14, started: -112, paid: 21, notes: true, waistWeekAgo: true, earlyFrom: -109,
       shares: { body: true, notes: true, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [0, 'perfil', 0], [4, 'frente', 1], [8, 'frente', 1], [10, 'frente', 1], [10, 'perfil', 1]], routines: ['pecho', 'piernas', 'movilidad'], pattern: true, early: true, steady: true },
     { key: 'beto', name: 'Beto Demo', sex: 'm', w0: 96.2, loss: 6.8, weeks: 10, last: 0, adh: 0.62, habitDays: 28, foodDays: 7, started: -75, paid: 4, notes: true, hard: true,
       shares: { body: true, notes: false, nutrition: true, habits: true, photos: true }, photos: [[0, 'frente', 1], [5, 'frente', 1], [10, 'frente', 1], [10, 'espalda', 1]], routines: ['espalda'] },
@@ -100,8 +100,11 @@
 
   // ---------- Hábitos ----------
   // UX Etapa 1: además de agua, pasos, sueño y entreno, cada día de entreno trae su esfuerzo («Cómo te sentiste») y algunos días traen el cierre de comidas
-  // («¿Registraste todo lo de hoy?»). Ana usa un patrón fijo por días seguidos (cualquier semana del calendario tiene 6 de 7 de agua y sueño, 3 de 7 de pasos y 3 entrenos)
-  // para que sus insignias sean las mismas todos los días de la semana: 6 de 8, con «Pata de perro» en camino y «Volviste» sin aplicar.
+  // («¿Registraste todo lo de hoy?»). Ana usa un patrón fijo por días seguidos (cualquier semana del calendario tiene las mismas cuentas), así sus
+  // logros (insignias v4) son los mismos todos los días de la semana y la colección es variada: oro (agua 6 de 7 durante 13 semanas), plata (pasos 5 de 7
+  // las últimas 5 semanas; 3 entrenos las últimas 6), bronce (descanso del plan en 3 semanas: al marcar hoy «Hoy es mi día de descanso» sube a PLATA y se ve
+  // el momento de ganarla), en progreso (sueño 4 de 7: nunca llega a 5) y bloqueadas. Empezó hace 15 semanas con 5 días seguidos y una pausa de 8 días
+  // («Volviste»).
   const EFFORT_CYCLE = ['normal', 'normal', 'duro', 'facil'];
   function buildHabits(p, today, rnd) {
     const out = [];
@@ -114,7 +117,9 @@
       const a = p.adh;
       let h;
       if (p.pattern) {
-        h = { water: (k % 7 !== 3 ? 8 + (k % 3) : 5) * 0.25, steps: k % 7 < 3 ? 8500 + k * 40 : 4200 + (k % 5) * 500, sleep: k % 7 !== 5 ? 7 + (k % 3) / 2 : 6, trained: [0, 2, 4].includes(k % 7) };
+        h = { water: (k % 7 !== 3 ? 8 + (k % 3) : 5) * 0.25, steps: k % 7 < (k < 35 ? 5 : 3) ? 8500 + k * 40 : 4200 + (k % 5) * 500, sleep: k % 7 < 4 ? 7 + (k % 3) / 2 : 6,
+          trained: k < 42 ? [0, 2, 4].includes(k % 7) : k < 63 ? [0, 3].includes(k % 7) : false };
+        if ([8, 15, 22].includes(k)) h.rest = 'plan';
       } else {
         const glasses = rnd() < a ? 8 + Math.floor(rnd() * 3) : 3 + Math.floor(rnd() * 5);
         h = { water: glasses * 0.25, steps: rnd() < a ? 8000 + Math.floor(rnd() * 4500) : 3000 + Math.floor(rnd() * 4500),
@@ -126,8 +131,8 @@
     }
     // Primeros días con la plataforma (para «Primera semana»): 5 días seguidos de registro al comienzo.
     if (p.early) {
-      const first = p.last - 7 * p.weeks;
-      for (let k = 1; k <= 5; k++) out.push({ date: addDays(today, first + k), water: 2, steps: 7000, sleep: 7, trained: k % 2 === 0 });
+      const first = p.earlyFrom != null ? p.earlyFrom : p.last - 7 * p.weeks;
+      for (let k = 1; k <= 5; k++) out.push({ date: addDays(today, first + k), water: 2, steps: 7000, sleep: 6.5, trained: k % 2 === 0 });
     }
     return out;
   }
