@@ -170,3 +170,16 @@ test('fake: meta colectiva agregada; con menos de 5 no se publica; opt-out y pau
   assert.strictEqual(pts.find((r) => r.clientId === cs[3].u.id).points, 5);
   assert.ok(!('log' in pts[0]), 'el coach recibe un número por persona, no el detalle');
 });
+
+test('«Hoy descanso» y «me siento mal»: Habitos.apply excluye el entreno del día y Schema.normalize conserva solo valores válidos', () => {
+  const Habitos = require('../habitos.js');
+  const Schema = require('../schema.js');
+  const a = Habitos.apply({ trained: true, effort: 'duro' }, { rest: 'sick' });
+  assert.deepStrictEqual([a.rest, a.trained, 'effort' in a], ['sick', false, false]);
+  assert.strictEqual(Habitos.isEmpty(a), false, 'un descanso anotado cuenta como registro');
+  const b = Habitos.apply(a, { trained: true });
+  assert.deepStrictEqual([b.rest, b.trained], [undefined, true]);
+  assert.strictEqual(Habitos.apply(a, { rest: null }).rest, undefined);
+  const n = Schema.normalize({ entries: [], habits: { '2026-10-21': { rest: 'plan' }, '2026-10-20': { rest: 'otro' }, '2026-10-19': { rest: 'plan', trained: true } } }).state.habits;
+  assert.deepStrictEqual([n['2026-10-21'].rest, n['2026-10-20'].rest, n['2026-10-19'].rest], ['plan', undefined, undefined]);
+});

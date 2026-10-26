@@ -890,3 +890,19 @@ Una sola migración aditiva e idempotente encima de v1.13: `supabase/migrations/
 **Remote (real y fake):** `coach.logExport({ clients, categories, from, to, custody })`, `coach.exports()`; `admin.coachUsage(...).exports`.
 
 **Compatibilidad:** pegar el SQL antes de publicar la app. Con la app nueva y el SQL viejo: «Descargar Excel» muestra un error amable y NO entrega el archivo (no se pudo registrar la exportación); el resto sigue igual.
+
+## 24. Cambios v1.15 (puntos de constancia, meta colectiva del team; concepto jurídico 7)
+
+Una sola migración aditiva e idempotente encima de v1.14: `supabase/migrations/20261102120000_r1_puntos_meta.sql` (regenera `supabase/r1.sql`). Pruebas: `supabase/tests/190_puntos_meta.test.sql` (nueva), conteo de tablas de `10_estructura` (29) y lista blanca de `60_qa_seguridad`. Detalle: `equipo/handoffs/puntos-meta.md`. Concepto jurídico 7 (`equipo/legal/concepto-7-2026-10-26.md`).
+
+| # | Cambio | Error / resultado |
+|---|---|---|
+| 24.1 | `grasa.points_log (user_id, day, source, points)`: puntos por persona, día y fuente (`registro, agua, pasos, sueno, entreno, descanso, comidas, medidas, volviste, semana, reto:<id>`). Los ESCRIBE SOLO el servidor: disparador `records_points` (después de insertar o actualizar `grasa.records`) y `challenge_marks_points` (marcas de reto) → `grasa.points_refresh(user, day)`. Sin acceso por la API de tablas. Reglas en el comentario de la migración y en `puntos.js` (referencia del servidor falso). | |
+| 24.2 | `grasa.coach_links.team_opt_out boolean default false`: «No sumar mis hábitos a la meta del team». | |
+| 24.3 | `grasa.my_points()`: `{ today, week_start, week, today_points, log[{day, kind, points}] (semana en curso), weeks[8]{start, points}, best, total, plan, paused, team_opt_out }`. Solo los de la persona en sesión. | `auth` |
+| 24.4 | `grasa.coach_points(p_from, p_to)`: por asesorado vinculado y visible del coach ACTIVO: `client_id, points` (null si no comparte hábitos Y comidas), `habits_met` (metas diarias de agua, pasos y sueño cumplidas; null si no comparte hábitos). Rango ≤ 92 días. | `forbidden`, `invalid` |
+| 24.5 | `grasa.team_goals (coach_id, week_start lunes, metric entrenos|puntos, target)`, una por coach y semana. `set_team_goal(p_metric, p_target)` (coach activo con acuerdo; entrenos 1–2.000, puntos 1–20.000), `delete_team_goal()`, `coach_team_goal()`, `my_team_goal()` (la de su coach activo + `opted_out`; `{none:true}` sin meta), `set_team_opt_out(p_out)`. Todas devuelven SOLO el agregado de `team_goal_out`: `{ metric, target, week_start, week_end, min:5, published, participants, total }`; con menos de 5 participantes `published=false` y `participants`/`total` null. Participan: vínculo activo, coach activo, A3+A4, comparten hábitos y comidas, sin pausa, sin opt-out. Nunca ids ni aportes individuales. | `forbidden`, `invalid`, `not_found` |
+
+**Remote (real y fake):** `client.myPoints()`, `client.myTeamGoal()`, `client.setTeamOptOut(out)`, `coach.points(from, to)`, `coach.teamGoal()`, `coach.setTeamGoal(metric, target)`, `coach.deleteTeamGoal()`.
+
+**Compatibilidad:** con la app nueva y el SQL viejo, los puntos y la meta no aparecen (la línea de Inicio queda oculta) y el ranking sigue sin los criterios Hábitos y Puntos (se desactivan con una nota); el resto funciona. Pegar el SQL antes de publicar. Los puntos empiezan a contar desde que se pega (no hay historia hacia atrás: solo hoy y ayer).
