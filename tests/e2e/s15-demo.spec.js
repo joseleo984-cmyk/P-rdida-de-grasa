@@ -235,8 +235,10 @@ test('r1 v1.13: ?rol=admin abre el panel admin con coaches ficticios (cifras del
   await expect(page.locator('#coach-detail-title')).toHaveText(gina);
   await page.locator('#tab-analitica').click();
   await page.locator('#ant-ranking').click();
-  await expect(page.locator('.rk-li')).toHaveCount(7);
-  await expect(page.locator('.rk-apart')).toContainText('Hugo Demo');
+  await expect(page.locator('.rk-li')).toHaveCount(8);   // por constancia: los 8 (ya no hay «Progreso a la meta», concepto 7)
+  await expect(page.locator('[data-by="meta"]')).toHaveCount(0);
+  await page.locator('[data-by="puntos"]').click();
+  await expect(page.locator('.rk-apart')).toContainText('Carla Demo');   // no comparte hábitos: sin puesto, nunca 0
 });
 
 test('enlace directo ?rol=coach entra sin pasar por la pantalla de elegir', async ({ page, site }) => {
