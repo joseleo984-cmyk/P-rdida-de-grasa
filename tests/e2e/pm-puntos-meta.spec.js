@@ -127,6 +127,7 @@ test('meta colectiva: el asesorado ve la barra común (total y cuántos) sin dat
   const all = await p.evaluate(() => document.body.textContent);
   for (const o of OTROS) expect(all).not.toContain(o.name);
   expect(JSON.stringify(await p.evaluate(() => PGAccount.remote.client.myTeamGoal()))).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-|clientId|userId/);
+  await card.scrollIntoViewIfNeeded();
   await shot(p, 'pm-meta-asesorado.png');
   // Opt-out: «No sumar mis hábitos a la meta del team» → Ana deja de contar (quedan 4) y la meta no se publica.
   await p.locator('#tab-mas').click();
