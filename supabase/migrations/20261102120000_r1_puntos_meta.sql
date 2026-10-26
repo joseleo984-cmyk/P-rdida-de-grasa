@@ -187,8 +187,12 @@ create or replace function grasa.points_on_record() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
   if new.kind in ('entry', 'food', 'habit') then
-    perform grasa.points_refresh(new.user_id, new.date);
-    if tg_op = 'UPDATE' and old.date is distinct from new.date then perform grasa.points_refresh(new.user_id, old.date); end if;
+    begin   -- los puntos nunca deben impedir que se guarde un registro: si algo falla, se registra el aviso y se sigue
+      perform grasa.points_refresh(new.user_id, new.date);
+      if tg_op = 'UPDATE' and old.date is distinct from new.date then perform grasa.points_refresh(new.user_id, old.date); end if;
+    exception when others then
+      raise warning 'points_refresh falló (%): %', sqlstate, sqlerrm;
+    end;
   end if;
   return null;
 end $$;
@@ -198,7 +202,11 @@ create trigger records_points after insert or update on grasa.records for each r
 create or replace function grasa.points_on_mark() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
-  perform grasa.points_refresh(new.client_id, grasa.today_bogota());
+  begin   -- igual que en points_on_record: una falla de puntos no impide marcar el reto
+    perform grasa.points_refresh(new.client_id, grasa.today_bogota());
+  exception when others then
+    raise warning 'points_refresh falló (%): %', sqlstate, sqlerrm;
+  end;
   return null;
 end $$;
 drop trigger if exists challenge_marks_points on grasa.challenge_marks;
