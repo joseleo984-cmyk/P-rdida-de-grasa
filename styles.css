@@ -520,7 +520,7 @@ body:not(.has-remote) .needs-account { display: none; }
 .a8-actions .btn { width: 100%; }
 .a7-gate .acc-main { width: 100%; }
 .a7-ended { margin: 0 0 12px; }
-.a7-clause { white-space: pre-line; margin: 0 0 12px; padding: 10px 12px; border-left: 4px solid var(--line); background: var(--bg); border-radius: 8px; }
+.a7-clause, .a7-clause-export { white-space: pre-line; margin: 0 0 12px; padding: 10px 12px; border-left: 4px solid var(--line); background: var(--bg); border-radius: 8px; }
 #view-coach.a7-locked > :not(.a7-gate), #view-invitar.a7-locked > :not(.a7-gate):not(.view-title) { display: none !important; }
 .acc-main, .a8-actions .btn, .a7-gate .btn { min-height: 48px; }
 #acc-brevo a, .share-outro a, .a7-gate a { display: inline-flex; align-items: center; min-height: 48px; }
@@ -1852,3 +1852,52 @@ body.producto-coach .topbar.has-back .topbar-btn { white-space: normal; min-widt
 body.producto-coach .topbar.has-back #btn-coach-prev, body.producto-coach .topbar.has-back #topbar-back { text-align: start; }
 body.producto-coach .topbar.has-back #btn-coach-next, body.producto-coach .topbar.has-back #btn-foto-add { text-align: end; }
 .fc-metric button { padding: 6px 10px; font-size: .86rem; }
+
+/* ======================================================================================================================
+   M6 · Exportar a Excel (coach, producto «coach»; boceto equipo/diseno/v3-analitica-admin/M6-exportar-excel.png) y aviso de la Política v1.1.
+   Tokens del estilo v2 (oscuro y claro). Todo parte entre palabras y crece con la letra: a 390 px con letra al 200 % no desborda.
+   ====================================================================================================================== */
+.aviso-pol { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; margin: 0 0 12px; border-left: 4px solid var(--c-p, var(--accent)); }
+.aviso-pol p { flex: 1 1 14rem; margin: 0; overflow-wrap: anywhere; }
+.aviso-pol-ok { flex: none; min-height: 48px; min-width: 48px; }
+.aviso-pol-ok:focus-visible { outline: 3px solid var(--accent-hi, var(--accent)); outline-offset: 2px; }
+.xl-card { padding: 14px; margin: 0 0 12px; }
+.xl-head { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; }
+.xl-step { margin: 0 0 10px; font-size: .78rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--t-fg, var(--accent)); font-family: inherit; }
+.xl-head .xl-step { margin: 0; }
+.xl-all { min-height: 48px; padding: 6px 4px; border: 0; background: transparent; color: var(--t-fg, var(--accent)); font: inherit; font-weight: 800; cursor: pointer; }
+.xl-all[aria-pressed="false"] { color: var(--muted); }
+.xl-avs { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 6px; }
+.xl-av { flex: none; min-width: 48px; min-height: 48px; padding: 0 8px; border-radius: 999px; border: 2px solid var(--line); background: transparent; color: var(--muted); font: inherit; font-weight: 800; cursor: pointer; }
+.xl-av[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.xl-av:focus-visible, .xl-all:focus-visible, .xl-cat input:focus-visible, .xl-custody input:focus-visible, .xl-date input:focus-visible { outline: 3px solid var(--accent-hi, var(--accent)); outline-offset: 2px; }
+.xl-sum { margin: 4px 0 0; overflow-wrap: anywhere; }
+.xl-range { margin: 0 0 10px; }
+.xl-dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 8px; }
+.xl-date { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 48px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); color: var(--muted); }
+.xl-date input { flex: 1 1 8rem; min-width: 0; min-height: 40px; border: 0; background: transparent; color: var(--text); font: inherit; font-weight: 800; }
+.xl-cats { border: 1px solid var(--line); min-width: 0; }
+.xl-cats legend { float: left; width: 100%; padding: 0; }
+.xl-cat { clear: both; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; min-height: 52px; padding: 6px 0; border-top: 1px solid var(--line); cursor: pointer; }
+#xl-cats .xl-cat:first-child { border-top: 0; }
+.xl-cat input { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--accent); }
+.xl-cat-t { flex: 1 1 auto; font-weight: 600; }
+.xl-cat-s { margin-left: auto; color: var(--muted); font-size: .9rem; text-align: right; }
+.xl-off { cursor: not-allowed; }
+.xl-off .xl-cat-t { color: var(--muted); }
+.xl-custody { display: flex; align-items: flex-start; gap: 12px; margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--c-w, var(--goal)); border-radius: 16px; background: var(--w-bg, transparent); color: var(--text); cursor: pointer; }
+.xl-custody input { flex: none; width: 24px; height: 24px; margin: 2px 0 0; accent-color: var(--accent); }
+.xl-custody span { overflow-wrap: anywhere; }
+.xl-gate { overflow-wrap: anywhere; border-left-color: var(--c-w, var(--goal)); }
+.xl-go { width: 100%; min-height: 56px; font-size: 1.05rem; font-weight: 800; border-radius: 999px; }
+.xl-status { margin: 8px 0; overflow-wrap: anywhere; }
+.xl-share { width: 100%; margin: 0 0 12px; }
+.xl-hist { margin-top: 16px; }
+.xl-hist-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.xl-hist-row { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.xl-hist-row:first-child { border-top: 0; }
+.xla-clause { border-left-color: var(--c-w, var(--goal)); }
+.xla-more { margin: 0 0 12px; }
+.xla-more summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; color: var(--t-fg, var(--accent)); font-weight: 700; }
+.xla-check { margin-top: 4px; }
+.xla-links { margin: 0 0 8px; }

@@ -92,6 +92,7 @@
     invalid: 'Datos no válidos', server: 'Error del servidor',
     captcha_failed: 'No pudimos verificar que eres una persona',
     consent_required: 'Falta aceptar una autorización', agreement_required: 'Falta aceptar el Acuerdo del coach',
+    export_agreement_required: 'Falta aceptar la versión del Acuerdo del coach con la cláusula de descarga',
     payment_required: 'Tu acceso está en pausa: habla con tu coach',
   };
   const NET_NAMES = ['TypeError', 'AbortError', 'TimeoutError', 'AuthRetryableFetchError', 'StorageUnknownError', 'FunctionsFetchError'];
@@ -112,6 +113,7 @@
     };
     if (/coach_agreement_required/.test(String(e.details || e.detail || ''))) return mk('agreement_required');
     if (/payment_required/.test(String(e.details || e.detail || ''))) return mk('payment_required');
+    if (/export_agreement_required/.test(String(e.details || e.detail || ''))) return mk('export_agreement_required');   // r1 v1.14 (M6)
     if (DB_CODES.includes(msg)) return mk(msg);
     // Sprint 9: el servidor (Supabase Auth con CAPTCHA activado) rechazó o no recibió el token: código `captcha_failed`
     // ("captcha verification process failed", "no captcha response (captcha_token) found in request").
@@ -714,7 +716,16 @@
         await me();
         return rows(await rpc('grasa', 'coach_notices', { p_today: day })).map(noticeOut);
       },
+      // r1 v1.14 (M6): registra UNA exportación (sin contenido: cuántos asesorados, categorías, rango y la casilla). Se llama ANTES de entregar el archivo.
+      async logExport({ clients, categories, from, to, custody } = {}) {
+        await me();
+        if (!DAY_RE.test(String(from)) || !DAY_RE.test(String(to))) throw new RemoteError('invalid', 'Fecha no válida');
+        return exportOut(await rpc('grasa', 'log_export', { p_clients: Number(clients) || 0, p_categories: Array.isArray(categories) ? categories : [], p_from: from, p_to: to, p_custody: custody === true }));
+      },
+      async exports() { await me(); return rows(await rpc('grasa', 'my_exports')).map(exportOut); },
     };
+    const exportOut = (x) => ({ id: x && x.id, createdAt: isoOrNull(x && x.created_at), clients: Number(x && x.clients) || 0,
+      categories: Array.isArray(x && x.categories) ? x.categories.map(String) : [], from: dayOut(x && (x.from || x.date_from)), to: dayOut(x && (x.to || x.date_to)) });
 
     const num = (v) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
     const days = (a) => (Array.isArray(a) ? a.map(dayOut).filter(Boolean) : null);
@@ -763,7 +774,8 @@
       const x = u || {};
       return { activeClients: Number(x.active_clients) || 0, retention30: { cohort: Number((x.retention30 || {}).cohort) || 0, kept: Number((x.retention30 || {}).kept) || 0 },
         lastActionAt: isoOrNull(x.last_action_at), lastPanelDay: dayOut(x.last_panel_day), panelDays: rows(x.panel_days).map(dayOut).filter(Boolean),
-        weeks: rows(x.weeks).map((w) => ({ start: dayOut(w.start), pctLogging: num(w.pct_logging), trained: num(w.trained) })), ref: dayOut(x.ref) };
+        weeks: rows(x.weeks).map((w) => ({ start: dayOut(w.start), pctLogging: num(w.pct_logging), trained: num(w.trained) })), ref: dayOut(x.ref),
+        exports: Number(x.exports) || 0 };   // r1 v1.14: solo la cantidad de exportaciones del mes
     }
 
     return { kind: 'real', auth, account, sync, client, coach, admin };

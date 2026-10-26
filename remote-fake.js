@@ -99,6 +99,7 @@
       this.panelDays = {};      // v1.13: coachId → ['AAAA-MM-DD', …] días en que abrió su panel (solo la fecha)
       this.notices = {};        // v1.13: avisos de la plataforma, id → { id, title, body, startsOn, endsOn, createdAt, deletedAt }
       this.coachEvents = [];    // v1.13: suspensiones / reactivaciones { coachId, active, reason, at } (solo el admin)
+      this.exports = [];        // v1.14 (M6): exportaciones a Excel { id, coachId, createdAt, clients, categories, from, to, custody, agreementVersion } (sin contenido)
       this.challenges = {};     // v1.11: retos del coach, id → { id, coachId, title, habit, target, start, end, createdAt, deletedAt, members: [clientId], marks: { clientId: { day: { private } } } }
       this._online = true;
       // Sprint 9 (solo pruebas, no se persiste): simula Supabase Auth con CAPTCHA activado. account.js lo enciende cuando
@@ -146,6 +147,14 @@
     _persist() { if (this.onPersist) this.onPersist(this); }
 
     // Sprint 7 (r1 v1.5): ¿el ÚLTIMO evento de ese tipo de la persona tiene granted = true? (sin mirar la versión del texto)
+    // v1.14: versión de la ÚLTIMA aceptación del acuerdo del coach si está vigente (null si no hay o se retiró).
+    agreementVersion(userId) {
+      for (let i = this.consentEvents.length - 1; i >= 0; i--) {
+        const e = this.consentEvents[i];
+        if (e.userId === userId && e.kind === 'coach_agreement') return e.granted === true ? e.version : null;
+      }
+      return null;
+    }
     hasConsent(userId, kind) {
       for (let i = this.consentEvents.length - 1; i >= 0; i--) {
         const e = this.consentEvents[i];
@@ -219,13 +228,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'challenges', 'panelDays', 'notices', 'coachEvents']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -1073,7 +1082,34 @@
         return Object.values(be.notices).filter((n) => !n.deletedAt && n.startsOn <= d && n.endsOn >= d)
           .sort((a, b) => b.startsOn.localeCompare(a.startsOn) || b.createdAt.localeCompare(a.createdAt)).slice(0, 3).map(noticeOut);
       },
+      // r1 v1.14 (M6) como grasa.log_export: acuerdo con la cláusula 14 (0.5-A7-coach), casilla marcada, cuántos (≤ vinculados visibles), categorías y rango.
+      async logExport({ clients, categories, from, to, custody } = {}) {
+        const u = await asCoach();
+        if (!be.coaches[u.id] || be.coaches[u.id].active === false) fail('forbidden', 'Coach suspendido');
+        const ver = be.agreementVersion(u.id);
+        if (!EXPORT_AGREEMENT_VERSIONS.includes(ver)) { const e = new RemoteError('export_agreement_required', 'Falta aceptar la versión del Acuerdo del coach con la cláusula de descarga'); e.detail = 'export_agreement_required'; throw e; }
+        if (custody !== true) invalid('custody_required');
+        const cats = [...new Set(Array.isArray(categories) ? categories.map(String) : [])].sort();
+        if (!cats.length || cats.some((c) => !['medidas', 'comidas', 'habitos', 'entrenos'].includes(c))) invalid('categoría no válida');
+        const today = be.todayBogota(), F = String(from), T = String(to);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(F) || !/^\d{4}-\d{2}-\d{2}$/.test(T) || F > T || T > addDay(today, 1) || F < addDay(today, -3660)) invalid('rango de fechas no válido');
+        const n = be.links.filter((l) => l.coachId === u.id && l.status === 'active' && be.hasConsent(l.clientId, 'sensitive_health') && be.hasConsent(l.clientId, 'cloud_transfer')).length;
+        const k = Number(clients);
+        if (!Number.isInteger(k) || k < 1 || k > n) invalid('número de asesorados no válido');
+        const nowMs = be.clock.now();
+        if (be.exports.filter((x) => x.coachId === u.id && Date.parse(x.createdAt) > nowMs - 86400000).length >= 60) fail('rate_limited', 'Demasiadas exportaciones hoy');
+        const x = { id: randUUID(), coachId: u.id, createdAt: iso(nowMs), clients: k, categories: cats, from: F, to: T, custody: true, agreementVersion: ver };
+        be.exports.push(x);
+        return done(exportOut(x));
+      },
+      async exports() {
+        const u = await authed();
+        if (!be.coaches[u.id]) fail('forbidden', 'No eres coach');
+        return be.exports.filter((x) => x.coachId === u.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50).map(exportOut);
+      },
     };
+    const EXPORT_AGREEMENT_VERSIONS = ['0.5-A7-coach'];
+    const exportOut = (x) => ({ id: x.id, createdAt: x.createdAt, clients: x.clients, categories: x.categories.slice(), from: x.from, to: x.to });
     const GOAL_RANGES = { weight_kg: { min: 30, max: 300, dec: 1 }, waist_cm: { min: 40, max: 200, dec: 1 }, protein_g: { min: 20, max: 400, dec: 0 },
       water_days: { min: 1, max: 7, dec: 0 }, steps_days: { min: 1, max: 7, dec: 0 }, sleep_days: { min: 1, max: 7, dec: 0 }, trained_days: { min: 1, max: 7, dec: 0 } };
     const noticeOut = (n) => ({ id: n.id, title: n.title, body: n.body, startsOn: n.startsOn, endsOn: n.endsOn, createdAt: n.createdAt });
@@ -1155,7 +1191,8 @@
           ...Object.values(be.challenges).filter((t) => t.coachId === coachId).map((t) => t.createdAt)].filter(Boolean).sort();
         const pd = (be.panelDays[coachId] || []).slice().sort();
         return { activeClients: activeCount(coachId, m0), retention30: cohort30(be.links.filter((l) => l.coachId === coachId), ref), lastActionAt: stamps.length ? stamps[stamps.length - 1] : null,
-          lastPanelDay: pd.length ? pd[pd.length - 1] : null, panelDays: pd.filter((d) => d >= addDay(ref, -6) && d <= ref), weeks, ref };
+          lastPanelDay: pd.length ? pd[pd.length - 1] : null, panelDays: pd.filter((d) => d >= addDay(ref, -6) && d <= ref), weeks, ref,
+          exports: be.exports.filter((x) => x.coachId === coachId && bogDay(x.createdAt) >= m0 && bogDay(x.createdAt) < nextMonth(m0)).length };   // v1.14: solo la cantidad
       },
       // «Coaches con mayor éxito»: solo negocio y adherencia (concepto 5, punto 6). Nunca kilos ni centímetros.
       async success(month) {

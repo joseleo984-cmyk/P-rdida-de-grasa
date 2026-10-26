@@ -139,7 +139,7 @@
   // ---------- Navegación ----------
   // Barra de abajo. Cliente (y sin cuenta): Inicio | Comidas | ＋ Registrar | Progreso | Más.
   // Coach: Clientes | ＋ Invitar | Más (su propio seguimiento sigue en Más). Las vistas conservan sus ids (#view-…).
-  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas', micomidas: 'mas', rutina: 'mas', rutinas: 'mas', 'rutina-edit': 'coach', fotovistas: 'fotos' };
+  const TAB_OF = { panel: 'panel', comidas: 'comidas', registro: 'registro', mas: 'mas', perfil: 'mas', fotos: 'mas', acuerdo: 'mas', exportar: 'mas', ayuda: 'mas', coach: 'coach', invitar: 'invitar', habitos: 'habitos', medidas: 'medidas', micomidas: 'mas', rutina: 'mas', rutinas: 'mas', 'rutina-edit': 'coach', fotovistas: 'fotos' };
   // UX Etapa 1 (producto 'coach'): a qué botón de la barra pertenece cada pantalla. Cliente: Inicio · Comidas · Entrenar · Progreso · Más. Coach: Asesorados · Rutinas · Invitar · Más.
   const TAB_COACH_CLIENT = { panel: 'panel', habitos: 'panel', micomidas: 'comidas', rutina: 'entrenar', progreso: 'registro', metas: 'registro', medidas: 'registro', fotos: 'registro', insignias: 'registro', fotovistas: 'registro' };
   const TAB_COACH_COACH = { coach: 'coach', analitica: 'analitica', rutinas: 'rutinas', invitar: 'invitar', meta: 'coach' };
@@ -147,13 +147,14 @@
   const TAB_ADMIN = { 'admin-coaches': 'adm-coaches', 'admin-uso': 'adm-uso', 'admin-coach': 'adm-coach', 'admin-avisos': 'adm-avisos' };
   // Título de la barra de arriba en el producto coach (la fecha corta va a la derecha).
   const TITLE_COACH = { panel: 'Inicio', habitos: 'Corregir otro día', micomidas: 'Comidas', rutina: 'Entrenar', progreso: 'Progreso', medidas: 'Medirme', fotos: 'Fotos', insignias: 'Insignias', fotovistas: 'Quién vio mis fotos',
-    mas: 'Más', ayuda: 'Ayuda', acuerdo: 'Mi acuerdo', coach: 'Asesorados', invitar: 'Invitar', rutinas: 'Rutinas', 'rutina-edit': 'Editar rutina', retos: 'Retos', meta: 'Meta de proteína',
+    mas: 'Más', ayuda: 'Ayuda', acuerdo: 'Mi acuerdo', exportar: 'Exportar a Excel', coach: 'Asesorados', invitar: 'Invitar', rutinas: 'Rutinas', 'rutina-edit': 'Editar rutina', retos: 'Retos', meta: 'Meta de proteína',
     analitica: 'Analítica', metas: 'Progreso', 'admin-coaches': 'Panel admin', 'admin-uso': 'Panel admin', 'admin-coach': 'Panel admin', 'admin-avisos': 'Panel admin' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
   let navCoach = false, navAdmin = false;
   function show(view, mode) {
     // r1 v1.13 (M1): Progreso abre en «Metas» si el coach fijó alguna; «Medidas» llega con el modo 'medidas'.
     if (PROD.coach && !navCoach && view === 'progreso' && mode !== 'medidas' && window.PGMetas && PGMetas.has()) view = 'metas';
+    if (view === 'exportar' && (!PROD.coach || !navCoach || navAdmin)) view = 'mas';   // M6: solo el coach (un asesorado no ve nada de esto)
     if (view === 'perfil') {
       // Sin autorización de datos de salud las tarjetas del plan no se muestran: se enseña todo Perfil (privacidad incluida) para poder autorizar.
       let m = PERFIL_TITLES[mode] ? mode : 'plan';
@@ -279,7 +280,7 @@
   $('#view-mas').addEventListener('click', (ev) => {
     const b = ev.target.closest('.more-row');
     if (!b) return;
-    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-micomidas': ['micomidas'], 'row-coach': ['perfil', 'coach'], 'row-rutina': ['rutina'], 'row-c-rutinas': ['rutinas'], 'row-c-retos': ['retos'],
+    const to = { 'row-c-panel': ['panel'], 'row-c-registro': ['registro'], 'row-c-comidas': ['comidas'], 'row-c-acuerdo': ['acuerdo'], 'row-c-exportar': ['exportar'], 'row-plan': ['perfil', 'plan'], 'row-fotos': ['fotos'], 'row-micomidas': ['micomidas'], 'row-coach': ['perfil', 'coach'], 'row-rutina': ['rutina'], 'row-c-rutinas': ['rutinas'], 'row-c-retos': ['retos'],
       'row-datos': ['perfil', 'datos'], 'row-copia': ['perfil', 'copia'], 'row-ayuda': ['ayuda'] }[b.id];
     if (to) goTo(to[0], to[1], b.id);
     else if (b.id === 'row-salir') { goTo('perfil', 'datos', b.id); $('#btn-account-logout').click(); const f = $('#form-logout'); if (f && f.scrollIntoView) f.scrollIntoView({ block: 'center' }); }

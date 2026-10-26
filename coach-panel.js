@@ -61,6 +61,9 @@
       const clause = gate.querySelector('.a7-clause');   // producto coach: cláusula 13 completa (contenidos cargados y derechos de imagen)
       clause.textContent = t.clause || '';
       clause.classList.toggle('hidden', !t.clause);
+      const cx = gate.querySelector('.a7-clause-export');   // M6: cláusula 14 (descarga y custodia local)
+      cx.textContent = t.clauseExport || '';
+      cx.classList.toggle('hidden', !t.clauseExport);
       gate.querySelector('.a7-text').textContent = ConsentTexts.fill(t.body, {});
       A.fillLinks(gate.querySelector('.a7-links'), t.links);
     }
@@ -95,7 +98,8 @@
     agreementRes = r;
     const none = r.state === 'none';
     $('#acuerdo-none').classList.toggle('hidden', !none);
-    $('#acuerdo-new').classList.toggle('hidden', r.state !== 'outdated');
+    $('#acuerdo-new').classList.toggle('hidden', r.state !== 'outdated' && r.state !== 'previous');
+    $('#btn-acuerdo-nuevo').classList.toggle('hidden', r.state !== 'outdated');
     $('#acuerdo-card').classList.toggle('hidden', none);
     if (none) return;
     $('#acuerdo-when').textContent = AcuerdoView.when(r.at);
@@ -108,6 +112,8 @@
     $('#acuerdo-mismatch').classList.toggle('hidden', !!r.text);
     $('#btn-acuerdo-download').disabled = !r.text;
     if (r.state === 'outdated') $('#acuerdo-new-text').textContent = `Hay una versión nueva del acuerdo (${r.currentVersion}). Para seguir viendo a tus clientes debes aceptarla. Abajo ves el texto que aceptaste antes (versión ${r.version}).`;
+    // M6: la versión que aceptaste sigue vigente para todo; la nueva (cláusula de descarga y custodia) se pide solo la primera vez que exportes.
+    if (r.state === 'previous') $('#acuerdo-new-text').textContent = `Hay una versión nueva del acuerdo (${r.currentVersion}) con una cláusula sobre la descarga de datos de tus asesorados. Tu acuerdo sigue vigente: la versión nueva se te pedirá solo la primera vez que uses «Exportar a Excel». Abajo ves el texto que aceptaste (versión ${r.version}).`;
   }
   function downloadAgreement() {
     const r = agreementRes;

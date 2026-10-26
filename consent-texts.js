@@ -103,8 +103,9 @@
       const c = t.categories;
       return [fill(t.intro, vars), ...['body', 'notes', 'nutrition', 'habits', 'photos'].map((k) => '- ' + c[k]), fill(t.outro, vars)].join('\n') + linkLine(t.links);
     }
-    // A7: introducción + (solo producto «coach») la cláusula de contenidos cargados + la casilla. Sin `clause` queda como siempre.
-    if (id === 'A7') return fill(t.intro, vars) + (t.clause ? '\n' + t.clause : '') + '\n' + fill(t.body, vars) + linkLine(t.links);
+    // A7: introducción + (solo producto «coach») la cláusula de contenidos cargados (13) y la de descarga y custodia local (14, M6) + la casilla.
+    // Sin `clause` ni `clauseExport` queda como siempre.
+    if (id === 'A7') return fill(t.intro, vars) + (t.clause ? '\n' + t.clause : '') + (t.clauseExport ? '\n' + t.clauseExport : '') + '\n' + fill(t.body, vars) + linkLine(t.links);
     return fill(t.body, vars) + linkLine(t.links);
   }
 

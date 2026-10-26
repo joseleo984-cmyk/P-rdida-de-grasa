@@ -499,6 +499,9 @@
     // --- r1 v1.13: cupo gratis de 5 (como los términos), días en que abrió el panel, avisos y el resto de la plataforma (modo admin) ---
     be.coaches[coachU.id].freeClients = 5;
     be.panelDays[coachU.id] = PANEL_DAYS.map((n) => addDays(be.todayBogota(), n));
+    // M6 (r1 v1.14): una exportación anterior en el historial del coach (solo cuántos, qué datos y qué fechas; nunca contenido).
+    be.exports.push({ id: uid('export:demo:1'), coachId: coachU.id, createdAt: new Date(dayMs(-9)).toISOString(), clients: 6, categories: ['medidas', 'comidas', 'habitos', 'entrenos'],
+      from: addDays(be.todayBogota(), -101), to: addDays(be.todayBogota(), -9), custody: true, agreementVersion: CT.version('A7') });
     const admin = makeUser({ ...ADMIN, started: -120 });
     be._grant(admin.id, 'client'); be._grant(admin.id, 'admin');
     await asUser(be, admin, D).account.recordConsents([await ev('sensitive_health', 'AU', {}, dayMs(-120)), await ev('cloud_transfer', 'AU', {}, dayMs(-120))]);

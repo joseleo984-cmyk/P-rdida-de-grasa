@@ -71,7 +71,7 @@ test('consent: buildConsent exige T&C, Política y mayor de 18; facultativas por
   assert.throws(() => Schema.buildConsent(boxes, 'ayer'), /Fecha/);
   const c = Schema.buildConsent({ terms: true, privacy: true, adult: true }, NOW);
   assert.deepStrictEqual(c, {
-    termsVersion: '0.1', privacyVersion: '0.1', sensitiveHealth: false, photos: false, adult: true,
+    termsVersion: '0.1', privacyVersion: '1.1', sensitiveHealth: false, photos: false, adult: true,
     acceptedAt: NOW, updatedAt: NOW, sensitiveHealthAt: NOW, photosAt: NOW,
   });
 });
@@ -83,6 +83,22 @@ test('consent: consentStatus missing / outdated / ok', () => {
   assert.strictEqual(Schema.consentStatus(c), 'ok');
   assert.strictEqual(Schema.consentStatus(c, { terms: '0.2', privacy: '0.1' }), 'outdated');
   assert.strictEqual(Schema.consentStatus({ ...c, privacyVersion: '0.0' }), 'outdated');
+  // v1.1: cambio informativo, sin re-aceptación forzada: quien aceptó la 0.1 sigue vigente (solo con las versiones publicadas)
+  assert.strictEqual(Schema.consentStatus({ ...c, privacyVersion: '0.1' }), 'ok');
+  assert.strictEqual(Schema.consentStatus({ ...c, privacyVersion: '0.1' }, { terms: '0.1', privacy: '1.1' }), 'outdated');
+});
+
+test('v1.1: legal/VERSIONS.json es la fuente única y coincide con los .md, con Schema.LEGAL_VERSIONS y con LEGAL_COMPAT', () => {
+  const V = JSON.parse(fs.readFileSync(path.join(ROOT, 'legal/VERSIONS.json'), 'utf8'));
+  const [terms, privacy] = Legal.build();
+  assert.strictEqual(V.privacy.version, '1.1');
+  assert.strictEqual(V.privacy.version, privacy.version);
+  assert.strictEqual(V.terms.version, terms.version);
+  assert.deepStrictEqual({ terms: V.terms.version, privacy: V.privacy.version }, Schema.LEGAL_VERSIONS);
+  assert.deepStrictEqual({ terms: V.terms.acceptedStillValid, privacy: V.privacy.acceptedStillValid }, Schema.LEGAL_COMPAT);
+  assert.strictEqual(V.privacy.notice.active, true);
+  const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  assert.ok(sw.includes("'legal/VERSIONS.json'"), 'el SW precachea VERSIONS.json (la app lo lee sin conexión)');
 });
 
 test('consent: normalize descarta formas inválidas y conserva las válidas (ida y vuelta)', () => {

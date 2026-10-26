@@ -467,6 +467,8 @@
     // Producto coach: la cláusula 13 (contenidos cargados) se muestra completa antes de la casilla; en la app oficial no existe.
     $('#acc-a7-clause').textContent = t.clause || '';
     $('#acc-a7-clause').classList.toggle('hidden', !t.clause);
+    $('#acc-a7-clause-export').textContent = t.clauseExport || '';   // M6: cláusula 14 (descarga y custodia local), producto coach
+    $('#acc-a7-clause-export').classList.toggle('hidden', !t.clauseExport);
     $('#acc-a7-text').textContent = CT.fill(t.body, {});
     fillLinks($('#acc-a7-links'), t.links);
   }

@@ -54,6 +54,10 @@ La app **no** recoge tu ubicación, **no** usa cookies de publicidad y **no** us
 6. Seguridad y prevención de abuso; cumplir obligaciones legales.
 7. Mejorar la app con resultados **agregados y sin tu nombre**. *(a validar si se mantiene esta finalidad.)*
 
+Finalidad 4.8 Desarrollar análisis y procesamientos automatizados sobre las variables, hábitos y métricas registrados voluntariamente por el Titular (tales como peso, ingesta nutricional reportada y horas de sueño) con el objetivo exclusivo de emitir señales operativas y alertas preventivas de seguridad dirigidas a su coach. Dichas alertas tienen naturaleza meramente orientativa, orientada a advertir posibles patrones de riesgo físico o alimentario y a facilitar la sugerencia oportuna de consulta con profesionales de la salud. La Plataforma no realiza diagnósticos clínicos, valoraciones médicas automatizadas ni prescripciones nutricionales o de entrenamiento a partir de estos análisis.
+
+*NOTA v1.1 (25/10/2026): «[Finalidad X.X]» del anexo del concepto 2 es variable de formato y se reemplaza por la numeración correlativa; las alertas L6 descritas en esta finalidad siguen APAGADAS en la app (Etapa 3).*
+
 **No vendemos tus datos**, no los usamos para publicidad y **no publicamos tus fotos**.
 
 ## 5. Datos sensibles: salud, medidas y fotos
@@ -82,6 +86,9 @@ Según los artículos 5 y 6 de la Ley 1581 de 2012, los datos de salud son **sen
 
 ### 7.1 Tu coach
 Solo ve lo que activaste por categoría. **Tu coach es responsable independiente del uso que hace** de esos datos (a validar, P4). Antes de ver datos acepta un **acuerdo** con nosotros: usar los datos solo para acompañarte, confidencialidad, no descargar ni compartir fotos, no dar planes de alimentación si no es profesional habilitado, borrar al terminar el vínculo, avisar incidentes. No ve tu correo. Pierde el acceso al instante (el panel deja de mostrar tus datos) cuando terminas el vínculo o retiras el permiso, y tiene hasta **30 días para destruir** lo que hubiera copiado por fuera de la app, sin usarlo ni compartirlo (P17). Lo que el coach ya tenga por **fuera** de la app se rige además por su propia política.
+
+### 7.1.1 Copias de trabajo que descarga tu coach
+Para facilitar el diseño de tu plan y el seguimiento de tu progreso, tu coach podrá generar y descargar copias locales de trabajo con tus registros de medidas, comidas, hábitos y entrenamientos. El coach asume la custodia legal y confidencialidad de este archivo, comprometiéndose a usarlo exclusivamente para tu asesoría. Tus fotografías corporales están excluidas de esta función y nunca se incluyen en dichas descargas.
 
 ### 7.2 Supabase Inc. (nube) — transmisión internacional
 Supabase guarda tu cuenta, tus datos y fotos en servidores en **Estados Unidos (región East US, Virginia)**. Actúa **por cuenta nuestra** (encargado). Es una **transmisión internacional**: la hacemos con un contrato (**DPA**) archivado con el proveedor **y con tu autorización expresa** (casilla A4, propia), porque son datos sensibles. El nivel de protección en el exterior puede ser distinto al de Colombia. *(P6. Por confirmar: dos fuentes difieren sobre si EE. UU. figura en la lista de países adecuados de la SIC; la conducta de A4 + DPA cubre ambos casos.)*
@@ -153,6 +160,7 @@ Esta adenda se **añade** a la política y no reemplaza ningún apartado anterio
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 0.3 (borrador, textos v1.1) | 2026-10-25 | Se añaden, literales, la finalidad 4.8 de análisis automatizado (anexo del concepto 2, punto 4; alertas apagadas) y el párrafo §7.1.1 de copias de trabajo del coach (concepto 6). La política publicada (legal/privacidad.html) es la 1.1. |
 | 0.3 (borrador, adenda) | 2026-10-24 | **Adenda 24/10/2026**: se añaden, literales, los párrafos §6 (categorías de datos sensibles recolectados) y §7.1 (finalidad y alcance técnico) del concepto jurídico del 24 de octubre de 2026. En este borrador el §6 y el §7.1 tratan otros temas (fotos y coach), por eso van como adenda y no reemplazan nada. |
 | 0.3 (borrador) | 2026-10-23 | Adopta las respuestas P1–P18: roles, retención de 365 días con avisos a los días 335 y 358, prueba del consentimiento 3 años disociada, Brevo nombrado, incidentes 24 h / 15 días hábiles, menores con borrado en 48 h, sin copias automáticas en el piloto, destrucción por el coach en 30 días. No vigente. |
 | 0.2 (borrador) | 2026-10-22 | Primer borrador con cuentas, Supabase, Brevo, coach como responsable independiente, fotos con autorización propia, retención, prueba del consentimiento, incidentes, RNBD. No vigente. |

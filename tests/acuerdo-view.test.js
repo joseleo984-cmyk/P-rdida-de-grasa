@@ -81,3 +81,15 @@ test('mensajes del envío por correo: amables y sin términos técnicos; cualqui
   assert.strictEqual(AV.copyKey('server'), 'unavailable');
   assert.strictEqual(AV.copyKey(undefined), 'unavailable');
 });
+
+test('M6: una versión anterior que SIGUE valiendo (A7_STILL_VALID, producto coach) → previous con su texto, no pide re-aceptar', async () => {
+  const OLD = 'Texto 0.4 del acuerdo\nAcepto.';
+  const ct = { ...CT, version: () => '0.5-A7-coach', A7_STILL_VALID: ['0.4-A7-coach', '0.5-A7-coach'], agreementText: (v) => (v === '0.4-A7-coach' ? OLD : null) };
+  const meta = { consents: { coach_agreement: { granted: true, version: '0.4-A7-coach', textHash: await Remote.textHash(OLD), clientAt: '2026-10-24T15:30:00.000Z' } } };
+  const r = await AV.resolve(meta, ct, Remote.textHash);
+  assert.strictEqual(r.state, 'previous');
+  assert.strictEqual(r.text, OLD);
+  assert.strictEqual(r.currentVersion, '0.5-A7-coach');
+  const gone = await AV.resolve({ consents: { coach_agreement: { ...meta.consents.coach_agreement, version: '0.3-A7' } } }, ct, Remote.textHash);
+  assert.strictEqual(gone.state, 'outdated', 'una versión que ya no vale sigue pidiendo re-aceptar');
+});

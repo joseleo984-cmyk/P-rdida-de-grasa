@@ -165,7 +165,8 @@ select tests.ok(not exists (select k from tests.keys(current_setting('t.u')::jso
   where k not in ('coaches_active', 'coaches_total', 'coaches_new', 'clients_active', 'signups', 'drops', 'retention30', 'cohort', 'kept', 'sizes', 's1_5', 's6_10', 's11',
                   'weeks', 'start', 'records', 'ref')), 'admin_usage: todas las claves en la lista blanca');
 select tests.ok(not exists (select k from tests.keys(current_setting('t.cu')::jsonb) k
-  where k not in ('active_clients', 'retention30', 'cohort', 'kept', 'last_action_at', 'last_panel_day', 'panel_days', 'weeks', 'start', 'pct_logging', 'trained', 'ref')),
+  where k not in ('active_clients', 'retention30', 'cohort', 'kept', 'last_action_at', 'last_panel_day', 'panel_days', 'weeks', 'start', 'pct_logging', 'trained', 'ref',
+                  'exports')),   -- v1.14 (M6): solo la CANTIDAD de exportaciones del mes
   'admin_coach_usage: todas las claves en la lista blanca');
 select tests.ok(not exists (select k from tests.keys(current_setting('t.u')::jsonb || current_setting('t.cu')::jsonb) k
   where k ~* '(weight|waist|peso|cintura|kg|cm|medida|food|kcal|protein|photo|health|pain|water|steps|sleep|name|client_id)'),
@@ -215,10 +216,10 @@ reset role; select tests.paid('ana', 30);
 
 -- ================= K6: avisos =================
 select tests.login('admin');
-select set_config('t.n1', (grasa.admin_save_notice(null, 'Mantenimiento el domingo', 'La app puede ir lenta. Tus datos no se pierden.', current_date - 1, current_date + 5)) ->> 'id', true);
-select grasa.admin_save_notice(null, 'Cobro de septiembre', 'Ya terminó.', current_date - 1, current_date - 1);
-select tests.throws($$select grasa.admin_save_notice(null, 'X', 'Texto', current_date, current_date)$$, 'invalid', 'título demasiado corto: invalid');
-select tests.throws($$select grasa.admin_save_notice(null, 'Hola coaches', 'Texto', current_date + 5, current_date)$$, 'invalid', 'hasta antes que desde: invalid');
+select set_config('t.n1', (grasa.admin_save_notice(null, 'Mantenimiento el domingo', 'La app puede ir lenta. Tus datos no se pierden.', tests.today() - 1, tests.today() + 5)) ->> 'id', true);
+select grasa.admin_save_notice(null, 'Cobro de septiembre', 'Ya terminó.', tests.today() - 1, tests.today() - 1);
+select tests.throws($$select grasa.admin_save_notice(null, 'X', 'Texto', tests.today(), tests.today())$$, 'invalid', 'título demasiado corto: invalid');
+select tests.throws($$select grasa.admin_save_notice(null, 'Hola coaches', 'Texto', tests.today() + 5, tests.today())$$, 'invalid', 'hasta antes que desde: invalid');
 select tests.ok((select count(*) = 2 from grasa.admin_list_notices()), 'el admin lista sus avisos');
 reset role; select tests.login('x');
 select tests.ok((select count(*) = 1 and min(title) = 'Mantenimiento el domingo' from grasa.coach_notices(tests.today())), 'el coach activo lee SOLO los vigentes');

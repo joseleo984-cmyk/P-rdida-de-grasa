@@ -99,10 +99,12 @@ test('3.5 Acuerdo del coach: la cláusula aprobada está LITERAL en el texto que
   for (const line of t.replace('[X]', n).split('\n')) assert.ok(src.includes(norm(line)), 'consent-texts-solo.js: ' + line.slice(0, 40));
   assert.ok(norm(read('equipo/legal/borradores/acuerdo-coach.md')).includes(expected), 'equipo/legal/borradores/acuerdo-coach.md');
   // El texto anterior (0.3-A7) se conserva EXACTO en A7_PAST (para «Mi acuerdo» y la copia por correo) y no trae la cláusula.
-  assert.strictEqual(CT.version('A7'), '0.4-A7-coach');
+  // M6 (concepto 6): la versión vigente es 0.5-A7-coach (añade la cláusula 14); la 0.4-A7-coach, con la 13 y sin la 14, queda EXACTA en A7_PAST.
+  assert.strictEqual(CT.version('A7'), '0.5-A7-coach');
   assert.ok(CT.A7_PAST['0.3-A7'] && !/Cláusula/.test(CT.A7_PAST['0.3-A7']));
   assert.strictEqual(CT.agreementText('0.3-A7'), CT.A7_PAST['0.3-A7']);
-  assert.strictEqual(CT.agreementText('0.4-A7-coach'), CT.fullText('A7'));
+  assert.ok(norm(CT.A7_PAST['0.4-A7-coach']).includes(expected) && !/Cláusula 14/.test(CT.A7_PAST['0.4-A7-coach']));
+  assert.strictEqual(CT.agreementText('0.5-A7-coach'), CT.fullText('A7'));
 });
 
 test('3.6 Importación: el aviso previo (título y párrafo) aparece LITERAL en index.html', () => {
@@ -233,3 +235,99 @@ test('concepto 5 · metas: el ÚNICO pie de Progreso es el texto aprobado, LITER
   assert.ok(read('analitica-view.js').includes('<b>Solo tú lo ves.</b> Tus asesorados nunca ven un ranking.'), 'el rótulo del ranking en la vista');
   assert.ok(read('index.html').includes('Solo comunicación operativa, técnica o de servicio.'), 'ayuda de los avisos (concepto 5, punto 5)');
 });
+
+// ---------- Concepto jurídico 6 (25/10/2026): exportación a Excel (M6) ----------
+function concept6() {
+  const md = read('equipo/legal/concepto-6-2026-10-25.md');
+  const sec = (a, b) => md.slice(md.indexOf(a), b ? md.indexOf(b) : undefined);
+  const q = (t) => [...t.matchAll(/> «([\s\S]*?)»/g)].map((m) => m[1]);
+  const s1 = sec('## 1. Cláusula', '## 2. Párrafo');
+  return {
+    title: (s1.match(/^Cláusula \[Número\]\. (.+)$/m) || [])[1],
+    clause: q(s1),
+    policy: q(sec('## 2. Párrafo', '## Casilla')),
+    box: q(sec('## Casilla', '---')),
+    answer: q(sec('## Respuesta del abogado')),
+  };
+}
+
+test('concepto 6 se lee bien: título y cuerpo de la cláusula, párrafo de la política, casilla y respuesta del abogado', () => {
+  const c = concept6();
+  assert.strictEqual(c.title, 'Descarga y custodia local de datos de los asesorados');
+  assert.deepStrictEqual([c.clause.length, c.policy.length, c.box.length, c.answer.length], [1, 1, 1, 1]);
+  assert.strictEqual(c.box[0], 'Asumo la custodia y confidencialidad de estos datos conforme a la Ley 1581 de 2012 como responsable independiente.');
+  assert.match(c.answer[0], /banner in-app de la versión v1\.1/);
+});
+
+test('concepto 6 · cláusula del acuerdo: «Cláusula 14. …» LITERAL en el A7 que se acepta (0.5-A7-coach), en el código, en el borrador del acuerdo y en la función de correo', () => {
+  const c = concept6();
+  const expected = `Cláusula 14. ${c.title}\n${c.clause[0]}`;   // «[Número]» = 14, la siguiente libre tras la 13
+  assert.strictEqual(CT.TEXTS.A7.clauseExport, expected);
+  assert.ok(CT.fullText('A7').includes(expected), 'fullText(A7) la incluye: es lo que se acepta y se hashea');
+  assert.ok(CT.fullText('A7').indexOf('Cláusula 13.') < CT.fullText('A7').indexOf('Cláusula 14.'), 'va después de la 13');
+  assert.strictEqual(CT.version('A7'), '0.5-A7-coach');
+  assert.ok(norm(read('equipo/legal/borradores/acuerdo-coach.md')).includes(norm(expected)), 'equipo/legal/borradores/acuerdo-coach.md');
+  assert.ok(read('supabase/functions/_shared/textos-acuerdo.mjs').includes(JSON.stringify(CT.fullText('A7')).slice(1, -1)), 'textos-acuerdo.mjs (npm run build:funcion)');
+  // Sin re-aceptación forzada para el resto de la app: 0.4 sigue valiendo; para exportar hace falta la 0.5.
+  const m = (v) => ({ consents: { coach_agreement: { granted: true, version: v } } });
+  assert.deepStrictEqual(['0.3-A7', '0.4-A7-coach', '0.5-A7-coach'].map((v) => CT.coachAgreementOK(m(v))), [false, true, true]);
+  assert.deepStrictEqual(['0.3-A7', '0.4-A7-coach', '0.5-A7-coach'].map((v) => CT.exportAgreementOK(m(v))), [false, false, true]);
+  assert.strictEqual(CT.exportAgreementOK({ consents: { coach_agreement: { granted: false, version: '0.5-A7-coach' } } }), false);
+});
+
+test('concepto 6 · casilla previa a cada descarga: LITERAL en exportar.js (y en ningún otro texto reescrito)', () => {
+  const c = concept6();
+  const X = require('../exportar.js');
+  assert.strictEqual(X.CUSTODY_TEXT, c.box[0]);
+  assert.ok(read('exportar-view.js').includes('X.CUSTODY_TEXT'), 'la vista pinta la casilla desde la constante');
+});
+
+test('concepto 6 · párrafo de la política: LITERAL en la política publicada (§6.5), en el borrador con cuentas y en legal/privacidad.html, una sola vez', () => {
+  const [p] = concept6().policy;
+  const docs = { 'equipo/legal/politica-tratamiento-datos.md': read('equipo/legal/politica-tratamiento-datos.md'),
+    'equipo/legal/borradores/politica-tratamiento-datos-v0.3-cuentas.md': read('equipo/legal/borradores/politica-tratamiento-datos-v0.3-cuentas.md'),
+    'legal/privacidad.html': visible(read('legal/privacidad.html')) };
+  for (const [f, t] of Object.entries(docs)) assert.strictEqual(norm(t).split(norm(p)).length - 1, 1, f);
+  const html = read('legal/privacidad.html');
+  const s6 = html.slice(html.indexOf('<h2 id="s6">'), html.indexOf('<h2 id="s7">'));
+  assert.ok(norm(visible(s6)).includes(norm(p)), 'va en la sección «¿Con quién compartimos tus datos?»');
+});
+
+// ---------- Política v1.1 (concepto 2, anexo puntos 1 y 4; concepto 6) ----------
+function annex(n) {
+  const md = read('equipo/legal/concepto-2-2026-10-24.md');
+  const a = md.slice(md.indexOf('## Anexo'));
+  const s = a.slice(a.indexOf(`### ${n}.`), a.indexOf(`### ${n + 1}.`) > 0 ? a.indexOf(`### ${n + 1}.`) : undefined);
+  return [...s.matchAll(/«([\s\S]*?)»/g)].map((m) => m[1]);
+}
+
+test('v1.1 · finalidad L6d (anexo 4): LITERAL en las finalidades (§4) de la política publicada y del borrador, con la numeración correlativa', () => {
+  const [t] = annex(4);
+  assert.match(t, /^\[Finalidad X\.X\] Desarrollar análisis/);
+  const body = t.replace('[Finalidad X.X] ', '');
+  const html = read('legal/privacidad.html');
+  const s4 = norm(visible(html.slice(html.indexOf('<h2 id="s4">'), html.indexOf('<h2 id="s5">'))));
+  assert.ok(s4.includes(norm('Finalidad 4.5 ' + body)), 'legal/privacidad.html §4');
+  assert.ok(norm(read('equipo/legal/politica-tratamiento-datos.md')).includes(norm('Finalidad 4.5 ' + body)));
+  assert.ok(norm(read('equipo/legal/borradores/politica-tratamiento-datos-v0.3-cuentas.md')).includes(norm('Finalidad 4.8 ' + body)));
+  // La finalidad se describe, pero las alertas L6 siguen APAGADAS (Etapa 3): ningún archivo de la app las emite.
+  for (const f of ['app.js', 'coach-panel.js', 'analitica-view.js', 'index.html', 'exportar-view.js', 'aviso-politica.js']) {
+    assert.ok(!read(f).includes('Alerta de seguridad operativa'), f + ' no muestra alertas L6');
+    assert.ok(!/Línea 106|L[ií]nea Nacional 192/.test(read(f)), f + ' sin la tarjeta 106/192');
+  }
+  assert.ok(!/Cláusula 7\.[34]/.test(CT.fullText('A7')), 'las cláusulas 7.3 y 7.4 no entran todavía');
+});
+
+test('v1.1 · aviso en pantalla (anexo 1): texto y botón «Entendido» LITERALES en aviso-politica.js; «[enlace]» es el enlace real a la política', () => {
+  const [t, btn] = annex(1);
+  assert.match(t, /\(v1\.1\).*Conócela aquí \[enlace\]\.$/);
+  assert.strictEqual(btn, 'Entendido');
+  const AV = require('../aviso-politica.js');
+  assert.strictEqual(AV.TEXT, t);
+  assert.strictEqual(AV.BUTTON, btn);
+  assert.deepStrictEqual(AV.parts(), { before: t.slice(0, t.indexOf(' [enlace]')).replace(/aquí$/, ''), link: 'aquí', after: '.', href: 'legal/privacidad.html' });
+  const html = read('index.html');
+  const box = html.slice(html.indexOf('id="aviso-politica"'), html.indexOf('</div>', html.indexOf('id="aviso-politica"')));
+  assert.ok(/>\s*Entendido\s*</.test(box), 'el botón de index.html dice «Entendido»');
+});
+
