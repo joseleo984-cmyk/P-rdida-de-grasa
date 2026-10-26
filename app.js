@@ -1950,14 +1950,14 @@
     if (on) { setHabit({ trained: false }, { msg: 'Quitamos «Entrené» de hoy' }); return; }
     setHabit({ trained: true }, { msg: 'Entrenamiento anotado', action: { label: 'Contar cómo te sentiste', run: () => { show('rutina'); $('#esf-title').focus(); } } });
   });
-  // v1.15: «Hoy descanso (está en mi plan)» / «Hoy no entreno: me siento mal». Excluye «Entrené» ese día; volver a tocar lo quita.
+  // v1.15: «Hoy es mi día de descanso» / «Hoy no entreno: me siento mal». Excluye «Entrené» ese día; volver a tocar lo quita.
   $('#dia-rest').addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-rest]');
     if (!b) return;
     const cur = (state.habits[today()] || {}).rest;
     const k = b.dataset.rest;
     if (cur === k) setHabit({ rest: null }, { msg: 'Lo quitamos de hoy' });
-    else setHabit({ rest: k }, { msg: k === 'sick' ? 'Anotado. Cuidarte también cuenta: si el malestar sigue, consulta a un profesional de la salud.' : 'Descanso anotado. El descanso también es parte del plan.' });
+    else setHabit({ rest: k }, { msg: k === 'sick' ? 'Anotado. Cuidarte también cuenta: si el malestar sigue, consulta a un profesional de la salud.' : 'Descanso anotado. Descansar también cuenta.' });
     const nb = $(`#dia-rest [data-rest="${k}"]`);
     if (nb) nb.focus();
   });

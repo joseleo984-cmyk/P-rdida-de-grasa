@@ -79,7 +79,7 @@
     if ('steps' in change) { if (change.steps == null) delete h.steps; else h.steps = change.steps; }
     if ('sleep' in change) { if (change.sleep == null) delete h.sleep; else h.sleep = change.sleep; }
     if ('trained' in change) { h.trained = !!change.trained; if (!h.trained) delete h.effort; else delete h.rest; }
-    // v1.15: «Hoy descanso (está en mi plan)» = 'plan' / «Hoy no entreno: me siento mal» = 'sick'. Excluye el entreno del día (y su esfuerzo).
+    // v1.15: «Hoy es mi día de descanso» = 'plan' / «Hoy no entreno: me siento mal» = 'sick'. Excluye el entreno del día (y su esfuerzo).
     if ('rest' in change) { if (change.rest === 'plan' || change.rest === 'sick') { h.rest = change.rest; h.trained = false; delete h.effort; } else delete h.rest; }
     if ('effort' in change) { if (change.effort == null) delete h.effort; else { h.effort = change.effort; h.trained = true; delete h.rest; } }
     if ('close' in change) { if (change.close == null) delete h.close; else h.close = change.close; }
@@ -92,7 +92,7 @@
   }
   // ¿Quedó vacío el día (nada anotado)? Entonces no se guarda un registro.
   const isEmpty = (h) => !h || (!pos(h.water) && !pos(h.steps) && !pos(h.sleep) && h.trained !== true && !h.effort && !h.close && !h.rest);
-  const RESTS = [{ key: 'plan', label: 'Hoy descanso (está en mi plan)' }, { key: 'sick', label: 'Hoy no entreno: me siento mal' }];
+  const RESTS = [{ key: 'plan', label: 'Hoy es mi día de descanso' }, { key: 'sick', label: 'Hoy no entreno: me siento mal' }];
 
   const api = { HABITS, day, week, listLine, notSharedText, GLASS_L, GLASSES_GOAL, STEPS_GOAL, SLEEP_GOAL, STEP_TIERS, SLEEP_OPTS, EFFORTS, CLOSES, tierOfSteps, optOfSleep, effortLabel, closeLabel, apply, isEmpty, RESTS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -46,7 +46,7 @@
 
   const EFFORTS = ['facil', 'normal', 'duro', 'no_termine'];   // esfuerzo al entrenar (v6)
   const CLOSES = ['si', 'casi', 'no'];                          // «¿Registraste todo lo de hoy?» (v6)
-  const RESTS = ['plan', 'sick'];                               // v1.15: «Hoy descanso (está en mi plan)» / «Hoy no entreno: me siento mal» (dan puntos de descanso)
+  const RESTS = ['plan', 'sick'];                               // v1.15: «Hoy es mi día de descanso» / «Hoy no entreno: me siento mal» (dan puntos de descanso)
   const MEALS = ['Desayuno', 'Almuerzo', 'Cena', 'Snack'];
   const POSES = ['frente', 'perfil', 'espalda'];
   const ACTIVITY = [1.2, 1.375, 1.55, 1.725, 1.9];

@@ -23,7 +23,7 @@ test('barra del asesorado: Inicio · Comidas · Entrenar · Progreso · Más; H�
   }
   // Progreso: Medidas · Fotos · Insignias; la pestaña «Progreso» sigue marcada en las tres; «Medirme» es una pantalla aparte
   const seg = p.locator('#view-progreso .prog-seg button');
-  await expect(seg).toHaveText(['Medidas', 'Fotos', 'Insignias']);
+  await expect(seg).toHaveText(['Medidas', 'Fotos', 'Insignias', 'Puntos']);
   await seg.nth(1).click();
   await expect(p.locator('#view-fotos')).toBeVisible();
   await expect(p.locator('#tab-registro')).toHaveAttribute('aria-current', 'page');

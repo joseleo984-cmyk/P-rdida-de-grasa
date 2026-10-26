@@ -94,7 +94,7 @@ test('asesorado: descanso planificado y «me siento mal» dan puntos; en pausa n
   const { p, errors } = await H.clientApp(browser, testInfo);
   await shareAll(p);
   await closeAviso(p);
-  await expect(p.locator('#dia-rest button')).toHaveText(['Hoy descanso (está en mi plan)', 'Hoy no entreno: me siento mal']);
+  await expect(p.locator('#dia-rest button')).toHaveText(['Hoy es mi día de descanso', 'Hoy no entreno: me siento mal']);
   await p.locator('#dia-rest [data-rest="sick"]').click();
   await expect(p.locator('#dia-rest [data-rest="sick"]')).toHaveAttribute('aria-pressed', 'true');
   expect((await H.habitsOf(p)).rest).toBe('sick');
