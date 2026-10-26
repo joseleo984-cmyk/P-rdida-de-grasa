@@ -64,7 +64,8 @@ select tests.ok(not exists (
       'grasa.report_pain', 'grasa.review_pain',
       'grasa.set_goals', 'grasa.coach_analytics', 'grasa.coach_panel_opened', 'grasa.coach_notices', 'grasa.admin_coaches', 'grasa.admin_set_coach_active',
       'grasa.admin_usage', 'grasa.admin_coach_usage', 'grasa.admin_success', 'grasa.admin_save_notice', 'grasa.admin_list_notices', 'grasa.admin_delete_notice',
-      'grasa.log_export', 'grasa.my_exports')),
+      'grasa.log_export', 'grasa.my_exports',
+      'grasa.my_points', 'grasa.coach_points', 'grasa.set_team_goal', 'grasa.delete_team_goal', 'grasa.coach_team_goal', 'grasa.my_team_goal', 'grasa.set_team_opt_out')),
   'authenticated solo ejecuta las SECURITY DEFINER de la lista blanca del contrato');
 select tests.ok(not exists (
   select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace

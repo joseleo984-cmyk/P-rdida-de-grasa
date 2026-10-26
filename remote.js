@@ -540,6 +540,10 @@
         if (!DAY_RE.test(String(day))) throw new RemoteError('invalid', 'Fecha no válida');
         return challengeOut(await rpc('grasa', 'mark_challenge', { p_id: id, p_day: String(day), p_done: !!done }));
       },
+      // v1.15: mis puntos (los CALCULA el servidor; el teléfono solo los muestra), la meta del team (agregada: total y cuántos) y el opt-out.
+      async myPoints() { await me(); return pointsOut(await rpc('grasa', 'my_points')); },
+      async myTeamGoal() { await me(); return teamGoalOut(await rpc('grasa', 'my_team_goal')); },
+      async setTeamOptOut(out) { await me(); return teamGoalOut(await rpc('grasa', 'set_team_opt_out', { p_out: !!out })); },
       async setPhotoShared(photoId, shared) {
         const u = await me();
         const d = await call(() => table('grasa', 'photos').update({ shared_with_coach: !!shared, updated_at: new Date().toISOString() })
@@ -723,7 +727,29 @@
         return exportOut(await rpc('grasa', 'log_export', { p_clients: Number(clients) || 0, p_categories: Array.isArray(categories) ? categories : [], p_from: from, p_to: to, p_custody: custody === true }));
       },
       async exports() { await me(); return rows(await rpc('grasa', 'my_exports')).map(exportOut); },
+      // v1.15: puntos y hábitos cumplidos de sus asesorados para el ranking privado (null = no comparte); meta colectiva del team.
+      async points(from, to) {
+        await me();
+        if (!DAY_RE.test(String(from)) || !DAY_RE.test(String(to))) throw new RemoteError('invalid', 'Fecha no válida');
+        return rows(await rpc('grasa', 'coach_points', { p_from: from, p_to: to })).map((r) => ({ clientId: r.client_id, points: num(r.points), habitsMet: num(r.habits_met) }));
+      },
+      async teamGoal() { await me(); return teamGoalOut(await rpc('grasa', 'coach_team_goal')); },
+      async setTeamGoal(metric, target) { await me(); return teamGoalOut(await rpc('grasa', 'set_team_goal', { p_metric: String(metric), p_target: Number(target) })); },
+      async deleteTeamGoal() { await me(); await rpc('grasa', 'delete_team_goal'); },
     };
+    function pointsOut(x) {
+      const p = x || {};
+      return { today: dayOut(p.today), weekStart: dayOut(p.week_start), week: num(p.week) || 0, todayPoints: num(p.today_points) || 0,
+        log: (Array.isArray(p.log) ? p.log : []).map((r) => ({ day: dayOut(r.day), kind: String(r.kind || ''), points: num(r.points) || 0 })),
+        weeks: (Array.isArray(p.weeks) ? p.weeks : []).map((w) => ({ start: dayOut(w.start), points: num(w.points) || 0 })),
+        best: num(p.best) || 0, total: num(p.total) || 0, plan: num(p.plan) || 5, paused: p.paused === true, teamOptOut: p.team_opt_out == null ? null : p.team_opt_out === true };
+    }
+    function teamGoalOut(g) {
+      if (!g || typeof g !== 'object') return null;
+      if (g.none) return { none: true, optedOut: g.opted_out === true };
+      return { metric: g.metric === 'puntos' ? 'puntos' : 'entrenos', target: num(g.target) || 0, weekStart: dayOut(g.week_start), weekEnd: dayOut(g.week_end), min: num(g.min) || 5,
+        published: g.published === true, participants: num(g.participants), total: num(g.total), ...(g.opted_out == null ? {} : { optedOut: g.opted_out === true }) };
+    }
     const exportOut = (x) => ({ id: x && x.id, createdAt: isoOrNull(x && x.created_at), clients: Number(x && x.clients) || 0,
       categories: Array.isArray(x && x.categories) ? x.categories.map(String) : [], from: dayOut(x && (x.from || x.date_from)), to: dayOut(x && (x.to || x.date_to)) });
 

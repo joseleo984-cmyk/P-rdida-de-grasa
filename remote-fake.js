@@ -65,6 +65,7 @@
   const fromB64 = (b64) => { const bin = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary'); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8; };
   const rutinas = () => root.Rutinas || (typeof require === 'function' ? require('./rutinas.js') : null);
   const clone = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x)));
+  const puntos = () => root.Puntos || (typeof require === 'function' ? require('./puntos.js') : null);
   const addDay = (d, n) => new Date(Date.parse(d + 'T12:00:00Z') + n * 86400000).toISOString().slice(0, 10);
 
   // ---------- Estado del servidor (compartido entre "dispositivos") ----------
@@ -100,6 +101,8 @@
       this.notices = {};        // v1.13: avisos de la plataforma, id → { id, title, body, startsOn, endsOn, createdAt, deletedAt }
       this.coachEvents = [];    // v1.13: suspensiones / reactivaciones { coachId, active, reason, at } (solo el admin)
       this.exports = [];        // v1.14 (M6): exportaciones a Excel { id, coachId, createdAt, clients, categories, from, to, custody, agreementVersion } (sin contenido)
+      this.points = {};         // v1.15: puntos de constancia CALCULADOS por el «servidor» (puntos.js = grasa.points_refresh), userId → [{ day, source, points }]
+      this.teamGoals = {};      // v1.15: meta colectiva, `${coachId}|${lunes}` → { coachId, weekStart, metric, target, createdAt }
       this.challenges = {};     // v1.11: retos del coach, id → { id, coachId, title, habit, target, start, end, createdAt, deletedAt, members: [clientId], marks: { clientId: { day: { private } } } }
       this._online = true;
       // Sprint 9 (solo pruebas, no se persiste): simula Supabase Auth con CAPTCHA activado. account.js lo enciende cuando
@@ -200,6 +203,47 @@
     // Solo pruebas: deja el vínculo activo de ese correo pagado hasta esa fecha (como tests.paid en SQL).
     setPaidUntil(email, iso) { const u = this.users[normEmail(email)]; const l = u && this.activeLink(u.id); if (!l) throw new Error('Sin vínculo activo'); l.paidUntil = iso; l.paidMarkedAt = new Date(this.clock.now()).toISOString(); this._persist(); }
 
+    // ---------- v1.15: puntos de constancia (como el disparador grasa.points_on_record → grasa.points_refresh) ----------
+    // asOf: SOLO para sembrar la demo con historia (calcula el día «como si» se hubiera registrado a tiempo ese día).
+    pointsRefresh(userId, day, { asOf = null } = {}) {
+      const P = puntos();
+      if (!P || !day) return;
+      const today = asOf || this.todayBogota();
+      const link = this.activeLink(userId);
+      const openPause = link && link.status === 'active' && !this.payState(link).paid ? this.pauseStart(link) : null;
+      const paused = (asOf ? !!(openPause && day >= openPause) : this.paymentBlocked(userId)) || this.dayInPause(userId, day);
+      const recs = Object.values(this.records).filter((r) => r.userId === userId && !r.deletedAt && !r.pausePrivate && ['entry', 'food', 'habit'].includes(r.kind) && r.date);
+      const habitOf = (d) => { const r = recs.find((x) => x.kind === 'habit' && x.date === d); return r ? r.data || {} : null; };
+      const foodsOf = (d) => recs.filter((x) => x.kind === 'food' && x.date === d).length;
+      const prev = recs.filter((x) => x.date < day).map((x) => x.date).sort().pop() || null;
+      const challenges = link ? Object.values(this.challenges).filter((ch) => !ch.deletedAt && ch.coachId === link.coachId && ch.members.includes(userId))
+        .map((ch) => ({ id: ch.id, habit: ch.habit, target: ch.target, start: ch.start, end: ch.end,
+          marks: Object.entries(ch.marks[userId] || {}).filter(([, m]) => !m.private).map(([d]) => d) })) : [];
+      const goals = (link && link.goals) || {};
+      this.points[userId] = P.refreshDay({ userLog: this.points[userId] || [], day, today, paused, habit: habitOf(day), foods: foodsOf(day),
+        entry: (recs.find((x) => x.kind === 'entry' && x.date === day) || {}).data || null, prevRecordDay: prev,
+        plan: Number.isInteger(goals.trained_days) ? goals.trained_days : P.PLAN_DEFAULT, frozenDay: (d) => this.dayInPause(userId, d),
+        challenges, habitOnDay: (d, habit) => P.habitOn(habit, habitOf(d), foodsOf(d)) });
+    }
+    // Meta colectiva de ESTA semana de un coach, agregada como grasa.team_goal_out: total y cuántos; con menos de 5, nada. Nunca ids ni aportes.
+    teamGoalOut(coachId) {
+      const P = puntos();
+      const wk = P.monday(this.todayBogota());
+      const g = this.teamGoals[`${coachId}|${wk}`];
+      if (!g) return null;
+      const coachOk = this.coaches[coachId] && this.coaches[coachId].active !== false;
+      const part = coachOk ? this.links.filter((l) => l.coachId === coachId && l.status === 'active' && !l.teamOptOut && l.shares.habits && l.shares.nutrition
+        && this.hasConsent(l.clientId, 'sensitive_health') && this.hasConsent(l.clientId, 'cloud_transfer') && !this.paymentBlocked(l.clientId)).map((l) => l.clientId) : [];
+      const n = part.length, end = P.addDays(wk, 6);
+      let total = null;
+      if (n >= 5) {
+        const rows = part.map((u) => (this.points[u] || []).filter((r) => r.day >= wk && r.day <= end));
+        total = g.metric === 'entrenos' ? rows.reduce((s, rs) => s + rs.filter((r) => r.source === 'entreno').length, 0)
+          : rows.reduce((s, rs) => s + Math.min(P.WEEK_CAP, rs.reduce((a, r) => a + r.points, 0)), 0);
+      }
+      return { metric: g.metric, target: g.target, weekStart: wk, weekEnd: end, min: 5, published: n >= 5, participants: n >= 5 ? n : null, total };
+    }
+
     userById(id) { return Object.values(this.users).find((u) => u.id === id) || null; }
     roles(userId, app = APP) {
       const r = this.appAccess.filter((a) => a.userId === userId && a.appId === app && a.active).map((a) => a.role);
@@ -228,13 +272,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports', 'points', 'teamGoals']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -386,6 +430,8 @@
         for (const k of Object.keys(be.painReports)) if (k.startsWith(u.id + '|')) delete be.painReports[k];
         for (const [k, ch] of Object.entries(be.challenges)) { if (ch.coachId === u.id) delete be.challenges[k]; else { ch.members = ch.members.filter((m) => m !== u.id); delete ch.marks[u.id]; } }
         be.linkPauses = be.linkPauses.filter((x) => be.links.some((l) => l.id === x.linkId));
+        delete be.points[u.id];
+        for (const k of Object.keys(be.teamGoals)) if (k.startsWith(u.id + '|')) delete be.teamGoals[k];
         // Sprint 6: antes de borrar, copia mínima y seudonimizada (sin uuid, correo ni nombre), como core.delete_my_account().
         const pseudo = (id) => pseudoHash('fake-salt:' + id);
         for (const x of be.consentEvents.filter((e) => e.userId === u.id)) {
@@ -421,6 +467,7 @@
         // Sprint 11: con coach y vencido no se sube nada (sí se puede bajar, descargar y borrar). v1.11 (P1): salvo un lote SOLO de hábitos (registro autónomo).
         if (be.paymentBlocked(u.id) && (photos.length || !records.length || records.some((r) => !r || r.kind !== 'habit'))) be.requirePayment(u.id);
         const rejected = { records: [], photos: [] };
+        const touched = new Set();   // v1.15: días a recalcular (como el disparador de puntos)
         // En lotes de 500, como la implementación real.
         for (let i = 0; i < Math.max(records.length, photos.length); i += BATCH) {
           for (const r of records.slice(i, i + BATCH)) {
@@ -432,7 +479,8 @@
             const priv = be.pausePrivate(u.id, incoming.date);   // v1.11: lo marca el «servidor» (como el disparador grasa.mark_pause_private)
             if (!cur) be.records[key] = { ...incoming, userId: u.id, pausePrivate: priv, serverUpdatedAt: be._serverStamp() };
             else if (newer(incoming, cur)) be.records[key] = { ...incoming, id: cur.id, userId: u.id, pausePrivate: !!cur.pausePrivate || priv, serverUpdatedAt: be._serverStamp() }; // clave natural: conserva id
-            else rejected.records.push(recOut(cur));
+            else { rejected.records.push(recOut(cur)); continue; }
+            if (['entry', 'food', 'habit'].includes(r.kind)) { if (incoming.date) touched.add(incoming.date); if (cur && cur.date && cur.date !== incoming.date) touched.add(cur.date); }
           }
           for (const p of photos.slice(i, i + BATCH)) {
             if (!p || typeof p.id !== 'string' || Number.isNaN(Date.parse(p.updatedAt))) fail('invalid', 'Foto no válida');
@@ -445,6 +493,7 @@
             else rejected.photos.push(photoOut(cur));
           }
         }
+        for (const d of [...touched].sort()) be.pointsRefresh(u.id, d);
         return done({ serverNow: iso(be.clock.now()), rejected });
       },
       async pull(since, opts) {
@@ -680,9 +729,30 @@
         const d = String(day);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || d < ch.start || d > ch.end || d > addDay(be.todayBogota(), 1)) invalid('día fuera del reto');
         const mine = (ch.marks[u.id] ||= {});
-        if (doneFlag) mine[d] = { private: !!(mine[d] && mine[d].private) || be.pausePrivate(u.id, d) };
+        if (doneFlag) { mine[d] = { private: !!(mine[d] && mine[d].private) || be.pausePrivate(u.id, d) }; be.pointsRefresh(u.id, be.todayBogota()); }   // v1.15: bono del reto
         else delete mine[d];
         return done(challengeOut(ch, u.id));
+      },
+      // v1.15: mis puntos (solo los propios), la meta del team (agregada) y el opt-out.
+      async myPoints() {
+        const u = await authed();
+        const l = be.activeLink(u.id), g = (l && l.goals) || {};
+        return clone(puntos().summary(be.points[u.id] || [], be.todayBogota(), { plan: Number.isInteger(g.trained_days) ? g.trained_days : 5, paused: be.paymentBlocked(u.id), teamOptOut: l ? !!l.teamOptOut : null }));
+      },
+      async myTeamGoal() {
+        const u = await authed();
+        const l = be.activeLink(u.id);
+        if (!l || !be.coaches[l.coachId] || be.coaches[l.coachId].active === false) return null;
+        const g = be.teamGoalOut(l.coachId);
+        return g ? { ...g, optedOut: !!l.teamOptOut } : { none: true, optedOut: !!l.teamOptOut };
+      },
+      async setTeamOptOut(out) {
+        const u = await authed();
+        const l = be.activeLink(u.id);
+        if (!l) fail('not_found', 'Sin coach');
+        l.teamOptOut = !!out; l.updatedAt = iso(be.clock.now());
+        be._persist();
+        return this.myTeamGoal();
       },
       async setPhotoShared(photoId, shared) {
         const u = await authed();
@@ -1106,6 +1176,42 @@
         const u = await authed();
         if (!be.coaches[u.id]) fail('forbidden', 'No eres coach');
         return be.exports.filter((x) => x.coachId === u.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50).map(exportOut);
+      },
+      // v1.15 (como grasa.coach_points): puntos (si comparte hábitos Y comidas) y hábitos cumplidos (si comparte hábitos) de SUS asesorados; si no, null.
+      async points(from, to) {
+        const u = await asCoach();
+        if (!be.coaches[u.id] || be.coaches[u.id].active === false) fail('forbidden', 'Coach suspendido');
+        const today = be.todayBogota(), F = String(from), T = String(to);
+        const span = Math.round((Date.parse(T) - Date.parse(F)) / 86400000);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(F) || !/^\d{4}-\d{2}-\d{2}$/.test(T) || span < 0 || span > 92 || T > addDay(today, 2) || F < addDay(today, -400)) invalid('rango de fechas no válido');
+        const P = puntos();
+        return be.links.filter((l) => l.coachId === u.id && l.status === 'active' && be.hasConsent(l.clientId, 'sensitive_health') && be.hasConsent(l.clientId, 'cloud_transfer'))
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((l) => ({ clientId: l.clientId,
+            points: l.shares.habits && l.shares.nutrition ? (be.points[l.clientId] || []).filter((r) => r.day >= F && r.day <= T).reduce((s, r) => s + r.points, 0) : null,
+            habitsMet: l.shares.habits ? Object.values(be.records).filter((r) => r.userId === l.clientId && r.kind === 'habit' && !r.deletedAt && !r.pausePrivate && r.date >= F && r.date <= T && !P.habitRare(r.data || {}))
+              .reduce((s, r) => { const h = r.data || {}; return s + ((h.water || 0) >= 2) + ((h.steps || 0) >= 8000) + ((h.sleep || 0) >= 7 && (h.sleep || 0) <= 10); }, 0) : null }));
+      },
+      async teamGoal() {
+        const u = await asCoach();
+        if (be.coaches[u.id].active === false) fail('forbidden', 'Coach suspendido');
+        return be.teamGoalOut(u.id);
+      },
+      async setTeamGoal(metric, target) {
+        const u = await asCoach();
+        if (be.coaches[u.id].active === false) fail('forbidden', 'Coach suspendido');
+        const n = Number(target);
+        if (!['entrenos', 'puntos'].includes(metric)) invalid('meta: entrenos o puntos');
+        if (!Number.isInteger(n) || n < 1 || n > (metric === 'entrenos' ? 2000 : 20000)) invalid('número de la meta fuera de rango');
+        const wk = puntos().monday(be.todayBogota());
+        const k = `${u.id}|${wk}`;
+        be.teamGoals[k] = { coachId: u.id, weekStart: wk, metric, target: n, createdAt: (be.teamGoals[k] || {}).createdAt || iso(be.clock.now()) };
+        return done(be.teamGoalOut(u.id));
+      },
+      async deleteTeamGoal() {
+        const u = await authed();
+        if (!be.coaches[u.id]) fail('forbidden', 'No eres coach');
+        delete be.teamGoals[`${u.id}|${puntos().monday(be.todayBogota())}`];
+        return done(undefined);
       },
     };
     const EXPORT_AGREEMENT_VERSIONS = ['0.5-A7-coach'];
