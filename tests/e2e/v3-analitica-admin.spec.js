@@ -49,11 +49,12 @@ test('M3 + M5: Analítica (Resumen y Ranking privado) con Semana/Mes; quien no c
   await p.locator('#view-analitica [data-per="mes"]').click();
   await expect(p.locator('#an-range')).toHaveText('octubre (hasta hoy)');
   await H.tall(p, '#view-analitica');
-  // Ranking privado: rótulo literal; sin metas, «Progreso a la meta» desactivado
+  // Ranking privado: rótulo literal; concepto 7, punto 10: solo Constancia · Hábitos · Entrenos · Puntos (nada de «Progreso a la meta»)
   await p.locator('#ant-ranking').click();
   await expect(p.locator('#an-rk-label span:last-child')).toHaveText('Solo tú lo ves. Tus asesorados nunca ven un ranking.');
-  await expect(p.locator('[data-by="meta"]')).toBeDisabled();
-  await expect(p.locator('#an-meta-off')).toContainText('Disponible cuando fijes metas');
+  await expect(p.locator('#an-ranking [data-by]')).toHaveText(['Constancia', 'Hábitos', 'Entrenos', 'Puntos']);
+  await expect(p.locator('[data-by="meta"]')).toHaveCount(0);
+  await expect(p.locator('#an-ranking')).not.toContainText('Progreso a la meta');
   await expect(p.locator('.rk-li')).toHaveCount(3);
   await expect(p.locator('.rk-li').first()).toContainText('Ana Martínez');
   await p.locator('[data-by="entrenos"]').click();
@@ -90,14 +91,16 @@ test('M3 + M5: Analítica (Resumen y Ranking privado) con Semana/Mes; quien no c
   await H.tall(p, '#fc-graficas');
   await p.locator('#fct-resumen').click();
   await expect(p.locator('#fc-semana')).toBeVisible();
-  // Con una meta, el ranking ofrece «Progreso a la meta»; los que no tienen meta quedan aparte, sin puesto
+  // Aun con una meta de peso, el ranking NO ofrece «Progreso a la meta» ni ordena por kilos (concepto 7, punto 10); sí por puntos y hábitos
   await p.locator('#tab-analitica').click();
   await p.locator('#ant-ranking').click();
-  await expect(p.locator('[data-by="meta"]')).toBeEnabled();
-  await p.locator('[data-by="meta"]').click();
-  await expect(p.locator('.rk-li')).toHaveCount(1);
-  await expect(p.locator('.rk-li')).toContainText('Faltan 2,1 kg para su meta');
-  await expect(p.locator('.rk-apart')).toContainText('Sin meta fijada: Beto Gómez, Carla Ruiz');
+  await expect(p.locator('[data-by="meta"]')).toHaveCount(0);
+  expect(await p.locator('#an-ranking .rk-list').innerText()).not.toMatch(/kg|kilo|cintura|Faltan|Progreso a la meta/i);
+  await p.locator('[data-by="puntos"]').click();   // aquí nadie comparte comidas: los puntos (salen de hábitos y comidas) quedan aparte, nunca 0
+  await expect(p.locator('.rk-apart')).toContainText('Beto Gómez (no comparte sus hábitos y comidas)');
+  await p.locator('[data-by="habitos"]').click();
+  await expect(p.locator('.rk-li')).toHaveCount(2);
+  await expect(p.locator('.rk-li small').first()).toContainText('metas de agua, pasos y sueño');
   expect(errors).toEqual([]);
 });
 
@@ -353,7 +356,7 @@ test('390 px con letra al 200 %: Analítica, Ranking, Gráficas, Fijar metas, Me
     await p.keyboard.press('Escape');
     await expect(p.locator('#sheet-tend')).toBeHidden();
     await tap('#ant-ranking');
-    await tap('[data-by="meta"]');
+    await tap('[data-by="puntos"]');
     await sinDesborde(`${scheme}: Ranking`);
     await aa(['#an-rk-label', '.rk-li small', '.rk-n.top', '[data-by][aria-pressed="true"]', '.rk-apart'], scheme);
     await tap('#tab-coach');

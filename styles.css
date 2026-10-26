@@ -1901,3 +1901,35 @@ body.producto-coach .topbar.has-back #btn-coach-next, body.producto-coach .topba
 .xla-more summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; color: var(--t-fg, var(--accent)); font-weight: 700; }
 .xla-check { margin-top: 4px; }
 .xla-links { margin: 0 0 8px; }
+
+/* ---------- v1.15 · Puntos de constancia y meta colectiva del team (concepto jurídico 7) ---------- */
+.dia-rest { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.dia-rest.hidden, .dia-rest:empty { display: none; }
+.dia-rest button { flex: 1 1 12em; min-height: 48px; padding: 6px 12px; font: inherit; font-size: .85rem; font-weight: 600; color: var(--text); background: var(--surface2, var(--bg));
+  border: 1px solid var(--line); border-radius: 999px; cursor: pointer; overflow-wrap: anywhere; text-align: center; }
+.dia-rest button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.dia-rest button:focus-visible, .home-puntos:focus-visible, .pt-hidden button:focus-visible { outline: 3px solid var(--goal, var(--accent)); outline-offset: 2px; }
+.home-puntos { display: block; min-height: 44px; padding: 8px 0; text-align: left; font-weight: 700; color: var(--accent-hi, var(--accent)); overflow-wrap: anywhere; }
+body.producto-coach .semana-card > #home-puntos { order: 5; flex: 1 1 100%; }
+body.producto-coach #home-team { order: 9; }
+.team-card .team-title { margin: 4px 0 8px; font-weight: 800; font-size: 1.08rem; overflow-wrap: anywhere; }
+.team-card .team-bar { height: 10px; border-radius: 6px; }
+.team-card .team-line { margin: 8px 0 2px; font-weight: 600; overflow-wrap: anywhere; }
+.team-card .team-foot, .team-card .team-out { margin: 4px 0 0; overflow-wrap: anywhere; }
+.pt-card .pt-big { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.pt-card .pt-big b { font-size: 2.6rem; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent-hi, var(--accent)); }
+.pt-card .pt-today { margin: 6px 0 2px; font-weight: 700; }
+.pt-paused { color: var(--text); }
+.pt-detail, .pt-rules-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.pt-detail li, .pt-rules-list li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.pt-detail li span, .pt-rules-list li span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.pt-detail li b, .pt-rules-list li b { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+.pt-rules summary { min-height: 44px; display: flex; align-items: center; font-weight: 700; cursor: pointer; }
+.pt-level { margin: 4px 0 8px; overflow-wrap: anywhere; }
+.pt-foot { margin: 8px 4px 16px; }
+#retos-team .an-chips { margin: 8px 0; }
+#retos-team input[type="number"] { width: 100%; max-width: 14em; }
+.rt-team-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.rt-team-acts .btn { flex: 1 1 10em; }
+/* Lista del coach: dato neutro de peso y cintura (último registro y su fecha). Sin flechas ni colores de juicio. */
+.cli-pay-row .cli-med { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

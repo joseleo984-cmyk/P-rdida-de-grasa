@@ -68,19 +68,21 @@
   window.PGCharts = { lineChart, barChart, ring, esc };
 
   // ================= M3 / M5: Analítica =================
-  const AN = { tab: 'resumen', per: 'semana', by: 'meta', data: {}, loading: null };
+  const AN = { tab: 'resumen', per: 'semana', by: 'constancia', data: {}, pts: {}, loading: null };
   const TONE = { atencion: 'r', revisar: 'w', aldia: 't' };
   async function loadAnalytics(force) {
     const A = acc();
     if (!A) return null;
     const p = An.period(todayBo(), AN.per);
     const key = `${AN.per}|${p.to}`;
-    if (!force && AN.data[key]) return { p, rows: AN.data[key] };
+    if (!force && AN.data[key]) return { p, rows: AN.data[key], pts: AN.pts[key] };
     $('#an-status').textContent = 'Cargando…';
     const rows = await A.remote.coach.analytics(p.prevFrom, p.to);
     AN.data[key] = rows;
+    // v1.15: puntos y hábitos cumplidos del periodo (grasa.coach_points). Con el SQL viejo, el ranking sigue sin esos dos criterios.
+    try { AN.pts[key] = Object.fromEntries((await A.remote.coach.points(p.from, p.to)).map((x) => [x.clientId, x])); } catch { AN.pts[key] = null; }
     $('#an-status').textContent = '';
-    return { p, rows };
+    return { p, rows, pts: AN.pts[key] };
   }
   const people = () => (window.PGCoachPanel ? PGCoachPanel.rows() : []);
   async function renderAnalitica(force) {
@@ -90,7 +92,7 @@
     let out;
     try { out = await loadAnalytics(force); } catch (err) { st.textContent = acc() ? acc().errorText(err, 'coach') : 'No se pudo conectar con el servidor.'; return; }
     if (!out) return;
-    const { p, rows } = out;
+    const { p, rows, pts } = out;
     const list = people(), names = Object.fromEntries(list.map((x) => [x.clientId, x.name]));
     document.body.dataset.anStamp = `${list.length} asesorado${list.length === 1 ? '' : 's'}`;
     document.dispatchEvent(new CustomEvent('pg:topbar-label'));
@@ -100,7 +102,7 @@
     box.hidden = AN.tab !== 'resumen'; rk.hidden = AN.tab !== 'ranking';
     AN.rows = rows;
     if (AN.tab === 'resumen') box.innerHTML = resumenHtml(p, rows, list);
-    else rk.innerHTML = rankingHtml(p, rows, names, list);
+    else rk.innerHTML = rankingHtml(p, rows, names, pts);
   }
   function resumenHtml(p, rows, list) {
     if (!rows.length) return '<div class="card"><p class="small muted">Cuando tengas asesorados vinculados verás aquí el resumen de todos.</p></div>';
@@ -176,20 +178,21 @@
     }
     return out.sort((a, b) => Coach.byAtencion(a, b));
   }
-  function rankingHtml(p, rows, names, list) {
-    const goals = Object.fromEntries(list.map((x) => [x.clientId, x.info.goals || {}]));
-    const anyGoal = list.some((x) => An.hasGoals(x.info.goals) && (typeof x.info.goals.weight_kg === 'number' || typeof x.info.goals.waist_cm === 'number'));
-    if (AN.by === 'meta' && !anyGoal) AN.by = 'constancia';
-    const r = An.ranking(rows, AN.by, { period: p, names, goals });
-    const chip = (k, t, dis) => `<button type="button" data-by="${k}" aria-pressed="${AN.by === k}"${dis ? ' disabled aria-describedby="an-meta-off"' : ''}>${t}</button>`;
-    const li = (x) => `<li class="rk-li"><span class="rk-n${x.rank <= 3 ? ' top' : ''}" aria-hidden="true">${x.rank}</span><span class="an-av ${x.tone === 'w' ? 'w' : x.tone === 'r' ? 'r' : 't'}" aria-hidden="true">${esc(initials(x.name))}</span>
+  // Concepto 7, punto 10: solo Constancia · Hábitos · Entrenos · Puntos. Nada de kilos ni cintura (eso vive en la ficha y sus gráficas).
+  function rankingHtml(p, rows, names, pts) {
+    const noPts = !pts;
+    if (noPts && (AN.by === 'habitos' || AN.by === 'puntos')) AN.by = 'constancia';
+    const r = An.ranking(rows, AN.by, { period: p, names, points: pts || {} });
+    AN.by = r.by;
+    const chip = (k) => `<button type="button" data-by="${k}" aria-pressed="${AN.by === k}"${noPts && (k === 'habitos' || k === 'puntos') ? ' disabled' : ''}>${An.RANK_LABEL[k]}</button>`;
+    const li = (x) => `<li class="rk-li"><span class="rk-n${x.rank <= 3 ? ' top' : ''}" aria-hidden="true">${x.rank}</span><span class="an-av t" aria-hidden="true">${esc(initials(x.name))}</span>
       <span class="rk-t"><span class="rk-top"><b>${esc(x.name)}</b><b class="rk-v">${esc(x.label)}</b></span><span class="rk-bar ${x.tone}" role="progressbar" aria-label="${esc(x.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${x.pct || 0}"><i style="width:${Math.max(2, x.pct || 0)}%"></i></span><small>${esc(x.sub)}</small></span><span class="sr-only">Puesto ${x.rank}</span></li>`;
-    const apart = r.apart.length ? `<p class="small muted rk-apart">${AN.by === 'meta' ? 'Sin meta fijada' : 'Sin puesto'}: ${r.apart.map((a) => `${esc(a.name)}${AN.by === 'meta' ? '' : ` (${esc(a.why)})`}`).join(', ')}${AN.by === 'meta' ? ' · <button type="button" class="btn-link" data-fijar="' + esc(r.apart[0].clientId) + '">Fijar meta ›</button>' : ''}</p>` : '';
+    const apart = r.apart.length ? `<p class="small muted rk-apart">Sin puesto: ${r.apart.map((a) => `${esc(a.name)} (${esc(a.why)})`).join(', ')}</p>` : '';
     return `<p class="an-banner" id="an-rk-label"><span aria-hidden="true">👁</span><span><b>Solo tú lo ves.</b> Tus asesorados nunca ven un ranking.</span></p>
       <p class="small muted rk-by-l">Ordenar por</p>
-      <div class="an-chips" role="group" aria-label="Ordenar por">${chip('meta', 'Progreso a la meta', !anyGoal)}${chip('constancia', 'Constancia')}${chip('entrenos', 'Entrenos')}</div>
-      ${anyGoal ? '' : '<p class="small muted" id="an-meta-off">Progreso a la meta: Disponible cuando fijes metas (de peso o de cintura).</p>'}
-      <p class="small muted">${esc(AN.by === 'meta' ? 'Avance desde su primera medida hacia la meta que fijaste.' : p.mode === 'mes' ? `Este mes (${p.label})` : `Últimos 7 días (${p.label})`)}</p>
+      <div class="an-chips" role="group" aria-label="Ordenar por">${An.RANK_BY.map(chip).join('')}</div>
+      ${noPts ? '<p class="small muted">Hábitos y Puntos: disponibles cuando el servidor esté al día.</p>' : ''}
+      <p class="small muted">${esc(p.mode === 'mes' ? `Este mes (${p.label})` : `Últimos 7 días (${p.label})`)}. Ordena por constancia y hábitos, nunca por kilos ni centímetros: el peso y la cintura se ven solo en la ficha de cada persona.</p>
       ${r.ranked.length ? `<ol class="card rk-list" aria-label="Ranking privado">${r.ranked.map(li).join('')}</ol>` : '<div class="card"><p class="small muted">Nadie entra en este orden todavía.</p></div>'}${apart}`;
   }
   function wireAnalitica() {
@@ -200,7 +203,6 @@
       const by = ev.target.closest('[data-by]'); if (by && !by.disabled) { AN.by = by.dataset.by; renderAnalitica(); const nb = v.querySelector(`[data-by="${AN.by}"]`); if (nb) nb.focus(); return; }
       const tg = ev.target.closest('[data-trend]'); if (tg) { openTrend(tg.dataset.trend); return; }
       const o = ev.target.closest('[data-open]'); if (o) { PGCoachPanel.open(o.dataset.open); return; }
-      const f = ev.target.closest('[data-fijar]'); if (f) { if (PGCoachPanel.open(f.dataset.fijar)) { setFtab('metas'); openGoals(); } return; }
       if (ev.target.closest('#an-ver-todos')) $('#tab-coach').click();
     });
     $('#tab-analitica').addEventListener('click', () => { AN.data = {}; renderAnalitica(true); $('#analitica-title').focus({ preventScroll: true }); });
@@ -353,7 +355,7 @@
   const myGoals = () => { const A = acc(); const m = A && A.meta(); return (m && m.link && m.link.goals) || {}; };
   window.PGMetas = { has: () => !isCoach() && An.hasGoals(myGoals()) };
   function progSeg(active) {
-    return `<nav class="prog-seg" aria-label="Progreso">${[['metas', 'Metas'], ['progreso:medidas', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias']]
+    return `<nav class="prog-seg" aria-label="Progreso">${[['metas', 'Metas'], ['progreso:medidas', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias'], ['puntos', 'Puntos']]
       .map(([v, t]) => `<button type="button" data-goto="${v}"${v === active ? ' aria-current="page" class="on"' : ''}>${t}</button>`).join('')}</nav>`;
   }
   function syncProgSeg() {

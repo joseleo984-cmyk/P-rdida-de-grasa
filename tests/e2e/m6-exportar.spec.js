@@ -39,7 +39,7 @@ async function coachXL(browser, testInfo, { a7 = '0.4-A7-coach', clients = CLIEN
     localStorage.setItem('perdida-grasa:account', JSON.stringify({ userId: user.id, email: user.email, roles: ['client', 'coach'], onboarded: true, coach: await r.coach.myCoach(), cloudAsked: true,
       consents: { sensitive_health: { granted: true, version: '0.2-AU', textHash: h, clientAt: at }, cloud_transfer: { granted: true, version: '0.2-AU', textHash: h, clientAt: at }, coach_agreement: { granted: true, version: a7, textHash: hash, clientAt: at } } }));
     localStorage.setItem('perdida-grasa:owner', user.id);
-    localStorage.setItem('perdida-grasa:aviso-politica', JSON.stringify([`${user.id}|politica-1.1`]));   // el aviso v1.1 se prueba aparte
+    localStorage.setItem('perdida-grasa:aviso-politica', JSON.stringify([`${user.id}|politica-1.1`, `${user.id}|politica-1.2`]));   // el aviso se prueba aparte
   }, { a7, hash: H.sha(await p.evaluate((v) => ConsentTexts.agreementText(v), a7)) });
   for (const c of clients) {
     await H.seedClient(p, c.email, c.name, code, { paidDays: 20, habits: c.habits !== false, nutrition: true, measures: c.measures || [], habitDays: c.habitDays || [], foods: c.foods || [] });
@@ -224,7 +224,7 @@ test('Política v1.1: con la política 1.0 (o sin el aviso activo) «Descargar E
   await p.locator('#xl-custody').check();
   await expect(p.locator('#btn-xl')).toBeDisabled();
   await p.unroute('**/legal/VERSIONS.json');
-  await p.reload(); await H.ready(p);   // el VERSIONS.json real del repositorio: 1.1 con el aviso activo
+  await p.reload(); await H.ready(p);   // el VERSIONS.json real del repositorio: 1.2 (≥ 1.1) con el aviso activo: sigue habilitado
   await openExport(p);
   await expect(p.locator('#xl-gate')).toBeHidden();
   await p.locator('#xl-custody').check();
@@ -233,9 +233,9 @@ test('Política v1.1: con la política 1.0 (o sin el aviso activo) «Descargar E
   expect(errors).toEqual([]);
 });
 
-test('Asesorado: no ve nada de la exportación (ni la fila, ni la pantalla, ni el historial); ve UNA vez el aviso literal de la Política v1.1 con su enlace', async ({ browser }, testInfo) => {
+test('Asesorado: no ve nada de la exportación (ni la fila, ni la pantalla, ni el historial); ve UNA vez el aviso literal de la Política vigente (v1.2, concepto 7) con su enlace', async ({ browser }, testInfo) => {
   const { p, errors } = await H.clientApp(browser, testInfo);
-  const TEXT = 'Actualizamos nuestra Política de Tratamiento de Datos Personales (v1.1) para detallar el uso de tus registros (peso, medidas y comidas), el alcance de las estimaciones nutricionales y el funcionamiento de las alertas operativas de seguridad. Conócela aquí.';
+  const TEXT = 'Actualizamos nuestra Política de Tratamiento de Datos (v1.2) para incluir la opción voluntaria de retos y ligas de constancia en equipo. Conócela aquí.';
   const aviso = p.locator('#aviso-politica');
   await expect(aviso).toBeVisible();
   await expect(p.locator('#aviso-politica-text')).toHaveText(TEXT);

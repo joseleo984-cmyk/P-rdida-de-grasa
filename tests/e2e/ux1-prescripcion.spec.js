@@ -172,7 +172,7 @@ test('metas: sin metas del coach no aparece ninguna meta ni número sugerido (as
   await expect(c.p.locator('#an-resumen .an-glow')).toBeVisible();
   await sinPrescripcion(c.p, 'analítica');
   await c.p.locator('#ant-ranking').click();
-  await expect(c.p.locator('[data-by="meta"]')).toBeDisabled();
+  await expect(c.p.locator('[data-by="meta"]')).toHaveCount(0);   // concepto 7, punto 10: ya no hay «Progreso a la meta»
   await sinPrescripcion(c.p, 'ranking');
   expect(c.errors).toEqual([]);
 });

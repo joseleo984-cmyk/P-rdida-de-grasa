@@ -323,11 +323,59 @@ test('v1.1 · aviso en pantalla (anexo 1): texto y botón «Entendido» LITERALE
   assert.match(t, /\(v1\.1\).*Conócela aquí \[enlace\]\.$/);
   assert.strictEqual(btn, 'Entendido');
   const AV = require('../aviso-politica.js');
-  assert.strictEqual(AV.TEXT, t);
+  assert.strictEqual(AV.TEXT_V11, t, 'el de la v1.1 queda como historial (lo reemplaza el de la v1.2, concepto 7)');
   assert.strictEqual(AV.BUTTON, btn);
-  assert.deepStrictEqual(AV.parts(), { before: t.slice(0, t.indexOf(' [enlace]')).replace(/aquí$/, ''), link: 'aquí', after: '.', href: 'legal/privacidad.html' });
   const html = read('index.html');
   const box = html.slice(html.indexOf('id="aviso-politica"'), html.indexOf('</div>', html.indexOf('id="aviso-politica"')));
   assert.ok(/>\s*Entendido\s*</.test(box), 'el botón de index.html dice «Entendido»');
 });
 
+
+// ---------- Concepto jurídico 7 (26/10/2026): gamificación, meta colectiva, ranking del coach y Política v1.2 ----------
+function concept7() {
+  const md = read('equipo/legal/concepto-7-2026-10-26.md');
+  const sec = (a, b) => md.slice(md.indexOf(a), b ? md.indexOf(b) : undefined);
+  const q = (t) => [...t.matchAll(/«([\s\S]*?)»/g)].map((m) => m[1]);
+  const s5 = sec('## 5. Política', '## 6.');
+  return { md, finalidad: q(s5).find((x) => x.startsWith('[Finalidad X.X]')), aviso: q(s5).find((x) => x.startsWith('Actualizamos')), boton: (s5.match(/\(Botón: «([^»]+)»\)/) || [])[1] };
+}
+
+test('concepto 7 se lee bien: finalidad, aviso y botón del punto 5', () => {
+  const c = concept7();
+  assert.match(c.finalidad, /^\[Finalidad X\.X\] Calcular indicadores de cumplimiento/);
+  assert.match(c.aviso, /\(v1\.2\).*Conócela aquí \[enlace\]\.$/);
+  assert.strictEqual(c.boton, 'Entendido');
+});
+
+test('concepto 7 · Política v1.2: la finalidad LITERAL en §4 de la política publicada (4.6), del borrador (4.9) y de legal/privacidad.html, una sola vez', () => {
+  const body = concept7().finalidad.replace('[Finalidad X.X] ', '');
+  const html = read('legal/privacidad.html');
+  const s4 = norm(visible(html.slice(html.indexOf('<h2 id="s4">'), html.indexOf('<h2 id="s5">'))));
+  assert.ok(s4.includes(norm('Finalidad 4.6 ' + body)), 'legal/privacidad.html §4');
+  assert.strictEqual(norm(visible(html)).split(norm(body)).length - 1, 1, 'una sola vez en la página');
+  assert.ok(norm(read('equipo/legal/politica-tratamiento-datos.md')).includes(norm('Finalidad 4.6 ' + body)));
+  assert.ok(norm(read('equipo/legal/borradores/politica-tratamiento-datos-v0.3-cuentas.md')).includes(norm('Finalidad 4.9 ' + body)));
+  assert.strictEqual(JSON.parse(read('legal/VERSIONS.json')).privacy.version, '1.2');
+});
+
+test('concepto 7 · aviso v1.2: texto y botón «Entendido» LITERALES en aviso-politica.js; «[enlace]» es el enlace real a la política', () => {
+  const c = concept7();
+  const AV = require('../aviso-politica.js');
+  assert.strictEqual(AV.TEXT, c.aviso);
+  assert.strictEqual(AV.BUTTON, c.boton);
+  assert.deepStrictEqual(AV.parts(), { before: c.aviso.slice(0, c.aviso.indexOf(' [enlace]')).replace(/aquí$/, ''), link: 'aquí', after: '.', href: 'legal/privacidad.html' });
+});
+
+test('concepto 7 · fuera de alcance: nada de ligas, alias, posición relativa, su opt-in ni la cláusula 7.6 en la app', () => {
+  const c = concept7().md;
+  const optin = (c.match(/Casilla de aceptación: \[ \] «([^»]+)»/) || [])[1];
+  const aviso12 = (c.match(/> «(Recuerda: esta dinámica[^»]+)»/) || [])[1];
+  assert.ok(optin && aviso12, 'el concepto trae la casilla de la liga y el aviso de cabecera');
+  for (const f of ['index.html', 'app.js', 'puntos-view.js', 'puntos.js', 'analitica-view.js', 'etapa2-view.js']) {
+    const t = read(f);
+    assert.ok(!t.includes(optin) && !t.includes('Unirme a la liga') && !t.includes('Participación en la Liga Semanal'), f + ': sin opt-in de liga');
+    assert.ok(!t.includes(aviso12), f + ': sin aviso de cabecera de liga');
+    assert.ok(!/Cláusula 7\.6|Halcón|Titán|grupo de arriba/.test(t), f + ': sin cláusula 7.6, alias ni posición relativa');
+  }
+  assert.ok(!/Cláusula 7\.6|ligas comunitarias/.test(CT.fullText('A7')), 'la cláusula 7.6 no entra al acuerdo');
+});

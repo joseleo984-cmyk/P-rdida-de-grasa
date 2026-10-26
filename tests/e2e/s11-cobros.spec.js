@@ -39,7 +39,7 @@ test('coach: lista de asesorados con filtros (Necesitan atención · Todos · Ve
   await p.addStyleTag({ content: H.WIDE });
   await expect(p.locator('#coach-title-list')).toHaveText('Mis asesorados');
   // Filtros con su cuenta; el de «Necesitan atención» es el de entrada (los tres aún no registran nada)
-  await expect(p.locator('#coach-filters button')).toHaveText(['Necesitan atención · 3', 'Todos · 3', 'Vencen pronto · 1', 'Sin pagar · 1']);
+  await expect(p.locator('#coach-filters button:nth-child(-n+4)')).toHaveText(['Necesitan atención · 3', 'Todos · 3', 'Vencen pronto · 1', 'Sin pagar · 1']);
   await expect(p.locator('#coach-filters [aria-pressed="true"]')).toHaveText('Necesitan atención · 3');
   const rows = p.locator('#coach-clients .cli-pay-row');
   await expect(rows).toHaveCount(3);

@@ -71,7 +71,7 @@ test('consent: buildConsent exige T&C, Política y mayor de 18; facultativas por
   assert.throws(() => Schema.buildConsent(boxes, 'ayer'), /Fecha/);
   const c = Schema.buildConsent({ terms: true, privacy: true, adult: true }, NOW);
   assert.deepStrictEqual(c, {
-    termsVersion: '0.1', privacyVersion: '1.1', sensitiveHealth: false, photos: false, adult: true,
+    termsVersion: '0.1', privacyVersion: '1.2', sensitiveHealth: false, photos: false, adult: true,
     acceptedAt: NOW, updatedAt: NOW, sensitiveHealthAt: NOW, photosAt: NOW,
   });
 });
@@ -86,12 +86,15 @@ test('consent: consentStatus missing / outdated / ok', () => {
   // v1.1: cambio informativo, sin re-aceptación forzada: quien aceptó la 0.1 sigue vigente (solo con las versiones publicadas)
   assert.strictEqual(Schema.consentStatus({ ...c, privacyVersion: '0.1' }), 'ok');
   assert.strictEqual(Schema.consentStatus({ ...c, privacyVersion: '0.1' }, { terms: '0.1', privacy: '1.1' }), 'outdated');
+  // v1.2 (concepto 7, punto 5): también informativa: quien aceptó la 1.1 sigue vigente
+  assert.strictEqual(Schema.consentStatus({ ...c, privacyVersion: '1.1' }), 'ok');
 });
 
-test('v1.1: legal/VERSIONS.json es la fuente única y coincide con los .md, con Schema.LEGAL_VERSIONS y con LEGAL_COMPAT', () => {
+test('v1.2: legal/VERSIONS.json es la fuente única y coincide con los .md, con Schema.LEGAL_VERSIONS y con LEGAL_COMPAT', () => {
   const V = JSON.parse(fs.readFileSync(path.join(ROOT, 'legal/VERSIONS.json'), 'utf8'));
   const [terms, privacy] = Legal.build();
-  assert.strictEqual(V.privacy.version, '1.1');
+  assert.strictEqual(V.privacy.version, '1.2');
+  assert.strictEqual(V.privacy.notice.id, 'politica-1.2', 'aviso nuevo: sale una vez aunque ya se haya visto el de la v1.1');
   assert.strictEqual(V.privacy.version, privacy.version);
   assert.strictEqual(V.terms.version, terms.version);
   assert.deepStrictEqual({ terms: V.terms.version, privacy: V.privacy.version }, Schema.LEGAL_VERSIONS);

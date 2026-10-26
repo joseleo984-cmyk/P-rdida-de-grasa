@@ -54,7 +54,7 @@
     { key: 'gina', name: 'Gina Demo', sex: 'f', w0: 64.8, loss: 1.5, weeks: 3, last: -3, adh: 0.55, habitDays: 7, foodDays: 2, started: -23, paid: 9, notes: false,
       shares: { body: true, notes: false, nutrition: true, habits: false, photos: false }, photos: [], routines: [] },
     { key: 'hugo', name: 'Hugo Demo', sex: 'm', w0: 91.0, loss: 0, weeks: 0, last: 0, adh: 0, habitDays: 0, foodDays: 0, started: -2, paid: 28, notes: false,
-      shares: { body: true, notes: false, nutrition: true, habits: false, photos: false }, photos: [], routines: [] },
+      shares: { body: true, notes: false, nutrition: true, habits: true, photos: false }, photos: [], routines: [] },
   ].map((p) => ({ ...p, email: `${p.key}.demo@example.com` }));
 
   // ---------- Medidas ----------
@@ -238,6 +238,8 @@
   const NOTICES = [{ title: 'Nueva función: analítica de tus asesorados', body: 'En la pestaña «Analítica» ves la constancia de todos y un ranking que solo ves tú.', from: -5, to: 6 },
     { title: 'Cobro de octubre', body: 'Esta semana te escribimos para el cobro del mes, por fuera de la app.', from: -24, to: -20 }];
   const PANEL_DAYS = [-6, -5, -3, -2, 0];   // el coach de la demo abrió su panel 5 de los últimos 7 días
+  // v1.15: «Entre todos: 20 entrenos» esta semana. Suman Ana, Beto, Elena, Fabio y Hugo (5: comparten hábitos y comidas y no están en pausa).
+  const TEAM_GOAL = { metric: 'entrenos', target: 20 };
   const RETO_MARKS = { ana: 4, beto: 3, carla: 3, elena: 4, fabio: 3, gina: 1, hugo: 0 };   // Diego (en pausa) no está en el reto: su Inicio queda como la imagen A12
   // Lo que Diego anota en modo autónomo durante la pausa (días relativos a hoy): el coach NO lo ve.
   const AUTONOMOUS = [[-2, { water: 1.5, sleep: 7 }], [-1, { water: 1, sleep: 6.5 }], [0, { water: 0.5 }]];
@@ -362,7 +364,7 @@
   function deps() {
     const get = (n, f) => root[n] || (typeof require === 'function' ? require(f) : null);
     return { RemoteFake: get('RemoteFake', './remote-fake.js'), Platos: get('Platos', './platos.js'), Schema: get('Schema', './schema.js'),
-      Sync: get('Sync', './sync.js'), CT: get('ConsentTexts', './consent-texts.js'), Rutinas: get('Rutinas', './rutinas.js'), Etapa2: get('Etapa2', './etapa2.js'), Paso: get('Paso', './paso.js') };
+      Sync: get('Sync', './sync.js'), CT: get('ConsentTexts', './consent-texts.js'), Rutinas: get('Rutinas', './rutinas.js'), Etapa2: get('Etapa2', './etapa2.js'), Paso: get('Paso', './paso.js'), Puntos: get('Puntos', './puntos.js') };
   }
   async function sha256(text) {
     const c = (typeof crypto !== 'undefined' && crypto.subtle) ? crypto : require('node:crypto').webcrypto;
@@ -491,6 +493,14 @@
       await rd.sync.push({ records: Sync.toWire(auto.state, { userId: clients.diego.id }), photos: [] });
       void diego;
     }
+    // --- v1.15: puntos de constancia con historia (8 semanas) y una meta colectiva del team en curso ---
+    // El «servidor» calcula los puntos al recibir cada registro, pero solo los de hoy y ayer: para que la demo tenga historia, cada día se
+    // calcula «como si» se hubiera registrado a tiempo (asOf). Es solo para sembrar: la app nunca lo hace.
+    if (be.pointsRefresh) {
+      for (const c of plan.clients) for (let k = -55; k <= 0; k++) { const d = addDays(be.todayBogota(), k); be.pointsRefresh(clients[c.key].id, d, { asOf: d }); }
+      const wk = D.Puntos ? D.Puntos.monday(be.todayBogota()) : null;
+      if (wk) be.teamGoals[`${coachU.id}|${wk}`] = { coachId: coachU.id, weekStart: wk, metric: TEAM_GOAL.metric, target: TEAM_GOAL.target, createdAt: iso(dayMs(-1)) };
+    }
     // --- Estilo v2 (concepto jurídico 4): Beto respondió «Sí» a «¿Sentiste dolor…?» ayer; su coach ve «Reportó dolor» en la lista y en la ficha ---
     if (D.Paso) {
       const rb = asUser(be, clients.beto, D);
@@ -581,7 +591,7 @@
   }
 
   const PAIN = { beto: -1 };   // días relativos a hoy del último «Sí» al aviso de dolor (ver seed)
-  const api = { PAIN, HEALTH, PROTEIN_GOALS, GOALS, ADMIN, OTHER_COACHES, NOTICES, PANEL_DAYS, RETO_MARKS, AUTONOMOUS, BUSINESS, COACH, PEOPLE, INVITE_CODE, BANNER, TEMPLATES, GIFS, PALETTE, buildPlan, seed, localFor, asUser, makeGif, encodeGif, lzw, uid, rng, addDays, localDay, stampOf, sha256, deps };
+  const api = { TEAM_GOAL, PAIN, HEALTH, PROTEIN_GOALS, GOALS, ADMIN, OTHER_COACHES, NOTICES, PANEL_DAYS, RETO_MARKS, AUTONOMOUS, BUSINESS, COACH, PEOPLE, INVITE_CODE, BANNER, TEMPLATES, GIFS, PALETTE, buildPlan, seed, localFor, asUser, makeGif, encodeGif, lzw, uid, rng, addDays, localDay, stampOf, sha256, deps };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PGDemoData = api;
 })(typeof window !== 'undefined' ? window : globalThis);

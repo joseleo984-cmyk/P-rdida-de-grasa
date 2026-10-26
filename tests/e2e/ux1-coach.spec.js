@@ -14,7 +14,7 @@ test('Coach C01: «Necesitan atención» primero con semáforo en texto y forma 
   const { p, errors } = await H.coachApp(browser, testInfo, CLIENTS);
   await p.locator('#tab-coach').click();
   await p.addStyleTag({ content: H.WIDE });
-  await expect(p.locator('#coach-filters button')).toHaveText([/^Necesitan atención · \d$/, /^Todos · 4$/, /^Vencen pronto · 1$/, /^Sin pagar · 1$/]);
+  await expect(p.locator('#coach-filters button:nth-child(-n+4)')).toHaveText([/^Necesitan atención · \d$/, /^Todos · 4$/, /^Vencen pronto · 1$/, /^Sin pagar · 1$/]);
   await expect(p.locator('#coach-filters [aria-pressed="true"]')).toContainText('Necesitan atención');
   const rows = p.locator('#coach-clients .cli-pay-row');
   await expect(rows).toHaveCount(4);

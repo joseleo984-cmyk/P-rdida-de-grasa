@@ -4,7 +4,7 @@
 //   · Si un asesorado NO comparte hábitos, sus cifras de hábitos son null («no comparte»), nunca 0.
 //   · La app no juzga ni prescribe: no hay consejos, ni «bien» o «mal». Los colores marcan TENDENCIA (baja / estable / sube) o, si el coach fijó
 //     una meta, si el cambio va hacia SU meta. Sin meta del coach no se muestra ninguna meta ni número sugerido (concepto jurídico 5).
-//   · El ranking es SOLO para el coach (rótulo literal RANKING_LABEL). Ningún asesorado lo ve.
+//   · El ranking es SOLO para el coach (rótulo literal RANKING_LABEL). Ningún asesorado lo ve. Concepto 7, punto 10: nunca ordena por kilos ni cintura.
 (function (root) {
   'use strict';
   const req = (n, f) => root[n] || (typeof require === 'function' ? require(f) : null);
@@ -86,6 +86,31 @@
       .sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }
 
+  // ---------- Lista «Asesorados» del coach: filtros por ESTADO OPERATIVO y dato neutro (concepto 7, punto 10; guía aprobada) ----------
+  // Nunca se ordena ni se filtra por cuánto bajó alguien. «Requieren revisión» = la MISMA regla «estancado 3+ sem.» de la tarjeta de tendencia,
+  // con promedios semanales calculados como grasa.coach_analytics (6 semanas hacia atrás desde hoy) sobre lo que el coach ya ve (coach_pull, sin pausa privada).
+  function weightWeeksOf(entries, today) {
+    const w = {};
+    for (const e of Array.isArray(entries) ? entries : []) {
+      if (!e || typeof e.date !== 'string' || typeof e.weight !== 'number' || !Number.isFinite(e.weight) || e.date > today) continue;
+      const k = Math.floor((dayNum(today) - dayNum(e.date)) / 7);
+      if (k < 6) (w[k] ||= []).push(e.weight);
+    }
+    return Object.keys(w).map(Number).sort((a, b) => a - b).map((k) => ({ w: k, kg: Math.round((w[k].reduce((s, x) => s + x, 0) / w[k].length) * 100) / 100 }));
+  }
+  const NO_WEIGH_DAYS = 10;
+  const needsReview = (entries, today) => trend(weightWeeksOf(entries, today)).kind === 'estancado';
+  const weighStale = (entries, today) => { const l = lastWeigh(entries); return !l || dayNum(today) - dayNum(l) > NO_WEIGH_DAYS; };
+  // «Peso 72,9 kg · 21 oct · Cintura 80 cm · 14 oct»: el último registro de cada uno, con su fecha. Sin flechas, sin colores, sin comparar.
+  function lastMeasureLine(entries) {
+    const last = (k) => { let b = null; for (const e of Array.isArray(entries) ? entries : []) if (e && typeof e.date === 'string' && typeof e[k] === 'number' && Number.isFinite(e[k]) && (!b || e.date > b.date)) b = e; return b; };
+    const w = last('weight'), c = last('waist');
+    const parts = [];
+    if (w) parts.push(`Peso ${num(w.weight)} kg · ${dm(w.date)}`);
+    if (c) parts.push(`Cintura ${num(c.waist)} cm · ${dm(c.date)}`);
+    return parts.length ? parts.join(' · ') : 'Sin pesajes ni medidas todavía';
+  }
+
   // ---------- M3: resumen de todos ----------
   // rows: salida de remote.coach.analytics(from, to) pedida con from = p.prevFrom y to = p.to.
   function summary(rows, p, today) {
@@ -124,38 +149,40 @@
   const hasGoals = (g) => !!g && Object.keys(g).some((k) => typeof g[k] === 'number');
 
   // ---------- M5: ranking privado (solo el coach) ----------
-  // by: 'meta' (Progreso a la meta) | 'constancia' | 'entrenos'. names: { clientId: nombre }. goals: { clientId: goals }.
-  function ranking(rows, by, { period: p, names = {}, goals = {} } = {}) {
+  // Concepto jurídico 7, punto 10 (MANDATORIO): el ranking ordena SOLO por constancia, cumplimiento de hábitos, entrenos y puntos de constancia.
+  // Nunca por kilos, cintura ni «progreso a la meta»: peso y cintura se ven solo en la ficha individual y en sus gráficas.
+  // by: 'constancia' | 'habitos' | 'entrenos' | 'puntos' (cualquier otro valor = 'constancia'). names: { clientId: nombre }.
+  // points: { clientId: { points, habitsMet } } de grasa.coach_points (null = no comparte: queda aparte, sin puesto, nunca 0).
+  const RANK_BY = ['constancia', 'habitos', 'entrenos', 'puntos'];
+  const RANK_LABEL = { constancia: 'Constancia', habitos: 'Hábitos', entrenos: 'Entrenos', puntos: 'Puntos' };
+  function ranking(rows, by, { period: p, names = {}, points = {} } = {}) {
     const list = Array.isArray(rows) ? rows : [];
+    const k = RANK_BY.includes(by) ? by : 'constancia';
     const nm = (r) => names[r.clientId] || 'Asesorado';
+    const when = p.mode === 'mes' ? 'este mes' : 'en 7 días';
     const out = [], apart = [];
     for (const r of list) {
-      if (by === 'constancia') {
+      const pt = points[r.clientId] || {};
+      if (k === 'constancia') {
         const d = countIn(r.logDays, p.from, p.to);
         out.push({ clientId: r.clientId, value: d, pct: Math.round((d / p.days) * 100), label: `${Math.round((d / p.days) * 100)} %`, sub: `${d} de ${p.days} días con registro`, tone: 't' });
-      } else if (by === 'entrenos') {
+      } else if (k === 'entrenos') {
         if (!Array.isArray(r.trainedDays)) { apart.push({ clientId: r.clientId, name: nm(r), why: 'no comparte sus hábitos' }); continue; }
         const t = countIn(r.trainedDays, p.from, p.to);
         out.push({ clientId: r.clientId, value: t, label: String(t), sub: `${t} ${t === 1 ? 'entreno' : 'entrenos'} ${p.mode === 'mes' ? 'este mes' : 'esta semana'}`, tone: 't' });
+      } else if (k === 'habitos') {
+        if (typeof pt.habitsMet !== 'number') { apart.push({ clientId: r.clientId, name: nm(r), why: 'no comparte sus hábitos' }); continue; }
+        const of = 3 * p.days, pc = Math.round((pt.habitsMet / of) * 100);
+        out.push({ clientId: r.clientId, value: pc, pct: pc, label: `${pc} %`, sub: `${pt.habitsMet} de ${of} metas de agua, pasos y sueño`, tone: 't' });
       } else {
-        const g = goals[r.clientId] || {};
-        const tr = trend(r.weightWeeks);
-        let pr = null, kind = null;
-        if (typeof g.weight_kg === 'number') { pr = progress(g.weight_kg, r.weightFirst, r.weightLast); kind = 'kg'; }
-        if (!pr && typeof g.waist_cm === 'number') { pr = progress(g.waist_cm, r.waistFirst, r.waistLast); kind = 'cm'; }
-        if (!pr) { apart.push({ clientId: r.clientId, name: nm(r), why: typeof g.weight_kg === 'number' || typeof g.waist_cm === 'number' ? 'aún sin medidas' : 'sin meta' }); continue; }
-        let sub, tone = 't';
-        if (pr.reached) sub = 'Llegó a su meta';
-        else if (pr.away) { sub = `${pr.moved > 0 ? 'Subió' : 'Bajó'} ${num(Math.abs(pr.moved))} ${kind} desde el inicio`; tone = 'r'; }
-        else if (kind === 'kg' && tr.kind === 'estancado') { sub = `Estancado hace ${tr.weeks} semanas`; tone = 'w'; }
-        else sub = kind === 'kg' ? `Faltan ${num(pr.left)} kg para su meta` : `Faltan ${num(pr.left)} cm de cintura`;
-        out.push({ clientId: r.clientId, value: pr.pct, pct: pr.pct, label: `${pr.pct} %`, sub, tone });
+        if (typeof pt.points !== 'number') { apart.push({ clientId: r.clientId, name: nm(r), why: 'no comparte sus hábitos y comidas' }); continue; }
+        out.push({ clientId: r.clientId, value: pt.points, label: String(pt.points), sub: `${pt.points} ${pt.points === 1 ? 'punto' : 'puntos'} de constancia ${when}`, tone: 't' });
       }
     }
     out.sort((a, b) => b.value - a.value || String(names[a.clientId] || '').localeCompare(String(names[b.clientId] || ''), 'es'));
-    if (by === 'entrenos') { const max = Math.max(1, ...out.map((x) => x.value)); out.forEach((x) => { x.pct = Math.round((x.value / max) * 100); }); }
+    if (k === 'entrenos' || k === 'puntos') { const max = Math.max(1, ...out.map((x) => x.value)); out.forEach((x) => { x.pct = Math.round((x.value / max) * 100); }); }
     out.forEach((x, i) => { x.rank = i + 1; x.name = names[x.clientId] || 'Asesorado'; });
-    return { ranked: out, apart };
+    return { by: k, ranked: out, apart };
   }
 
   // ---------- M4: gráficas de UN asesorado (estado reconstruido de coach_pull, ya filtrado por lo que comparte) ----------
@@ -286,7 +313,7 @@
     return { ok: !Object.keys(errors).length, goals, errors };
   }
 
-  const api = { RANKING_LABEL, GOALS_FOOTER, STALL_KG, TREND_TEXT, TREND_TITLE, TREND_ORDER, trendChange, trendPeople, lastWeigh, SIN_PESAJES, METRICS, GOAL_FIELDS, period, trend, summary, deltaText, progress, hasGoals, ranking,
+  const api = { RANKING_LABEL, GOALS_FOOTER, STALL_KG, TREND_TEXT, TREND_TITLE, TREND_ORDER, trendChange, trendPeople, lastWeigh, SIN_PESAJES, METRICS, GOAL_FIELDS, period, trend, summary, deltaText, progress, hasGoals, ranking, RANK_BY, RANK_LABEL, weightWeeksOf, needsReview, weighStale, lastMeasureLine, NO_WEIGH_DAYS,
     buckets, series, compare, metas, parseGoals, addDays, rangeText, dm, num, signed };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Analitica = api;

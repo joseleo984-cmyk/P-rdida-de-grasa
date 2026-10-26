@@ -210,9 +210,20 @@
   let filter = 'atencion';
   let shownOrder = [];   // ids en el orden de la pantalla (para «Anterior / Siguiente» en la ficha)
   const rowsNow = () => [...cache.values()].map((c) => ({ c, at: Coach.atencion(c.state, { today: todayBo(), shares: c.info.shares }), p: payOf(c) }));
-  const FILTERS = [['atencion', 'Necesitan atención'], ['todos', 'Todos'], ['vencen', 'Vencen pronto'], ['sinpagar', 'Sin pagar']];
+  // Concepto 7, punto 10 (guía aprobada): filtros por ESTADO OPERATIVO, nunca un ranking corporal. «Requieren revisión» = estancados 3+ semanas
+  // (la regla de la tarjeta de tendencia); «Al día con registros» = semáforo al día; «Sin pesaje reciente» = más de 10 días sin pesarse.
+  // Punto de enganche (APAGADO): «Alertas activas (pérdidas atípicas/rápidas)» depende de las alertas L6, que siguen apagadas hasta que un profesional
+  // valide los umbrales (Etapa 3). Para encenderlo: ALERTS_FILTER = true y definir inFilter(r, 'alertas') con la señal L6 del servidor.
+  const ALERTS_FILTER = false;
+  const AN = () => window.Analitica || null;
+  const FILTERS = [['atencion', 'Necesitan atención'], ['todos', 'Todos'], ['vencen', 'Vencen pronto'], ['sinpagar', 'Sin pagar'],
+    ['revision', 'Requieren revisión'], ['aldia', 'Al día con registros'], ['sinpesaje', 'Sin pesaje reciente'], ...(ALERTS_FILTER ? [['alertas', 'Alertas activas']] : [])];
+  const EMPTY = { vencen: 'Nadie vence en los próximos 7 días.', sinpagar: 'Todos están al día con el pago.', revision: 'Nadie lleva 3 semanas o más estancado.',
+    aldia: 'Nadie está al día con sus registros ahora.', sinpesaje: 'Todos se pesaron en los últimos 10 días.' };
   // «Necesitan atención» es la vista de entrada: TODOS los asesorados, con quienes necesitan atención primero (el número cuenta solo a esos). «Todos» los ordena por nombre.
-  const inFilter = (r, f) => (f === 'vencen' ? r.p.paid && r.p.daysLeft <= Pagos.SOON_DAYS : f === 'sinpagar' ? !r.p.paid : true);
+  const inFilter = (r, f) => (f === 'vencen' ? r.p.paid && r.p.daysLeft <= Pagos.SOON_DAYS : f === 'sinpagar' ? !r.p.paid
+    : f === 'revision' ? !!AN() && AN().needsReview(r.c.state.entries, todayBo()) : f === 'aldia' ? r.at.level === 'aldia'
+      : f === 'sinpesaje' ? !!AN() && AN().weighStale(r.c.state.entries, todayBo()) : f === 'alertas' ? false : true);
   const countOf = (all, f) => (f === 'atencion' ? all.filter((r) => r.at.level !== 'aldia').length : all.filter((r) => inFilter(r, f)).length);
   function orderedRows(f) {
     const byName = (a, b) => displayName(a.c).localeCompare(displayName(b.c), 'es');
@@ -237,7 +248,7 @@
     const items = orderedRows(filter);
     shownOrder = items.map((r) => r.c.info.clientId);
     if (!items.length) {
-      ul.innerHTML = `<li class="small cli-empty">${filter === 'vencen' ? 'Nadie vence en los próximos 7 días.' : 'Todos están al día con el pago.'}</li>`;
+      ul.innerHTML = `<li class="small cli-empty">${EMPTY[filter] || 'Nadie en este filtro.'}</li>`;
       return;
     }
     ul.innerHTML = items.map(({ c, at, p }) => {
@@ -246,10 +257,11 @@
       const salud = window.Etapa2 ? Etapa2.coachHealth(c.info) : null;   // UX Etapa 2 (L4): solo el indicador, sin detalle
       const dolor = c.info.painReported ? `Reportó dolor · ${fmtDay(c.info.painReported)}` : '';   // estilo v2 (r1 v1.12): aviso de dolor, sin detalle
       return `<li><div class="cli-pay-row" data-level="${at.level}">
-        <button type="button" class="cli-main" data-client="${id}" aria-label="${esc(name)}. ${esc(at.label)}: ${esc(at.reason)}.${salud ? ' ' + esc(salud.line) + '.' : ''}${dolor ? ' ' + esc(dolor) + '.' : ''} ${esc(Pagos.coachLine(p))}. Abrir su ficha">
+        <button type="button" class="cli-main" data-client="${id}" aria-label="${esc(name)}. ${esc(at.label)}: ${esc(at.reason)}.${AN() ? ' ' + esc(AN().lastMeasureLine(c.state.entries)) + '.' : ''}${salud ? ' ' + esc(salud.line) + '.' : ''}${dolor ? ' ' + esc(dolor) + '.' : ''} ${esc(Pagos.coachLine(p))}. Abrir su ficha">
           <span class="cli-av" aria-hidden="true">${esc(ClientStatus.initials(name))}</span>
           <span class="cli-text"><span class="cli-top"><span class="cli-name who">${esc(name)}</span><span class="sem sem-${at.level}"><span aria-hidden="true">${SEM_ICON[at.level]}</span> ${esc(at.label)}</span></span>
             <span class="cli-line cli-motivo">${esc(at.reason)}</span>
+            ${AN() ? `<span class="cli-line cli-med">${esc(AN().lastMeasureLine(c.state.entries))}</span>` : ''}
             ${salud ? `<span class="cli-line cli-salud"><span aria-hidden="true">▲</span> ${esc(salud.line)}</span>` : ''}
             ${dolor ? `<span class="cli-line cli-salud cli-dolor"><span aria-hidden="true">▲</span> ${esc(dolor)}</span>` : ''}
             ${habitsOff ? '<span class="cli-line">🔒 No comparte sus hábitos</span>' : ''}

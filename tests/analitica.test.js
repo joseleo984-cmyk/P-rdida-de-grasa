@@ -90,24 +90,35 @@ test('ranking por constancia y por entrenos (quien no comparte hábitos queda ap
   assert.deepStrictEqual(e.apart.map((x) => [x.name, x.why]), [['Ana', 'no comparte sus hábitos']]);
   assert.strictEqual(e.ranked[0].pct, 100);
 });
-test('ranking por progreso a la meta: solo con meta del coach; quien no tiene meta queda aparte', () => {
+test('concepto 7, punto 10: el ranking NO ordena por kilos ni cintura («Progreso a la meta» ya no existe); solo constancia, hábitos, entrenos y puntos', () => {
   const p = A.period(TODAY, 'semana');
   const rs = [
-    { clientId: 'ana', weightFirst: 78.4, weightLast: 72.9, weightWeeks: [{ w: 0, kg: 72.9 }, { w: 3, kg: 74 }] },
-    { clientId: 'beto', weightFirst: 96, weightLast: 94.8, weightWeeks: [{ w: 0, kg: 94.8 }, { w: 1, kg: 94.9 }, { w: 2, kg: 94.8 }, { w: 3, kg: 94.9 }] },
-    { clientId: 'diego', weightFirst: 88, weightLast: 88.8, weightWeeks: [{ w: 0, kg: 88.8 }] },
-    { clientId: 'carla', waistFirst: 82, waistLast: 79, weightWeeks: [] },
-    { clientId: 'hugo', weightFirst: 91, weightLast: 91, weightWeeks: [] },
+    { clientId: 'ana', logDays: [TODAY], weightFirst: 78.4, weightLast: 72.9, waistFirst: 90, waistLast: 80, weightWeeks: [{ w: 0, kg: 72.9 }, { w: 3, kg: 74 }] },
+    { clientId: 'beto', logDays: [TODAY, A.addDays(TODAY, -1)], weightFirst: 96, weightLast: 96, weightWeeks: [] },
   ];
-  const goals = { ana: { weight_kg: 69.7 }, beto: { weight_kg: 86 }, diego: { weight_kg: 80 }, carla: { waist_cm: 76 } };
-  const r = A.ranking(rs, 'meta', { period: p, names: { ana: 'Ana', beto: 'Beto', diego: 'Diego', carla: 'Carla', hugo: 'Hugo' }, goals });
-  assert.deepStrictEqual(r.ranked.map((x) => [x.name, x.pct]), [['Ana', 63], ['Carla', 50], ['Beto', 12], ['Diego', 0]]);
-  assert.strictEqual(r.ranked[0].sub, 'Faltan 3,2 kg para su meta');
-  assert.strictEqual(r.ranked[1].sub, 'Faltan 3 cm de cintura');
-  assert.strictEqual(r.ranked[2].sub, 'Estancado hace 4 semanas');
-  assert.strictEqual(r.ranked[3].sub, 'Subió 0,8 kg desde el inicio');
-  assert.deepStrictEqual(r.apart.map((x) => [x.name, x.why]), [['Hugo', 'sin meta']]);
+  const goals = { ana: { weight_kg: 69.7 }, beto: { weight_kg: 86 } };
+  assert.deepStrictEqual(A.RANK_BY, ['constancia', 'habitos', 'entrenos', 'puntos']);
+  const r = A.ranking(rs, 'meta', { period: p, names: { ana: 'Ana', beto: 'Beto' }, goals });
+  assert.strictEqual(r.by, 'constancia', 'un criterio desconocido (el viejo «meta») cae en constancia');
+  assert.deepStrictEqual(r.ranked.map((x) => x.name), ['Beto', 'Ana'], 'Beto (más constancia) va primero aunque Ana bajó más kilos');
+  for (const by of A.RANK_BY) {
+    const x = A.ranking(rs, by, { period: p, names: { ana: 'Ana', beto: 'Beto' }, goals, points: { ana: { points: 9, habitsMet: 4 }, beto: { points: 20, habitsMet: 2 } } });
+    assert.ok(!JSON.stringify(x).match(/kg|kilo|cintura|peso|\bcm\b|progreso a la meta/i), by + ": sin kilos, cintura ni progreso a la meta");
+  }
   assert.strictEqual(A.RANKING_LABEL, 'Solo tú lo ves. Tus asesorados nunca ven un ranking.');
+});
+test('ranking por hábitos cumplidos y por puntos (grasa.coach_points): quien no comparte queda aparte, sin puesto, nunca 0', () => {
+  const p = A.period(TODAY, 'semana');
+  const names = { ana: 'Ana', beto: 'Beto', carla: 'Carla', hugo: 'Hugo' };
+  const points = { ana: { points: 40, habitsMet: 18 }, beto: { points: 52, habitsMet: 9 }, carla: { points: null, habitsMet: null }, hugo: { points: 0, habitsMet: 0 } };
+  const h = A.ranking(rows, 'habitos', { period: p, names, points });
+  assert.deepStrictEqual(h.ranked.map((x) => [x.name, x.label]), [['Ana', '86 %'], ['Beto', '43 %'], ['Hugo', '0 %']]);
+  assert.strictEqual(h.ranked[0].sub, '18 de 21 metas de agua, pasos y sueño');
+  assert.deepStrictEqual(h.apart.map((x) => [x.name, x.why]), [['Carla', 'no comparte sus hábitos']]);
+  const q = A.ranking(rows, 'puntos', { period: p, names, points });
+  assert.deepStrictEqual(q.ranked.map((x) => [x.rank, x.name, x.value, x.pct]), [[1, 'Beto', 52, 100], [2, 'Ana', 40, 77], [3, 'Hugo', 0, 0]]);
+  assert.strictEqual(q.ranked[0].sub, '52 puntos de constancia en 7 días');
+  assert.deepStrictEqual(q.apart.map((x) => [x.name, x.why]), [['Carla', 'no comparte sus hábitos y comidas']]);
 });
 test('progreso hacia la meta (bajar o subir), metas alcanzadas y valores que faltan', () => {
   assert.deepStrictEqual(A.progress(70, 80, 75), { pct: 50, left: 5, reached: false, away: false, moved: -5 });
@@ -234,4 +245,20 @@ test('fake: un coach suspendido no ve analítica ni avisos; sus asesorados no qu
   assert.ok(await ana.r.client.myLink(), 'la asesorada conserva su vínculo');
   await adm.admin.setCoachActive(xid, true);
   assert.strictEqual(be.paymentBlocked(ana.u.id), true);
+});
+
+test('lista del coach (concepto 7, punto 10): filtros por estado operativo y dato neutro de peso y cintura, sin ordenar por kilos', () => {
+  const today = '2026-10-21';
+  const d = (n) => A.addDays(today, n);
+  const flat = [[-20, 90], [-13, 90.1], [-6, 90], [0, 90.1]].map(([n, w]) => ({ date: d(n), weight: w }));
+  const down = [[-20, 80], [-13, 79.2], [-6, 78.6], [0, 78]].map(([n, w]) => ({ date: d(n), weight: w }));
+  assert.strictEqual(A.needsReview(flat, today), true, 'estancado 3+ semanas: requiere revisión (misma regla de la tendencia)');
+  assert.strictEqual(A.needsReview(down, today), false);
+  assert.strictEqual(A.weighStale(flat, today), false);
+  assert.strictEqual(A.weighStale([{ date: d(-11), weight: 70 }], today), true, 'más de 10 días sin pesaje');
+  assert.strictEqual(A.weighStale([{ date: d(-10), weight: 70 }], today), false);
+  assert.strictEqual(A.weighStale([], today), true);
+  assert.strictEqual(A.lastMeasureLine([...down, { date: d(-3), waist: 82 }]), 'Peso 78 kg · 21 oct · Cintura 82 cm · 18 oct');
+  assert.strictEqual(A.lastMeasureLine([]), 'Sin pesajes ni medidas todavía');
+  assert.ok(!/[▲▼↑↓]|bajó|subió|mejor|peor/i.test(A.lastMeasureLine(down)), 'sin flechas ni juicios');
 });

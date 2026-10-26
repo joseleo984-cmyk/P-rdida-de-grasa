@@ -81,7 +81,7 @@ test('coach: lista con el «sin pagar», ficha con medidas, hábitos, comidas, f
   const log = await enterCoach(page, site);
   await expect(page.locator('#coach-title-list')).toHaveText('Mis asesorados');
   // UX Etapa 1: filtros y semáforo variado (rojo, ámbar y verde, cada uno con su motivo en texto)
-  await expect(page.locator('#coach-filters button')).toHaveText(['Necesitan atención · 3', 'Todos · 8', 'Vencen pronto · 2', 'Sin pagar · 1']);
+  await expect(page.locator('#coach-filters button')).toHaveText(['Necesitan atención · 3', 'Todos · 8', 'Vencen pronto · 2', 'Sin pagar · 1', 'Requieren revisión · 2', 'Al día con registros · 5', 'Sin pesaje reciente · 0']);
   await page.locator('#coach-filters button', { hasText: 'Todos' }).click();
   const sem = (await page.locator('#coach-clients .sem').allTextContents()).map((x) => x.replace(/\s+/g, ' ').trim());
   expect(new Set(sem)).toEqual(new Set(['▲ Atención', '● Revisar', '✓ Al día']));
@@ -235,8 +235,32 @@ test('r1 v1.13: ?rol=admin abre el panel admin con coaches ficticios (cifras del
   await expect(page.locator('#coach-detail-title')).toHaveText(gina);
   await page.locator('#tab-analitica').click();
   await page.locator('#ant-ranking').click();
-  await expect(page.locator('.rk-li')).toHaveCount(7);
-  await expect(page.locator('.rk-apart')).toContainText('Hugo Demo');
+  await expect(page.locator('.rk-li')).toHaveCount(8);   // por constancia: los 8 (ya no hay «Progreso a la meta», concepto 7)
+  await expect(page.locator('[data-by="meta"]')).toHaveCount(0);
+  await page.locator('[data-by="puntos"]').click();
+  await expect(page.locator('.rk-apart')).toContainText('Carla Demo');   // no comparte hábitos: sin puesto, nunca 0
+});
+
+test('v1.15: ?rol=asesorado ve sus puntos y la meta del team en curso (sin datos de nadie); ?rol=coach ve la meta, el ranking por puntos y los filtros', async ({ page, site }) => {
+  await openDemo(page, site, '?rol=asesorado');
+  if (await page.locator('#btn-aviso-politica').isVisible()) await page.locator('#btn-aviso-politica').click();
+  await expect(page.locator('#home-puntos')).toHaveText(/^\d+ puntos esta semana( · \+\d+ hoy)? ›$/);
+  await expect(page.locator('#home-team .team-title')).toHaveText('Entre todos: 20 entrenos');
+  await expect(page.locator('#home-team .team-line')).toHaveText(/^\d+ de 20 entrenos · 5 personas sumando$/);
+  for (const n of ['Beto', 'Elena', 'Fabio', 'Hugo']) await expect(page.locator('#home-team')).not.toContainText(n);
+  await page.locator('#home-puntos').click();
+  await expect(page.locator('#pt-week')).toBeVisible();
+  await expect(page.locator('#pt-cmp')).toContainText('Tu mejor semana');
+  await page.evaluate(() => PGDemo.enter('coach'));   // «Cambiar de rol»
+  await expect(page.locator('#coach-clients .cli-pay-row')).toHaveCount(8);
+  await page.locator('#tab-mas').click();
+  await page.locator('#row-c-retos').click();
+  await expect(page.locator('#rt-team-box .team-line')).toHaveText(/^\d+ de 20 entrenos · 5 personas sumando$/);
+  await page.locator('#tab-analitica').click();
+  await page.locator('#ant-ranking').click();
+  await page.locator('[data-by="puntos"]').click();
+  await expect(page.locator('.rk-li')).toHaveCount(6);   // Carla y Gina no comparten hábitos: aparte, sin puesto
+  await expect(page.locator('.rk-apart')).toContainText('Gina Demo');
 });
 
 test('enlace directo ?rol=coach entra sin pasar por la pantalla de elegir', async ({ page, site }) => {
