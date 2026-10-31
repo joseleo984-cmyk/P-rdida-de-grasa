@@ -78,6 +78,8 @@
     if (pt) { pt.classList.toggle('hidden', !hasTeam); $('#puntos-team-box').innerHTML = hasTeam ? teamHtml(team) : ''; }
     renderView();
     renderAj();
+    // Insignias v4: «Equipo» (logros-view.js) mira si esta semana el team cumplió y la persona sumó. Solo el agregado y lo propio.
+    if (show) document.dispatchEvent(new CustomEvent('pg:puntos', { detail: { mine, team } }));
   }
   function renderView() {
     const body = $('#puntos-body');

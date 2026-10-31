@@ -7,9 +7,10 @@ const iso = (n) => new Date(Date.UTC(2026, 9, 21 + n)).toISOString().slice(0, 10
 const KEY = 'perdida-grasa:v1';
 
 // Asesorado (Ana) ya vinculado con su coach (Laura) y con el pago al día.
-async function clientApp(browser, testInfo, { habits = true, paid = 30, wide = false } = {}) {
+async function clientApp(browser, testInfo, { habits = true, paid = 30, wide = false, celebra = false } = {}) {
   const ph = await H.phone(browser, testInfo);
   const { p } = ph;
+  if (celebra === false) await p.addLocatorHandler(p.locator('#lgd-ok'), (l) => l.click());   // la hoja «Nueva insignia» se abre sola: no tapa lo que se prueba
   await p.goto('index.html');
   await H.acceptSolo(p, { habits });
   const code = await H.seedCoach(p, 'laura@coach.co', 'Laura Fit');

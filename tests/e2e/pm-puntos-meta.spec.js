@@ -16,6 +16,8 @@ const sync = (p) => p.evaluate(async () => { await PGSync.run(); await PGPuntos.
 // Lo sembrado con seedState lleva una fecha vieja: se le pone «ahora» para que la app lo suba (como al guardar de verdad).
 const touch = (p) => p.evaluate((k) => { const ts = new Date(Date.now() + 1000).toISOString(); const s = JSON.parse(localStorage.getItem(k)); for (const e of s.entries) e.updatedAt = ts; for (const d of Object.keys(s.habits)) s.habits[d].updatedAt = ts;
   for (const d of Object.keys(s.foods)) for (const f of s.foods[d]) f.updatedAt = ts; localStorage.setItem(k, JSON.stringify(s)); }, H.KEY).then(() => p.reload()).then(() => H.ready(p));
+// La hoja «Nueva insignia» se abre sola al ganar una (diseño B): aquí se cierra para no tapar lo que se prueba.
+const autoLogro = (p) => p.addLocatorHandler(p.locator('#lgd-ok'), (l) => l.click());
 const closeAviso = async (p) => { if (await p.locator('#btn-aviso-politica').isVisible()) await p.locator('#btn-aviso-politica').click(); };
 // Actúa con otra cuenta en el servidor falso de esta página.
 const como = (p, email, fn) => p.evaluate(async ({ email, fn }) => {
@@ -34,6 +36,7 @@ async function seedTeam(p, code) {
 
 test('asesorado: puntos en Inicio y en Progreso → Puntos; medir no da puntos por el resultado; tope de 12 al día; ocultarlos; nunca ve puntos de otros', async ({ browser }, testInfo) => {
   const { p, errors, code } = await H.clientApp(browser, testInfo);
+  await autoLogro(p);
   await shareAll(p);
   await closeAviso(p);
   await p.locator('#dia-entrene').click();
@@ -92,6 +95,7 @@ test('asesorado: puntos en Inicio y en Progreso → Puntos; medir no da puntos p
 
 test('asesorado: descanso planificado y «me siento mal» dan puntos; en pausa no se gana ni se pierde nada', async ({ browser }, testInfo) => {
   const { p, errors } = await H.clientApp(browser, testInfo);
+  await autoLogro(p);
   await shareAll(p);
   await closeAviso(p);
   await expect(p.locator('#dia-rest button')).toHaveText(['Hoy es mi día de descanso', 'Hoy no entreno: me siento mal']);
@@ -113,6 +117,7 @@ test('asesorado: descanso planificado y «me siento mal» dan puntos; en pausa n
 
 test('meta colectiva: el asesorado ve la barra común (total y cuántos) sin datos individuales; el opt-out lo excluye y con menos de 5 no se publica', async ({ browser }, testInfo) => {
   const { p, errors, code } = await H.clientApp(browser, testInfo);
+  await autoLogro(p);
   await seedTeam(p, code);
   await shareAll(p);
   await closeAviso(p);
@@ -232,6 +237,7 @@ test('coach: filtros por estado operativo (Requieren revisión, Al día con regi
 
 test('aviso v1.2: texto y «Entendido» literales, UNA vez (también para quien ya cerró el de la v1.1), sin re-aceptar', async ({ browser }, testInfo) => {
   const { p, errors } = await H.clientApp(browser, testInfo);
+  await autoLogro(p);
   const uid = await p.evaluate(() => PGAccount.meta().userId);
   await p.evaluate((u) => localStorage.setItem('perdida-grasa:aviso-politica', JSON.stringify([`${u}|politica-1.1`])), uid);
   await p.reload(); await H.ready(p);
@@ -251,6 +257,7 @@ test('aviso v1.2: texto y «Entendido» literales, UNA vez (también para quien 
 test('390 px con letra al 200 % y fuente ancha (asesorado): Inicio, Puntos, ajustes y meta sin desborde; contraste AA en oscuro y claro', async ({ browser }, testInfo) => {
   test.setTimeout(120_000);
   const { p, errors, code } = await H.clientApp(browser, testInfo);
+  await autoLogro(p);
   await seedTeam(p, code);
   await shareAll(p);
   await closeAviso(p);

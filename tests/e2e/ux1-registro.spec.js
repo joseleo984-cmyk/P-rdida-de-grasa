@@ -200,7 +200,7 @@ test('Progreso: tendencia de 7 días del peso con los pesajes tenues detrás; pe
   const colors = await p.locator('#medidas-table dd').evaluateAll((l) => [...new Set(l.map((e) => getComputedStyle(e).color))]);
   expect(colors).toHaveLength(1);
   expect(colors[0]).toBe(await p.evaluate(() => getComputedStyle(document.body).color));
-  expect(await p.locator('#view-progreso').evaluate((v) => v.innerText)).not.toMatch(/ganaste|perdiste|excelente|mal\b|bien\b|logro/i);
+  expect(await p.locator('#view-progreso').evaluate((v) => v.innerText)).not.toMatch(/ganaste|perdiste|excelente|mal\b|bien\b|\blogro\b/i);
   await H.layout(p);
   await H.shot(p, 'ux1-progreso.png', { fullPage: true });
   // Pesajes estables: el mensaje que normaliza la meseta (sin prescribir)

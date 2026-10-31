@@ -1933,3 +1933,145 @@ body.producto-coach #home-team { order: 9; }
 .rt-team-acts .btn { flex: 1 1 10em; }
 /* Lista del coach: dato neutro de peso y cintura (último registro y su fecha). Sin flechas ni colores de juicio. */
 .cli-pay-row .cli-med { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+/* ======================================================================================================================
+   Insignias v4 · diseño B «Escudo por categoría» (equipo/diseno/v4-insignias/B1-coleccion.png y B2-detalle.png). Solo producto «coach».
+   La silueta dice la categoría; el nivel va en el borde de metal, en los galones y en ●●○ + la palabra (nunca solo color).
+   SVG en línea con un único <defs> (logros.js); colores por variables para oscuro y claro. Nada animado en la colección.
+   ====================================================================================================================== */
+body.producto-coach {
+  --lg-t: #0f766e; --lg-t-l: #5fd0c2; --lg-t-d: #0b5a54; --lg-t-ink: #0f766e;
+  --lg-b: #8a5a2b; --lg-b-l: #dcab7c; --lg-b-d: #6b4520; --lg-b-ink: #8a5a2b;
+  --lg-s: #5b6b70; --lg-s-l: #bcc7ca; --lg-s-d: #45535a; --lg-s-ink: #4f5e63;
+  --lg-g: #8a6500; --lg-g-l: #e3b84d; --lg-g-d: #6b4e00; --lg-g-ink: #7a5900;
+  --lg-face-a: #ffffff; --lg-face-b: #e3eeeb; --lg-off: #f4f8f7; --lg-line: #6f817d; --lg-lock-bg: #ffffff; --lg-lock-ink: #34433f;
+  --lg-fill: rgba(15, 118, 110, .16); --lg-fill-ink: #0f766e; --lg-spark: #0f766e;
+  --lg-c-pp: #0f766e; --lg-c-con: #4f46e5; --lg-c-hab: #0369a1; --lg-c-ent: #b45309; --lg-c-reg: #7c6a50; --lg-c-ret: #be123c;
+}
+@media (prefers-color-scheme: dark) {
+  body.producto-coach {
+    --lg-t: #2dd4bf; --lg-t-l: #99f6e4; --lg-t-d: #0f766e; --lg-t-ink: #99f6e4;
+    --lg-b: #cd8b57; --lg-b-l: #f3c9a1; --lg-b-d: #7a4a24; --lg-b-ink: #f3c9a1;
+    --lg-s: #c7d2d4; --lg-s-l: #f6fafb; --lg-s-d: #6f7d81; --lg-s-ink: #f6fafb;
+    --lg-g: #f2c14e; --lg-g-l: #ffe7a3; --lg-g-d: #94660f; --lg-g-ink: #ffe7a3;
+    --lg-face-a: #16302c; --lg-face-b: #0a1514; --lg-off: #0b1514; --lg-line: #5d706c; --lg-lock-bg: #16221f; --lg-lock-ink: #c8d6d3;
+    --lg-fill: rgba(45, 212, 191, .16); --lg-fill-ink: #5eead4; --lg-spark: #5eead4;
+    --lg-c-pp: #2dd4bf; --lg-c-con: #818cf8; --lg-c-hab: #38bdf8; --lg-c-ent: #f59e5b; --lg-c-reg: #d6c7b0; --lg-c-ret: #fb7185;
+  }
+  .lg-svg.on.lv-t { filter: drop-shadow(0 0 5px rgba(45, 212, 191, .5)); }
+  .lg-svg.on.lv-b { filter: drop-shadow(0 0 5px rgba(205, 139, 87, .45)); }
+  .lg-svg.on.lv-s { filter: drop-shadow(0 0 5px rgba(199, 210, 212, .38)); }
+  .lg-svg.on.lv-g { filter: drop-shadow(0 0 5px rgba(242, 193, 78, .45)); }
+  .lg-hb { filter: drop-shadow(0 0 20px rgba(45, 212, 191, .4)); }
+}
+.lg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.lg-c-pp { --lg-cc: var(--lg-c-pp); } .lg-c-con { --lg-cc: var(--lg-c-con); } .lg-c-hab { --lg-cc: var(--lg-c-hab); }
+.lg-c-ent { --lg-cc: var(--lg-c-ent); } .lg-c-reg { --lg-cc: var(--lg-c-reg); } .lg-c-ret { --lg-cc: var(--lg-c-ret); }
+.lg-svg { display: block; flex: none; overflow: visible; }
+.lg-shape { display: block; flex: none; overflow: visible; stroke: var(--lg-cc); }
+.lg-next { stroke: var(--lg-t); }
+.lg-ck { width: 12px; height: 12px; flex: 0 0 12px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.lg-dots { display: inline-flex; gap: 2px; }
+.lg-dots i { width: 6px; height: 6px; border-radius: 50%; border: 1.3px solid currentColor; box-sizing: border-box; }
+.lg-dots i.f { background: currentColor; }
+.lg-lv.lv-b { color: var(--lg-b); } .lg-lv.lv-s { color: var(--lg-s); } .lg-lv.lv-g { color: var(--lg-g); }
+.lg-tag { margin: 0; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-hi, var(--accent)); font-weight: 800; }
+.lg-tag.lg-mt { color: var(--muted); }
+/* Colección: una fila por categoría, con la silueta como etiqueta */
+#lg-seg .prog-seg { margin-bottom: 10px; }
+.lg-cats { container-type: inline-size; display: grid; gap: 10px; }
+.lg-row { display: flex; gap: 2px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 10px 2px 8px 4px; }
+.lg-lab { flex: 0 0 52px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 3px; padding-top: 6px; min-width: 0; }
+.lg-lab h3 { margin: 0; font-family: inherit; font-size: .56rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; text-transform: uppercase; color: var(--muted); overflow-wrap: break-word; }
+.lg-cnt { font-size: .74rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.lg-grid { flex: 1 1 auto; min-width: 0; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 1px; }
+.lg-tile { width: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 6px; text-align: center; border: 0; border-radius: 12px;
+  background: transparent; color: var(--text); font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.lg-tile:focus-visible, .lg-near-b:focus-visible { outline: 3px solid var(--accent-hi, var(--accent)); outline-offset: 1px; }
+.lg-tile .lg-svg { width: 56px; height: 56px; margin-bottom: 2px; }
+.lg-nm { font-size: .69rem; font-weight: 700; letter-spacing: -.015em; line-height: 1.15; overflow-wrap: break-word; max-width: 100%; }
+.lg-st { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1px 3px; font-size: .72rem; font-weight: 700; line-height: 1.2; }
+.lg-st.lg-lv { flex-direction: column; }
+.lg-t, .lg-p { color: var(--accent-hi, var(--accent)); }
+.lg-l { color: var(--muted); font-weight: 400; }
+/* «Te falta poco» */
+.lg-near { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 12px; margin-bottom: 10px; }
+.lg-near-b { flex: none; display: grid; place-items: center; min-width: 48px; min-height: 48px; padding: 0; border: 0; border-radius: 12px; background: transparent; cursor: pointer; }
+.lg-near-t { flex: 1 1 11rem; min-width: 0; }
+.lg-near-n { margin: 2px 0 0; font-weight: 700; font-size: .95rem; line-height: 1.25; overflow-wrap: anywhere; }
+.lg-near-s { margin: 1px 0 0; font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
+.lg-total { flex: none; margin: 0 0 0 auto; padding-left: 12px; border-left: 1px solid var(--hero-line, var(--line)); text-align: center; display: flex; flex-direction: column; }
+.lg-total b { font-family: var(--font-title); font-weight: 800; font-size: 1.6rem; line-height: 1; }
+.lg-total span { font-size: .75rem; color: var(--muted); white-space: nowrap; }
+.lg-foot { margin: 12px 4px 16px; }
+/* Ficha del coach */
+.lg-cats-coach { margin: 10px 0; }
+.lg-cats-coach .lg-row { background: transparent; }
+/* Letra grande (200 %) o fuente ancha: la etiqueta pasa arriba y las insignias se acomodan en menos columnas (nunca se corta una palabra). */
+@container (max-width: 21rem) {
+  .lg-row { flex-direction: column; padding: 10px; }
+  .lg-lab { flex: none; width: 100%; flex-direction: row; justify-content: flex-start; text-align: left; gap: 8px; padding-top: 0; }
+  .lg-lab .lg-shape { width: 28px; height: 28px; }
+  .lg-lab h3 { font-size: .75rem; }
+  .lg-grid { width: 100%; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); }
+}
+/* «Mi día»: la insignia nueva con su dibujo */
+body.producto-coach .dd-badge-n { width: 46px; height: 46px; background: none; border-radius: 0; }
+/* Hoja de detalle (B2) */
+body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 0 0; border-top: 1px solid var(--hero-line, var(--line)); padding: 0 0 18px; }
+.lg-grab { width: 42px; height: 5px; border-radius: 3px; background: var(--line); margin: 10px auto 8px; }
+.lg-band { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; font-weight: 700; font-size: .9rem; color: var(--text);
+  background: var(--lg-band); border-block: 1px solid var(--lg-cc); overflow-wrap: anywhere; }
+.lg-band.lg-c-pp { --lg-band: rgba(45, 212, 191, .12); } .lg-band.lg-c-con { --lg-band: rgba(129, 140, 248, .12); } .lg-band.lg-c-hab { --lg-band: rgba(56, 189, 248, .12); }
+.lg-band.lg-c-ent { --lg-band: rgba(245, 158, 91, .12); } .lg-band.lg-c-reg { --lg-band: rgba(214, 199, 176, .14); } .lg-band.lg-c-ret { --lg-band: rgba(251, 113, 133, .12); }
+.lg-sbody { display: flex; flex-direction: column; gap: 8px; padding: 6px 16px 0; }
+.lg-new { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 2px 0 0; font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 800; color: var(--accent-hi, var(--accent)); }
+.lg-new.hidden { display: none; }
+.lg-hero { position: relative; height: 172px; display: grid; place-items: center; overflow: hidden; }
+.lg-spk { position: absolute; left: 50%; top: 50%; width: 320px; max-width: 100%; height: 172px; transform: translate(-50%, -50%); pointer-events: none; }
+.lg-spk .lg-ring { stroke: var(--lg-spark); opacity: .25; } .lg-spk .lg-ring2 { stroke: var(--lg-spark); opacity: .12; }
+.lg-sp { fill: var(--lg-spark); }
+.lg-sp:nth-child(3n) { opacity: .75; }
+.lg-hb { position: relative; }
+.lg-hb .lg-svg { width: 140px; height: 140px; }
+.lg-dh { margin: 2px 0 0; text-align: center; font-family: var(--font-title); font-weight: 800; font-size: 1.65rem; line-height: 1.05; text-transform: uppercase; overflow-wrap: anywhere; }
+.lg-dl { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 6px; margin: 0; font-weight: 700; text-align: center; }
+.lg-dl .lg-dots i { width: 8px; height: 8px; }
+.lg-dsec { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 8px 12px; }
+.lg-dsec.hidden { display: none; }
+.lg-dsec p { margin: 3px 0 0; line-height: 1.35; overflow-wrap: anywhere; }
+.lg-dsec .lg-tag { margin: 0; }
+.lg-lvr { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; padding: 6px 0; min-height: 32px; }
+.lg-lvr + .lg-lvr { border-top: 1px solid var(--line); }
+.lg-lvn { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; }
+.lg-okd { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-hi, var(--accent)); font-weight: 700; }
+.lg-lvp { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: .88rem; }
+.lg-bar { position: relative; display: block; width: 64px; height: 7px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.lg-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--accent); }
+.lg-week { font-size: .85rem; color: var(--muted); }
+.lg-nota { margin: 2px 4px; text-align: center; font-size: .85rem; line-height: 1.35; color: var(--muted); }
+.lg-sbody #lgd-ok { width: 100%; }
+/* Momento de ganarla (≤ 1 s, una sola vez): el borde de metal se enciende, un destello cruza, pulso de brillo y chispas. */
+.lg-nuevo .lg-lit { opacity: 1; }
+.lg-go .lg-lit { stroke-dasharray: 100 100; animation: lg-lit .7s ease-out both; }
+.lg-go .lg-face { animation: lg-face .45s ease-out both; }
+.lg-go .lg-shine { animation: lg-shine .8s ease-out .1s both; }
+.lg-go .lg-hb { animation: lg-pulse .45s ease-out .55s both; }
+.lg-go .lg-sp { animation: lg-spark .6s ease-out calc(.2s + var(--i, 0) * 20ms) both; }
+.lg-go .lg-spk circle { animation: lg-spark .6s ease-out .2s both; }
+@keyframes lg-lit { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes lg-face { from { fill-opacity: .25; } to { fill-opacity: 1; } }
+@keyframes lg-shine { from { transform: translate(-110px, -110px); } to { transform: translate(110px, 110px); } }
+@keyframes lg-pulse { 0% { transform: scale(1); } 45% { transform: scale(1.05); filter: drop-shadow(0 0 34px var(--glow)); } 100% { transform: scale(1); } }
+@keyframes lg-spark { 0% { opacity: 0; } 60% { opacity: 1; } 100% { opacity: .85; } }
+@keyframes lg-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .lg-go .lg-lit, .lg-go .lg-face, .lg-go .lg-shine, .lg-go .lg-hb, .lg-go .lg-sp, .lg-go .lg-spk circle { animation: none; }
+  .lg-nuevo .lg-hb, .lg-nuevo .lg-spk { animation: lg-fade .15s ease-out both; }
+  .lg-nuevo .lg-shine { display: none; }
+}
+
+/* Check-in semanal (insignia «Te escucho») */
+.checkin-btns { display: flex; gap: 8px; margin: 8px 0 4px; }
+.checkin-btns .btn { flex: 1; min-height: 48px; }
+.checkin-btns button[hidden] { display: none; }

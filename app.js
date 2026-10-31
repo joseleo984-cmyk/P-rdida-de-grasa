@@ -146,7 +146,7 @@
   // r1 v1.13: panel admin (solo con el rol admin): su propia barra Coaches · Uso · Por coach · Avisos · Más.
   const TAB_ADMIN = { 'admin-coaches': 'adm-coaches', 'admin-uso': 'adm-uso', 'admin-coach': 'adm-coach', 'admin-avisos': 'adm-avisos' };
   // Título de la barra de arriba en el producto coach (la fecha corta va a la derecha).
-  const TITLE_COACH = { panel: 'Inicio', habitos: 'Corregir otro día', micomidas: 'Comidas', rutina: 'Entrenar', progreso: 'Progreso', medidas: 'Medirme', fotos: 'Fotos', insignias: 'Insignias', puntos: 'Puntos', ajpuntos: 'Puntos y meta del team', fotovistas: 'Quién vio mis fotos',
+  const TITLE_COACH = { panel: 'Inicio', habitos: 'Corregir otro día', micomidas: 'Comidas', rutina: 'Entrenar', progreso: 'Progreso', medidas: 'Medirme', fotos: 'Fotos', insignias: 'Progreso', puntos: 'Puntos', ajpuntos: 'Puntos y meta del team', fotovistas: 'Quién vio mis fotos',
     mas: 'Más', ayuda: 'Ayuda', acuerdo: 'Mi acuerdo', exportar: 'Exportar a Excel', coach: 'Asesorados', invitar: 'Invitar', rutinas: 'Rutinas', 'rutina-edit': 'Editar rutina', retos: 'Retos', meta: 'Meta de proteína',
     analitica: 'Analítica', metas: 'Progreso', 'admin-coaches': 'Panel admin', 'admin-uso': 'Panel admin', 'admin-coach': 'Panel admin', 'admin-avisos': 'Panel admin' };
   const PERFIL_TITLES = { all: 'Perfil', plan: 'Mi plan y perfil', datos: 'Mis datos y permisos', copia: 'Descargar una copia', coach: 'Mi coach' };
@@ -185,20 +185,21 @@
     if (fichaOpen) { document.dispatchEvent(new CustomEvent('pg:ficha-bar')); return; }
     if (h.textContent !== t) h.textContent = t;
     for (const id of ['btn-coach-prev', 'btn-coach-next']) $('#' + id).classList.add('hidden');
-    // Barra superior de las pantallas de Progreso: «‹ Progreso» a la izquierda en Medirme, Fotos e Insignias; acción a la derecha («Medirme ›», «+ Foto»).
+    // Barra superior de las pantallas de Progreso: «‹ Progreso» a la izquierda en Medirme, Fotos y Puntos; acción a la derecha («Medirme ›», «+ Foto»).
+    // Insignias v4: Logros es una pestaña de Progreso como Metas (boceto B1): título «Progreso» y «Medirme ›».
     const client = !navCoach;
     // UX Etapa 2 (coach): «‹ Más» en Retos y «‹ Nombre» en la meta de proteína (vuelve a la ficha).
-    const backTo = client && ['medidas', 'fotos', 'insignias', 'puntos'].includes(view) ? ['‹ Progreso', 'progreso']
+    const backTo = client && ['medidas', 'fotos', 'puntos'].includes(view) ? ['‹ Progreso', 'progreso']
       : navCoach && view === 'retos' ? ['‹ Más', 'mas'] : navCoach && view === 'meta' ? ['‹ ' + ($('#meta-name').textContent || 'Asesorado'), 'coach'] : null;
     const back = !!backTo;
     const bar = $('.topbar');
     $('#topbar-back').classList.toggle('hidden', !back);
     if (backTo) { setText($('#topbar-back'), backTo[0]); $('#topbar-back').dataset.goto = backTo[1]; }
-    $('#btn-medirme').classList.toggle('hidden', !(client && (view === 'progreso' || view === 'metas')));
+    $('#btn-medirme').classList.toggle('hidden', !(client && (view === 'progreso' || view === 'metas' || view === 'insignias')));
     $('#btn-foto-add').classList.toggle('hidden', !(client && view === 'fotos'));
     bar.classList.toggle('has-back', back);
     bar.classList.remove('has-ficha');
-    bar.classList.toggle('has-act', client && (view === 'progreso' || view === 'metas' || view === 'fotos'));
+    bar.classList.toggle('has-act', client && (view === 'progreso' || view === 'metas' || view === 'insignias' || view === 'fotos'));
   }
   // Como show(), pero para las filas de Más: el foco va al título de la pantalla nueva.
   let moreReturn = null;
@@ -224,6 +225,7 @@
     trainedToday: () => !!(state.habits[today()] || {}).trained,   // Etapa 2: «Hoy entrené» en Mi rutina
     weekDays: () => Constancia.summary(state, today(), constOpts()).daysThisWeek,
     state: () => state,   // r1 v1.13: metas del asesorado (M1), solo lectura
+    link: () => myLinkNow(),   // Insignias v4: pausas y permisos del vínculo (logros-view.js)
     setAdmin: (on) => { navAdmin = !!on; document.body.classList.toggle('mode-admin', navAdmin); applyNav(navCoach, true); },
     isAdmin: () => navAdmin };   // Estilo v2: «5/7 días esta semana» al terminar el paso a paso
 
@@ -1872,19 +1874,23 @@
     const blocked = regBlock();
     if (blocked) { toast(blocked, true); return false; }
     const prev = state.habits[d] ? { ...state.habits[d] } : null;
-    const before = Constancia.badges(state, d).filter((b) => b.earned).map((b) => b.id);
+    const before = window.PGLogros ? PGLogros.levels() : {};   // Insignias v4: niveles antes del cambio (la línea «Nueva insignia» de «Mi día»)
     const wasComplete = Constancia.dayDone(state, d).complete;
     const next = Habitos.apply(prev, change);
     if (Habitos.isEmpty(next)) delete state.habits[d]; else state.habits[d] = next;
     if (!save()) return false;
     render();
     const done = Constancia.dayDone(state, d);
-    const fresh = Constancia.badges(state, d).filter((b) => b.earned && !before.includes(b.id));
+    const fresh = window.PGLogros && d === today() ? PGLogros.since(before) : [];
     const undo = () => { if (prev) state.habits[d] = prev; else delete state.habits[d]; if (save()) { render(); toast('Listo, lo dejamos como estaba'); } };
     if (celebrate && done.complete && (!wasComplete || fresh.length) && getPref(CELEB_KEY) !== d) {
       setPref(CELEB_KEY, d);
       showCelebration({ d, fresh });
-    } else toast(msg || (done.complete ? 'Día completo. Gracias por registrar.' : 'Registrado. Mañana sumamos'), action || { label: 'Deshacer', run: undo });
+    } else {
+      toast(msg || (done.complete ? 'Día completo. Gracias por registrar.' : 'Registrado. Mañana sumamos'), action || { label: 'Deshacer', run: undo });
+      // Insignias v4: el momento de ganarla sale al terminar la acción (nunca a mitad de los toques del agua: sale al volver a Inicio o al cerrar «Mi día»).
+      if (window.PGLogros && fresh.length && !('water' in change && Object.keys(change).length === 1)) setTimeout(() => PGLogros.flush(), 0);
+    }
     return true;
   }
 
@@ -1902,7 +1908,10 @@
     $('#dd-chips').classList.toggle('hidden', !week.constantWeeks);
     const b = fresh[0];
     $('#dd-badge').classList.toggle('hidden', !b);
-    if (b) $('#dd-badge').innerHTML = `<span class="dd-badge-n" aria-hidden="true">${esc(b.n)}</span><span><strong>Nueva insignia: ${esc(b.name)}</strong><br><small>${esc(b.desc)}</small></span>`;
+    if (b) {
+      const up = !b.hito && b.level > 1;
+      $('#dd-badge').innerHTML = `<span class="dd-badge-n" aria-hidden="true">${Logros.badgeSvg(b, { uid: 'dd', size: 46 })}</span><span><strong>${up ? `Nuevo nivel: ${esc(b.name)} · ${esc(Logros.LEVEL[b.level])}` : `Nueva insignia: ${esc(b.name)}`}</strong><br><small>${esc(up ? Logros.what(b) : b.old || Logros.what(b))}</small></span>`;
+    }
     $('#dd-insignias').classList.toggle('hidden', !b);
     const l = myLinkNow();
     setText($('#dd-foot'), done.complete ? (l && l.shares && l.shares.habits ? `${coachNameNow()} verá tu semana en su resumen.` : '') : 'Tu constancia sigue intacta.');
@@ -1915,8 +1924,9 @@
     $('#dd-title').focus();
   }
   $('#dd-ok').addEventListener('click', () => dlgDia.close());
+  dlgDia.addEventListener('close', () => { if (window.PGLogros) setTimeout(() => PGLogros.flush(), 0); });   // Insignias v4: al terminar, el momento de ganarla
   dlgDia.addEventListener('click', (ev) => { if (ev.target === dlgDia) dlgDia.close(); });
-  $('#dd-insignias').addEventListener('click', () => { dlgDia.close(); show('insignias'); $('#insignias-title').focus(); });
+  $('#dd-insignias').addEventListener('click', () => { dlgDia.close(); show('insignias'); $('#insignias-title').focus(); });   // el momento de ganarla queda para la vuelta a Inicio
 
   // ---- Inicio: registro de un toque ----
   $('#dia-agua').addEventListener('click', () => setHabit({ water: 1 }));
@@ -2256,7 +2266,8 @@
       setText($('#medidas-chart-sub'), '');
     }
     // Constancia
-    const sm = Constancia.summary(state, d, constOpts()), bg = Constancia.badgeCount(Constancia.badges(state, d));
+    const sm = Constancia.summary(state, d, constOpts());
+    const lr = window.PGLogros && $('#view-progreso').classList.contains('active') ? PGLogros.result() : null, bg = lr ? { earned: lr.earned, total: lr.total } : Constancia.badgeCount(Constancia.badges(state, d));
     const ym = d.slice(0, 7);
     const trainedMonth = Object.keys(state.habits).filter((x) => x.startsWith(ym) && x <= d && state.habits[x].trained === true).length;
     $('#prog-stats').innerHTML = [[sm.constantWeeks, sm.constantWeeks === 1 ? 'semana constante' : 'semanas constantes'], [trainedMonth, trainedMonth === 1 ? 'entreno este mes' : 'entrenos este mes'],
@@ -2280,12 +2291,10 @@
       <button type="button" class="icon-btn" data-del-med="${esc(e.id)}" aria-label="Eliminar las medidas del ${esc(fmtDate(e.date))}">✕</button></li>`).join('');
   }
 
-  // ---- Insignias (8 del MVP) ----
+  // ---- Logros (insignias v4, diseño B): los dibuja logros-view.js ----
   function renderInsignias() {
-    if (!PROD.coach || navCoach) return;
-    const list = Constancia.badges(state, today()), c = Constancia.badgeCount(list);
-    setText($('#insig-count'), `${c.earned} de ${c.total} insignias`);
-    $('#insig-list').innerHTML = list.map((b, i) => `<li class="insig ${b.earned ? 'earned' : 'pending'}"><span class="insig-n" aria-hidden="true">${i + 1}</span><span class="insig-t"><strong>${esc(b.name)}</strong><small>${esc(b.earned ? fmtShort(b.date) : b.hint)}</small><span class="sr-only">${esc(b.desc)}. ${b.earned ? 'Ganada' : 'Aún no'}</span></span></li>`).join('');
+    if (!PROD.coach || navCoach || !window.PGLogros) return;
+    PGLogros.render();
   }
   // Barra Medidas · Fotos · Insignias al inicio de las tres pantallas de Progreso
   if (PROD.coach) {
@@ -2293,7 +2302,7 @@
     const nav = document.createElement('nav');
     nav.className = 'prog-seg';
     nav.setAttribute('aria-label', 'Progreso');
-    nav.innerHTML = [['progreso:medidas', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Insignias'], ['puntos', 'Puntos']].map(([v, t]) => `<button type="button" data-goto="${v}"${v === 'progreso:medidas' ? ' aria-current="page" class="on"' : ''}>${t}</button>`).join('');
+    nav.innerHTML = [['progreso:medidas', 'Medidas'], ['fotos', 'Fotos'], ['insignias', 'Logros'], ['puntos', 'Puntos']].map(([v, t]) => `<button type="button" data-goto="${v}"${v === 'progreso:medidas' ? ' aria-current="page" class="on"' : ''}>${t}</button>`).join('');
     $('#view-progreso').prepend(nav);
     $('#btn-foto-add').addEventListener('click', () => {
       const det = $('#foto-nueva');

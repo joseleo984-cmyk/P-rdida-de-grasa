@@ -99,6 +99,7 @@ test('cliente: aviso de pago solo a ≤ 7 días, bloqueo M4 con ver, descargar y
   // Teléfono de Ana (cliente de Laura): entra por la interfaz con su correo
   const ana = await H.phone(browser, testInfo);
   const a = ana.p;
+  await a.addLocatorHandler(a.locator('#lgd-ok'), (l) => l.click());   // la hoja «Nueva insignia» no tapa lo que se prueba
   await a.goto('index.html');
   await H.acceptSolo(a, { habits: true });
   await H.transfer(coach.p, a);

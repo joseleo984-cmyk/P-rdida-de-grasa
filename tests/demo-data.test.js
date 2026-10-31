@@ -78,7 +78,7 @@ test('comidas: del catálogo, kcal = la del plato por su porción, días razonab
       if (date !== TODAY) assert.ok(total >= 500 && total <= 3200, `${c.key} ${date}: ${total}`);
     }
   }
-  assert.strictEqual(new Set(by('ana').foods.map((f) => f.date)).size, 7);
+  assert.strictEqual(new Set(by('ana').foods.map((f) => f.date)).size, 14);   // insignias v4: 2 semanas de comidas («Plato a plato» y «Semana redonda» en bronce)
 });
 
 test('plantillas y GIF: rutinas válidas, una animación por ejercicio marcado, GIF89a animados que se decodifican', () => {
@@ -138,7 +138,8 @@ function lzwDecode(data, min) {
 }
 
 test('siembra en el servidor falso: ids únicos, estados de pago, rutinas, una oculta, rutina de hoy, bitácora y mensajes', async () => {
-  const be = new RF.FakeBackend();
+  // El reloj del servidor falso se fija en TODAY: con el reloj real la prueba dejaba de pasar al pasar 2 días (publishDaily solo acepta hoy ±2).
+  const be = new RF.FakeBackend({ clock: RF.FakeClock(TODAY + 'T15:00:00.000Z') });
   const r = await DD.seed(be, { today: TODAY });
   const pay = {};
   for (const l of be.links) pay[Object.keys(r.clients).find((k) => r.clients[k].id === l.clientId)] = be.payState(l);
@@ -192,13 +193,24 @@ test('demo: hay esfuerzo del entreno y cierre del día, con valores válidos del
   assert.ok(hs.some((h) => h.close === 'si') && hs.some((h) => h.close === 'casi'));
   for (const h of hs) { if (h.effort) { assert.ok(Schema.EFFORTS.includes(h.effort)); assert.strictEqual(h.trained, true); } if (h.close) assert.ok(Schema.CLOSES.includes(h.close)); }
 });
-test('demo: Ana tiene 6 de 8 insignias (con «Pata de perro» en camino y «Volviste» sin aplicar) en cualquier día de la semana', () => {
+const Logros = require('../logros.js');
+test('demo (insignias v4): Ana tiene una colección variada (oro, plata, bronce, en progreso y bloqueada), igual cualquier día de la semana, y al marcar hoy el descanso sube a plata', () => {
   for (const today of ['2026-10-19', '2026-10-21', '2026-10-24', '2026-10-25', '2026-10-27']) {
     const p = DD.buildPlan(today, { Platos });
     const ana = p.clients.find((c) => c.key === 'ana');
-    const list = Constancia.badges(stateOf(ana), today);
-    assert.deepStrictEqual(list.filter((b) => b.earned).map((b) => b.n), [1, 2, 3, 5, 7, 9], today);
-    assert.match(list.find((b) => b.n === 6).hint, /pasos: \d de 5 días/);
+    const st = stateOf(ana);
+    const r = Logros.compute(st, today, { retosOn: true });
+    const lv = Object.fromEntries(r.list.map((b) => [b.id, b.state === 'earned' ? b.level : b.state]));
+    assert.deepStrictEqual(lv, { arranco: 1, 'primera-semana': 1, 'primer-mes': 1, 'semanas-constantes': 3, volviste: 1, 'registro-honesto': 3, hidratado: 3, 'pata-de-perro': 2,
+      'buen-dormir': 'progress', 'semana-redonda': 1, 'tres-de-tres': 2, 'entrenos-acumulados': 2, 'descanso-inteligente': 1, 'plato-a-plato': 1, 'midiendo-con-cabeza': 2,
+      'tecnica-primero': 'locked', 'te-escucho': 'locked', 'reto-cumplido': 'locked', equipo: 'locked' }, today);
+    assert.strictEqual(r.total, 19);
+    // Las 8 de antes: las mismas fechas en su bronce (o hito)
+    for (const o of Constancia.badges(st, today)) if (o.earned) assert.strictEqual(r.list.find((b) => b.id === o.id).dates[1], o.date, `${today} ${o.id}`);
+    // El momento de ganarla en la demo: «Hoy es mi día de descanso» → Descanso inteligente sube a PLATA hoy
+    st.habits[today] = { ...st.habits[today], rest: 'plan' };
+    const d = Logros.compute(st, today, { retosOn: true }).list.find((b) => b.id === 'descanso-inteligente');
+    assert.deepStrictEqual([d.level, d.date], [2, today], today);
   }
 });
 test('demo: el semáforo del coach es variado (rojo, ámbar y verde) con motivos en texto', () => {

@@ -119,7 +119,13 @@ test('demo: /demo/ no lleva claves ni URLs de Supabase ni captcha, usa env demo 
   assert.strictEqual(m.scope, './');
   // El sw de la raíz y el de pruebas no precachean nada de la demo
   assert.ok(!/demo/.test(read('sw.js')) && !/demo/.test(read('pruebas/sw.js')));
-  assert.ok(/cacheName\(54\)/.test(read('demo/sw.js')));
+  assert.ok(/cacheName\(55\)/.test(read('demo/sw.js')));
+  // Insignias v4 (logros): los dos archivos se publican y se precachean en los tres sitios (funcionan sin conexión).
+  for (const pre of ['', 'pruebas/', 'demo/']) for (const f of ['logros.js', 'logros-view.js']) {
+    assert.ok(fs.existsSync(path.join(dir, pre + f)), pre + f);
+    assert.ok(read(pre + 'sw.js').includes(`'${f}'`), `${pre}sw.js sin ${f}`);
+    assert.ok(read(pre + 'index.html').includes(`<script src="${f}"></script>`), `${pre}index.html sin ${f}`);
+  }
 });
 
 test('PGNS: sin env los nombres son los de siempre; con env llevan sufijo', () => {

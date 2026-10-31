@@ -338,6 +338,12 @@
           <!-- v1.15: puntos de constancia (privados: solo la persona y su coach). Los calcula el servidor; se pueden ocultar en Más. -->
           <button type="button" id="home-puntos" class="btn-link home-puntos hidden" data-goto="puntos"></button>
         </section>
+        <!-- Check-in semanal de 1 toque (insignia «Te escucho»): privado, solo en este teléfono. -->
+        <section id="home-checkin" class="home-card checkin-card" aria-labelledby="checkin-q">
+          <p id="checkin-q" class="home-label">¿Cómo te sentiste esta semana?</p>
+          <div class="checkin-btns"><button type="button" class="btn btn-ghost" data-feel="bien">Bien</button><button type="button" class="btn btn-ghost" data-feel="normal">Normal</button><button type="button" class="btn btn-ghost" data-feel="pesada">Pesada</button></div>
+          <p id="checkin-status" class="small muted" role="status" aria-live="polite"></p>
+        </section>
         <!-- v1.15 (concepto 7, punto 7): meta colectiva del team. Solo el total y cuántos suman; nunca el aporte de nadie. -->
         <section id="home-team" class="home-card team-card hidden" aria-labelledby="team-label">
           <p id="team-label" class="home-label">Meta del team · esta semana</p>
@@ -523,14 +529,14 @@
       </details>
     </section>
 
-    <!-- UX Etapa 1 (producto 'coach'): INSIGNIAS (8 del MVP, calculadas en el teléfono; nunca por peso, calorías ni centímetros) -->
+    <!-- Insignias v4 (diseño B «Escudo por categoría»): Progreso → LOGROS. 17 insignias en 6 categorías (silueta = categoría), niveles bronce, plata y oro
+         por semanas repetidas. Calculadas en el teléfono (logros.js + logros-view.js); nunca por peso, calorías, centímetros ni fotos. -->
     <section id="view-insignias" class="view" aria-labelledby="insignias-title">
-      <h2 id="insignias-title" class="sr-only" tabindex="-1">Insignias</h2>
-      <div class="card">
-        <p class="insig-count"><b id="insig-count"></b></p>
-        <ul id="insig-list" class="insig-list"></ul>
-        <p class="small muted">Las insignias reconocen tu constancia y tu proceso. Nunca se dan por peso, calorías ni centímetros, y no hay ranking entre asesorados.</p>
-      </div>
+      <h2 id="insignias-title" class="sr-only" tabindex="-1">Logros</h2>
+      <div id="lg-seg"></div>
+      <div id="lg-near" class="card an-glow lg-near"></div>
+      <div id="lg-cats" class="lg-cats"></div>
+      <p class="small muted lg-foot">Las insignias reconocen tu constancia y tu proceso. Nunca se dan por peso, calorías ni centímetros, y no hay ranking entre asesorados.</p>
     </section>
 
     <!-- v1.15: PUNTOS DE CONSTANCIA (Progreso → Puntos). Los calcula el SERVIDOR (grasa.my_points); aquí solo se muestran. Comparación SOLO contigo mismo. -->
@@ -880,7 +886,7 @@
           <div class="fc-sum" id="fc-const-sum"></div>
           <p class="small muted fc-weeks-cap">Últimas 6 semanas (días con registro)</p>
           <ul class="fc-weeks" id="fc-weeks" aria-label="Días con registro en las últimas semanas"></ul>
-          <ul class="fc-ins" id="fc-ins"></ul>
+          <div class="lg-cats lg-cats-coach" id="fc-ins"></div>
           <button type="button" class="btn btn-tall" id="btn-fc-felicitar">Felicitar</button>
           <p class="small muted fc-const-note">Sin ranking entre asesorados. La constancia se congela en pausa.</p>
         </div>
@@ -1747,10 +1753,28 @@
       <p id="dd-chips" class="dd-chips"></p>
       <div id="dd-badge" class="dd-badge hidden"></div>
       <button type="button" class="btn btn-tall" id="dd-ok">Listo</button>
-      <button type="button" class="btn btn-ghost btn-tall hidden" id="dd-insignias">Ver mis insignias</button>
+      <button type="button" class="btn btn-ghost btn-tall hidden" id="dd-insignias">Ver mis logros</button>
       <p id="dd-foot" class="small muted"></p>
     </div>
   </dialog>
+
+  <!-- Insignias v4: hoja de detalle de un logro (y el momento de ganarla: borde de metal que se enciende, pulso y chispas en 1 s o menos;
+       con «Reducir movimiento», solo un fundido). -->
+  <dialog id="dlg-logro" class="sheet lg-sheet" aria-labelledby="lgd-title">
+    <div class="lg-grab" aria-hidden="true"></div>
+    <div id="lgd-band" class="lg-band"></div>
+    <div class="lg-sbody">
+      <p id="lgd-new" class="lg-new hidden"><svg class="lg-ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span id="lgd-new-t">Nuevo nivel</span></p>
+      <div id="lgd-hero" class="lg-hero"></div>
+      <h2 id="lgd-title" class="lg-dh" tabindex="-1"></h2>
+      <p id="lgd-line" class="lg-dl"></p>
+      <div class="lg-dsec"><p class="lg-tag lg-mt">Qué es</p><p id="lgd-what"></p></div>
+      <div class="lg-dsec" id="lgd-levels"></div>
+      <p id="lgd-note" class="lg-nota"></p>
+      <button type="button" class="btn btn-tall" id="lgd-ok">Listo</button>
+    </div>
+  </dialog>
+  <p id="lg-live" class="sr-only" aria-live="polite"></p>
 
   <!-- UX Etapa 1, concepto jurídico 2 (L1), texto LITERAL: aviso BLOQUEANTE antes de guardar la primera foto con el permiso para que el coach las vea.
        Si la persona retira el permiso y lo vuelve a dar, vuelve a salir. -->
@@ -1868,6 +1892,7 @@
   <script src="medidas.js"></script>
   <script src="habitos.js"></script>
   <script src="constancia.js"></script>
+  <script src="logros.js"></script>
   <script src="puntos.js"></script>
   <script src="platos.js"></script>
   <script src="rutinas.js"></script>
@@ -1896,6 +1921,7 @@
   <script src="etapa2-view.js"></script>
   <script src="analitica-view.js"></script>
   <script src="puntos-view.js"></script>
+  <script src="logros-view.js"></script>
   <script src="admin-view.js"></script>
   <script src="exportar-view.js"></script>
   <script src="aviso-politica.js"></script>
