@@ -138,7 +138,8 @@ function lzwDecode(data, min) {
 }
 
 test('siembra en el servidor falso: ids únicos, estados de pago, rutinas, una oculta, rutina de hoy, bitácora y mensajes', async () => {
-  const be = new RF.FakeBackend();
+  // El reloj del servidor falso se fija en TODAY: con el reloj real la prueba dejaba de pasar al pasar 2 días (publishDaily solo acepta hoy ±2).
+  const be = new RF.FakeBackend({ clock: RF.FakeClock(TODAY + 'T15:00:00.000Z') });
   const r = await DD.seed(be, { today: TODAY });
   const pay = {};
   for (const l of be.links) pay[Object.keys(r.clients).find((k) => r.clients[k].id === l.clientId)] = be.payState(l);
