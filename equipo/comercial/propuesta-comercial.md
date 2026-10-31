@@ -167,7 +167,7 @@ Con ~2 coaches y ~10 adultos **no hay estadística, hay señales**. Plan sugerid
 
 Recomendación: decidir «seguir/ajustar» a las 4 semanas con las metas de `piloto-r0.md`, y **no decidir el precio hasta los 90 días** con al menos 10 a 20 coaches probando. Para confiar en porcentajes se necesitan unos 20 coaches y ~50 asesorados, así que el primer cobro serio llega con la ronda de los 20 coaches fundadores (suposición).
 
-### Cómo evitar que el piloto se enfríe (semanas 6 a 9)
+### Cómo evitar que el piloto se enfríe (semanas 6 a 8)
 La caída suele llegar cuando la novedad pasa y los números se mueven poco (`diseno/03`). Plan, todo ético y sin presión corporal ni de pago:
 
 | Semana | Con los asesorados (desde la plataforma) | Con los coaches (José) |
@@ -175,14 +175,14 @@ La caída suele llegar cuando la novedad pasa y los números se mueven poco (`di
 | **6** | **Hito de proceso**: «6 semanas de constancia» (por semanas, no por peso). Resumen semanal que muestre lo logrado en hábitos | Llamada de 15 min a cada coach: ¿qué asesorado se está apagando? José entrega una plantilla de mensaje amable, sin mencionar pagos |
 | **7** | **Reto corto de constancia de 3 semanas**, elegido por el coach, opt-in. Solo si hay 5 o más participantes se activa la liga (Concepto 7); si no, meta colectiva sin nombres | El coach reconoce a alguien en 1 toque cada lunes (el panel le sugiere a quién) |
 | **8** | Mensaje «Volviste» a quien retoma tras pausa, con comodines que no rompen la constancia. Máximo 1 recordatorio al día, elegido por el usuario | Aviso al coach de quien lleva 7 días sin registrar, con guía de qué escribir. José revisa los números y los cuenta al grupo |
-| **9** | Cierre de ciclo: mirada de 9 semanas en hábitos y constancia, y nuevo objetivo de proceso para el siguiente ciclo | Entrevista de cierre y pregunta del precio fundador |
+| **8 (cierre)** | Cierre de ciclo: mirada de 8 semanas en hábitos y constancia, y nuevo objetivo de proceso para el siguiente ciclo | Entrevista de cierre y pregunta del precio fundador |
 
 **Lo que no se hace:** rachas diarias que se rompen, rankings por kg o cm, fotos como trofeo, mensajes de urgencia o culpa por pago. Revisé el código (solo lectura); ver la tabla de abajo.
 
-### Duración recomendada del piloto (hipótesis)
-**Inicio: segunda semana de noviembre de 2026 (decisión de José).** **9 semanas: 1 de preparación + 8 de uso**, con una **revisión a las 4 semanas** para ajustar sin parar. Razones: 4 semanas solo miden la novedad; la caída aparece entre las semanas 3 y 6, y a las 8 ya se ve si la constancia se sostiene. Después, 30 días de pruebas con coaches nuevos antes de cobrar. **[José]** decidir la fecha de inicio y cierre. **[Abogado]** el acuerdo de los coaches debe cubrir ese plazo más largo.
+### Duración del piloto (decidida: 8 semanas)
+**Inicio: segunda semana de noviembre de 2026 (decisión de José).** **Decisión de José: 8 semanas de piloto** (la preparación va antes, suposición), con una **revisión a las 4 semanas** para ajustar sin parar. Razones: 4 semanas solo miden la novedad; la caída aparece entre las semanas 3 y 6, y a las 8 ya se ve si la constancia se sostiene. Después, 30 días de pruebas con coaches nuevos antes de cobrar. **[José]** decidir la fecha de inicio y cierre. **[Abogado]** el acuerdo de los coaches debe cubrir ese plazo más largo.
 
-### Qué existe y qué falta para el plan de semanas 6 a 9
+### Qué existe y qué falta para el plan de semanas 6 a 8
 Revisado en el código el 2026-10-31 (solo lectura, `main`). **Suposición:** lo que marco «falta» es porque no lo encontré; el equipo técnico debe confirmarlo.
 
 | Función | Estado |
@@ -194,7 +194,7 @@ Revisado en el código el 2026-10-31 (solo lectura, `main`). **Suposición:** lo
 | Coach felicita en 1 toque | Existe («Felicitar», `coach-panel.js`) |
 | Coach ve «N días sin registrar» (alerta de desconexión) | Existe (`coach.js`, «revisar») |
 | **Liga semanal con alias de catálogo cerrado, opt-in y mínimo de 5** (Concepto 7) | **Falta** |
-| **Hito «6 semanas» y mensaje de cierre de ciclo (semana 9) con nuevo objetivo** | **Falta** (hay insignias, no cierre de ciclo) |
+| **Hito «6 semanas» y mensaje de cierre de ciclo (semana 8) con nuevo objetivo** | **Falta** (hay insignias, no cierre de ciclo) |
 | **Recordatorio diario elegido por el usuario (máx. 1)** | **Falta** (no encontré notificaciones; en iPhone una PWA tiene límites, **[José]** validar si se quiere) |
 | **Plantillas de mensaje al coach para retomar a quien se apaga** («sin juicio», sin mencionar pagos) | **Falta** (existen reacciones de felicitación, no de reenganche) |
 | **Resumen semanal visible al asesorado** («lo que lograste esta semana») | **Falta** (el resumen existe para el coach) |
@@ -203,3 +203,17 @@ Revisado en el código el 2026-10-31 (solo lectura, `main`). **Suposición:** lo
 | **Reporte semanal para José** (métricas de los experimentos) | **Falta**; se puede hacer a mano en una hoja durante el piloto |
 
 **Prioridad sugerida (la que más ayuda a que no se enfríe, y más barata):** 1) plantillas de reenganche para el coach, 2) lista «a quién reconocer», 3) resumen semanal del asesorado. La liga y el recordatorio pueden esperar a después del piloto: la liga necesita 5 o más participantes por grupo y aprobación jurídica del texto de opt-in.
+
+### Orden de construcción decidido por José (2026-10-31)
+Detalle y criterios en `pedido-funciones-piloto.md`. **Este documento no cambia código;** lo construye el equipo técnico.
+
+1. Recordatorio diario (máx. 1, elegido por el usuario)
+2. Resumen semanal para el asesorado
+3. Aviso al coach con guía de qué escribir
+4. Plantillas de mensaje de reenganche para el coach
+5. Liga semanal (opt-in, alias de catálogo, mínimo 5)
+6. Lista «a quién reconocer este lunes»
+7. Reporte semanal para José
+8. Hito de 6 semanas y cierre de ciclo
+
+**Revisión legal de la liga:** José decide no pedirla si no es necesario. El Concepto 7 ya trae el texto literal del opt-in y exige Política v1.2; se usa **tal cual**, sin cambiar una palabra. Solo habría que volver al abogado si el texto cambia.

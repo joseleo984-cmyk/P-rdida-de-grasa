@@ -46,6 +46,8 @@
 | 24 | Precio fundador | Se ofrece a los **primeros 20 coaches**: precio fijo mientras sigan activos. **De por vida mientras siga activo.** **«Activo» = coach que paga.** Si se va y vuelve: por definir (suposición: pierde el precio tras 60 días sin pagar). |
 | 25 | Dato de mercado | Los coaches del piloto cobran **COP 400.000 al mes** por asesorado (dato de José; USD 5 ≈ 5 % si el dólar está cerca de COP 4.000, hipótesis). |
 | 26 | Dedicación | José dedica **5 horas por semana** a hablar con coaches durante los 30 días de pruebas. |
-| 27 | Duración del piloto | **Recomendación (no decidida):** 9 semanas (1 de preparación + 8 de uso), con revisión a las 4. Pendiente de aprobación de José. |
-| 28 | Inicio del piloto | **Segunda semana de noviembre de 2026.** La duración (recomendada 9 semanas) sigue pendiente de aprobar. |
+| 27 | Duración del piloto | **8 semanas** (decisión de José), con revisión a las 4. |
+| 28 | Inicio del piloto | **Segunda semana de noviembre de 2026.** Dura 8 semanas. |
+| 29 | Orden de construcción para el piloto | 1) recordatorio diario, 2) resumen semanal del asesorado, 3) aviso al coach con guía, 4) plantillas de reenganche, 5) liga, 6) lista «a quién reconocer», 7) reporte para José, 8) hito de 6 semanas y cierre de ciclo. Ver `comercial/pedido-funciones-piloto.md`. |
+| 30 | Revisión legal de la liga | No se pide si no es necesario: se usa el texto literal del Concepto 7. |
 
