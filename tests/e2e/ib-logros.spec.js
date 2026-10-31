@@ -19,7 +19,7 @@ const COLECCION = { habits: merge(weekDays(1, 5, { water: 2 }), weekDays(2, 5, {
   { [iso(mon(2))]: { trained: true } }, { [iso(-2)]: { sleep: 8 }, [iso(-1)]: { sleep: 8 } }) };
 
 test('colección: 6 categorías con su silueta y contador; ganada (nivel con ●●○ + palabra + galones), en progreso («2 de 5») y bloqueada («Aún no»); «Te falta poco»; nombre completo para el lector de pantalla', async ({ browser }, testInfo) => {
-  const { p, errors } = await H.clientApp(browser, testInfo);
+  const { p, errors } = await H.clientApp(browser, testInfo, { celebra: true });
   await closeAviso(p);
   await H.seedState(p, COLECCION);
   await openLogros(p);
@@ -74,7 +74,7 @@ test('colección: 6 categorías con su silueta y contador; ganada (nivel con ●
 });
 
 test('detalle: qué es, tus niveles con fechas, progreso al siguiente con barra y la nota de constancia; se cierra con «Listo» o Esc y el foco vuelve', async ({ browser }, testInfo) => {
-  const { p, errors } = await H.clientApp(browser, testInfo);
+  const { p, errors } = await H.clientApp(browser, testInfo, { celebra: true });
   await closeAviso(p);
   await H.seedState(p, COLECCION);
   await openLogros(p);
@@ -107,7 +107,7 @@ test('detalle: qué es, tus niveles con fechas, progreso al siguiente con barra 
 });
 
 test('momento de ganarla: sale solo al terminar la acción (no a mitad de los toques del agua), con borde que se enciende, pulso y chispas en ≤ 1 s, una sola vez, y se anuncia', async ({ browser }, testInfo) => {
-  const { p, errors } = await H.clientApp(browser, testInfo);
+  const { p, errors } = await H.clientApp(browser, testInfo, { celebra: true });
   await closeAviso(p);
   // 3 semanas con 3 entrenos + lunes y martes de esta semana: el entreno de hoy da «Tres de tres» PLATA
   await H.seedState(p, { habits: merge(weekDays(1, 3, { trained: true }), weekDays(2, 3, { trained: true }), weekDays(3, 3, { trained: true }), weekDays(0, 2, { trained: true })) });
@@ -137,7 +137,7 @@ test('momento de ganarla: sale solo al terminar la acción (no a mitad de los to
 });
 
 test('momento de ganarla: no salta a mitad de los toques del agua; aparece al volver a Inicio', async ({ browser }, testInfo) => {
-  const { p, errors } = await H.clientApp(browser, testInfo);
+  const { p, errors } = await H.clientApp(browser, testInfo, { celebra: true });
   await closeAviso(p);
   // Un registro de hace 10 días: el agua de hoy gana «Volviste»
   await H.seedState(p, { habits: { [iso(-10)]: { water: 1 } } });
@@ -159,7 +159,7 @@ test('momento de ganarla: no salta a mitad de los toques del agua; aparece al vo
 });
 
 test('«Reducir movimiento»: el momento de ganarla es solo un fundido (≤ 150 ms), sin borde que corre, pulso ni chispas animadas', async ({ browser }, testInfo) => {
-  const { p, errors } = await H.clientApp(browser, testInfo);
+  const { p, errors } = await H.clientApp(browser, testInfo, { celebra: true });
   await p.emulateMedia({ reducedMotion: 'reduce' });
   await closeAviso(p);
   await H.seedState(p, { habits: weekDays(0, 2, { trained: true }) });
@@ -179,7 +179,7 @@ test('«Reducir movimiento»: el momento de ganarla es solo un fundido (≤ 150 
 
 test('390 px con letra al 200 % y fuente ancha: colección y detalle sin desborde ni palabras cortadas; contraste AA en oscuro y claro', async ({ browser }, testInfo) => {
   test.setTimeout(90_000);
-  const { p, errors } = await H.clientApp(browser, testInfo);
+  const { p, errors } = await H.clientApp(browser, testInfo, { celebra: true });
   await closeAviso(p);
   await H.seedState(p, COLECCION);
   await openLogros(p);
@@ -230,7 +230,7 @@ const como = (p, email, fn) => p.evaluate(async ({ email, fn }) => {
 }, { email, fn });
 test('un asesorado no ve insignias de otros: solo las suyas; «Equipo» se gana cuando el team cumple la meta y la persona sumó, sin exponer a nadie', async ({ browser }, testInfo) => {
   test.setTimeout(90_000);
-  const { p, errors, code } = await H.clientApp(browser, testInfo);
+  const { p, errors, code } = await H.clientApp(browser, testInfo, { celebra: true });
   // 4 compañeros con MUCHA historia (ellos tendrían oro); Ana casi nada
   const lots = []; for (let k = 0; k < 90; k++) lots.push({ date: iso(-k), data: { trained: k % 2 === 0, water: 2, steps: 9000, sleep: 8 } });
   for (const k of ['beto', 'carla', 'diego', 'elena']) await H.seedClient(p, `${k}@c.co`, `${k[0].toUpperCase()}${k.slice(1)} Ríos`, code, { paidDays: 20, habits: true, nutrition: true, habitDays: lots });

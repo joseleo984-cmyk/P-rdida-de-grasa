@@ -12,6 +12,7 @@ const D1 = '2026-10-20';
 async function clientApp(browser, testInfo, { habits = true, wide = true } = {}) {
   const ph = await H.phone(browser, testInfo);
   const { p } = ph;
+  await p.addLocatorHandler(p.locator('#lgd-ok'), (l) => l.click());   // la hoja «Nueva insignia» se abre sola: no tapa lo que se prueba
   await p.goto('index.html');
   await H.acceptSolo(p, { habits });
   const code = await H.seedCoach(p, 'laura@coach.co', 'Laura Fit');

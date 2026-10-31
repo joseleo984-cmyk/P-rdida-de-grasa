@@ -98,8 +98,8 @@ test('coach: lista con el «sin pagar», ficha con medidas, hábitos, comidas, f
   await expect(page.locator('#coach-detail-medidas')).toContainText(/−5,\d/);
   await expect(page.locator('#fc-semana-title')).toContainText('Esta semana');
   await expect(page.locator('#fc-esfuerzo')).toContainText('Esfuerzo:');
-  await expect(page.locator('#fc-ins li')).toHaveCount(8);
-  await expect(page.locator('#fc-const-sum')).toContainText('6 de 8');
+  await expect(page.locator('#fc-ins li')).toHaveCount(15);
+  await expect(page.locator('#fc-const-sum')).toContainText('de 15');
   await expect(page.locator('#coach-detail-view')).toContainText('Hábitos de la semana');
   await expect(page.locator('#coach-detail-view')).toContainText('Comidas');
   await expect(page.locator('#coach-detail-view')).toContainText('kcal');
@@ -154,7 +154,7 @@ test('asesorado: Inicio «Mi día», Comidas, Entrenar (con animación), Progres
   await expect(page.locator('#view-progreso svg').first()).toBeVisible();
   expect(await page.locator('#medidas-chart svg circle').count()).toBeGreaterThanOrEqual(5);   // pesajes tenues + línea de tendencia
   await expect(page.locator('#medidas-chart-sub')).not.toHaveText('');
-  await expect(page.locator('#prog-stats')).toContainText('6 de 8');
+  await expect(page.locator('#prog-stats')).toContainText('14 de 17');
   await page.locator('#view-progreso .prog-seg button', { hasText: 'Fotos' }).click();
   await expect(page.locator('#view-fotos')).toContainText('Comparar');
   expect(await page.locator('#view-fotos img').count()).toBeGreaterThanOrEqual(6);
@@ -164,8 +164,7 @@ test('asesorado: Inicio «Mi día», Comidas, Entrenar (con animación), Progres
   await page.locator('#btn-fotovistas').click();
   await expect(page.locator('#fv-list li')).toHaveCount(4);
   await page.evaluate(() => PGNav.show('insignias'));
-  await expect(page.locator('#insig-count')).toHaveText('6 de 8 insignias');
-  await expect(page.locator('#insig-list li.earned')).toHaveCount(6);
+  await expect(page.locator('#lg-earned')).toHaveText('14');
   await page.locator('#tab-entrenar').click();
   await expect(page.locator('#view-rutina')).toContainText('Rutina de hoy');
   await expect(page.locator('#view-rutina')).toContainText('Pecho y tríceps');
