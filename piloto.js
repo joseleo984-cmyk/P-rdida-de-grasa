@@ -24,7 +24,40 @@
   }
   const recHourLabel = (h) => `${String(h).padStart(2, '0')}:00`;
 
-  const api = { REC_HOURS, REC_DEFAULT_HOUR, REC_TEXT, recClean, recDue, recHourLabel };
+  // ---------- 2 · Resumen semanal del asesorado («lo que lograste») ----------
+  // Solo días, hábitos, constancia y comodines (nunca peso, kg, cm ni kcal). Se ofrece domingo, lunes y martes:
+  // el domingo cuenta la semana en curso; lunes y martes, la que acaba de cerrar. Sin registros no se muestra (sin culpa).
+  const Constancia = typeof module !== 'undefined' && module.exports ? require('./constancia.js') : root.Constancia;
+  const HABITS = [
+    { key: 'agua', ok: (h) => h.water >= Constancia.GLASSES_GOAL * Constancia.GLASS_L - 1e-9, line: (n) => `Agua completa ${n === 1 ? '1 día' : n + ' días'}`, keep: 'el agua', tryIt: 'anotar tus vasos de agua' },
+    { key: 'sueno', ok: (h) => h.sleep >= Constancia.SLEEP_GOAL && h.sleep <= 10, line: (n) => `Dormiste 7 h o más ${n === 1 ? '1 día' : n + ' días'}`, keep: 'tu sueño', tryIt: 'anotar tus horas de sueño' },
+    { key: 'pasos', ok: (h) => h.steps >= Constancia.STEPS_GOAL, line: (n) => `Pasos de 8 mil o más ${n === 1 ? '1 día' : n + ' días'}`, keep: 'tus pasos', tryIt: 'anotar tus pasos' },
+    { key: 'entreno', ok: (h) => h.trained === true, line: (n) => (n === 1 ? '1 entreno' : `${n} entrenos`), keep: 'tus entrenos', tryIt: 'anotar tu entrenamiento' },
+  ];
+  function resumenSemanal(state, today, { pauses } = {}) {
+    const dow = new Date(today + 'T12:00:00Z').getUTCDay();   // 0 = domingo
+    const current = dow === 0;
+    const start = current ? Constancia.weekStart(today) : Constancia.addDays(Constancia.weekStart(today), -7);
+    const end = Constancia.addDays(start, 6);
+    const dates = Constancia.recordDates(state);
+    const wk = Constancia.weekOf(dates, start, today, Constancia.frozenDays(pauses, today));
+    const base = { show: false, refStart: start, current, title: current ? 'Lo que lograste esta semana' : 'Lo que lograste la semana pasada', lines: [], closing: '', registered: wk.registered, constant: wk.constant };
+    if (dow > 2 || wk.registered === 0) return base;
+    const counts = HABITS.map((hb) => ({ hb, n: wk.days.filter((d) => { const h = state.habits && state.habits[d.date]; return d.registered && h && typeof h === 'object' && hb.ok(Object.assign({ water: 0, sleep: 0, steps: 0 }, h)); }).length }));
+    const lines = [`${wk.registered} de 7 días con registro`];
+    for (const c of counts) if (c.n > 0) lines.push(c.hb.line(c.n));
+    if (wk.comodines) lines.push(wk.comodines === 1 ? '1 comodín usado' : `${wk.comodines} comodines usados`);
+    const weeks = Constancia.summary(state, end, { pauses }).constantWeeks;
+    if (wk.constant) lines.push(weeks >= 2 ? `${weeks} semanas constantes seguidas` : 'Semana constante');
+    const best = counts.slice().sort((a, b) => b.n - a.n)[0];
+    const least = counts.slice().sort((a, b) => a.n - b.n)[0];
+    let closing = wk.constant ? 'Eso es constancia real, no suerte.' : 'Cada día que registras cuenta. Esta semana empieza de cero, con calma.';
+    if (best.n > 0) closing += ` Para mantener: ${best.hb.keep}.`;
+    if (least.n < best.n) closing += ` Para probar: ${least.hb.tryIt}.`;
+    return { ...base, show: true, lines, closing };
+  }
+
+  const api = { resumenSemanal, REC_HOURS, REC_DEFAULT_HOUR, REC_TEXT, recClean, recDue, recHourLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Piloto = api;
 })(typeof window !== 'undefined' ? window : globalThis);

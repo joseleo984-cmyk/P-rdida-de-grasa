@@ -1989,7 +1989,20 @@
     $('#home-rec').classList.toggle('hidden', !due || isPaused());
     if (due) setText($('#rec-aviso-text'), Piloto.REC_TEXT);
   }
+  // Piloto 2: resumen semanal («lo que lograste»), dom–mar, una vez por semana (se oculta con «Entendido»).
+  const RES_KEY = PGNS.key('resumen-visto');
+  function renderResumen(d) {
+    const r = Piloto.resumenSemanal(state, d, constOpts());
+    const show = r.show && !isPaused() && getPref(RES_KEY) !== r.refStart;
+    $('#home-resumen').classList.toggle('hidden', !show);
+    if (!show) return;
+    setText($('#res-title'), r.title);
+    $('#res-lines').innerHTML = r.lines.map((l) => `<li>${esc(l)}</li>`).join('');
+    setText($('#res-closing'), r.closing);
+    $('#res-ok').dataset.week = r.refStart;
+  }
   function initRecordatorio() {
+    $('#res-ok').addEventListener('click', (ev) => { setPref(RES_KEY, ev.currentTarget.dataset.week); $('#home-resumen').classList.add('hidden'); });
     const cfg = recCfg();
     $('#rec-hour').innerHTML = Piloto.REC_HOURS.concat(Piloto.REC_HOURS.includes(cfg.hour) ? [] : [cfg.hour]).sort((a, b) => a - b).map((h) => `<option value="${h}">${Piloto.recHourLabel(h)}</option>`).join('');
     $('#rec-on').checked = cfg.on;
@@ -2058,6 +2071,7 @@
     // Hoy toca medirte (solo lo obligatorio de hoy)
     const due = Medidas.dueToday(state.entries, d, { scale: bascula() });
     const must = due.items.filter((i) => i.required);
+    renderResumen(d);
     renderRecordatorio(d);
     $('#home-toca').classList.toggle('hidden', !must.length);
     if (must.length) setText($('#toca-text'), `Hoy toca: ${Constancia.joinEs(must.map((i) => i.label.toLowerCase()))}.`);

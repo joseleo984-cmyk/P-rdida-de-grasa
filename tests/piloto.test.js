@@ -23,3 +23,51 @@ test('recordatorio: solo avisa activado, pasada la hora, sin registro y sin posp
 test('recordatorio: texto amable, sin presión ni cifras de salud', () => {
   assert.doesNotMatch(P.REC_TEXT, /perder|racha|fallaste|kg|kcal|peso/i);
 });
+
+// ---- 2 · Resumen semanal ----
+const S = require('../schema.js');
+const mk = (habits, foods = {}, entries = []) => S.normalize(S.migrate({ schemaVersion: S.CURRENT_VERSION, profile: null, entries, foods, habits, library: {} })).state;
+const hab = (o) => ({ id: 'x', trained: false, updatedAt: '2026-11-01T00:00:00.000Z', ...o });
+// Semana del lunes 2026-11-02 al domingo 2026-11-08.
+const W = {
+  '2026-11-02': hab({ water: 2, trained: true }), '2026-11-03': hab({ sleep: 7.5 }), '2026-11-04': hab({ steps: 9000, trained: true }),
+  '2026-11-06': hab({ water: 1 }),
+};
+
+test('resumen: lunes muestra la semana pasada con días, hábitos y cierre; sin cifras de salud', () => {
+  const r = P.resumenSemanal(mk(W), '2026-11-09');
+  assert.strictEqual(r.show, true);
+  assert.strictEqual(r.title, 'Lo que lograste la semana pasada');
+  assert.strictEqual(r.lines[0], '4 de 7 días con registro');
+  assert.ok(r.lines.includes('Agua completa 1 día'));
+  assert.ok(r.lines.includes('2 entrenos'));
+  assert.ok(r.lines.includes('Pasos de 8 mil o más 1 día'));
+  assert.ok(r.lines.includes('Semana constante'));
+  assert.match(r.closing, /constancia real/);
+  assert.match(r.closing, /Para mantener: tus entrenos\./);
+  assert.doesNotMatch(r.lines.join(' ') + r.closing, /\bkg\b|kcal|\bcm\b|peso|perdiste|fallaste|racha/i);
+});
+
+test('resumen: el domingo cuenta la semana en curso; de miércoles a sábado no se muestra', () => {
+  assert.strictEqual(P.resumenSemanal(mk(W), '2026-11-08').title, 'Lo que lograste esta semana');
+  assert.strictEqual(P.resumenSemanal(mk(W), '2026-11-08').show, true);
+  assert.strictEqual(P.resumenSemanal(mk(W), '2026-11-10').show, true);   // martes
+  for (const d of ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14']) assert.strictEqual(P.resumenSemanal(mk(W), d).show, false);
+});
+
+test('resumen: sin registros esa semana no se muestra; semana con pocos días usa comodines y tono sin culpa', () => {
+  assert.strictEqual(P.resumenSemanal(mk({}), '2026-11-09').show, false);
+  const pocos = P.resumenSemanal(mk({ '2026-11-03': hab({ water: 2 }), '2026-11-05': hab({ sleep: 8 }) }), '2026-11-09');
+  assert.strictEqual(pocos.show, true);
+  assert.strictEqual(pocos.constant, true);                     // 2 reales + 2 comodines
+  assert.ok(pocos.lines.includes('2 comodines usados'));
+  const uno = P.resumenSemanal(mk({ '2026-11-03': hab({ water: 2 }) }), '2026-11-09');
+  assert.strictEqual(uno.constant, false);
+  assert.match(uno.closing, /^Cada día que registras cuenta\. Esta semana empieza de cero, con calma\./);
+});
+
+test('resumen: la pausa congela esos días y las comidas cuentan como registro', () => {
+  const r = P.resumenSemanal(mk({}, { '2026-11-02': [{ id: 'a', name: 'x', meal: 'Almuerzo', kcal: 1, protein: 0, carbs: 0, fat: 0 }] }), '2026-11-09');
+  assert.strictEqual(r.registered, 1);
+  assert.strictEqual(P.resumenSemanal(mk(W), '2026-11-09', { pauses: [{ from: '2026-11-02', to: '2026-11-04' }] }).registered, 1);
+});

@@ -8,3 +8,7 @@
 
 **Cómo queda:** Más → «Recordatorio diario» (apagado por defecto, una hora a elegir, se apaga cuando quiera). Pasada esa hora, si hoy no registró, Inicio muestra «Cuando quieras: registra tu día. Un toque en «Agua» ya cuenta.» con «Luego» (no vuelve ese día). Hora y estado viven solo en el teléfono (`localStorage`): no se envía nada, no hay SQL ni consentimiento nuevo. Sin rachas ni «vas a perder».
 Archivos: `piloto.js`, `app.js` (initRecordatorio), `index.html`, pruebas `tests/piloto.test.js` y `tests/e2e/piloto-recordatorio.spec.js`. Caché del SW v56.
+
+---
+# Piloto 2 · Resumen semanal («lo que lograste»)
+Tarjeta en Inicio del asesorado, solo **domingo, lunes y martes** (domingo = semana en curso; lunes/martes = la que cerró). Muestra días con registro, entrenos, días de agua/sueño/pasos cumplidos, comodines y «Semana constante»; cierra con «Para mantener» y «Para probar» (siempre «anotar», nunca cifras de salud). Sin registros esa semana no aparece (sin culpa). «Entendido» la oculta esa semana (`localStorage`). No se muestra en pausa. Sin SQL: se calcula en el teléfono con `Piloto.resumenSemanal` (`piloto.js`). Pruebas: `tests/piloto.test.js`, `tests/e2e/piloto-resumen.spec.js`.
