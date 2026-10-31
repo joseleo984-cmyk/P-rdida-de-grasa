@@ -52,7 +52,7 @@ La frase del dolor, tal como la diría el coach: *«Me pasó el mes entero detr�
 
 **Anclaje de precio (ético):** mostrar el costo **por asesorado** y compararlo con lo que el coach ya cobra («con lo que cobras a 1 asesorado en un mes (400.000) pagas la plataforma de ~20 asesorados»), no con un «precio tachado» inventado. Mostrar primero el plan gratis, luego el de pago.
 
-**Precio fundador (decidido por José):** para los **primeros 20 coaches**; mantienen el precio mientras sigan activos. Aplica cuando empiece el cobro. El cupo debe ser **real** (se cuenta, no se inventa). **[José]** definir por cuánto tiempo y qué pasa si un coach se va y vuelve.
+**Precio fundador (decidido por José):** para los **primeros 20 coaches**; mantienen el precio mientras sigan activos. Aplica cuando empiece el cobro. El cupo debe ser **real** (se cuenta, no se inventa). **Duración: de por vida mientras siga activo** (decisión de José). **[José]** definir qué es «activo» y qué pasa si se va y vuelve (suposición: pierde el precio si pasa más de 60 días sin pagar).
 
 **2 alternativas (a comparar, no a aplicar ya):**
 
@@ -166,3 +166,18 @@ Con ~2 coaches y ~10 adultos **no hay estadística, hay señales**. Plan sugerid
 | **~30 contactos y 6 a 8 demos** | Suficiente para ver si el mensaje de venta funciona | Coaches nuevos |
 
 Recomendación: decidir «seguir/ajustar» a las 4 semanas con las metas de `piloto-r0.md`, y **no decidir el precio hasta los 90 días** con al menos 10 a 20 coaches probando. Para confiar en porcentajes se necesitan unos 20 coaches y ~50 asesorados, así que el primer cobro serio llega con la ronda de los 20 coaches fundadores (suposición).
+
+### Cómo evitar que el piloto se enfríe (semanas 6 a 9)
+La caída suele llegar cuando la novedad pasa y los números se mueven poco (`diseno/03`). Plan, todo ético y sin presión corporal ni de pago:
+
+| Semana | Con los asesorados (desde la plataforma) | Con los coaches (José) |
+|---|---|---|
+| **6** | **Hito de proceso**: «6 semanas de constancia» (por semanas, no por peso). Resumen semanal que muestre lo logrado en hábitos | Llamada de 15 min a cada coach: ¿qué asesorado se está apagando? José entrega una plantilla de mensaje amable, sin mencionar pagos |
+| **7** | **Reto corto de constancia de 3 semanas**, elegido por el coach, opt-in. Solo si hay 5 o más participantes se activa la liga (Concepto 7); si no, meta colectiva sin nombres | El coach reconoce a alguien en 1 toque cada lunes (el panel le sugiere a quién) |
+| **8** | Mensaje «Volviste» a quien retoma tras pausa, con comodines que no rompen la constancia. Máximo 1 recordatorio al día, elegido por el usuario | Aviso al coach de quien lleva 7 días sin registrar, con guía de qué escribir. José revisa los números y los cuenta al grupo |
+| **9** | Cierre de ciclo: mirada de 9 semanas en hábitos y constancia, y nuevo objetivo de proceso para el siguiente ciclo | Entrevista de cierre y pregunta del precio fundador |
+
+**Lo que no se hace:** rachas diarias que se rompen, rankings por kg o cm, fotos como trofeo, mensajes de urgencia o culpa por pago. **[Equipo]** confirmar qué de esto ya está construido; lo que no, queda como pendiente para el siguiente sprint (`diseno/04`).
+
+### Duración recomendada del piloto (hipótesis)
+**9 semanas: 1 de preparación + 8 de uso**, con una **revisión a las 4 semanas** para ajustar sin parar. Razones: 4 semanas solo miden la novedad; la caída aparece entre las semanas 3 y 6, y a las 8 ya se ve si la constancia se sostiene. Después, 30 días de pruebas con coaches nuevos antes de cobrar. **[José]** decidir la fecha de inicio y cierre. **[Abogado]** el acuerdo de los coaches debe cubrir ese plazo más largo.
