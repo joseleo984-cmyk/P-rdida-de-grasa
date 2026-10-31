@@ -12,3 +12,7 @@ Archivos: `piloto.js`, `app.js` (initRecordatorio), `index.html`, pruebas `tests
 ---
 # Piloto 2 · Resumen semanal («lo que lograste»)
 Tarjeta en Inicio del asesorado, solo **domingo, lunes y martes** (domingo = semana en curso; lunes/martes = la que cerró). Muestra días con registro, entrenos, días de agua/sueño/pasos cumplidos, comodines y «Semana constante»; cierra con «Para mantener» y «Para probar» (siempre «anotar», nunca cifras de salud). Sin registros esa semana no aparece (sin culpa). «Entendido» la oculta esa semana (`localStorage`). No se muestra en pausa. Sin SQL: se calcula en el teléfono con `Piloto.resumenSemanal` (`piloto.js`). Pruebas: `tests/piloto.test.js`, `tests/e2e/piloto-resumen.spec.js`.
+
+---
+# Piloto 3 · Aviso al coach con guía de qué escribir
+En la **ficha** del asesorado (solo el coach la ve) aparece la tarjeta «Reenganche» al llegar a **7 días sin registrar**: titular («Carla lleva 9 días sin registrar»), qué hacer (mensaje corto y amable, un paso pequeño, sin reproches ni cifras) y un mensaje sugerido **editable** que se envía como nota del coach (el mismo mecanismo de siempre; el asesorado la ve en Inicio). Sin mención de pagos. Quien nunca ha registrado no dispara el aviso (puede ser recién invitado). Sin SQL. `Piloto.avisoCoach` (`piloto.js`), `coach-panel.js`, `index.html`. Pruebas: `tests/piloto.test.js`, `tests/e2e/piloto-reenganche.spec.js`.

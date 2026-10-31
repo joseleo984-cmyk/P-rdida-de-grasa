@@ -871,6 +871,16 @@
           <div id="fc-sum" class="fc-sum"></div>
           <p id="fc-esfuerzo" class="small"></p>
         </div>
+        <!-- Piloto 3: aviso de reenganche (solo lo ve el coach) a los 7 días sin registrar, con qué hacer y un mensaje editable que se envía como nota. -->
+        <div class="card pc-only hidden" id="fc-reeng" role="region" aria-labelledby="fc-reeng-title">
+          <h2 id="fc-reeng-title">Reenganche</h2>
+          <p id="fc-reeng-head" class="fc-reeng-head"></p>
+          <p id="fc-reeng-action" class="small"></p>
+          <label class="small" for="fc-reeng-msg">Mensaje sugerido (puedes editarlo)</label>
+          <textarea id="fc-reeng-msg" rows="4" maxlength="1000"></textarea>
+          <div class="fc-react-acts"><button type="button" class="btn btn-tall" id="btn-fc-reeng">Enviar como nota</button></div>
+          <p id="fc-reeng-status" class="small muted" role="status" aria-live="polite"></p>
+        </div>
         <div class="card pc-only" id="fc-react">
           <h2>Reaccionar con 1 toque</h2>
           <div class="fc-react" id="fc-react-btns"></div>

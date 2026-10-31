@@ -71,3 +71,15 @@ test('resumen: la pausa congela esos días y las comidas cuentan como registro',
   assert.strictEqual(r.registered, 1);
   assert.strictEqual(P.resumenSemanal(mk(W), '2026-11-09', { pauses: [{ from: '2026-11-02', to: '2026-11-04' }] }).registered, 1);
 });
+
+// ---- 3 · Aviso al coach ----
+test('aviso al coach: aparece desde los 7 días, con acción y mensaje sin juicio, pagos ni cifras', () => {
+  assert.strictEqual(P.avisoCoach({ days: 6, name: 'Carla Soto' }).show, false);
+  assert.strictEqual(P.avisoCoach({ days: null, name: 'Carla Soto' }).show, false);   // nunca registró: puede ser recién invitada
+  const a = P.avisoCoach({ days: 7, name: 'Carla Soto' });
+  assert.strictEqual(a.show, true);
+  assert.strictEqual(a.headline, 'Carla lleva 7 días sin registrar');
+  assert.match(a.message, /^Hola Carla,/);
+  assert.ok(a.message.length < P.MSG_MAX);
+  assert.doesNotMatch(a.headline + a.action + a.message, /pag|cobr|\bkg\b|kcal|\bcm\b|perdiste|fallaste|culpa|dieta|médic/i);
+});

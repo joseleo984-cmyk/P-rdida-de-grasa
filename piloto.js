@@ -57,7 +57,25 @@
     return { ...base, show: true, lines, closing };
   }
 
-  const api = { resumenSemanal, REC_HOURS, REC_DEFAULT_HOUR, REC_TEXT, recClean, recDue, recHourLabel };
+  // ---------- 3 · Aviso al coach con guía de qué escribir ----------
+  // Solo lo ve el coach (ficha del asesorado). Al llegar a 7 días sin registrar sugiere UNA acción y un mensaje.
+  // Sin juicio, sin consejos clínicos, sin mencionar pagos ni cifras de salud. El coach lo edita antes de enviarlo.
+  const REENG_DAYS = 7;
+  const MSG_MAX = 1000;
+  const DEFAULT_MESSAGE = (name) => `Hola ${name}, hace unos días no te veo por la app y quería saber cómo vas. Sin presión: cuando puedas, un solo toque en «Agua» ya cuenta.`;
+  // `days`: días desde el último registro (null si nunca registró: no se avisa, puede ser alguien recién invitado).
+  function avisoCoach({ days, name } = {}) {
+    const first = String(name || '').trim().split(/\s+/)[0] || 'tu asesorado';
+    if (days == null || days < REENG_DAYS) return { show: false, headline: '', action: '', message: '' };
+    return {
+      show: true,
+      headline: `${first} lleva ${days} días sin registrar`,
+      action: 'Qué hacer: escríbele hoy un mensaje corto y amable. Pídele solo un paso pequeño, como anotar el agua. Sin reproches ni preguntas sobre cifras.',
+      message: DEFAULT_MESSAGE(String(name || '').trim().split(/\s+/)[0] || ''),
+    };
+  }
+
+  const api = { avisoCoach, REENG_DAYS, MSG_MAX, resumenSemanal, REC_HOURS, REC_DEFAULT_HOUR, REC_TEXT, recClean, recDue, recHourLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Piloto = api;
 })(typeof window !== 'undefined' ? window : globalThis);
