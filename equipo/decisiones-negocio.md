@@ -43,7 +43,9 @@
 |---|---|---|
 | 22 | Piloto y pruebas | **Gratis hasta 5 asesorados por coach** durante el piloto y las pruebas de 30 días. **Modifica el punto 4** en lo relativo a cuándo se cobra. |
 | 23 | Cobro después del piloto | Terminados el piloto y las pruebas: **gratis los 2 primeros asesorados y USD 5 por asesorado activo al mes desde el tercero** (antes: gratis hasta 5). Cobro fuera de la app, en COP. **Sustituye el límite de 5 gratis del punto 4.** |
-| 24 | Precio fundador | Se ofrece a los **primeros 20 coaches**: precio fijo mientras sigan activos. **De por vida mientras siga activo.** Qué es «activo» y qué pasa si se va y vuelve: por definir con José (suposición: pierde el precio tras 60 días sin pagar). |
+| 24 | Precio fundador | Se ofrece a los **primeros 20 coaches**: precio fijo mientras sigan activos. **De por vida mientras siga activo.** **«Activo» = coach que paga.** Si se va y vuelve: por definir (suposición: pierde el precio tras 60 días sin pagar). |
 | 25 | Dato de mercado | Los coaches del piloto cobran **COP 400.000 al mes** por asesorado (dato de José; USD 5 ≈ 5 % si el dólar está cerca de COP 4.000, hipótesis). |
 | 26 | Dedicación | José dedica **5 horas por semana** a hablar con coaches durante los 30 días de pruebas. |
 | 27 | Duración del piloto | **Recomendación (no decidida):** 9 semanas (1 de preparación + 8 de uso), con revisión a las 4. Pendiente de aprobación de José. |
+| 28 | Inicio del piloto | **Segunda semana de noviembre de 2026.** La duración (recomendada 9 semanas) sigue pendiente de aprobar. |
+

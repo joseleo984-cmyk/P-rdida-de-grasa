@@ -177,7 +177,29 @@ La caída suele llegar cuando la novedad pasa y los números se mueven poco (`di
 | **8** | Mensaje «Volviste» a quien retoma tras pausa, con comodines que no rompen la constancia. Máximo 1 recordatorio al día, elegido por el usuario | Aviso al coach de quien lleva 7 días sin registrar, con guía de qué escribir. José revisa los números y los cuenta al grupo |
 | **9** | Cierre de ciclo: mirada de 9 semanas en hábitos y constancia, y nuevo objetivo de proceso para el siguiente ciclo | Entrevista de cierre y pregunta del precio fundador |
 
-**Lo que no se hace:** rachas diarias que se rompen, rankings por kg o cm, fotos como trofeo, mensajes de urgencia o culpa por pago. **[Equipo]** confirmar qué de esto ya está construido; lo que no, queda como pendiente para el siguiente sprint (`diseno/04`).
+**Lo que no se hace:** rachas diarias que se rompen, rankings por kg o cm, fotos como trofeo, mensajes de urgencia o culpa por pago. Revisé el código (solo lectura); ver la tabla de abajo.
 
 ### Duración recomendada del piloto (hipótesis)
-**9 semanas: 1 de preparación + 8 de uso**, con una **revisión a las 4 semanas** para ajustar sin parar. Razones: 4 semanas solo miden la novedad; la caída aparece entre las semanas 3 y 6, y a las 8 ya se ve si la constancia se sostiene. Después, 30 días de pruebas con coaches nuevos antes de cobrar. **[José]** decidir la fecha de inicio y cierre. **[Abogado]** el acuerdo de los coaches debe cubrir ese plazo más largo.
+**Inicio: segunda semana de noviembre de 2026 (decisión de José).** **9 semanas: 1 de preparación + 8 de uso**, con una **revisión a las 4 semanas** para ajustar sin parar. Razones: 4 semanas solo miden la novedad; la caída aparece entre las semanas 3 y 6, y a las 8 ya se ve si la constancia se sostiene. Después, 30 días de pruebas con coaches nuevos antes de cobrar. **[José]** decidir la fecha de inicio y cierre. **[Abogado]** el acuerdo de los coaches debe cubrir ese plazo más largo.
+
+### Qué existe y qué falta para el plan de semanas 6 a 9
+Revisado en el código el 2026-10-31 (solo lectura, `main`). **Suposición:** lo que marco «falta» es porque no lo encontré; el equipo técnico debe confirmarlo.
+
+| Función | Estado |
+|---|---|
+| Constancia por semanas con comodines | Existe (`constancia.js`) |
+| Insignia «Volviste» y hitos («Primera semana», semanas constantes) | Existe (`logros.js`) |
+| Retos del coach y puntos de constancia | Existe (`logros.js`, `puntos.js`) |
+| Meta colectiva del equipo (sin nombres) | Existe (según `logros.js`) |
+| Coach felicita en 1 toque | Existe («Felicitar», `coach-panel.js`) |
+| Coach ve «N días sin registrar» (alerta de desconexión) | Existe (`coach.js`, «revisar») |
+| **Liga semanal con alias de catálogo cerrado, opt-in y mínimo de 5** (Concepto 7) | **Falta** |
+| **Hito «6 semanas» y mensaje de cierre de ciclo (semana 9) con nuevo objetivo** | **Falta** (hay insignias, no cierre de ciclo) |
+| **Recordatorio diario elegido por el usuario (máx. 1)** | **Falta** (no encontré notificaciones; en iPhone una PWA tiene límites, **[José]** validar si se quiere) |
+| **Plantillas de mensaje al coach para retomar a quien se apaga** («sin juicio», sin mencionar pagos) | **Falta** (existen reacciones de felicitación, no de reenganche) |
+| **Resumen semanal visible al asesorado** («lo que lograste esta semana») | **Falta** (el resumen existe para el coach) |
+| **Lista de «a quién reconocer este lunes» para el coach** | **Falta** |
+| **Aviso al coach con guía de qué escribir** (hoy solo ve la alerta) | **Falta** |
+| **Reporte semanal para José** (métricas de los experimentos) | **Falta**; se puede hacer a mano en una hoja durante el piloto |
+
+**Prioridad sugerida (la que más ayuda a que no se enfríe, y más barata):** 1) plantillas de reenganche para el coach, 2) lista «a quién reconocer», 3) resumen semanal del asesorado. La liga y el recordatorio pueden esperar a después del piloto: la liga necesita 5 o más participantes por grupo y aprobación jurídica del texto de opt-in.
