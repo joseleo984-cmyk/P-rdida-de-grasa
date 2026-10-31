@@ -79,7 +79,7 @@ test('Coach C02: ficha con resumen semanal arriba, reacciones de 1 toque (notas 
   await expect(p.locator('#btn-fc-revisado')).toHaveText('Revisado hoy ✓');
   await expect(p.locator('#btn-fc-revisado')).toHaveAttribute('aria-pressed', 'true');
   // Constancia e insignias (computadas en local, por proceso: nunca por peso ni kcal)
-  await expect(p.locator('#fc-ins li')).toHaveCount(15);
+  await expect(p.locator('#fc-ins li')).toHaveCount(17);
   await expect(p.locator('#fc-const-sum')).toContainText('insignias');
   expect(await p.locator('#fc-const').evaluate((e) => e.innerText)).not.toMatch(/kg|kcal|perdiste|bajaste/i);
   // Anterior / Siguiente recorre la lista en el orden de la pantalla

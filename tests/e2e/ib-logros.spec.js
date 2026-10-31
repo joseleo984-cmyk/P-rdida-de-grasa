@@ -267,7 +267,7 @@ test('coach: la ficha muestra las insignias del asesorado con el mismo diseño (
   await expect(p.locator('#coach-detail-title')).toHaveText('Ana Martínez');
   const rows = p.locator('#fc-ins .lg-row');
   await expect(rows.locator('h3')).toHaveText(['Primeros pasos', 'Constancia', 'Hábitos', 'Entreno', 'Registro']);
-  await expect(p.locator('#fc-ins .lg-tile')).toHaveCount(15);
+  await expect(p.locator('#fc-ins .lg-tile')).toHaveCount(17);
   await expect(p.locator('#fc-ins [data-logro="hidratado"]')).toHaveAttribute('aria-label', /^Hidratado\/a, nivel plata, ganada el/);
   await p.locator('#fc-ins [data-logro="hidratado"]').click();
   await expect(p.locator('#dlg-logro')).toBeVisible();

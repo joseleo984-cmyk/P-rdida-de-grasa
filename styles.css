@@ -2070,3 +2070,8 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
   .lg-nuevo .lg-hb, .lg-nuevo .lg-spk { animation: lg-fade .15s ease-out both; }
   .lg-nuevo .lg-shine { display: none; }
 }
+
+/* Check-in semanal (insignia «Te escucho») */
+.checkin-btns { display: flex; gap: 8px; margin: 8px 0 4px; }
+.checkin-btns .btn { flex: 1; min-height: 48px; }
+.checkin-btns button[hidden] { display: none; }

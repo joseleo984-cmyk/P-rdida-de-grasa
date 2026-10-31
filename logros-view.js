@@ -22,6 +22,35 @@
   const isCoachNav = () => document.body.classList.contains('mode-coach');
   const owner = () => { const m = acct(); return (m && m.userId) || 'local'; };
 
+  // ---------- Datos locales de «Técnica primero» (rutinas-view.js) y del check-in semanal «Te escucho» ----------
+  const TEC_KEY = window.PGNS ? PGNS.key('tecnica') : 'perdida-grasa:tecnica';
+  const CK_KEY = window.PGNS ? PGNS.key('checkin') : 'perdida-grasa:checkin';
+  const readJSON = (k) => { try { const x = JSON.parse(localStorage.getItem(k) || '{}'); return x && typeof x === 'object' && !Array.isArray(x) ? x : {}; } catch { return {}; } };
+  const readTecnica = () => { const t = readJSON(TEC_KEY)[owner()]; return t && typeof t === 'object' ? t : { seen: {}, days: [] }; };
+  const readCheckins = () => { const c = readJSON(CK_KEY)[owner()] || {}; return Object.fromEntries(Object.entries(c).filter(([, v]) => v && typeof v.d === 'string').map(([k, v]) => [k, v.d])); };
+  // Check-in de 1 toque en Inicio: la respuesta solo se guarda en este teléfono (no viaja, no la ve el coach, no cambia puntos ni nivel).
+  const FEEL = { bien: 'Bien', normal: 'Normal', pesada: 'Pesada' };
+  function renderCheckin() {
+    const card = $('#home-checkin');
+    if (!card) return;
+    const l = readJSON(CK_KEY), mine = l[owner()] || {}, wk = window.Constancia.weekStart(today()), cur = mine[wk];
+    card.classList.toggle('answered', !!cur);
+    $('#checkin-q').textContent = cur ? 'Gracias por contarnos cómo te sientes esta semana.' : '¿Cómo te sentiste esta semana?';
+    for (const b of card.querySelectorAll('button[data-feel]')) { b.hidden = !!cur; b.setAttribute('aria-pressed', 'false'); }
+    $('#checkin-status').textContent = cur ? `Anotado: ${FEEL[cur.v] || ''}. Es privado: solo lo ves tú.` : 'Es privado: solo lo ves tú y no cambia nada.';
+  }
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('#home-checkin button[data-feel]');
+    if (!b || !FEEL[b.dataset.feel]) return;
+    const all = readJSON(CK_KEY), mine = all[owner()] || {}, d = today();
+    mine[window.Constancia.weekStart(d)] = { d, v: b.dataset.feel };
+    all[owner()] = mine;
+    try { localStorage.setItem(CK_KEY, JSON.stringify(all)); } catch { /* sin espacio */ }
+    renderCheckin();
+    render();
+    setTimeout(flush, 0);
+  });
+
   // ---------- Memoria por cuenta ----------
   function readAll() { try { const x = JSON.parse(localStorage.getItem(MEM_KEY) || '{}'); return x && typeof x === 'object' && !Array.isArray(x) ? x : {}; } catch { return {}; } }
   const readMem = () => L.normMemory(readAll()[owner()]);
@@ -43,7 +72,7 @@
     const l = link();
     const mem = readMem();
     const d = today();
-    const res = L.compute(st, d, { pauses: (l && l.pauses) || [], retos: l ? readRetos() : [], memory: mem, retosOn: !!l });
+    const res = L.compute(st, d, { pauses: (l && l.pauses) || [], retos: l ? readRetos() : [], memory: mem, retosOn: !!l, tecnica: readTecnica(), checkins: readCheckins() });
     // Lo que ya existía al abrir la app se da por visto (sin fiesta); lo que sube después, una sola vez.
     let seen = mem.seen;
     if (baseline !== owner() || !mem.init) { seen = L.seenOf(res, seen); baseline = owner(); }
@@ -213,6 +242,7 @@
   });
 
   if (!document.querySelector('.lg-defs')) document.body.insertAdjacentHTML('afterbegin', L.defs());
-  window.PGLogros = { render, open, flush, levels, since, coachHtml, result: () => result(), pending: () => [...pending.keys()], last: () => last };
+  window.PGLogros = { renderCheckin, render, open, flush, levels, since, coachHtml, result: () => result(), pending: () => [...pending.keys()], last: () => last };
+  renderCheckin();
   render();
 })();

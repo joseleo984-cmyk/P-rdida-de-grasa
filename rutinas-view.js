@@ -357,6 +357,31 @@
     if (first && box.children.length > 1) first.after($('#rutina-trained'));
     renderTrained();
   }
+  // Insignia «Técnica primero»: solo en este teléfono. Se anota el día en que se abre «Cómo se hace» y los ejercicios de cada día de la rutina.
+  const TEC_KEY = (window.PGNS && PGNS.key ? PGNS.key('tecnica') : 'perdida-grasa:tecnica');
+  function tecOwner() { const m = window.PGAccount && PGAccount.meta && PGAccount.meta(); return (m && m.userId) || 'local'; }
+  function tecUpdate(fn) {
+    try {
+      const all = JSON.parse(localStorage.getItem(TEC_KEY) || '{}') || {}, o = tecOwner();
+      const t = all[o] && typeof all[o] === 'object' ? all[o] : { seen: {}, days: [] };
+      fn(t);
+      all[o] = t;
+      localStorage.setItem(TEC_KEY, JSON.stringify(all));
+      if (window.PGLogros) PGLogros.render();
+    } catch { /* sin espacio: la insignia se pospone */ }
+  }
+  function markSeen(name) {
+    if (!name) return;
+    tecUpdate((t) => {
+      const d = today(), xs = (t.seen[d] ||= []);
+      if (!xs.includes(name)) xs.push(name);
+      const keep = Object.keys(t.seen).sort().slice(-400);
+      for (const k of Object.keys(t.seen)) if (!keep.includes(k)) delete t.seen[k];
+    });
+  }
+  function saveRoutineDays(list) {
+    tecUpdate((t) => { t.days = (list || []).flatMap((r) => (r.days || []).map((d) => (d.exercises || []).map((e) => e.name).filter(Boolean))).filter((x) => x.length).slice(0, 80); });
+  }
   async function loadRoutine({ silent = false } = {}) {
     if (!A || !myLink()) { routines = undefined; daily = null; renderEntrances(); return; }
     const seq = ++loadSeq;
@@ -367,6 +392,7 @@
       if (seq !== loadSeq) return;
       routines = rs;
       daily = d;
+      saveRoutineDays(rs);
     } catch (err) {
       if (seq !== loadSeq) return;
       if (routines === undefined) loadFailed = true;
@@ -680,7 +706,7 @@
     body.addEventListener('toggle', (ev) => {   // 'toggle' no sube por el árbol: se escucha en la captura
       const el = ev.target;
       if (!el.classList || !el.classList.contains('rut-ex')) return;
-      if (el.open) loadGif(el); else freeGif(el);
+      if (el.open) { markSeen(el.dataset.name); loadGif(el); } else freeGif(el);
     }, true);
     body.addEventListener('click', (ev) => {
       const ck = ev.target.closest('[data-check]');

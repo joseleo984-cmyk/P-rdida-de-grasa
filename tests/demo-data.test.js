@@ -202,8 +202,8 @@ test('demo (insignias v4): Ana tiene una colección variada (oro, plata, bronce,
     const lv = Object.fromEntries(r.list.map((b) => [b.id, b.state === 'earned' ? b.level : b.state]));
     assert.deepStrictEqual(lv, { arranco: 1, 'primera-semana': 1, 'primer-mes': 1, 'semanas-constantes': 3, volviste: 1, 'registro-honesto': 3, hidratado: 3, 'pata-de-perro': 2,
       'buen-dormir': 'progress', 'semana-redonda': 1, 'tres-de-tres': 2, 'entrenos-acumulados': 2, 'descanso-inteligente': 1, 'plato-a-plato': 1, 'midiendo-con-cabeza': 2,
-      'reto-cumplido': 'locked', equipo: 'locked' }, today);
-    assert.strictEqual(r.total, 17);
+      'tecnica-primero': 'locked', 'te-escucho': 'locked', 'reto-cumplido': 'locked', equipo: 'locked' }, today);
+    assert.strictEqual(r.total, 19);
     // Las 8 de antes: las mismas fechas en su bronce (o hito)
     for (const o of Constancia.badges(st, today)) if (o.earned) assert.strictEqual(r.list.find((b) => b.id === o.id).dates[1], o.date, `${today} ${o.id}`);
     // El momento de ganarla en la demo: «Hoy es mi día de descanso» → Descanso inteligente sube a PLATA hoy

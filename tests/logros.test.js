@@ -13,11 +13,10 @@ const get = (st, id, ctx = {}, today = TODAY) => L.compute(st, today, { retosOn:
 function weeksBack(n, fill, st = empty()) { const mon = C.weekStart(TODAY); for (let i = 1; i <= n; i++) fill(C.addDays(mon, -7 * i), st); return st; }
 const days = (mon, k, h, st) => { for (let i = 0; i < k; i++) st.habits[C.addDays(mon, i)] = { ...(st.habits[C.addDays(mon, i)] || {}), ...h }; };
 
-test('catálogo: 17 insignias en 6 categorías con su silueta; 2 fuera por falta de datos; nunca peso, kcal, cm ni fotos', () => {
-  assert.strictEqual(L.CATALOG.length, 17);
+test('catálogo: 19 insignias en 6 categorías con su silueta; ninguna fuera por falta de datos; nunca peso, kcal, cm ni fotos', () => {
+  assert.strictEqual(L.CATALOG.length, 19);
   assert.deepStrictEqual(L.CATS.map((c) => [c.name, c.shape]), [['Primeros pasos', 'circ'], ['Constancia', 'rombo'], ['Hábitos', 'hex'], ['Entreno', 'shield'], ['Registro', 'square'], ['Retos', 'star']]);
-  assert.deepStrictEqual(L.FUERA.map((x) => x.id), ['tecnica-primero', 'te-escucho']);
-  assert.strictEqual(L.CATALOG.length + L.FUERA.length, 19);
+  assert.deepStrictEqual(L.FUERA, []);
   for (const b of L.CATALOG) assert.ok(!/\b(kg|kilo|peso|cm|cent[ií]metro|kcal|calor[ií]as? (?:de )?menos|foto)/i.test(b.what.replace('Las calorías no importan', '').replace('Nunca cuenta el resultado', '')), b.id);
   assert.deepStrictEqual(L.CATALOG.filter((b) => b.hito).map((b) => b.id), ['arranco', 'primera-semana', 'primer-mes', 'volviste']);
   assert.deepStrictEqual(L.NEED, [0, 1, 4, 12]);
@@ -208,7 +207,7 @@ test('textos: nivel con ●●○ + palabra; «Qué es» con las semanas; nota d
   assert.match(L.a11y({ ...b, date: TODAY }, TODAY), /^Pata de perro, nivel plata, ganada hoy/);
   const coach = L.compute(st, TODAY, {});
   assert.strictEqual(coach.cats.length, 5);
-  assert.strictEqual(coach.total, 15);
+  assert.strictEqual(coach.total, 17);
 });
 
 test('dibujos: SVG en línea ligero (sin imágenes externas), silueta por categoría, galones por nivel, candado en bloqueadas', () => {
@@ -226,9 +225,28 @@ test('dibujos: SVG en línea ligero (sin imágenes externas), silueta por catego
     assert.ok(svg.includes('aria-hidden="true"'));
     if (b.state === 'locked') assert.ok(svg.includes('#lg-g-lock'), b.id);
   }
-  assert.ok(total < 22000, `17 insignias pesan ${total} caracteres`);
+  assert.ok(total < 22000, `19 insignias pesan ${total} caracteres`);
   const oro = res.list.find((b) => b.id === 'hidratado');
   assert.strictEqual((L.badgeSvg(oro).match(/class="lg-chev"/g) || []).length, 3);
   assert.ok(L.badgeSvg(oro).includes('lv-g'));
   assert.ok(L.badgeSvg(oro, { lit: true, shine: true }).includes('lg-lit'));
+});
+
+test('Técnica primero y Te escucho: por semanas, con datos locales, sin peso ni kcal; sin esos datos no se ganan', () => {
+  const none = L.compute({ habits: {}, foods: {}, entries: [] }, '2026-10-31', {});
+  assert.ok(!none.list.find((b) => b.id === 'tecnica-primero').earned && !none.list.find((b) => b.id === 'te-escucho').earned);
+  const st = { habits: {}, foods: {}, entries: [] };
+  const days = [['Sentadilla', 'Puente']];
+  // Técnica: todos los ejercicios del día vistos en la MISMA semana (lunes 26 oct 2026)
+  const part = L.compute(st, '2026-10-31', { tecnica: { days, seen: { '2026-10-26': ['Sentadilla'], '2026-10-20': ['Puente'] } } });
+  assert.ok(!part.list.find((b) => b.id === 'tecnica-primero').earned);
+  const full = L.compute(st, '2026-10-31', { tecnica: { days, seen: { '2026-10-26': ['Sentadilla'], '2026-10-28': ['Puente'] } } });
+  const t = full.list.find((b) => b.id === 'tecnica-primero');
+  assert.ok(t.earned && t.level === 1 && t.date === '2026-10-28');
+  // Te escucho: 4 semanas distintas → plata; dos respuestas en la misma semana cuentan una vez; una respuesta futura no cuenta
+  const ck = { '2026-10-26': '2026-10-27', '2026-10-19': '2026-10-19', '2026-10-12': '2026-10-13', '2026-10-05': '2026-10-06', x: '2026-10-08', f: '2026-12-01' };
+  const te = L.compute(st, '2026-10-31', { checkins: ck }).list.find((b) => b.id === 'te-escucho');
+  assert.strictEqual(te.count, 4);
+  assert.strictEqual(te.level, 2);
+  assert.doesNotMatch(JSON.stringify(L.CATALOG.filter((b) => ['tecnica-primero', 'te-escucho'].includes(b.id))), /peso|kcal|\bcm\b|kg|foto/i);
 });

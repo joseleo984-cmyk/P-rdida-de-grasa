@@ -338,6 +338,12 @@
           <!-- v1.15: puntos de constancia (privados: solo la persona y su coach). Los calcula el servidor; se pueden ocultar en Más. -->
           <button type="button" id="home-puntos" class="btn-link home-puntos hidden" data-goto="puntos"></button>
         </section>
+        <!-- Check-in semanal de 1 toque (insignia «Te escucho»): privado, solo en este teléfono. -->
+        <section id="home-checkin" class="home-card checkin-card" aria-labelledby="checkin-q">
+          <p id="checkin-q" class="home-label">¿Cómo te sentiste esta semana?</p>
+          <div class="checkin-btns"><button type="button" class="btn btn-ghost" data-feel="bien">Bien</button><button type="button" class="btn btn-ghost" data-feel="normal">Normal</button><button type="button" class="btn btn-ghost" data-feel="pesada">Pesada</button></div>
+          <p id="checkin-status" class="small muted" role="status" aria-live="polite"></p>
+        </section>
         <!-- v1.15 (concepto 7, punto 7): meta colectiva del team. Solo el total y cuántos suman; nunca el aporte de nadie. -->
         <section id="home-team" class="home-card team-card hidden" aria-labelledby="team-label">
           <p id="team-label" class="home-label">Meta del team · esta semana</p>

@@ -57,6 +57,8 @@
       note: 'Cuenta tu constancia, no la cantidad: un entreno o cinco en la semana valen lo mismo.' },
     { id: 'descanso-inteligente', cat: 'ent', name: 'Descanso inteligente', glyph: 'leaf', what: 'Una semana en la que marcaste «Hoy es mi día de descanso». Descansar según tu plan también cuenta.', unit: DIAS, of: 1, more: 'de descanso',
       note: 'Cuenta tu constancia, no la cantidad: un día de descanso por semana basta.' },
+    { id: 'tecnica-primero', cat: 'ent', name: 'Técnica primero', glyph: 'eye', what: 'Una semana en la que abriste «Cómo se hace» en todos los ejercicios de un día de tu rutina.', unit: ['ejercicio', 'ejercicios'], more: '', note: 'Cuenta tu constancia, no la cantidad: ver la técnica una vez por semana basta.' },
+    { id: 'te-escucho', cat: 'reg', name: 'Te escucho', glyph: 'chat', what: 'Una semana en la que respondiste «¿Cómo te sentiste esta semana?». Tu respuesta es privada y no cambia nada.', unit: DIAS, of: 1, more: '', note: 'Cuenta tu constancia, no la cantidad: una respuesta por semana basta.' },
     { id: 'plato-a-plato', cat: 'reg', name: 'Plato a plato', glyph: 'plate', what: 'Registrar al menos 2 comidas en 4 días de una semana. Las calorías no importan.', unit: DIAS, of: 4, more: 'con 2 comidas registradas',
       note: 'Cuenta tu constancia, no la cantidad: las calorías no importan.' },
     { id: 'midiendo-con-cabeza', cat: 'reg', name: 'Midiendo con cabeza', glyph: 'tape', what: 'Registrar tus medidas una vez en la semana, con 6 días o más desde la anterior. Nunca cuenta el resultado.', unit: ['registro', 'registros'], of: 1, more: '',
@@ -67,10 +69,7 @@
       note: 'Cuenta tu constancia, no la cantidad: nadie ve cuánto sumas tú.' },
   ];
   // Del catálogo propuesto, fuera por falta de datos (no se inventa nada): ver equipo/handoffs/insignias-b.md.
-  const FUERA = [
-    { id: 'tecnica-primero', cat: 'ent', name: 'Técnica primero', why: 'No se registra que la persona vio la técnica de cada ejercicio (haría falta un dato nuevo en Entrenar).' },
-    { id: 'te-escucho', cat: 'reg', name: 'Te escucho', why: 'No existe el check-in semanal «¿cómo te sentiste?».' },
-  ];
+  const FUERA = [];   // ya no falta ninguna: «Técnica primero» y «Te escucho» se construyeron con datos locales (ver equipo/handoffs/insignias-b2.md)
   const OLD_IDS = ['arranco', 'primera-semana', 'primer-mes', 'hidratado', 'pata-de-perro', 'buen-dormir', 'tres-de-tres', 'volviste'];
   const byId = Object.fromEntries(CATALOG.map((b) => [b.id, b]));
 
@@ -121,7 +120,7 @@
   const maxDate = (...xs) => (xs.some((x) => !x) ? null : xs.sort()[xs.length - 1]);
 
   // ---------- Cálculo ----------
-  // ctx: { pauses, retos: [{ id, start, end, target, habit, marks }], memory: { levels, retos, equipo }, retosOn (mostrar Retos), coach (vista del coach) }
+  // ctx: { tecnica: { seen: { día: [nombres] }, days: [[nombres del día de rutina]] }, checkins: { lunes: día }, pauses, retos: [{ id, start, end, target, habit, marks }], memory: { levels, retos, equipo }, retosOn (mostrar Retos), coach (vista del coach) }
   function compute(state, today, ctx = {}) {
     const mem = normMemory(ctx.memory);
     const per = weeks(state, today);
@@ -184,6 +183,20 @@
     const rq = {};
     for (const d of Object.values(met)) { const wk = weekStart(d); if (!rq[wk] || d < rq[wk]) rq[wk] = d; }
     raw['reto-cumplido'] = { ...leveled(Object.keys(rq).sort().map((wk) => ({ wk, date: rq[wk] }))), cur: active, met };
+    // Técnica primero: semana en la que se abrió «Cómo se hace» de TODOS los ejercicios de algún día de la rutina (datos de este teléfono).
+    const tec = ctx.tecnica || {}, seenD = tec.seen && typeof tec.seen === 'object' ? tec.seen : {}, tq = {};
+    for (const names of Array.isArray(tec.days) ? tec.days : []) {
+      const need = [...new Set((Array.isArray(names) ? names : []).filter((n) => typeof n === 'string' && n.trim()))];
+      if (!need.length) continue;
+      const first = {};   // semana → nombre → primer día visto esa semana
+      for (const d of Object.keys(seenD).sort()) if (d <= today && Array.isArray(seenD[d])) for (const n of seenD[d]) { const w = (first[weekStart(d)] ||= {}); if (!w[n]) w[n] = d; }
+      for (const wk of Object.keys(first)) if (need.every((n) => first[wk][n])) { const d = need.map((n) => first[wk][n]).sort().pop(); if (!tq[wk] || d < tq[wk]) tq[wk] = d; }
+    }
+    raw['tecnica-primero'] = { ...leveled(Object.keys(tq).sort().map((wk) => ({ wk, date: tq[wk] }))), cur: null };
+    // Te escucho: semanas con una respuesta al check-in semanal ({ lunes: 'AAAA-MM-DD' }).
+    const ck = ctx.checkins && typeof ctx.checkins === 'object' ? ctx.checkins : {}, eq = {};
+    for (const d of Object.values(ck)) if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= today) { const wk = weekStart(d); if (!eq[wk] || d < eq[wk]) eq[wk] = d; }
+    raw['te-escucho'] = { ...leveled(Object.keys(eq).sort().map((wk) => ({ wk, date: eq[wk] }))), cur: null };
     raw.equipo = { ...leveled(Object.keys(mem.equipo).sort().map((wk) => ({ wk, date: mem.equipo[wk] }))), cur: null };
 
     // Nunca se pierde un nivel: lo recordado se une a lo calculado (la fecha más temprana).
@@ -340,6 +353,8 @@
     tally: '<path d="M6 5v14M10 5v14M14 5v14M18 5v14M3.5 15.5l17-7"/>',
     leaf: '<path d="M5 19.5C5 11 10.5 5 20 4.5c0 9.5-6 15-14.4 15z"/><path d="M5 19.5l8.5-8.5"/>',
     plate: '<circle cx="14" cy="12" r="7"/><circle cx="14" cy="12" r="3.6"/><path d="M3 4v4.5a1.6 1.6 0 0 0 3.2 0V4M4.6 10v10"/>',
+    eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>',
+    chat: '<path d="M4 5.5h16v10H10l-4.5 4v-4H4Z"/><path d="M8 10.5h8"/>',
     tape: '<rect x="2.5" y="8" width="19" height="8.5" rx="2"/><path d="M6.5 8v3M10 8v4.2M13.5 8v3M17 8v4.2"/>',
     star: '<path d="M12 3l2.7 5.4 6 .9-4.3 4.2 1 5.9L12 16.6l-5.4 2.8 1-5.9-4.3-4.2 6-.9z"/>',
     team: '<circle cx="12" cy="7.5" r="3"/><circle cx="5" cy="10" r="2.3"/><circle cx="19" cy="10" r="2.3"/><path d="M6.5 20c.4-3.4 2.6-5.3 5.5-5.3s5.1 1.9 5.5 5.3M1.5 19c.3-2.2 1.5-3.6 3.3-4M22.5 19c-.3-2.2-1.5-3.6-3.3-4"/>',
