@@ -6,7 +6,7 @@
 //     (nunca a hoy ni al futuro) y solo en una semana con al menos 2 días con registro (una semana vacía no se «salva» sola).
 //   · Las semanas constantes se cuentan seguidas hacia atrás. La semana en curso suma si ya es constante; si aún no lo es, no rompe la cuenta.
 //   · Nunca hay «perdiste tu racha»: una semana no constante simplemente corta el conteo y se vuelve a empezar.
-//   · Insignias de proceso (15 de las 18 del diseño; 8 del MVP + 7). Nunca por peso, kcal ni centímetros.
+//   · Insignias de proceso (las 18 del diseño). Nunca por peso, kcal ni centímetros.
 //   · UX Etapa 2 (P1): la constancia se CONGELA en los días de pausa por pago (`frozen`: [{ from, to }] de my_link / coach_clients; to = null = sigue).
 //     Esos días no cuentan ni restan: una semana con días en pausa que no llega a constante se salta (no corta la cuenta) y la que sí llega cuenta.
 (function (root) {
@@ -123,7 +123,7 @@
 
   // ---------- Insignias (8 del MVP) ----------
   // Cada una: { id, n, name, desc, earned, date, hint }. `date` = el día en que se ganó (la primera vez).
-  function badges(state, today) {
+  function badges(state, today, extra) {
     const dates = recordDates(state);
     const sorted = [...dates].filter((d) => d <= today).sort();
     const first = sorted[0] || null;
@@ -175,6 +175,7 @@
     out.push(mk('volviste', 13, 'Volviste', 'Retomaste después de una semana o más sin registrar', d13, 'aún no aplica'));
     void weeksSet;
     out.push(...moreBadges(state, today, sorted, per, mk));
+    out.push(...extraBadges(today, extra || {}, mk));
     return out.sort((a, b) => a.n - b.n);
   }
   // ---------- Insignias 4, 8, 10, 12, 14, 16 y 17 (las que se calculan con lo que ya existe) ----------
@@ -216,6 +217,35 @@
     // 17 · Plato a plato: 10 días con al menos 2 comidas registradas (cuenta registrar, no las kcal).
     const pl = Object.keys((state && state.foods) || {}).filter((d) => d <= today && Array.isArray(state.foods[d]) && state.foods[d].length >= 2).sort();
     out.push(mk('plato-a-plato', 17, 'Plato a plato', 'Registraste tus comidas 10 días', pl[9] || null, `${Math.min(10, pl.length)} de 10 días`));
+    return out;
+  }
+  // ---------- Insignias 11, 15 y 18: usan datos que no viven en `state` y llegan en `extra` (todos opcionales; sin ellos no se ganan) ----------
+  //   extra.photos = [{ date, pose }] · extra.challenges = [{ start, end, target, marks }] · extra.routines = [[nombre, …], …] (ejercicios de cada rutina) · extra.seen = { nombre: 'AAAA-MM-DD' } (primer día que abrió «Cómo se hace»)
+  function extraBadges(today, extra, mk) {
+    const out = [];
+    // 11 · Técnica primero: abrió «Cómo se hace» de TODOS los ejercicios de una rutina (la mejor rutina da el avance).
+    const seen = extra.seen && typeof extra.seen === 'object' ? extra.seen : {};
+    let d11 = null, bestSeen = 0, bestOf = 0;
+    for (const r of Array.isArray(extra.routines) ? extra.routines : []) {
+      const names = [...new Set((Array.isArray(r) ? r : []).filter((n) => typeof n === 'string' && n.trim()))];
+      if (!names.length) continue;
+      const got = names.filter((n) => typeof seen[n] === 'string' && seen[n] <= today);
+      if (got.length === names.length) { const when = got.map((n) => seen[n]).sort().pop(); if (!d11 || when < d11) d11 = when; }
+      if (got.length / names.length >= (bestOf ? bestSeen / bestOf : 0)) { bestSeen = got.length; bestOf = names.length; }
+    }
+    out.push(mk('tecnica-primero', 11, 'Técnica primero', 'Viste cómo se hace cada ejercicio de una rutina', d11, bestOf ? `${bestSeen} de ${bestOf} ejercicios` : 'Abre «Cómo se hace» en los ejercicios de tu rutina'));
+    // 15 · Mi espejo: dos fotos de vistas distintas (frente y perfil) el mismo día.
+    const byDay = {};
+    for (const p of Array.isArray(extra.photos) ? extra.photos : []) if (p && typeof p.date === 'string' && p.date <= today && (p.pose === 'frente' || p.pose === 'perfil')) (byDay[p.date] ||= new Set()).add(p.pose);
+    const d15 = Object.keys(byDay).sort().find((d) => byDay[d].size === 2) || null;
+    out.push(mk('mi-espejo', 15, 'Mi espejo', 'Tus fotos de frente y de perfil del mismo día', d15, 'Súbelas el mismo día, si quieres'));
+    // 18 · Reto cumplido: llegó a la meta de un reto del coach (cuenta el día de la marca que la completó).
+    let d18 = null;
+    for (const c of Array.isArray(extra.challenges) ? extra.challenges : []) {
+      const marks = (Array.isArray(c && c.marks) ? c.marks : []).filter((d) => typeof d === 'string' && d >= c.start && d <= c.end && d <= today).sort();
+      if (c && c.target > 0 && marks.length >= c.target) { const when = marks[c.target - 1]; if (!d18 || when < d18) d18 = when; }
+    }
+    out.push(mk('reto-cumplido', 18, 'Reto cumplido', 'Completaste un reto de tu coach', d18, 'Cuando tu coach te lance un reto'));
     return out;
   }
   const badgeCount = (list) => ({ earned: list.filter((b) => b.earned).length, total: list.length });

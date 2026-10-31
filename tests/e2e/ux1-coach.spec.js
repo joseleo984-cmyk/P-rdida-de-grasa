@@ -1,5 +1,5 @@
 // UX Etapa 1 (punto 10): lista «Necesitan atención» con semáforo (texto + forma), ficha con resumen semanal arriba, reacciones de 1 toque,
-// Anterior / Siguiente y las 15 insignias. Producto 'coach', servidor FALSO, miércoles 21-oct-2026.
+// Anterior / Siguiente y las 18 insignias. Producto 'coach', servidor FALSO, miércoles 21-oct-2026.
 const { test, expect } = require('@playwright/test');
 const H = require('./ux1-helpers');
 
@@ -79,7 +79,7 @@ test('Coach C02: ficha con resumen semanal arriba, reacciones de 1 toque (notas 
   await expect(p.locator('#btn-fc-revisado')).toHaveText('Revisado hoy ✓');
   await expect(p.locator('#btn-fc-revisado')).toHaveAttribute('aria-pressed', 'true');
   // Constancia e insignias (computadas en local, por proceso: nunca por peso ni kcal)
-  await expect(p.locator('#fc-ins li')).toHaveCount(15);
+  await expect(p.locator('#fc-ins li')).toHaveCount(18);
   await expect(p.locator('#fc-const-sum')).toContainText('insignias');
   expect(await p.locator('#fc-const').evaluate((e) => e.innerText)).not.toMatch(/kg|kcal|perdiste|bajaste/i);
   // Anterior / Siguiente recorre la lista en el orden de la pantalla

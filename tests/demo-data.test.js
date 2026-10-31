@@ -192,7 +192,7 @@ test('demo: hay esfuerzo del entreno y cierre del día, con valores válidos del
   assert.ok(hs.some((h) => h.close === 'si') && hs.some((h) => h.close === 'casi'));
   for (const h of hs) { if (h.effort) { assert.ok(Schema.EFFORTS.includes(h.effort)); assert.strictEqual(h.trained, true); } if (h.close) assert.ok(Schema.CLOSES.includes(h.close)); }
 });
-test('demo: Ana tiene 10 de 15 insignias (con «Pata de perro» en camino y «Volviste» sin aplicar) en cualquier día de la semana', () => {
+test('demo: Ana tiene 10 de 18 insignias (con «Pata de perro» en camino y «Volviste» sin aplicar) en cualquier día de la semana', () => {
   for (const today of ['2026-10-19', '2026-10-21', '2026-10-24', '2026-10-25', '2026-10-27']) {
     const p = DD.buildPlan(today, { Platos });
     const ana = p.clients.find((c) => c.key === 'ana');

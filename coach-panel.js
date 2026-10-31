@@ -529,7 +529,7 @@
   function renderDetailConst(c, sh) {
     void sh;
     const today = todayBo();
-    const sm = Constancia.summary(c.state, today, { pauses: c.info.pauses || [] }), list = Constancia.badges(c.state, today), bc = Constancia.badgeCount(list);   // UX Etapa 2: congelada en pausa
+    const sm = Constancia.summary(c.state, today, { pauses: c.info.pauses || [] }), list = Constancia.badges(c.state, today, { photos: ((c.data && c.data.photos) || []).filter((p) => !p.deletedAt).map((p) => ({ date: p.date, pose: p.pose })) }), bc = Constancia.badgeCount(list);   // UX Etapa 2: congelada en pausa
     $('#fc-const-sum').innerHTML = [[sm.constantWeeks, sm.constantWeeks === 1 ? 'semana constante' : 'semanas constantes'], [`${sm.week.comodines} de 2`, 'comodines esta semana'], [`${bc.earned} de ${bc.total}`, 'insignias']]
       .map(([a, b]) => `<div><b>${esc(a)}</b><small>${esc(b)}</small></div>`).join('');
     const weeks = [...sm.history.slice(-5), sm.week];

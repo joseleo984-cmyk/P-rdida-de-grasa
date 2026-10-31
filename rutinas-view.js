@@ -357,6 +357,16 @@
     if (first && box.children.length > 1) first.after($('#rutina-trained'));
     renderTrained();
   }
+  // Insignia «Técnica primero»: solo en este teléfono (primer día que se abrió «Cómo se hace» de cada ejercicio y los nombres de cada rutina).
+  const SEEN_KEY = (window.PGNS && PGNS.key ? PGNS.key('ejercicios-vistos') : 'perdida-grasa:ejercicios-vistos');
+  const ROUTINES_KEY = (window.PGNS && PGNS.key ? PGNS.key('ejercicios-rutinas') : 'perdida-grasa:ejercicios-rutinas');
+  function markSeen(name) {
+    if (!name) return;
+    try { const m = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}') || {}; if (!m[name]) { m[name] = today(); localStorage.setItem(SEEN_KEY, JSON.stringify(m)); } } catch { /* sin espacio */ }
+  }
+  function saveRoutineNames(list) {
+    try { localStorage.setItem(ROUTINES_KEY, JSON.stringify((list || []).map((r) => (r.days || []).flatMap((d) => (d.exercises || []).map((e) => e.name)).filter(Boolean)))); } catch { /* sin espacio */ }
+  }
   async function loadRoutine({ silent = false } = {}) {
     if (!A || !myLink()) { routines = undefined; daily = null; renderEntrances(); return; }
     const seq = ++loadSeq;
@@ -367,6 +377,7 @@
       if (seq !== loadSeq) return;
       routines = rs;
       daily = d;
+      saveRoutineNames(rs);
     } catch (err) {
       if (seq !== loadSeq) return;
       if (routines === undefined) loadFailed = true;
@@ -680,7 +691,7 @@
     body.addEventListener('toggle', (ev) => {   // 'toggle' no sube por el árbol: se escucha en la captura
       const el = ev.target;
       if (!el.classList || !el.classList.contains('rut-ex')) return;
-      if (el.open) loadGif(el); else freeGif(el);
+      if (el.open) { markSeen(el.dataset.name); loadGif(el); } else freeGif(el);
     }, true);
     body.addEventListener('click', (ev) => {
       const ck = ev.target.closest('[data-check]');

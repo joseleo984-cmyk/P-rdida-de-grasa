@@ -1867,19 +1867,26 @@
   const capFirst1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   const daysWord = (n) => `${n} ${n === 1 ? 'día' : 'días'}`;
 
+  // Datos de las insignias 11, 15 y 18 (no viven en `state`): ejercicios vistos y rutinas (este teléfono), fotos y retos guardados.
+  function badgeExtra() {
+    const rd = (k, d) => { try { const x = JSON.parse(localStorage.getItem(PGNS.key(k)) || 'null'); return x == null ? d : x; } catch { return d; } };
+    return { photos: photos.map((p) => ({ date: p.date, pose: p.pose })), challenges: rd('retos', []), routines: rd('ejercicios-rutinas', []), seen: rd('ejercicios-vistos', {}) };
+  }
+  const badgeList = (d) => Constancia.badges(state, d, badgeExtra());
+
   // Un cambio en el hábito del día: se guarda al instante (sin botón «Guardar»), con «Deshacer». Devuelve true si se guardó.
   function setHabit(change, { d = today(), msg, action, celebrate = true } = {}) {
     const blocked = regBlock();
     if (blocked) { toast(blocked, true); return false; }
     const prev = state.habits[d] ? { ...state.habits[d] } : null;
-    const before = Constancia.badges(state, d).filter((b) => b.earned).map((b) => b.id);
+    const before = badgeList(d).filter((b) => b.earned).map((b) => b.id);
     const wasComplete = Constancia.dayDone(state, d).complete;
     const next = Habitos.apply(prev, change);
     if (Habitos.isEmpty(next)) delete state.habits[d]; else state.habits[d] = next;
     if (!save()) return false;
     render();
     const done = Constancia.dayDone(state, d);
-    const fresh = Constancia.badges(state, d).filter((b) => b.earned && !before.includes(b.id));
+    const fresh = badgeList(d).filter((b) => b.earned && !before.includes(b.id));
     const undo = () => { if (prev) state.habits[d] = prev; else delete state.habits[d]; if (save()) { render(); toast('Listo, lo dejamos como estaba'); } };
     if (celebrate && done.complete && (!wasComplete || fresh.length) && getPref(CELEB_KEY) !== d) {
       setPref(CELEB_KEY, d);
@@ -2256,7 +2263,7 @@
       setText($('#medidas-chart-sub'), '');
     }
     // Constancia
-    const sm = Constancia.summary(state, d, constOpts()), bg = Constancia.badgeCount(Constancia.badges(state, d));
+    const sm = Constancia.summary(state, d, constOpts()), bg = Constancia.badgeCount(badgeList(d));
     const ym = d.slice(0, 7);
     const trainedMonth = Object.keys(state.habits).filter((x) => x.startsWith(ym) && x <= d && state.habits[x].trained === true).length;
     $('#prog-stats').innerHTML = [[sm.constantWeeks, sm.constantWeeks === 1 ? 'semana constante' : 'semanas constantes'], [trainedMonth, trainedMonth === 1 ? 'entreno este mes' : 'entrenos este mes'],
@@ -2280,10 +2287,10 @@
       <button type="button" class="icon-btn" data-del-med="${esc(e.id)}" aria-label="Eliminar las medidas del ${esc(fmtDate(e.date))}">✕</button></li>`).join('');
   }
 
-  // ---- Insignias (15 de 18) ----
+  // ---- Insignias (las 18) ----
   function renderInsignias() {
     if (!PROD.coach || navCoach) return;
-    const list = Constancia.badges(state, today()), c = Constancia.badgeCount(list);
+    const list = badgeList(today()), c = Constancia.badgeCount(list);
     setText($('#insig-count'), `${c.earned} de ${c.total} insignias`);
     $('#insig-list').innerHTML = list.map((b, i) => `<li class="insig ${b.earned ? 'earned' : 'pending'}"><span class="insig-n" aria-hidden="true">${i + 1}</span><span class="insig-t"><strong>${esc(b.name)}</strong><small>${esc(b.earned ? fmtShort(b.date) : b.hint)}</small><span class="sr-only">${esc(b.desc)}. ${b.earned ? 'Ganada' : 'Aún no'}</span></span></li>`).join('');
   }

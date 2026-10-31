@@ -82,10 +82,10 @@ test('día completo: los 4 hábitos; el sueño de más de 10 h no cuenta; se nom
   assert.strictEqual(C.joinEs(['agua', 'sueño', 'pasos']), 'agua, sueño y pasos');
 });
 
-test('insignias: 15 de 18, calculadas con lo que ya existe y nunca por peso ni kcal', () => {
+test('insignias: las 18, calculadas con lo que ya existe y nunca por peso ni kcal', () => {
   const none = C.badges(st({}), SAT);
-  assert.deepStrictEqual(none.map((b) => b.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 16, 17]);
-  assert.strictEqual(none.length, 15);
+  assert.deepStrictEqual(none.map((b) => b.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
+  assert.strictEqual(none.length, 18);
   assert.ok(none.every((b) => !b.earned));
   // el peso, las kcal y las medidas no dan insignias por su valor: bajar 20 kg no cambia nada salvo ser un día con registro
   const weights = st({}, { entries: [{ date: MON, weight: 100 }, { date: add(MON, 1), weight: 80 }], foods: { [MON]: [{ id: 'a', name: 'x', kcal: 100 }] } });
@@ -106,7 +106,7 @@ test('insignias por hábito: semana con 5 días de agua, 3 entrenos, primera sem
   assert.ok(by['pata-de-perro'].earned && by['buen-dormir'].earned);
   assert.ok(by['tres-de-tres'].earned && by['tres-de-tres'].date === add(MON, 2));
   assert.ok(!by['primer-mes'].earned && !by.volviste.earned);
-  assert.deepStrictEqual(C.badgeCount(all), { earned: 6, total: 15 });
+  assert.deepStrictEqual(C.badgeCount(all), { earned: 6, total: 18 });
   // Volviste: nuevo registro tras más de 7 días sin registrar
   const back = C.badges(st({ [MON]: { trained: false, water: 1 }, [add(MON, 10)]: { trained: false, water: 1 } }), add(MON, 12));
   assert.ok(back.find((x) => x.id === 'volviste').earned);
@@ -139,6 +139,26 @@ test('insignias nuevas: 4, 8, 10, 12, 14, 16 y 17 por proceso; sin peso, kcal ni
   // Plato a plato: 10 días con ≥2 comidas, sin importar kcal
   const foods = {}; for (let i = 0; i < 10; i++) foods[add(MON, -12 + i)] = [{ id: 'a' + i, name: 'x', kcal: 0 }, { id: 'b' + i, name: 'y', kcal: 0 }];
   assert.ok(by(st({}, { foods }), SAT)['plato-a-plato'].earned);
+  assert.doesNotMatch(JSON.stringify(C.badges(st({}), SAT).map((x) => x.desc + x.hint)), /peso|kcal|cm\b|kg/i);
+});
+
+test('insignias 11, 15 y 18: ejercicios vistos, fotos de frente y perfil del mismo día y reto cumplido (solo con `extra`)', () => {
+  const by = (extra) => Object.fromEntries(C.badges(st({}), SAT, extra).map((b) => [b.id, b]));
+  assert.ok(!by()['tecnica-primero'].earned && !by()['mi-espejo'].earned && !by()['reto-cumplido'].earned);
+  // Técnica primero: TODOS los ejercicios de una rutina
+  const routines = [['Sentadilla', 'Puente'], ['Remo']];
+  assert.ok(!by({ routines, seen: { Sentadilla: MON } })['tecnica-primero'].earned);
+  assert.strictEqual(by({ routines, seen: { Sentadilla: MON } })['tecnica-primero'].hint, '1 de 2 ejercicios');
+  const t = by({ routines, seen: { Sentadilla: MON, Puente: add(MON, 2) } })['tecnica-primero'];
+  assert.ok(t.earned && t.date === add(MON, 2));
+  // Mi espejo: frente y perfil el MISMO día
+  assert.ok(!by({ photos: [{ date: MON, pose: 'frente' }, { date: add(MON, 1), pose: 'perfil' }] })['mi-espejo'].earned);
+  assert.ok(!by({ photos: [{ date: MON, pose: 'frente' }, { date: MON, pose: 'espalda' }] })['mi-espejo'].earned);
+  assert.strictEqual(by({ photos: [{ date: MON, pose: 'frente' }, { date: MON, pose: 'perfil' }] })['mi-espejo'].date, MON);
+  // Reto cumplido: marcas dentro del reto hasta la meta; el valor de peso/kcal no interviene
+  const ch = { start: MON, end: add(MON, 6), target: 3 };
+  assert.ok(!by({ challenges: [{ ...ch, marks: [MON, add(MON, 1)] }] })['reto-cumplido'].earned);
+  assert.strictEqual(by({ challenges: [{ ...ch, marks: [MON, add(MON, 1), add(MON, 3), add(MON, 20)] }] })['reto-cumplido'].date, add(MON, 3));
   assert.doesNotMatch(JSON.stringify(C.badges(st({}), SAT).map((x) => x.desc + x.hint)), /peso|kcal|cm\b|kg/i);
 });
 
