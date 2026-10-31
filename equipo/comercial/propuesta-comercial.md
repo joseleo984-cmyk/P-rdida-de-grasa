@@ -52,7 +52,7 @@ La frase del dolor, tal como la diría el coach: *«Me pasó el mes entero detr�
 
 **Anclaje de precio (ético):** mostrar el costo **por asesorado** y compararlo con lo que el coach ya cobra («con lo que cobras a 1 asesorado en un mes (400.000) pagas la plataforma de ~20 asesorados»), no con un «precio tachado» inventado. Mostrar primero el plan gratis, luego el de pago.
 
-**Precio fundador:** aplica cuando empiece el cobro; los 2 coaches del piloto (y los primeros 8) mantienen su precio mientras sigan activos. El cupo debe ser **real**, no inventado. **[José]** decidir cuántos cupos y por cuánto tiempo.
+**Precio fundador (decidido por José):** para los **primeros 20 coaches**; mantienen el precio mientras sigan activos. Aplica cuando empiece el cobro. El cupo debe ser **real** (se cuenta, no se inventa). **[José]** definir por cuánto tiempo y qué pasa si un coach se va y vuelve.
 
 **2 alternativas (a comparar, no a aplicar ya):**
 
@@ -149,8 +149,20 @@ Todos con la app actual o el concierge del piloto. Las metas son **hipótesis**,
 ## 3 decisiones que necesitamos de José
 
 1. ~~Cuánto cobran los coaches~~ → **respondido: COP 400.000 al mes.**
-2. ~~Precio~~ → **respondido: piloto y pruebas gratis hasta 5 asesorados por coach; después, gratis 2 y cobro desde el tercero.** Falta: ¿cuántos cupos de precio fundador y cuándo termina el piloto?
+2. ~~Precio~~ → **respondido: piloto y pruebas gratis hasta 5 asesorados por coach; después, gratis 2 y cobro desde el tercero.** Precio fundador: **primeros 20 coaches**. Falta: ¿cuándo termina el piloto?
 3. ~~Horas~~ → **respondido: 5 h por semana.**
 
 ### Tiempo de José (confirmado: 5 horas por semana)
 **5 horas por semana alcanzan** para el plan completo (~18 a 20 h en 4 semanas): 2 h para escribir y dar seguimiento a ~30 mensajes, 1,5 a 2 h para 6 a 8 llamadas de 15 minutos, 0,5 h para el reporte semanal y 0,5 h para la página y el formulario (sobre todo en la semana 1). Con 5 h se hacen los 5 experimentos.
+
+### Tiempo para tener datos suficientes (hipótesis)
+Con ~2 coaches y ~10 adultos **no hay estadística, hay señales**. Plan sugerido:
+
+| Plazo | Qué se puede decir | De quién |
+|---|---|---|
+| **4 semanas** (lo que dura el piloto) | Primeras señales: ¿registran 3 días por semana? ¿el coach usa el panel y escribe a alguien? | Asesorados y coaches |
+| **8 semanas** | Tendencia más fiable: ¿se sostiene la constancia pasada la novedad (semanas 3 a 6 es donde suele caer)? | Asesorados |
+| **90 días** | Retención a 30, 60 y 90 días, y primer ciclo de cobro: ¿los coaches pagan? | Coaches y asesorados |
+| **~30 contactos y 6 a 8 demos** | Suficiente para ver si el mensaje de venta funciona | Coaches nuevos |
+
+Recomendación: decidir «seguir/ajustar» a las 4 semanas con las metas de `piloto-r0.md`, y **no decidir el precio hasta los 90 días** con al menos 10 a 20 coaches probando. Para confiar en porcentajes se necesitan unos 20 coaches y ~50 asesorados, así que el primer cobro serio llega con la ronda de los 20 coaches fundadores (suposición).

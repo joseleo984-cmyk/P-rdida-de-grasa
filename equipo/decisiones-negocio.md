@@ -38,3 +38,12 @@
 | 20 | Dominio y correo propios | Se pospone hasta que la app tenga acogida. |
 | 21 | Impuestos (IVA de la plataforma) | Posición del Stakeholder, **por validar con un contador**. No es tarea de código. |
 
+## 2026-10-31 (calendario de cobro y precio; propuesta en `comercial/propuesta-comercial.md`)
+| # | Tema | Decisión |
+|---|---|---|
+| 22 | Piloto y pruebas | **Gratis hasta 5 asesorados por coach** durante el piloto y las pruebas de 30 días. **Modifica el punto 4** en lo relativo a cuándo se cobra. |
+| 23 | Cobro después del piloto | Terminados el piloto y las pruebas: **gratis los 2 primeros asesorados y USD 5 por asesorado activo al mes desde el tercero** (antes: gratis hasta 5). Cobro fuera de la app, en COP. **Sustituye el límite de 5 gratis del punto 4.** |
+| 24 | Precio fundador | Se ofrece a los **primeros 20 coaches**: precio fijo mientras sigan activos. El plazo y las condiciones exactas quedan por definir con José. |
+| 25 | Dato de mercado | Los coaches del piloto cobran **COP 400.000 al mes** por asesorado (dato de José; USD 5 ≈ 5 % si el dólar está cerca de COP 4.000, hipótesis). |
+| 26 | Dedicación | José dedica **5 horas por semana** a hablar con coaches durante los 30 días de pruebas. |
+
