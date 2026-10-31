@@ -101,7 +101,7 @@
   // ---------- Hábitos ----------
   // UX Etapa 1: además de agua, pasos, sueño y entreno, cada día de entreno trae su esfuerzo («Cómo te sentiste») y algunos días traen el cierre de comidas
   // («¿Registraste todo lo de hoy?»). Ana usa un patrón fijo por días seguidos (cualquier semana del calendario tiene 6 de 7 de agua y sueño, 3 de 7 de pasos y 3 entrenos)
-  // para que sus insignias sean las mismas todos los días de la semana: 10 de 18, con «Pata de perro» en camino y «Volviste» sin aplicar.
+  // para que sus insignias sean las mismas todos los días de la semana: 11 de 18 en la app (Mi espejo con sus fotos), con «Pata de perro» en camino y «Volviste» sin aplicar.
   const EFFORT_CYCLE = ['normal', 'normal', 'duro', 'facil'];
   function buildHabits(p, today, rnd) {
     const out = [];
