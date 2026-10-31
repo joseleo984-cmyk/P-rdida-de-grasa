@@ -98,3 +98,40 @@ test('plantillas: 3 a 5, con nombre, sin juicio, sin pagos ni cifras ni consejos
   assert.strictEqual(P.plantilla('pequeno', 'Ana Ruiz'), a.templates[1].text.replace('Carla', 'Ana'));
   assert.match(P.plantilla('no-existe', 'Ana'), /^Hola Ana,/);   // id desconocido: la primera
 });
+
+// ---- 6 · A quién reconocer ----
+const iso = (base, n) => new Date(Date.parse(base + 'T12:00:00Z') + n * 86400000).toISOString().slice(0, 10);
+const days = (base, offs) => Object.fromEntries(offs.map((n) => [iso(base, n), hab({ water: 2 })]));
+// Hoy lunes 2026-11-16: la semana que cerró es lun 9 a dom 15 nov.
+test('reconocer: solo lunes a miércoles; sugiere por constancia y por regreso, máximo 3, sin cifras de salud', () => {
+  const MON = '2026-11-16';
+  const consta = mk({ ...days('2026-11-02', [0, 1, 2, 3, 7, 8, 9, 10]) });           // semanas del 2 y del 9 constantes
+  const regreso = mk({ ...days('2026-10-20', [0]), ...days('2026-11-09', [0, 2]) });  // volvió tras más de 7 días
+  const poco = mk({ ...days('2026-11-09', [0]) });
+  const rows = [{ id: 'a', name: 'Ana Ruiz', state: consta }, { id: 'b', name: 'Beto Paz', state: regreso }, { id: 'c', name: 'Carla Soto', state: poco }];
+  const r = P.reconocer(rows, MON);
+  assert.strictEqual(r.show, true);
+  assert.deepStrictEqual(r.items.map((i) => [i.id, i.kind]), [['b', 'regreso'], ['a', 'constancia']]);
+  assert.match(r.items[1].message, /^¡Felicitaciones, Ana! 2 semanas constantes seguidas/);
+  assert.doesNotMatch(JSON.stringify(r), /\bkg\b|kcal|\bcm\b|peso|perdiste/i);
+  assert.strictEqual(P.reconocer(rows, '2026-11-19').show, false);                    // jueves
+  const muchos = Array.from({ length: 6 }, (_, i) => ({ id: 'x' + i, name: 'N' + i, state: consta }));
+  assert.strictEqual(P.reconocer(muchos, MON).items.length, 3);
+});
+
+// ---- 8 · Hito de 6 semanas y cierre ----
+test('hito: se ofrece a las 6 semanas (14 días) y a las 8 (cierre); en semanas, con objetivos de proceso y sin peso', () => {
+  const st = mk(Object.fromEntries(Array.from({ length: 60 }, (_, i) => [iso('2026-09-01', i), hab({ water: 2 })])));   // registra todos los días
+  assert.strictEqual(P.hito(st, iso('2026-09-01', 41)).show, false);
+  const h6 = P.hito(st, iso('2026-09-01', 42));
+  assert.deepStrictEqual([h6.show, h6.stage, h6.title], [true, 6, 'Cumpliste 6 semanas']);
+  assert.ok(h6.lines[0].endsWith('de 6 semanas constantes'));
+  assert.strictEqual(P.hito(st, iso('2026-09-01', 55)).stage, 6);
+  const h8 = P.hito(st, iso('2026-09-01', 56));
+  assert.deepStrictEqual([h8.stage, h8.title], [8, 'Cierre de ciclo: 8 semanas']);
+  assert.strictEqual(P.hito(st, iso('2026-09-01', 70)).show, false);
+  assert.strictEqual(P.hito(mk({}), '2026-11-16').show, false);
+  assert.ok(h6.options.length >= 3 && h6.options.every((o) => o.id && o.label));
+  assert.match(h6.closing, /semanas, nunca en kilos/);
+  assert.doesNotMatch(JSON.stringify(h6) + JSON.stringify(h8), /\bkg\b|kcal|\bcm\b|peso\b(?! )|perdiste|fallaste/i);
+});

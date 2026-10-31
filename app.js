@@ -2001,7 +2001,43 @@
     setText($('#res-closing'), r.closing);
     $('#res-ok').dataset.week = r.refStart;
   }
+  // Piloto 8: hito de 6 semanas y cierre de ciclo (8). Se mide en semanas; el objetivo lo elige la persona y queda solo en este teléfono.
+  const HITO_KEY = PGNS.key('hito');   // { seen: [6, 8], goal: { stage, id } }
+  const hitoSt = () => { let v = null; try { v = JSON.parse(getPref(HITO_KEY) || 'null'); } catch { v = null; } return v && typeof v === 'object' ? { seen: Array.isArray(v.seen) ? v.seen : [], goal: v.goal || null } : { seen: [], goal: null }; };
+  function renderHito(d) {
+    const h = Piloto.hito(state, d, constOpts());
+    const st = hitoSt();
+    const show = h.show && !isPaused() && !st.seen.includes(h.stage);
+    $('#home-hito').classList.toggle('hidden', !show);
+    if (!show) return;
+    $('#home-hito').dataset.stage = String(h.stage);
+    setText($('#hito-title'), h.title);
+    $('#hito-lines').innerHTML = h.lines.map((l) => `<li>${esc(l)}</li>`).join('');
+    setText($('#hito-closing'), h.closing);
+    const mine = st.goal && st.goal.stage === h.stage ? st.goal.id : null;
+    $('#hito-ask strong').textContent = h.ask;
+    $('#hito-opts').innerHTML = h.options.map((o) => `<button type="button" data-goal="${esc(o.id)}" aria-pressed="${o.id === mine}">${esc(o.label)}</button>`).join('');
+    $('#hito-goal').classList.toggle('hidden', !mine);
+    if (mine) setText($('#hito-goal'), `Tu objetivo: ${Piloto.optionLabel(mine)}.`);
+  }
+  function initHito() {
+    $('#hito-opts').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-goal]');
+      if (!b) return;
+      const st = hitoSt(), stage = Number($('#home-hito').dataset.stage);
+      st.goal = { stage, id: b.dataset.goal };
+      setPref(HITO_KEY, JSON.stringify(st));
+      renderInicio();
+    });
+    $('#hito-ok').addEventListener('click', () => {
+      const st = hitoSt(), stage = Number($('#home-hito').dataset.stage);
+      if (!st.seen.includes(stage)) st.seen.push(stage);
+      setPref(HITO_KEY, JSON.stringify(st));
+      $('#home-hito').classList.add('hidden');
+    });
+  }
   function initRecordatorio() {
+    initHito();
     $('#res-ok').addEventListener('click', (ev) => { setPref(RES_KEY, ev.currentTarget.dataset.week); $('#home-resumen').classList.add('hidden'); });
     const cfg = recCfg();
     $('#rec-hour').innerHTML = Piloto.REC_HOURS.concat(Piloto.REC_HOURS.includes(cfg.hour) ? [] : [cfg.hour]).sort((a, b) => a - b).map((h) => `<option value="${h}">${Piloto.recHourLabel(h)}</option>`).join('');
@@ -2071,6 +2107,7 @@
     // Hoy toca medirte (solo lo obligatorio de hoy)
     const due = Medidas.dueToday(state.entries, d, { scale: bascula() });
     const must = due.items.filter((i) => i.required);
+    renderHito(d);
     renderResumen(d);
     renderRecordatorio(d);
     $('#home-toca').classList.toggle('hidden', !must.length);
