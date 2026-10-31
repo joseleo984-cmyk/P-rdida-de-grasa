@@ -307,6 +307,15 @@
             <button type="button" class="btn-link" data-goto="habitos">Corregir otro día ›</button>
           </div>
         </section>
+        <section id="home-hito" class="home-card home-hito hidden" aria-labelledby="hito-title">
+          <h3 id="hito-title" class="home-label"></h3>
+          <ul id="hito-lines" class="res-lines"></ul>
+          <p id="hito-closing" class="small"></p>
+          <p id="hito-ask" class="small"><strong></strong></p>
+          <div id="hito-opts" class="fc-react" role="group" aria-label="Objetivo"></div>
+          <p id="hito-goal" class="small hidden"></p>
+          <button type="button" class="btn btn-ghost btn-tall" id="hito-ok">Entendido</button>
+        </section>
         <section id="home-resumen" class="home-card home-resumen hidden" aria-labelledby="res-title">
           <h3 id="res-title" class="home-label">Lo que lograste</h3>
           <ul id="res-lines" class="res-lines"></ul>
@@ -833,6 +842,11 @@
           </div>
           <!-- UX Etapa 1: filtros «Necesitan atención · Todos · Vencen pronto · Sin pagar» (la lista va ordenada por atención y el pago es un dato secundario) -->
           <div id="coach-filters" class="cli-filters pc-only" role="group" aria-label="Filtrar asesorados"></div>
+          <!-- Piloto 6: «A quién reconocer este lunes» (lun–mié): hasta 3 personas por constancia o regreso; felicitar es 1 toque (nota del coach). -->
+          <section id="coach-reconocer" class="card pc-only hidden" aria-labelledby="rec-lunes-title">
+            <h3 id="rec-lunes-title">A quién reconocer este lunes</h3>
+            <ul id="rec-lunes-list" class="rec-lunes-list"></ul>
+          </section>
           <div id="coach-ended" class="hidden" role="status"></div>
           <p id="coach-limit" class="small warn hidden"></p>
           <p id="coach-list-status" class="small muted" aria-live="polite"></p>

@@ -2092,3 +2092,6 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 .liga-rank { width: 1.6em; text-align: center; opacity: .7; }
 .liga-alias { flex: 1; overflow-wrap: anywhere; }
 .liga-pts { white-space: nowrap; }
+.rec-lunes-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.rec-lunes-list li { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(127,127,127,.25); }
+.rec-lunes-list li > span { overflow-wrap: anywhere; }

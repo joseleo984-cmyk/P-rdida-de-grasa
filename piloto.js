@@ -88,7 +88,71 @@
     };
   }
 
-  const api = { avisoCoach, plantilla, TEMPLATES, REENG_SOFT, REENG_DAYS, MSG_MAX, resumenSemanal, REC_HOURS, REC_DEFAULT_HOUR, REC_TEXT, recClean, recDue, recHourLabel };
+  // ---------- 6 · «A quién reconocer este lunes» (coach) ----------
+  // Sugiere hasta 3 asesorados por constancia o por regreso, con un mensaje de 1 toque. Solo lunes a miércoles y sobre la semana que cerró.
+  // Solo días, constancia y regreso (nunca peso, kg, cm ni kcal). `rows`: [{ id, name, state, pauses }].
+  const MAX_RECONOCER = 3;
+  function reconocer(rows, today) {
+    const dow = new Date(today + 'T12:00:00Z').getUTCDay();
+    const base = { show: false, week: '', items: [] };
+    if (dow < 1 || dow > 3) return base;
+    const start = Constancia.addDays(Constancia.weekStart(today), -7), end = Constancia.addDays(start, 6);
+    const items = [];
+    for (const r of rows || []) {
+      if (!r || !r.state) continue;
+      const first = firstName(r.name) || 'tu asesorado';
+      const dates = Constancia.recordDates(r.state);
+      const wk = Constancia.weekOf(dates, start, today, Constancia.frozenDays(r.pauses, today));
+      if (wk.registered < 2) continue;
+      const inWeek = [...dates].filter((d) => d >= start && d <= end).sort();
+      const prev = [...dates].filter((d) => d < inWeek[0]).sort().pop();
+      const gap = prev ? Constancia.dayNum(inWeek[0]) - Constancia.dayNum(prev) : 0;
+      const weeks = Constancia.summary(r.state, end, { pauses: r.pauses }).constantWeeks;
+      let it = null;
+      if (prev && gap >= 7) it = { kind: 'regreso', score: 50 + wk.registered, reason: 'Volvió a registrar esta semana después de unos días', message: `¡${first}, qué bueno verte de vuelta! Volver también es parte del proceso.` };
+      else if (wk.constant && weeks >= 2) it = { kind: 'constancia', score: weeks * 10 + wk.registered, reason: `${weeks} semanas constantes seguidas`, message: `¡Felicitaciones, ${first}! ${weeks} semanas constantes seguidas. Eso es constancia real.` };
+      if (it) items.push({ id: r.id, name: r.name, first, ...it });
+    }
+    items.sort((a, b) => b.score - a.score || String(a.name).localeCompare(String(b.name), 'es'));
+    return { show: items.length > 0, week: start, items: items.slice(0, MAX_RECONOCER) };
+  }
+
+  // ---------- 8 · Hito de 6 semanas y cierre de ciclo (semana 8 del piloto) ----------
+  // Para el asesorado: a las 6 semanas desde su primer registro («Cumpliste 6 semanas») y a las 8 («Cierre de ciclo»), con un nuevo objetivo
+  // elegido por él. Todo se mide en semanas y días con registro, nunca en peso. Cada hito se ofrece durante 14 días.
+  const HITO_OPTIONS = [
+    { id: 'dias5', label: 'Registrar mi día 5 de 7 días cada semana' },
+    { id: 'entreno3', label: 'Anotar 3 entrenos por semana' },
+    { id: 'agua', label: 'Anotar mi agua casi todos los días' },
+    { id: 'sueno', label: 'Anotar mis horas de sueño 5 noches por semana' },
+  ];
+  const optionLabel = (id) => (HITO_OPTIONS.find((o) => o.id === id) || {}).label || '';
+  function hito(state, today, { pauses } = {}) {
+    const off = { show: false, stage: null };
+    const sm = Constancia.summary(state, today, { pauses });
+    if (!sm.first) return off;
+    const days = Constancia.dayNum(today) - Constancia.dayNum(sm.first);
+    const stage = days >= 56 && days < 70 ? 8 : days >= 42 && days < 56 ? 6 : null;
+    if (!stage) return off;
+    const dates = Constancia.recordDates(state), fz = Constancia.frozenDays(pauses, today);
+    const w0 = Constancia.weekStart(sm.first);
+    let constant = 0, registered = 0, comodines = 0;
+    for (let i = 0; i < stage; i++) {
+      const w = Constancia.weekOf(dates, Constancia.addDays(w0, 7 * i), today, fz);
+      if (w.constant) constant++;
+      registered += w.registered; comodines += w.comodines;
+    }
+    const lines = [`${constant} de ${stage} semanas constantes`, `${registered} días con registro`];
+    if (comodines) lines.push(comodines === 1 ? '1 comodín usado' : `${comodines} comodines usados`);
+    return {
+      show: true, stage, lines, options: HITO_OPTIONS,
+      title: stage === 6 ? 'Cumpliste 6 semanas' : 'Cierre de ciclo: 8 semanas',
+      closing: (stage === 6 ? 'Seis semanas de constancia: eso es proceso, no suerte.' : 'Ocho semanas: un ciclo completo.') + ' Tu avance se mide en semanas, nunca en kilos.',
+      ask: stage === 6 ? 'Elige tu objetivo para las próximas 2 semanas' : 'Elige tu objetivo para el siguiente ciclo',
+    };
+  }
+
+  const api = { reconocer, hito, optionLabel, HITO_OPTIONS, MAX_RECONOCER, avisoCoach, plantilla, TEMPLATES, REENG_SOFT, REENG_DAYS, MSG_MAX, resumenSemanal, REC_HOURS, REC_DEFAULT_HOUR, REC_TEXT, recClean, recDue, recHourLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Piloto = api;
 })(typeof window !== 'undefined' ? window : globalThis);

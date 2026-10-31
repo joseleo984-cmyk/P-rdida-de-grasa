@@ -235,7 +235,35 @@
     if (f === 'vencen') list.sort((a, b) => a.p.daysLeft - b.p.daysLeft || byName(a, b));
     return list;
   }
+  // Piloto 6: «A quién reconocer este lunes». Felicitar = una nota del coach (la misma de siempre); lo ya felicitado esa semana desaparece (solo en este teléfono).
+  const RECON_KEY = PGNS.key('reconocidos');
+  const reconDone = () => { try { const x = JSON.parse(localStorage.getItem(RECON_KEY) || '{}'); return x && typeof x === 'object' ? x : {}; } catch { return {}; } };
+  let reconItems = [];
+  function renderReconocer() {
+    const box = $('#coach-reconocer');
+    if (!box || !window.Piloto) return;
+    const rows = [...cache.values()].map((c) => ({ id: c.info.clientId, name: displayName(c), state: c.state, pauses: c.info.pauses || [] }));
+    const r = Piloto.reconocer(rows, todayBo());
+    const done = reconDone()[r.week] || [];
+    reconItems = r.items.filter((i) => !done.includes(i.id));
+    box.classList.toggle('hidden', !r.show || !reconItems.length);
+    $('#rec-lunes-list').innerHTML = reconItems.map((i) => `<li><span><strong>${esc(i.name)}</strong><span class="small muted"> · ${esc(i.reason)}</span></span><button type="button" class="btn btn-tall" data-reconocer="${esc(i.id)}" aria-label="Felicitar a ${esc(i.name)}">Felicitar</button></li>`).join('');
+  }
+  async function felicitar(id) {
+    const it = reconItems.find((i) => i.id === id), c = cache.get(id);
+    if (!it || !c) return;
+    try {
+      await A.remote.coach.addComment(id, { id: Schema.uuid(), refDate: today(), body: it.message.slice(0, 1000) });
+      const m = reconDone();
+      const week = Constancia.addDays(Constancia.weekStart(todayBo()), -7);
+      m[week] = [...(m[week] || []), id];
+      try { localStorage.setItem(RECON_KEY, JSON.stringify(m)); } catch { /* sin espacio */ }
+      renderReconocer();
+      toast(`Felicitación enviada a ${displayName(c)}`);
+    } catch (err) { toast(errText(err), true); }
+  }
   function renderListPay() {
+    renderReconocer();
     const ul = $('#coach-clients');
     const all = rowsNow();
     const counts = Object.fromEntries(FILTERS.map(([k]) => [k, countOf(all, k)]));
@@ -319,6 +347,7 @@
     $('#coach-filters').addEventListener('click', (ev) => { const b = ev.target.closest('[data-filter]'); if (!b) return; filter = b.dataset.filter; renderList(); const nb = $(`#coach-filters [data-filter="${filter}"]`); if (nb) nb.focus(); });
     $('#btn-coach-add').addEventListener('click', () => $('#tab-invitar').click());
     $('#btn-coach-qr').addEventListener('click', () => openQr());
+    $('#coach-reconocer').addEventListener('click', (ev) => { const b = ev.target.closest('[data-reconocer]'); if (b) felicitar(b.dataset.reconocer); });
   }
 
   function renderList() {
