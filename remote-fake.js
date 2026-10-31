@@ -8,7 +8,11 @@
   const APP = 'grasa';
   const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const CONSENT_KINDS = ['terms', 'privacy', 'adult', 'sensitive_health', 'cloud_transfer', 'photos_cloud', 'photo_view_coach', 'coach_agreement',
-    'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos'];
+    'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos', 'liga'];
+  // r1 v1.16 (liga semanal): catálogo CERRADO de alias (mismo orden que grasa.liga_aliases) y versiones del acuerdo que traen la cláusula de ligas.
+  const LIGA_ALIASES = ['Halcón', 'Titán', 'Roble', 'Fénix', 'Cóndor', 'Jaguar', 'Delfín', 'Lince', 'Pino', 'Cedro', 'Águila', 'Lobo',
+    'Puma', 'Ceiba', 'Colibrí', 'Roca', 'Río', 'Volcán', 'Nevado', 'Ámbar', 'Trueno', 'Coral', 'Bosque', 'Montaña'];
+  const LIGA_AGREEMENT_VERSIONS = ['0.6-A7-coach'];
   const RECORD_KINDS = ['profile', 'entry', 'food', 'habit', 'library'];
   const SHARE_KEYS = ['body', 'notes', 'nutrition', 'habits', 'photos'];
   const RETRYABLE = { offline: true, server: true, rate_limited: true }; // consent_required y agreement_required: no se reintentan solos
@@ -244,6 +248,28 @@
       return { metric: g.metric, target: g.target, weekStart: wk, weekEnd: end, min: 5, published: n >= 5, participants: n >= 5 ? n : null, total };
     }
 
+    // r1 v1.16: ¿el coach habilitó la liga (acuerdo con la cláusula de ligas) y está activo? y ¿cuenta HOY esta persona? (grasa.liga_active)
+    ligaCoachOk(coachId) { return !!(this.coaches[coachId] && this.coaches[coachId].active !== false && LIGA_AGREEMENT_VERSIONS.includes(this.agreementVersion(coachId))); }
+    ligaActive(l) {
+      return l.status === 'active' && !!l.ligaOptIn && !!l.ligaAlias && this.ligaCoachOk(l.coachId) && l.shares.habits && l.shares.nutrition
+        && this.hasConsent(l.clientId, 'sensitive_health') && this.hasConsent(l.clientId, 'cloud_transfer') && this.hasConsent(l.clientId, 'adult')
+        && this.hasConsent(l.clientId, 'liga') && !this.paymentBlocked(l.clientId);
+    }
+    // Como grasa.my_liga: la TABLA solo para quien participa y con 5 o más; solo alias y puntos (tope semanal). Nunca nombres ni ids.
+    ligaOut(userId) {
+      const P = puntos();
+      const l = this.activeLink(userId);
+      if (!l) return { enabled: false, opted_in: false, alias: null, min: 5, published: false, table: null };
+      const wk = P.monday(this.todayBogota()), end = P.addDays(wk, 6);
+      const ok = this.ligaCoachOk(l.coachId), mine = ok && this.ligaActive(l);
+      const team = ok ? this.links.filter((k) => k.coachId === l.coachId && this.ligaActive(k)) : [];
+      const n = team.length;
+      const pts = (u) => Math.min(P.WEEK_CAP, (this.points[u] || []).filter((r) => r.day >= wk && r.day <= end).reduce((a, r) => a + r.points, 0));
+      const table = mine && n >= 5 ? team.map((k) => ({ alias: k.ligaAlias, points: pts(k.clientId), me: k.clientId === userId }))
+        .sort((a, b) => b.points - a.points || a.alias.localeCompare(b.alias, 'es')) : null;
+      return { enabled: ok, opted_in: mine, alias: mine ? l.ligaAlias : null, week_start: wk, week_end: end, min: 5,
+        participants: mine ? n : null, published: mine && n >= 5, table };
+    }
     userById(id) { return Object.values(this.users).find((u) => u.id === id) || null; }
     roles(userId, app = APP) {
       const r = this.appAccess.filter((a) => a.userId === userId && a.appId === app && a.active).map((a) => a.role);
@@ -746,6 +772,36 @@
         const g = be.teamGoalOut(l.coachId);
         return g ? { ...g, optedOut: !!l.teamOptOut } : { none: true, optedOut: !!l.teamOptOut };
       },
+      // r1 v1.16: liga semanal (opt-in reforzado, alias de catálogo, mínimo 5, solo alias y puntos).
+      async myLiga() { const u = await authed(); return clone(be.ligaOut(u.id)); },
+      async joinLiga() {
+        const u = await authed();
+        const l = be.activeLink(u.id);
+        const err = (code, detail) => { const e = new RemoteError(code, detail); e.detail = detail; throw e; };
+        if (!l) fail('not_found', 'Sin coach');
+        if (!be.ligaCoachOk(l.coachId)) err('forbidden', 'liga_not_enabled');
+        if (!(be.hasConsent(u.id, 'sensitive_health') && be.hasConsent(u.id, 'cloud_transfer') && be.hasConsent(u.id, 'adult'))) err('forbidden', 'consent_required');
+        if (!be.hasConsent(u.id, 'liga')) err('forbidden', 'liga_consent_required');
+        if (!(l.shares.habits && l.shares.nutrition)) err('forbidden', 'liga_requires_habits');
+        if (be.paymentBlocked(u.id)) err('forbidden', 'paused');
+        if (!l.ligaAlias) {
+          const used = be.links.filter((k) => k.coachId === l.coachId && k.status === 'active' && k.ligaAlias).map((k) => k.ligaAlias);
+          let h = 0; for (const ch of u.id) h = (h * 31 + ch.charCodeAt(0)) % LIGA_ALIASES.length;
+          let pick = null;
+          for (let i = 0; i < LIGA_ALIASES.length && !pick; i++) { const c = LIGA_ALIASES[(h + i) % LIGA_ALIASES.length]; if (!used.includes(c)) pick = c; }
+          if (!pick) invalid('liga_full');
+          l.ligaAlias = pick;
+        }
+        l.ligaOptIn = true; l.updatedAt = iso(be.clock.now());
+        be._persist();
+        return clone(be.ligaOut(u.id));
+      },
+      async leaveLiga() {
+        const u = await authed();
+        const l = be.activeLink(u.id);
+        if (l) { l.ligaOptIn = false; l.ligaAlias = null; l.updatedAt = iso(be.clock.now()); be._persist(); }
+        return clone(be.ligaOut(u.id));
+      },
       async setTeamOptOut(out) {
         const u = await authed();
         const l = be.activeLink(u.id);
@@ -1191,6 +1247,13 @@
             habitsMet: l.shares.habits ? Object.values(be.records).filter((r) => r.userId === l.clientId && r.kind === 'habit' && !r.deletedAt && !r.pausePrivate && r.date >= F && r.date <= T && !P.habitRare(r.data || {}))
               .reduce((s, r) => { const h = r.data || {}; return s + ((h.water || 0) >= 2) + ((h.steps || 0) >= 8000) + ((h.sleep || 0) >= 7 && (h.sleep || 0) <= 10); }, 0) : null }));
       },
+      // r1 v1.16: SOLO si la liga está habilitada para su team y cuántos participan (con menos de 5, ni el número). Nunca alias ni personas.
+      async liga() {
+        const u = await asCoach();
+        if (be.coaches[u.id].active === false) fail('forbidden', 'Coach suspendido');
+        const ok = be.ligaCoachOk(u.id), n = ok ? be.links.filter((k) => k.coachId === u.id && be.ligaActive(k)).length : 0;
+        return { enabled: ok, min: 5, published: n >= 5, participants: n >= 5 ? n : null };
+      },
       async teamGoal() {
         const u = await asCoach();
         if (be.coaches[u.id].active === false) fail('forbidden', 'Coach suspendido');
@@ -1214,7 +1277,7 @@
         return done(undefined);
       },
     };
-    const EXPORT_AGREEMENT_VERSIONS = ['0.5-A7-coach'];
+    const EXPORT_AGREEMENT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach'];
     const exportOut = (x) => ({ id: x.id, createdAt: x.createdAt, clients: x.clients, categories: x.categories.slice(), from: x.from, to: x.to });
     const GOAL_RANGES = { weight_kg: { min: 30, max: 300, dec: 1 }, waist_cm: { min: 40, max: 200, dec: 1 }, protein_g: { min: 20, max: 400, dec: 0 },
       water_days: { min: 1, max: 7, dec: 0 }, steps_days: { min: 1, max: 7, dec: 0 }, sleep_days: { min: 1, max: 7, dec: 0 }, trained_days: { min: 1, max: 7, dec: 0 } };
@@ -1355,7 +1418,7 @@
     return b;
   }
 
-  const api = { FakeBackend, FakeClock, createFake, persistentBackend, RemoteError, PERSIST_KEY, SESSION_KEY, CODE_ALPHABET };
+  const api = { LIGA_ALIASES, FakeBackend, FakeClock, createFake, persistentBackend, RemoteError, PERSIST_KEY, SESSION_KEY, CODE_ALPHABET };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RemoteFake = api;
 })(typeof window !== 'undefined' ? window : globalThis);

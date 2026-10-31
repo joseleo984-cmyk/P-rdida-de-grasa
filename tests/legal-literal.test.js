@@ -100,11 +100,12 @@ test('3.5 Acuerdo del coach: la cláusula aprobada está LITERAL en el texto que
   assert.ok(norm(read('equipo/legal/borradores/acuerdo-coach.md')).includes(expected), 'equipo/legal/borradores/acuerdo-coach.md');
   // El texto anterior (0.3-A7) se conserva EXACTO en A7_PAST (para «Mi acuerdo» y la copia por correo) y no trae la cláusula.
   // M6 (concepto 6): la versión vigente es 0.5-A7-coach (añade la cláusula 14); la 0.4-A7-coach, con la 13 y sin la 14, queda EXACTA en A7_PAST.
-  assert.strictEqual(CT.version('A7'), '0.5-A7-coach');
+  assert.strictEqual(CT.version('A7'), '0.6-A7-coach');   // función 5: la 0.6 añade la cláusula 15 (ligas)
   assert.ok(CT.A7_PAST['0.3-A7'] && !/Cláusula/.test(CT.A7_PAST['0.3-A7']));
   assert.strictEqual(CT.agreementText('0.3-A7'), CT.A7_PAST['0.3-A7']);
   assert.ok(norm(CT.A7_PAST['0.4-A7-coach']).includes(expected) && !/Cláusula 14/.test(CT.A7_PAST['0.4-A7-coach']));
-  assert.strictEqual(CT.agreementText('0.5-A7-coach'), CT.fullText('A7'));
+  assert.strictEqual(CT.agreementText('0.6-A7-coach'), CT.fullText('A7'));
+  assert.ok(CT.A7_PAST['0.5-A7-coach'] && /Cláusula 14/.test(CT.A7_PAST['0.5-A7-coach']) && !/Cláusula 15/.test(CT.A7_PAST['0.5-A7-coach']), '0.5 queda EXACTA, sin la 15');
 });
 
 test('3.6 Importación: el aviso previo (título y párrafo) aparece LITERAL en index.html', () => {
@@ -265,13 +266,13 @@ test('concepto 6 · cláusula del acuerdo: «Cláusula 14. …» LITERAL en el A
   assert.strictEqual(CT.TEXTS.A7.clauseExport, expected);
   assert.ok(CT.fullText('A7').includes(expected), 'fullText(A7) la incluye: es lo que se acepta y se hashea');
   assert.ok(CT.fullText('A7').indexOf('Cláusula 13.') < CT.fullText('A7').indexOf('Cláusula 14.'), 'va después de la 13');
-  assert.strictEqual(CT.version('A7'), '0.5-A7-coach');
+  assert.strictEqual(CT.version('A7'), '0.6-A7-coach');
   assert.ok(norm(read('equipo/legal/borradores/acuerdo-coach.md')).includes(norm(expected)), 'equipo/legal/borradores/acuerdo-coach.md');
   assert.ok(read('supabase/functions/_shared/textos-acuerdo.mjs').includes(JSON.stringify(CT.fullText('A7')).slice(1, -1)), 'textos-acuerdo.mjs (npm run build:funcion)');
   // Sin re-aceptación forzada para el resto de la app: 0.4 sigue valiendo; para exportar hace falta la 0.5.
   const m = (v) => ({ consents: { coach_agreement: { granted: true, version: v } } });
-  assert.deepStrictEqual(['0.3-A7', '0.4-A7-coach', '0.5-A7-coach'].map((v) => CT.coachAgreementOK(m(v))), [false, true, true]);
-  assert.deepStrictEqual(['0.3-A7', '0.4-A7-coach', '0.5-A7-coach'].map((v) => CT.exportAgreementOK(m(v))), [false, false, true]);
+  assert.deepStrictEqual(['0.3-A7', '0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach'].map((v) => CT.coachAgreementOK(m(v))), [false, true, true, true]);
+  assert.deepStrictEqual(['0.3-A7', '0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach'].map((v) => CT.exportAgreementOK(m(v))), [false, false, true, true]);
   assert.strictEqual(CT.exportAgreementOK({ consents: { coach_agreement: { granted: false, version: '0.5-A7-coach' } } }), false);
 });
 
@@ -366,16 +367,62 @@ test('concepto 7 · aviso v1.2: texto y botón «Entendido» LITERALES en aviso-
   assert.deepStrictEqual(AV.parts(), { before: c.aviso.slice(0, c.aviso.indexOf(' [enlace]')).replace(/aquí$/, ''), link: 'aquí', after: '.', href: 'legal/privacidad.html' });
 });
 
-test('concepto 7 · fuera de alcance: nada de ligas, alias, posición relativa, su opt-in ni la cláusula 7.6 en la app', () => {
-  const c = concept7().md;
-  const optin = (c.match(/Casilla de aceptación: \[ \] «([^»]+)»/) || [])[1];
-  const aviso12 = (c.match(/> «(Recuerda: esta dinámica[^»]+)»/) || [])[1];
-  assert.ok(optin && aviso12, 'el concepto trae la casilla de la liga y el aviso de cabecera');
-  for (const f of ['index.html', 'app.js', 'puntos-view.js', 'puntos.js', 'analitica-view.js', 'etapa2-view.js']) {
-    const t = read(f);
-    assert.ok(!t.includes(optin) && !t.includes('Unirme a la liga') && !t.includes('Participación en la Liga Semanal'), f + ': sin opt-in de liga');
-    assert.ok(!t.includes(aviso12), f + ': sin aviso de cabecera de liga');
-    assert.ok(!/Cláusula 7\.6|Halcón|Titán|grupo de arriba/.test(t), f + ': sin cláusula 7.6, alias ni posición relativa');
-  }
-  assert.ok(!/Cláusula 7\.6|ligas comunitarias/.test(CT.fullText('A7')), 'la cláusula 7.6 no entra al acuerdo');
+function liga7() {
+  const md = read('equipo/legal/concepto-7-2026-10-26.md');
+  const sec = (a, b) => md.slice(md.indexOf(a), b ? md.indexOf(b) : undefined);
+  const s4 = sec('## 4. Texto literal', '## 5.');
+  const consent = s4.slice(s4.indexOf('> Texto del consentimiento:'), s4.indexOf('> Casilla de aceptación'));
+  return {
+    title: (s4.match(/> Encabezado: (.+)/) || [])[1],
+    consent: consent.replace('> Texto del consentimiento:', '').split('\n').map((l) => l.replace(/^>\s?/, '').trim()).filter(Boolean).join('\n').replace(/^«/, '').replace(/»$/, ''),
+    box: (s4.match(/Casilla de aceptación: \[ \] «([^»]+)»/) || [])[1],
+    button: (s4.match(/Botón de acción: «([^»]+)»/) || [])[1],
+    notice: (sec('## 12.', '---').match(/> «(Recuerda: esta dinámica[^»]+)»/) || [])[1],
+    min: (sec('## 3.', '## 4.').match(/informa: «([^»]+)»/) || [])[1],
+    clause: (sec('## 8.', '## 9.').match(/> «(En caso de habilitar[^»]+)»/) || [])[1],
+    aliases: (sec('## 3.', '## 4.').match(/\(ej\. ([^)]+)\)/) || [])[1],
+  };
+}
+
+test('concepto 7 · liga: opt-in (encabezado, texto, casilla y botón), aviso de cabecera y mensaje del mínimo LITERALES en liga.js', () => {
+  const c = liga7();
+  const L = require('../liga.js');
+  assert.ok(c.title && c.consent && c.box && c.button && c.notice && c.min && c.clause, 'el concepto trae todos los textos');
+  assert.strictEqual(L.TITLE, c.title);
+  assert.strictEqual(L.CONSENT.join('\n'), c.consent);
+  assert.strictEqual(L.BOX, c.box);
+  assert.strictEqual(L.BUTTON, c.button);
+  assert.strictEqual(L.NOTICE, c.notice);
+  assert.strictEqual(L.MIN_MESSAGE, c.min);
+  assert.strictEqual(L.CLAUSE_BODY, c.clause);
+  assert.strictEqual(L.MIN, 5);
+});
+
+test('concepto 7 · liga: el consentimiento A9 guarda el texto completo; el acuerdo 0.6-A7-coach trae la cláusula 15 literal y 0.5 queda intacta', () => {
+  const c = liga7(), L = require('../liga.js');
+  assert.strictEqual(CT.fullText('A9'), [c.title, c.consent, c.box].join('\n') + '\n[Política de datos]');
+  assert.deepStrictEqual(CT.kinds('A9'), ['liga']);
+  assert.ok(CT.fullText('A7').includes(L.CLAUSE_TITLE + '\n' + c.clause), 'cláusula 15 en lo que se acepta y se hashea');
+  assert.ok(CT.fullText('A7').indexOf('Cláusula 14.') < CT.fullText('A7').indexOf('Cláusula 15.'));
+  assert.ok(norm(read('equipo/legal/borradores/acuerdo-coach.md')).includes(norm(L.CLAUSE)), 'borrador del acuerdo');
+  assert.ok(read('supabase/functions/_shared/textos-acuerdo.mjs').includes(JSON.stringify(CT.fullText('A7')).slice(1, -1)), 'textos-acuerdo.mjs (npm run build:funcion)');
+  const m = (v) => ({ consents: { coach_agreement: { granted: true, version: v } } });
+  assert.deepStrictEqual(['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach'].map((v) => CT.ligaAgreementOK(m(v))), [false, false, true]);
+  assert.strictEqual(CT.ligaAgreementOK({ consents: { coach_agreement: { granted: false, version: '0.6-A7-coach' } } }), false);
+});
+
+test('concepto 7 · liga: alias de catálogo cerrado (los del concepto incluidos), 24 únicos, igual en la app y en el SQL', () => {
+  const sql = read('supabase/migrations/20261103120000_r1_liga.sql');
+  const list = sql.slice(sql.indexOf("select array['Halcón'"), sql.indexOf("]::text[]", sql.indexOf("select array['Halcón'")));
+  const names = [...list.matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  assert.strictEqual(names.length, 24);
+  assert.strictEqual(new Set(names).size, 24);
+  for (const n of ['Halcón', 'Titán', 'Roble', 'Fénix']) assert.ok(names.includes(n));
+  assert.deepStrictEqual(require('../remote-fake.js').LIGA_ALIASES, names);
+});
+
+test('concepto 7 · liga: sin «posición relativa» (opción 2) ni capturas de la tabla; la tabla no pinta nada distinto de alias y puntos', () => {
+  for (const f of ['index.html', 'app.js', 'puntos-view.js', 'liga-view.js']) assert.ok(!/grupo de arriba/.test(read(f)), f);
+  const v = read('liga-view.js');
+  assert.ok(!/weight|waist|kcal|photo|email|displayName|\.name\b/.test(v.replace(/\/\/.*$/gm, '')), 'liga-view.js solo toca alias y puntos');
 });

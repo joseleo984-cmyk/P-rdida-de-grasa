@@ -188,6 +188,7 @@
               <p class="small" id="acc-a7-intro"></p>
               <p class="small a7-clause hidden" id="acc-a7-clause"></p>
               <p class="small a7-clause-export hidden" id="acc-a7-clause-export"></p>
+              <p class="small a7-clause-liga hidden" id="acc-a7-clause-liga"></p>
               <div class="auth-row"><label class="check"><input type="checkbox" name="a7" id="acc-a7"> <span id="acc-a7-text"></span></label><span class="auth-links" id="acc-a7-links"></span></div>
             </div>
           </div>
@@ -305,6 +306,17 @@
             <button type="button" class="btn-link" id="dia-listo">Listo por hoy ›</button>
             <button type="button" class="btn-link" data-goto="habitos">Corregir otro día ›</button>
           </div>
+        </section>
+        <section id="home-resumen" class="home-card home-resumen hidden" aria-labelledby="res-title">
+          <h3 id="res-title" class="home-label">Lo que lograste</h3>
+          <ul id="res-lines" class="res-lines"></ul>
+          <p id="res-closing" class="small"></p>
+          <button type="button" class="btn btn-ghost btn-tall" id="res-ok">Entendido</button>
+        </section>
+        <section id="home-rec" class="home-card home-rec hidden" aria-labelledby="rec-aviso-title">
+          <h3 id="rec-aviso-title" class="home-label">Tu recordatorio</h3>
+          <p id="rec-aviso-text" class="small"></p>
+          <button type="button" class="btn btn-ghost btn-tall" id="rec-luego">Luego</button>
         </section>
         <section id="home-toca" class="home-card home-toca hidden" aria-labelledby="toca-title">
           <h3 id="toca-title" class="home-label">Hoy toca medirte</h3>
@@ -546,6 +558,11 @@
       <section id="puntos-team" class="card team-card hidden" aria-labelledby="pt-team-label">
         <p id="pt-team-label" class="an-tag">Meta del team · esta semana</p>
         <div class="team-box" id="puntos-team-box"></div>
+      </section>
+      <!-- Función 5: LIGA SEMANAL de constancia (voluntaria; concepto 7). Solo alias y puntos; el servidor la calcula (grasa.my_liga). Lógica: liga.js; vista: liga-view.js. -->
+      <section id="liga-box" class="card liga-card hidden" aria-labelledby="liga-title">
+        <h3 id="liga-title">Liga semanal de constancia</h3>
+        <div id="liga-body"></div>
       </section>
       <details class="card pt-rules" id="pt-rules">
         <summary>Cómo se ganan</summary>
@@ -794,6 +811,7 @@
         <p class="small a7-intro"></p>
         <p class="small a7-clause hidden"></p>
         <p class="small a7-clause-export hidden"></p>
+        <p class="small a7-clause-liga hidden"></p>
         <form class="a7-form" novalidate>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
           <p class="acc-error a7-error hidden" role="alert"></p>
@@ -859,6 +877,17 @@
           <h2 id="fc-semana-title">Esta semana</h2>
           <div id="fc-sum" class="fc-sum"></div>
           <p id="fc-esfuerzo" class="small"></p>
+        </div>
+        <!-- Piloto 3 y 4: reenganche (solo lo ve el coach): desde los 3 días ofrece 5 plantillas editables; a los 7 días es el aviso con qué hacer. Se envía como nota. -->
+        <div class="card pc-only hidden" id="fc-reeng" role="region" aria-labelledby="fc-reeng-title">
+          <h2 id="fc-reeng-title">Reenganche</h2>
+          <p id="fc-reeng-head" class="fc-reeng-head"></p>
+          <p id="fc-reeng-action" class="small"></p>
+          <div class="fc-react" id="fc-reeng-tpl" role="group" aria-label="Plantillas"></div>
+          <label class="small" for="fc-reeng-msg">Mensaje sugerido (puedes editarlo)</label>
+          <textarea id="fc-reeng-msg" rows="4" maxlength="1000"></textarea>
+          <div class="fc-react-acts"><button type="button" class="btn btn-tall" id="btn-fc-reeng">Enviar como nota</button></div>
+          <p id="fc-reeng-status" class="small muted" role="status" aria-live="polite"></p>
         </div>
         <div class="card pc-only" id="fc-react">
           <h2>Reaccionar con 1 toque</h2>
@@ -956,6 +985,7 @@
         <p class="small a7-intro"></p>
         <p class="small a7-clause hidden"></p>
         <p class="small a7-clause-export hidden"></p>
+        <p class="small a7-clause-liga hidden"></p>
         <form class="a7-form" novalidate>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
           <p class="acc-error a7-error hidden" role="alert"></p>
@@ -1240,6 +1270,10 @@
         <h3 id="rt-team-title" class="retos-step"><b>Meta del team</b> · esta semana</h3>
         <div id="rt-team-box" aria-live="polite"></div>
       </section>
+      <section id="liga-coach" class="card liga-card hidden" aria-labelledby="liga-coach-title">
+        <h3 id="liga-coach-title">Liga semanal del team</h3>
+        <div id="liga-coach-body"></div>
+      </section>
       <p class="small muted retos-foot">No hay retos de kilos: solo de hábitos y constancia.</p>
     </section>
 
@@ -1357,6 +1391,13 @@
         <li><button type="button" class="more-row" id="row-ayuda"><span class="more-text"><strong>Ayuda</strong><span class="more-sub">Respuestas a las dudas más comunes</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-login hidden"><button type="button" class="more-row" id="row-salir"><span class="more-text"><strong>Cerrar sesión</strong><span class="more-sub">Salir de tu cuenta en este teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
       </ul>
+      <!-- Piloto 1: recordatorio diario (máx. 1). Apagado por defecto; la hora se guarda solo en este teléfono. Es un aviso al abrir la app (no una notificación push). -->
+      <section id="rec-card" class="card pc-only" aria-labelledby="rec-title">
+        <h3 id="rec-title">Recordatorio diario</h3>
+        <label class="rec-row"><input type="checkbox" id="rec-on"> <span>Avisarme para registrar mi día</span></label>
+        <label class="rec-row"><span>A partir de las</span> <select id="rec-hour" aria-label="Hora del recordatorio"></select></label>
+        <p class="small muted">Te lo mostramos al abrir la app, pasada esa hora, si hoy aún no registras. No es una notificación y no se envía a nadie. Puedes apagarlo cuando quieras.</p>
+      </section>
     </section>
 
     <!-- M6: EXPORTAR A EXCEL (coach, producto «coach»; concepto jurídico 6). Solo lo que el coach ya ve (coach_pull); nunca fotos. Casilla LITERAL antes de CADA descarga;
@@ -1599,6 +1640,7 @@
     <div class="a8-body">
       <p class="small">Para descargar datos de tus asesorados, acepta la versión <b id="xla-ver"></b> del Acuerdo del coach. Añade esta cláusula:</p>
       <p class="small a7-clause xla-clause" id="xla-clause"></p>
+      <p class="small a7-clause xla-clause" id="xla-clause-liga"></p>
       <details class="xla-more"><summary>Ver el resto del acuerdo</summary><p class="small" id="xla-intro"></p><p class="small a7-clause" id="xla-clause13"></p></details>
       <label class="xl-custody xla-check"><input type="checkbox" id="xla-ok"><span id="xla-body"></span></label>
       <div class="xla-links" id="xla-links"></div>
@@ -1606,6 +1648,38 @@
       <div class="row-actions a8-actions">
         <button type="button" class="btn btn-tall" id="btn-xla-ok">Aceptar y descargar</button>
         <button type="button" class="btn btn-ghost btn-tall" id="btn-xla-cancel">Cancelar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Función 5: opt-in de la liga (concepto 7, punto 4): encabezado, texto, casilla y botón LITERALES (liga.js). -->
+  <dialog id="sheet-liga" class="sheet" aria-labelledby="lg-title">
+    <div class="sheet-head"><h2 id="lg-title" tabindex="-1"></h2></div>
+    <div class="a8-body">
+      <p id="lg-text-1"></p>
+      <p id="lg-text-2"></p>
+      <label class="check"><input type="checkbox" id="lg-ok"> <span id="lg-box"></span></label>
+      <p id="lg-error" class="acc-error hidden" role="alert"></p>
+      <div class="row-actions a8-actions">
+        <button type="button" class="btn btn-tall" id="btn-lg-join" disabled></button>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-lg-cancel">Ahora no</button>
+      </div>
+    </div>
+  </dialog>
+  <!-- Función 5: el coach acepta el Acuerdo (versión con la cláusula 15 de ligas) para habilitar la liga de su team. -->
+  <dialog id="sheet-lg-acuerdo" class="sheet" aria-labelledby="lga-title">
+    <div class="sheet-head"><h2 id="lga-title" tabindex="-1">Acuerdo del coach para habilitar la liga</h2></div>
+    <div class="a8-body">
+      <p class="small muted">Versión <span id="lga-ver"></span></p>
+      <p id="lga-intro" class="small"></p>
+      <p id="lga-c13" class="small a7-clause"></p>
+      <p id="lga-c14" class="small a7-clause"></p>
+      <p id="lga-c15" class="small a7-clause"></p>
+      <label class="check"><input type="checkbox" id="lga-ok"> <span id="lga-body"></span></label>
+      <p id="lga-error" class="acc-error hidden" role="alert"></p>
+      <div class="row-actions a8-actions">
+        <button type="button" class="btn btn-tall" id="btn-lga-ok">Aceptar y habilitar la liga</button>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-lga-cancel">Cancelar</button>
       </div>
     </div>
   </dialog>
@@ -1887,6 +1961,7 @@
   <script src="calc.js"></script>
   <script src="schema.js"></script>
   <script src="consent-texts.js"></script>
+  <script src="liga.js"></script>
   <script src="consent-texts-solo.js"></script>
   <script src="pagos.js"></script>
   <script src="medidas.js"></script>
@@ -1907,6 +1982,7 @@
   <script src="admin.js"></script>
   <script src="estado-cliente.js"></script>
   <script src="inicio-view.js"></script>
+  <script src="piloto.js"></script>
   <script src="photos.js"></script>
   <script src="etapa2.js"></script>
   <script src="app.js"></script>
@@ -1921,6 +1997,7 @@
   <script src="etapa2-view.js"></script>
   <script src="analitica-view.js"></script>
   <script src="puntos-view.js"></script>
+  <script src="liga-view.js"></script>
   <script src="logros-view.js"></script>
   <script src="admin-view.js"></script>
   <script src="exportar-view.js"></script>

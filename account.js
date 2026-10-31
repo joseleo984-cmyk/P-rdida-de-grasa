@@ -469,6 +469,8 @@
     $('#acc-a7-clause').classList.toggle('hidden', !t.clause);
     $('#acc-a7-clause-export').textContent = t.clauseExport || '';   // M6: cláusula 14 (descarga y custodia local), producto coach
     $('#acc-a7-clause-export').classList.toggle('hidden', !t.clauseExport);
+    $('#acc-a7-clause-liga').textContent = t.clauseLiga || '';   // función 5: cláusula 15 (ligas)
+    $('#acc-a7-clause-liga').classList.toggle('hidden', !t.clauseLiga);
     $('#acc-a7-text').textContent = CT.fill(t.body, {});
     fillLinks($('#acc-a7-links'), t.links);
   }
@@ -602,6 +604,14 @@
   async function acceptStrict(id, kind) {
     const prev = readMeta();
     await logConsent(id, kind, true);
+    if (await flushConsents()) { document.dispatchEvent(new CustomEvent('pg:consents-changed')); return true; }
+    writeMeta(prev);
+    return false;
+  }
+  // Función 5: el consentimiento de la liga (A9, kind `liga`) con la huella del texto completo; sube ya o se deshace (devuelve false).
+  async function setLigaConsent(on) {
+    const prev = readMeta();
+    await logConsent('A9', 'liga', on === true);
     if (await flushConsents()) { document.dispatchEvent(new CustomEvent('pg:consents-changed')); return true; }
     writeMeta(prev);
     return false;
@@ -1082,7 +1092,7 @@
       // Sprint 6: A7 (acuerdo del coach) y A8 los usa coach-panel.js; ConsentTexts decide si el acuerdo está vigente.
       acceptCoachAgreement: async () => { const ok = await acceptStrict('A7', 'coach_agreement'); if (ok) copyAfterAccept(); return ok; }, sendAgreementCopy, a8Confirm, fillLinks,
       // Sprint 11: vínculo al día (pago), fotos en la nube (A6a) y que el coach vea cada foto (A6b).
-      refreshLink, grantPhotosCloud, setCoachPhotos, revokePhotosCloud };
+      refreshLink, grantPhotosCloud, setCoachPhotos, revokePhotosCloud, setLigaConsent };
     renderTermsStep();
     renderA7Box();
     await renderCard();

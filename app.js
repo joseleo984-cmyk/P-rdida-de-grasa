@@ -1981,6 +1981,39 @@
     showCelebration({ d: today() });
   });
 
+  // Piloto 1: recordatorio diario = aviso al abrir la app (sin servidor push). Todo queda en este teléfono.
+  const REC_KEY = PGNS.key('recordatorio'), REC_DISMISS_KEY = PGNS.key('recordatorio-luego');
+  const recCfg = () => { let raw = null; try { raw = JSON.parse(getPref(REC_KEY) || 'null'); } catch { raw = null; } return Piloto.recClean(raw); };
+  function renderRecordatorio(d) {
+    const due = Piloto.recDue(recCfg(), { hourNow: new Date().getHours(), hasRecord: Constancia.hasRecord(state, d), today: d, dismissedDay: getPref(REC_DISMISS_KEY) });
+    $('#home-rec').classList.toggle('hidden', !due || isPaused());
+    if (due) setText($('#rec-aviso-text'), Piloto.REC_TEXT);
+  }
+  // Piloto 2: resumen semanal («lo que lograste»), dom–mar, una vez por semana (se oculta con «Entendido»).
+  const RES_KEY = PGNS.key('resumen-visto');
+  function renderResumen(d) {
+    const r = Piloto.resumenSemanal(state, d, constOpts());
+    const show = r.show && !isPaused() && getPref(RES_KEY) !== r.refStart;
+    $('#home-resumen').classList.toggle('hidden', !show);
+    if (!show) return;
+    setText($('#res-title'), r.title);
+    $('#res-lines').innerHTML = r.lines.map((l) => `<li>${esc(l)}</li>`).join('');
+    setText($('#res-closing'), r.closing);
+    $('#res-ok').dataset.week = r.refStart;
+  }
+  function initRecordatorio() {
+    $('#res-ok').addEventListener('click', (ev) => { setPref(RES_KEY, ev.currentTarget.dataset.week); $('#home-resumen').classList.add('hidden'); });
+    const cfg = recCfg();
+    $('#rec-hour').innerHTML = Piloto.REC_HOURS.concat(Piloto.REC_HOURS.includes(cfg.hour) ? [] : [cfg.hour]).sort((a, b) => a - b).map((h) => `<option value="${h}">${Piloto.recHourLabel(h)}</option>`).join('');
+    $('#rec-on').checked = cfg.on;
+    $('#rec-hour').value = String(cfg.hour);
+    const save = () => { setPref(REC_KEY, JSON.stringify(Piloto.recClean({ on: $('#rec-on').checked, hour: Number($('#rec-hour').value) }))); setPref(REC_DISMISS_KEY, null); renderInicio(); };
+    $('#rec-on').addEventListener('change', save);
+    $('#rec-hour').addEventListener('change', save);
+    $('#rec-luego').addEventListener('click', () => { setPref(REC_DISMISS_KEY, today()); $('#home-rec').classList.add('hidden'); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') renderInicio(); });
+  }
+
   function renderInicio() {
     if (!PROD.coach) return;
     const d = today(), client = !navCoach;
@@ -2038,6 +2071,8 @@
     // Hoy toca medirte (solo lo obligatorio de hoy)
     const due = Medidas.dueToday(state.entries, d, { scale: bascula() });
     const must = due.items.filter((i) => i.required);
+    renderResumen(d);
+    renderRecordatorio(d);
     $('#home-toca').classList.toggle('hidden', !must.length);
     if (must.length) setText($('#toca-text'), `Hoy toca: ${Constancia.joinEs(must.map((i) => i.label.toLowerCase()))}.`);
     // Tu semana
@@ -2733,6 +2768,7 @@
   photoForm.elements.date.value = today();
   loadPhotos();
   fillProfileForm();
+  initRecordatorio();
   render();
   if (!state.profile && !PROD.coach) show('perfil');   // Sprint 11: en el modo coach no se pide perfil (ni peso ni plan)
   // El perfil a revisar ya se anuncia en #profile-issue (role=alert): no se repite en el toast (Obs. QA S1-1).

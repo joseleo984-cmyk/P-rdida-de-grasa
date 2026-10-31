@@ -64,6 +64,9 @@
       const cx = gate.querySelector('.a7-clause-export');   // M6: cláusula 14 (descarga y custodia local)
       cx.textContent = t.clauseExport || '';
       cx.classList.toggle('hidden', !t.clauseExport);
+      const cl = gate.querySelector('.a7-clause-liga');   // función 5: cláusula 15 (ligas)
+      cl.textContent = t.clauseLiga || '';
+      cl.classList.toggle('hidden', !t.clauseLiga);
       gate.querySelector('.a7-text').textContent = ConsentTexts.fill(t.body, {});
       A.fillLinks(gate.querySelector('.a7-links'), t.links);
     }
@@ -516,12 +519,30 @@
     $('#fc-react-btns').innerHTML = REACT.map(([l, b], i) => `<button type="button" data-react="${i}" aria-pressed="${i === reactSel}">${esc(l)}</button>`).join('');
     reactBodies = REACT.map((r) => r[1]);
     reactLabels = REACT.map((r) => r[0]);
+    renderReeng(c, at);
     const rv = readReviewed()[c.info.clientId] === todayBo();
     const b = $('#btn-fc-revisado');
     b.textContent = rv ? 'Revisado hoy ✓' : 'Revisado ✓';
     b.setAttribute('aria-pressed', String(rv));
     const hasPrev = shownOrder.length > 1 || cache.size > 1;
     $('#btn-coach-prev').disabled = !hasPrev; $('#btn-coach-next').disabled = !hasPrev;
+  }
+  // Piloto 3: aviso de reenganche a los 7 días sin registrar (el texto lo edita el coach; se envía como nota existente).
+  let reengFor = null, reengTpl = [], reengSel = 0;
+  function renderReeng(c, at) {
+    const card = $('#fc-reeng');
+    if (!card) return;
+    const r = window.Piloto ? Piloto.avisoCoach({ days: at.days, name: displayName(c) }) : { show: false };
+    card.classList.toggle('hidden', !r.show);
+    if (!r.show) { reengFor = null; return; }
+    $('#fc-reeng-head').textContent = r.headline;
+    $('#fc-reeng-action').textContent = r.action;
+    card.dataset.urgent = String(r.urgent);
+    if (reengFor !== c.info.clientId) {
+      reengTpl = r.templates; reengSel = 0;
+      $('#fc-reeng-tpl').innerHTML = r.templates.map((t, i) => `<button type="button" data-tpl="${i}" aria-pressed="${i === 0}">${esc(t.label)}</button>`).join('');
+      $('#fc-reeng-msg').value = r.message; $('#fc-reeng-status').textContent = ''; reengFor = c.info.clientId;
+    }
   }
   let reactBodies = [], reactLabels = [], reactSel = 0;   // la reacción elegida (por defecto la primera); «Enviar» la manda como nota del coach
   const REVIEWED_KEY = PGNS.key('revisados');   // «Revisado ✓»: solo en el teléfono del coach
@@ -545,14 +566,15 @@
   }
   async function sendReaction(body, label, { undo = true } = {}) {
     const c = cache.get(current);
-    if (!c) return;
+    if (!c) return false;
     const id = Schema.uuid();
     try {
       await A.remote.coach.addComment(current, { id, refDate: today(), body: body.slice(0, 1000) });
       await reloadCurrent();
       toast(`Enviado: «${label}»`);
       void undo;
-    } catch (err) { toast(errText(err), true); }
+      return true;
+    } catch (err) { toast(errText(err), true); return false; }
   }
   // Estilo v2 (r1 v1.12): el coach marca como revisado el aviso de dolor (en la lista o en la ficha).
   async function reviewPain(clientId) {
@@ -587,6 +609,21 @@
       if (!b) return;
       reactSel = Number(b.dataset.react);
       document.querySelectorAll('#fc-react-btns [data-react]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    });
+    $('#fc-reeng-tpl').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-tpl]');
+      if (!b || !reengTpl[Number(b.dataset.tpl)]) return;
+      reengSel = Number(b.dataset.tpl);
+      document.querySelectorAll('#fc-reeng-tpl [data-tpl]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      $('#fc-reeng-msg').value = reengTpl[reengSel].text;
+      $('#fc-reeng-status').textContent = '';
+    });
+    $('#btn-fc-reeng').addEventListener('click', async () => {
+      const body = $('#fc-reeng-msg').value.trim();
+      if (!body) { $('#fc-reeng-status').textContent = 'Escribe un mensaje antes de enviar.'; return; }
+      if (!(await sendReaction(body, 'Mensaje de reenganche'))) return;
+      reengFor = null;
+      $('#fc-reeng-status').textContent = 'Enviado como nota. Tu asesorado la verá en Inicio.';
     });
     $('#btn-fc-enviar').addEventListener('click', () => sendReaction(reactBodies[reactSel], reactLabels[reactSel]));
     $('#btn-fc-felicitar').addEventListener('click', () => { const c = cache.get(current); if (c) sendReaction(`¡Felicitaciones, ${displayName(c).split(/\s+/)[0]}! Tu constancia se nota.`, 'Felicitaciones'); });
