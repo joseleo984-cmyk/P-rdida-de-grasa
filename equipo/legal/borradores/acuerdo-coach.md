@@ -77,3 +77,11 @@ Al utilizar la función de exportación o descarga de registros de sus asesorado
 
 Cláusula 15. Manejo ético y confidencialidad en dinámicas grupales y ligas de constancia:
 En caso de habilitar o participar en funciones de ligas comunitarias o retos de constancia entre sus clientes, el Coach asume formalmente las siguientes obligaciones: (i) abstenerse de revelar, asociar o divulgar por cualquier medio (verbal, escrito, redes sociales o chats grupales) la identidad real de las personas que se encuentren detrás de los alias de la plataforma; (ii) no utilizar las posiciones relativas o tablas de puntos como mecanismo de coacción, presión psicológica, burla, reproche o exposición pública; y (iii) abstenerse de realizar y compartir capturas de pantalla de las tablas grupales. La inobservancia de esta disposición constituirá incumplimiento grave del presente acuerdo y hará responsable al Coach de los perjuicios y violaciones a la intimidad que se ocasionen a los usuarios.
+
+
+## 16. Prohibición de pagos y responsabilidad sobre incentivos
+*(Cláusula nueva, texto LITERAL aprobado por la asesoría jurídica el 31 de octubre de 2026, concepto 8, punto 1; «[X]» = 16, la siguiente libre tras la 15. Su aceptación se registra con la versión 0.7-A7-coach, que también exige la liga.)*
+
+Cláusula 16. Prohibición de pagos y responsabilidad sobre incentivos.
+- Queda estrictamente prohibido al Coach ofrecer, prometer, sortear o entregar sumas de dinero en efectivo, transferencias bancarias, criptomonedas o cualquier medio de pago líquido equivalente como premio, incentivo o recompensa dentro del marco de la plataforma.
+- Cualquier estímulo, cortesía o premio en especie (tales como artículos deportivos, sesiones gratuitas, planes, bonos, entre otros) que el Coach decida ofrecer corre por su cuenta y riesgo, y es de su exclusiva y entera responsabilidad. El Coach asume la obligación de entrega, cumplimiento y garantía, eximiendo de forma expresa y manteniendo indemne a la plataforma y a José Granados frente a cualquier reclamación, queja o demanda de terceros derivada de la oferta o materialización de dichos estímulos.

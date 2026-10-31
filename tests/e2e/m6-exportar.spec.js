@@ -114,10 +114,10 @@ test('M6: pantalla del boceto; sin casilla no descarga; la primera vez pide la c
   const dlg = p.locator('#sheet-xl-acuerdo');
   await expect(dlg).toBeVisible();
   const ct = await p.evaluate(() => ({ clause: ConsentTexts.TEXTS.A7.clauseExport, full: ConsentTexts.fullText('A7'), ver: ConsentTexts.version('A7') }));
-  expect(ct.ver).toBe('0.6-A7-coach');
+  expect(ct.ver).toBe('0.7-A7-coach');
   await expect(p.locator('#xla-clause')).toHaveText(ct.clause);
   await expect(p.locator('#xla-clause')).toContainText('Cláusula 14. Descarga y custodia local de datos de los asesorados');
-  await expect(p.locator('#xla-ver')).toHaveText('0.6-A7-coach');
+  await expect(p.locator('#xla-ver')).toHaveText('0.7-A7-coach');
   await H.layout(p, '#sheet-xl-acuerdo button, #sheet-xl-acuerdo input');
   await keep(p, 'm6-aceptar-clausula.png');
   await p.locator('#btn-xla-ok').click();
@@ -130,7 +130,7 @@ test('M6: pantalla del boceto; sin casilla no descarga; la primera vez pide la c
   // La aceptación quedó registrada en el servidor con versión, huella del texto completo y fecha
   const be = await H.backend(p);
   const ev = be.consentEvents.filter((e) => e.kind === 'coach_agreement').pop();
-  expect([ev.granted, ev.version, ev.textHash]).toEqual([true, '0.6-A7-coach', H.sha(ct.full)]);
+  expect([ev.granted, ev.version, ev.textHash]).toEqual([true, '0.7-A7-coach', H.sha(ct.full)]);
   expect(ev.clientAt).toBeTruthy();
   // La exportación quedó registrada SIN contenido
   expect(be.exports).toHaveLength(1);
@@ -178,7 +178,7 @@ test('M6: pantalla del boceto; sin casilla no descarga; la primera vez pide la c
   // Mi acuerdo ya muestra la 0.5
   await p.locator('#tab-mas').click();
   await p.locator('#row-c-acuerdo').click();
-  await expect(p.locator('#acuerdo-version')).toHaveText('0.6-A7-coach');
+  await expect(p.locator('#acuerdo-version')).toHaveText('0.7-A7-coach');
   await expect(p.locator('#acuerdo-new')).toBeHidden();
   expect(errors).toEqual([]);
 });
