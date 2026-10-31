@@ -16,3 +16,14 @@ Tarjeta en Inicio del asesorado, solo **domingo, lunes y martes** (domingo = sem
 ---
 # Piloto 3 · Aviso al coach con guía de qué escribir
 En la **ficha** del asesorado (solo el coach la ve) aparece la tarjeta «Reenganche» al llegar a **7 días sin registrar**: titular («Carla lleva 9 días sin registrar»), qué hacer (mensaje corto y amable, un paso pequeño, sin reproches ni cifras) y un mensaje sugerido **editable** que se envía como nota del coach (el mismo mecanismo de siempre; el asesorado la ve en Inicio). Sin mención de pagos. Quien nunca ha registrado no dispara el aviso (puede ser recién invitado). Sin SQL. `Piloto.avisoCoach` (`piloto.js`), `coach-panel.js`, `index.html`. Pruebas: `tests/piloto.test.js`, `tests/e2e/piloto-reenganche.spec.js`.
+
+---
+# Piloto 4 · Plantillas de reenganche
+La tarjeta «Reenganche» de la ficha (solo coach) ofrece **5 plantillas** editables: Te extrañamos · Empezar pequeño · ¿Cómo te ayudo? · Una cosa pequeña · Aquí sigo. Elegir una rellena el cuadro con el nombre del asesorado; el coach la edita y la envía como nota. **Ajuste respecto al paso 3:** la tarjeta sale desde los **3 días** sin registrar (con «Todavía es pronto…»); a los **7 días** sale como aviso con «Qué hacer» (`data-urgent="true"`). Textos sin juicio, sin pagos, cifras ni consejos clínicos (probado en `tests/piloto.test.js`). **Pendiente: revisar el tono** (el pedido lo marca). Plantillas en `piloto.js` (`Piloto.TEMPLATES`). Prueba: `tests/e2e/piloto-reenganche.spec.js`.
+
+---
+# Resumen del bloque (piloto, funciones 1–4)
+- **Sin SQL en ninguna** (todo se calcula en el teléfono o reutiliza las notas existentes): no hay que pegar nada en Supabase.
+- Caché del SW v56 (`piloto.js` nuevo). Ligas (función 5): no construidas.
+- Prueba en iPhone pendiente: instalar la PWA, activar el recordatorio en Más y abrir la app pasada la hora; ver el resumen un domingo/lunes; ver la tarjeta Reenganche en la ficha de alguien con 4+ y 7+ días sin registro.
+- `npm test` ok (486; `qr.test.js` necesita `npm ci`). E2E completa: todo verde salvo s2-1-qa (esperado) y s14-legal «A6b nuevo» (formato de fecha del navegador del entorno; falla igual en `claude/comercial`, no lo toqué).

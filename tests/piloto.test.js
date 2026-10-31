@@ -72,14 +72,29 @@ test('resumen: la pausa congela esos días y las comidas cuentan como registro',
   assert.strictEqual(P.resumenSemanal(mk(W), '2026-11-09', { pauses: [{ from: '2026-11-02', to: '2026-11-04' }] }).registered, 1);
 });
 
-// ---- 3 · Aviso al coach ----
-test('aviso al coach: aparece desde los 7 días, con acción y mensaje sin juicio, pagos ni cifras', () => {
-  assert.strictEqual(P.avisoCoach({ days: 6, name: 'Carla Soto' }).show, false);
+// ---- 3 y 4 · Aviso al coach y plantillas ----
+test('aviso al coach: plantillas desde los 3 días, aviso (urgent) desde los 7; nunca para quien no ha registrado', () => {
+  assert.strictEqual(P.avisoCoach({ days: 2, name: 'Carla Soto' }).show, false);
   assert.strictEqual(P.avisoCoach({ days: null, name: 'Carla Soto' }).show, false);   // nunca registró: puede ser recién invitada
+  const soft = P.avisoCoach({ days: 4, name: 'Carla Soto' });
+  assert.deepStrictEqual([soft.show, soft.urgent], [true, false]);
+  assert.match(soft.action, /Todavía es pronto/);
   const a = P.avisoCoach({ days: 7, name: 'Carla Soto' });
-  assert.strictEqual(a.show, true);
+  assert.deepStrictEqual([a.show, a.urgent], [true, true]);
   assert.strictEqual(a.headline, 'Carla lleva 7 días sin registrar');
+  assert.match(a.action, /^Qué hacer:/);
   assert.match(a.message, /^Hola Carla,/);
-  assert.ok(a.message.length < P.MSG_MAX);
-  assert.doesNotMatch(a.headline + a.action + a.message, /pag|cobr|\bkg\b|kcal|\bcm\b|perdiste|fallaste|culpa|dieta|médic/i);
+});
+
+test('plantillas: 3 a 5, con nombre, sin juicio, sin pagos ni cifras ni consejos clínicos, y caben en una nota', () => {
+  const a = P.avisoCoach({ days: 8, name: 'Carla Soto' });
+  assert.ok(a.templates.length >= 3 && a.templates.length <= 5);
+  assert.strictEqual(new Set(a.templates.map((t) => t.id)).size, a.templates.length);
+  for (const t of a.templates) {
+    assert.match(t.text, /^Hola Carla,/);
+    assert.ok(t.text.length < P.MSG_MAX);
+    assert.doesNotMatch(t.label + t.text + a.action + a.headline, /pag|cobr|\bkg\b|kcal|\bcm\b|peso|perdiste|fallaste|culpa|dieta|médic|deberías|tienes que/i);
+  }
+  assert.strictEqual(P.plantilla('pequeno', 'Ana Ruiz'), a.templates[1].text.replace('Carla', 'Ana'));
+  assert.match(P.plantilla('no-existe', 'Ana'), /^Hola Ana,/);   // id desconocido: la primera
 });

@@ -525,7 +525,7 @@
     $('#btn-coach-prev').disabled = !hasPrev; $('#btn-coach-next').disabled = !hasPrev;
   }
   // Piloto 3: aviso de reenganche a los 7 días sin registrar (el texto lo edita el coach; se envía como nota existente).
-  let reengFor = null;
+  let reengFor = null, reengTpl = [], reengSel = 0;
   function renderReeng(c, at) {
     const card = $('#fc-reeng');
     if (!card) return;
@@ -534,7 +534,12 @@
     if (!r.show) { reengFor = null; return; }
     $('#fc-reeng-head').textContent = r.headline;
     $('#fc-reeng-action').textContent = r.action;
-    if (reengFor !== c.info.clientId) { $('#fc-reeng-msg').value = r.message; $('#fc-reeng-status').textContent = ''; reengFor = c.info.clientId; }
+    card.dataset.urgent = String(r.urgent);
+    if (reengFor !== c.info.clientId) {
+      reengTpl = r.templates; reengSel = 0;
+      $('#fc-reeng-tpl').innerHTML = r.templates.map((t, i) => `<button type="button" data-tpl="${i}" aria-pressed="${i === 0}">${esc(t.label)}</button>`).join('');
+      $('#fc-reeng-msg').value = r.message; $('#fc-reeng-status').textContent = ''; reengFor = c.info.clientId;
+    }
   }
   let reactBodies = [], reactLabels = [], reactSel = 0;   // la reacción elegida (por defecto la primera); «Enviar» la manda como nota del coach
   const REVIEWED_KEY = PGNS.key('revisados');   // «Revisado ✓»: solo en el teléfono del coach
@@ -601,6 +606,14 @@
       if (!b) return;
       reactSel = Number(b.dataset.react);
       document.querySelectorAll('#fc-react-btns [data-react]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    });
+    $('#fc-reeng-tpl').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-tpl]');
+      if (!b || !reengTpl[Number(b.dataset.tpl)]) return;
+      reengSel = Number(b.dataset.tpl);
+      document.querySelectorAll('#fc-reeng-tpl [data-tpl]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      $('#fc-reeng-msg').value = reengTpl[reengSel].text;
+      $('#fc-reeng-status').textContent = '';
     });
     $('#btn-fc-reeng').addEventListener('click', async () => {
       const body = $('#fc-reeng-msg').value.trim();
