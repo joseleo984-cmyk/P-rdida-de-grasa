@@ -2021,7 +2021,9 @@ body.producto-coach .dd-badge-n { width: 46px; height: 46px; background: none; b
 body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 0 0; border-top: 1px solid var(--hero-line, var(--line)); padding: 0 0 18px; }
 .lg-grab { width: 42px; height: 5px; border-radius: 3px; background: var(--line); margin: 10px auto 8px; }
 .lg-band { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; font-weight: 700; font-size: .9rem; color: var(--text);
-  background: color-mix(in srgb, var(--lg-cc) 12%, transparent); border-block: 1px solid color-mix(in srgb, var(--lg-cc) 32%, transparent); overflow-wrap: anywhere; }
+  background: var(--lg-band); border-block: 1px solid var(--lg-cc); overflow-wrap: anywhere; }
+.lg-band.lg-c-pp { --lg-band: rgba(45, 212, 191, .12); } .lg-band.lg-c-con { --lg-band: rgba(129, 140, 248, .12); } .lg-band.lg-c-hab { --lg-band: rgba(56, 189, 248, .12); }
+.lg-band.lg-c-ent { --lg-band: rgba(245, 158, 91, .12); } .lg-band.lg-c-reg { --lg-band: rgba(214, 199, 176, .14); } .lg-band.lg-c-ret { --lg-band: rgba(251, 113, 133, .12); }
 .lg-sbody { display: flex; flex-direction: column; gap: 8px; padding: 6px 16px 0; }
 .lg-new { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 2px 0 0; font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 800; color: var(--accent-hi, var(--accent)); }
 .lg-new.hidden { display: none; }

@@ -109,7 +109,7 @@
     $('#lgd-band').className = `lg-band lg-c-${b.cat}`;
     $('#lgd-band').innerHTML = `${L.shapeSvg(b.cat, 22, 7)}<span>${esc(c.name)} · ${c.earned} de ${c.total} ${c.earned === 1 ? 'ganada' : 'ganadas'}</span>`;
     $('#lgd-new').classList.toggle('hidden', !nuevo);
-    $('#lgd-new-t').textContent = b.hito ? 'Nueva insignia' : b.level > 1 ? 'Nuevo nivel' : 'Nueva insignia';
+    $('#lgd-new-t').textContent = b.hito || b.level === 1 ? 'Nueva insignia' : 'Nuevo nivel';
     const hero = $('#lgd-hero');
     hero.classList.remove('lg-go');
     hero.classList.toggle('lg-nuevo', nuevo);
@@ -143,7 +143,7 @@
     $('#lgd-note').textContent = L.note(b);
     if (!dlg.open) dlg.showModal();
     if (nuevo) {
-      $('#lg-live').textContent = `${b.hito ? 'Nueva insignia' : 'Nuevo nivel'}: ${b.name}${b.hito ? '' : ', nivel ' + L.LEVEL[b.level].toLowerCase()}`;
+      $('#lg-live').textContent = `${b.hito || b.level === 1 ? 'Nueva insignia' : 'Nuevo nivel'}: ${b.name}${b.hito ? '' : ', nivel ' + L.LEVEL[b.level].toLowerCase()}`;
       void hero.getBoundingClientRect();
       if (!reduce()) hero.classList.add('lg-go');
     }
