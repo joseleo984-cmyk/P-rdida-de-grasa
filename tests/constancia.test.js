@@ -82,10 +82,10 @@ test('día completo: los 4 hábitos; el sueño de más de 10 h no cuenta; se nom
   assert.strictEqual(C.joinEs(['agua', 'sueño', 'pasos']), 'agua, sueño y pasos');
 });
 
-test('insignias: 8 del MVP, calculadas con lo que ya existe y nunca por peso ni kcal', () => {
+test('insignias: 15 de 18, calculadas con lo que ya existe y nunca por peso ni kcal', () => {
   const none = C.badges(st({}), SAT);
-  assert.deepStrictEqual(none.map((b) => b.n), [1, 2, 3, 5, 6, 7, 9, 13]);
-  assert.strictEqual(none.length, 8);
+  assert.deepStrictEqual(none.map((b) => b.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 16, 17]);
+  assert.strictEqual(none.length, 15);
   assert.ok(none.every((b) => !b.earned));
   // el peso, las kcal y las medidas no dan insignias por su valor: bajar 20 kg no cambia nada salvo ser un día con registro
   const weights = st({}, { entries: [{ date: MON, weight: 100 }, { date: add(MON, 1), weight: 80 }], foods: { [MON]: [{ id: 'a', name: 'x', kcal: 100 }] } });
@@ -106,7 +106,7 @@ test('insignias por hábito: semana con 5 días de agua, 3 entrenos, primera sem
   assert.ok(by['pata-de-perro'].earned && by['buen-dormir'].earned);
   assert.ok(by['tres-de-tres'].earned && by['tres-de-tres'].date === add(MON, 2));
   assert.ok(!by['primer-mes'].earned && !by.volviste.earned);
-  assert.deepStrictEqual(C.badgeCount(all), { earned: 6, total: 8 });
+  assert.deepStrictEqual(C.badgeCount(all), { earned: 6, total: 15 });
   // Volviste: nuevo registro tras más de 7 días sin registrar
   const back = C.badges(st({ [MON]: { trained: false, water: 1 }, [add(MON, 10)]: { trained: false, water: 1 } }), add(MON, 12));
   assert.ok(back.find((x) => x.id === 'volviste').earned);
@@ -116,6 +116,30 @@ test('insignias por hábito: semana con 5 días de agua, 3 entrenos, primera sem
   // primer mes: 30 días y ≥12 con registro
   const month = {}; for (let i = 0; i < 14; i++) month[add(MON, -40 + i * 2)] = { water: 1 };
   assert.ok(C.badges(st(month), SAT).find((x) => x.id === 'primer-mes').earned);
+});
+
+test('insignias nuevas: 4, 8, 10, 12, 14, 16 y 17 por proceso; sin peso, kcal ni medirse más seguido', () => {
+  const by = (state, today) => Object.fromEntries(C.badges(state, today).map((b) => [b.id, b]));
+  // Semana redonda y Doce entrenos: 4 semanas con 4 días completos (3 entrenos por semana no bastan: 12 = 4 semanas × 3)
+  const habits = {};
+  for (let w = 0; w < 4; w++) for (let i = 0; i < 4; i++) habits[add(MON, -28 + w * 7 + i)] = { water: 2, steps: 9000, sleep: 8, trained: true };
+  const b = by(st(habits), SAT);
+  assert.ok(b['semana-redonda'].earned && b['doce-entrenos'].earned && b['constancia-4'].earned);
+  assert.ok(!by(st({ [MON]: { water: 2, steps: 9000, sleep: 8, trained: true } }), SAT)['semana-redonda'].earned);
+  // Descanso inteligente: solo «día de descanso», no «me siento mal»
+  assert.ok(!by(st({ [MON]: { rest: 'sick', trained: false } }), SAT)['descanso-inteligente'].earned);
+  assert.ok(by(st({ [MON]: { rest: 'plan', trained: false } }), SAT)['descanso-inteligente'].earned);
+  // Registro honesto: 8 días con algún hábito sin cumplir
+  const h8 = {}; for (let i = 0; i < 8; i++) h8[add(MON, -10 + i)] = { water: 1 };
+  assert.ok(by(st(h8), SAT)['registro-honesto'].earned && !by(st({ [MON]: { water: 1 } }), SAT)['registro-honesto'].earned);
+  // Midiendo con cabeza: separados ≥6 días; medirse a diario no suma
+  const sep = [0, 6, 12, 18].map((n) => ({ date: add(MON, -30 + n), waist: 90 }));
+  const daily = [0, 1, 2, 3].map((n) => ({ date: add(MON, -30 + n), waist: 90 }));
+  assert.ok(by(st({}, { entries: sep }), SAT)['midiendo-con-cabeza'].earned && !by(st({}, { entries: daily }), SAT)['midiendo-con-cabeza'].earned);
+  // Plato a plato: 10 días con ≥2 comidas, sin importar kcal
+  const foods = {}; for (let i = 0; i < 10; i++) foods[add(MON, -12 + i)] = [{ id: 'a' + i, name: 'x', kcal: 0 }, { id: 'b' + i, name: 'y', kcal: 0 }];
+  assert.ok(by(st({}, { foods }), SAT)['plato-a-plato'].earned);
+  assert.doesNotMatch(JSON.stringify(C.badges(st({}), SAT).map((x) => x.desc + x.hint)), /peso|kcal|cm\b|kg/i);
 });
 
 test('registro de un toque: agua +1 vaso por toque, tramos de pasos, rangos de sueño, entreno y esfuerzo', () => {

@@ -192,12 +192,12 @@ test('demo: hay esfuerzo del entreno y cierre del día, con valores válidos del
   assert.ok(hs.some((h) => h.close === 'si') && hs.some((h) => h.close === 'casi'));
   for (const h of hs) { if (h.effort) { assert.ok(Schema.EFFORTS.includes(h.effort)); assert.strictEqual(h.trained, true); } if (h.close) assert.ok(Schema.CLOSES.includes(h.close)); }
 });
-test('demo: Ana tiene 6 de 8 insignias (con «Pata de perro» en camino y «Volviste» sin aplicar) en cualquier día de la semana', () => {
+test('demo: Ana tiene 10 de 15 insignias (con «Pata de perro» en camino y «Volviste» sin aplicar) en cualquier día de la semana', () => {
   for (const today of ['2026-10-19', '2026-10-21', '2026-10-24', '2026-10-25', '2026-10-27']) {
     const p = DD.buildPlan(today, { Platos });
     const ana = p.clients.find((c) => c.key === 'ana');
     const list = Constancia.badges(stateOf(ana), today);
-    assert.deepStrictEqual(list.filter((b) => b.earned).map((b) => b.n), [1, 2, 3, 5, 7, 9], today);
+    assert.deepStrictEqual(list.filter((b) => b.earned).map((b) => b.n), [1, 2, 3, 4, 5, 7, 9, 10, 14, 16], today);
     assert.match(list.find((b) => b.n === 6).hint, /pasos: \d de 5 días/);
   }
 });

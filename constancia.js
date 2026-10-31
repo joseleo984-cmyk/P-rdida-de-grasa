@@ -6,7 +6,7 @@
 //     (nunca a hoy ni al futuro) y solo en una semana con al menos 2 días con registro (una semana vacía no se «salva» sola).
 //   · Las semanas constantes se cuentan seguidas hacia atrás. La semana en curso suma si ya es constante; si aún no lo es, no rompe la cuenta.
 //   · Nunca hay «perdiste tu racha»: una semana no constante simplemente corta el conteo y se vuelve a empezar.
-//   · Insignias de proceso (MVP: 8). Nunca por peso, kcal ni centímetros.
+//   · Insignias de proceso (15 de las 18 del diseño; 8 del MVP + 7). Nunca por peso, kcal ni centímetros.
 //   · UX Etapa 2 (P1): la constancia se CONGELA en los días de pausa por pago (`frozen`: [{ from, to }] de my_link / coach_clients; to = null = sigue).
 //     Esos días no cuentan ni restan: una semana con días en pausa que no llega a constante se salta (no corta la cuenta) y la que sí llega cuenta.
 (function (root) {
@@ -174,6 +174,48 @@
     for (let i = 1; i < sorted.length; i++) if (dayNum(sorted[i]) - dayNum(sorted[i - 1]) > 7) { d13 = sorted[i]; break; }
     out.push(mk('volviste', 13, 'Volviste', 'Retomaste después de una semana o más sin registrar', d13, 'aún no aplica'));
     void weeksSet;
+    out.push(...moreBadges(state, today, sorted, per, mk));
+    return out.sort((a, b) => a.n - b.n);
+  }
+  // ---------- Insignias 4, 8, 10, 12, 14, 16 y 17 (las que se calculan con lo que ya existe) ----------
+  // Pendientes por falta de datos: 11 «Técnica primero» (evento «vio ejercicio»), 15 «Mi espejo» (las fotos viven en IndexedDB, no en `state`), 18 «Reto cumplido» (`challenges`).
+  function moreBadges(state, today, sorted, per, mk) {
+    const out = [];
+    const habitDays = sorted.filter((d) => habitOf(state, d));
+    // 4 · Constancia 4 semanas: 4 semanas seguidas ya cerradas con ≥4 días contando comodines.
+    let d4 = null, run = 0, left = 'aún no empiezas';
+    if (sorted.length) {
+      const dates = new Set(sorted);
+      let best = 0;
+      for (let wk = weekStart(sorted[0]); addDays(wk, 6) < today; wk = addDays(wk, 7)) {
+        if (weekOf(dates, wk, today).constant) { run++; best = Math.max(best, run); if (run === 4 && !d4) d4 = addDays(wk, 6); } else run = 0;
+      }
+      left = `${Math.min(4, best)} de 4 semanas`;
+    }
+    out.push(mk('constancia-4', 4, 'Constancia 4 semanas', '4 semanas seguidas con 4 días de registro (los comodines cuentan)', d4, left));
+    // 8 · Semana redonda: los 4 hábitos al menos 4 días cada uno en la misma semana.
+    let d8 = null, bestMin = 0;
+    for (const wk of Object.keys(per).sort()) {
+      const w = per[wk], m = Math.min(w.water.length, w.steps.length, w.sleep.length, w.trained.length);
+      bestMin = Math.max(bestMin, m);
+      if (!d8 && m >= 4) d8 = [w.water[3], w.steps[3], w.sleep[3], w.trained[3]].sort().pop();
+    }
+    out.push(mk('semana-redonda', 8, 'Semana redonda', 'Los 4 hábitos al menos 4 días cada uno en una semana', d8, `${Math.min(4, bestMin)} de 4 días en tu hábito más corto`));
+    // 10 · Doce entrenos acumulados.
+    const tr = habitDays.filter((d) => trainedOk(habitOf(state, d)));
+    out.push(mk('doce-entrenos', 10, 'Doce entrenos', '12 entrenos acumulados', tr[11] || null, `${Math.min(12, tr.length)} de 12 entrenos`));
+    // 12 · Descanso inteligente: marcó «Hoy es mi día de descanso» (no «me siento mal»).
+    out.push(mk('descanso-inteligente', 12, 'Descanso inteligente', 'Respetaste un día de descanso de tu plan', habitDays.find((d) => habitOf(state, d).rest === 'plan') || null, 'Marca «Hoy es mi día de descanso» cuando toque'));
+    // 14 · Registro honesto: ≥8 días registrados con algún hábito sin alcanzar la meta (premia ser sincero, no perfecto).
+    const honest = habitDays.filter((d) => { const h = habitOf(state, d); return (pos(h.water) > 0 && !waterOk(h)) || (pos(h.steps) > 0 && !stepsOk(h)) || (pos(h.sleep) > 0 && !sleepOk(h)); });
+    out.push(mk('registro-honesto', 14, 'Registro honesto', 'Anotaste 8 días tal como fueron, también los que no llegaste a la meta', honest[7] || null, `${Math.min(8, honest.length)} de 8 días`));
+    // 16 · Midiendo con cabeza: 4 registros de medidas espaciados ≥6 días (no hay insignia por medirse más seguido).
+    const md = [...new Set(((state && state.entries) || []).filter((e) => e && e.date && e.date <= today && hasMeasure(e)).map((e) => e.date))].sort();
+    const sp = []; for (const d of md) if (!sp.length || dayNum(d) - dayNum(sp[sp.length - 1]) >= 6) sp.push(d);
+    out.push(mk('midiendo-con-cabeza', 16, 'Midiendo con cabeza', '4 registros de medidas separados por al menos 6 días', sp[3] || null, `${Math.min(4, sp.length)} de 4 registros`));
+    // 17 · Plato a plato: 10 días con al menos 2 comidas registradas (cuenta registrar, no las kcal).
+    const pl = Object.keys((state && state.foods) || {}).filter((d) => d <= today && Array.isArray(state.foods[d]) && state.foods[d].length >= 2).sort();
+    out.push(mk('plato-a-plato', 17, 'Plato a plato', 'Registraste tus comidas 10 días', pl[9] || null, `${Math.min(10, pl.length)} de 10 días`));
     return out;
   }
   const badgeCount = (list) => ({ earned: list.filter((b) => b.earned).length, total: list.length });

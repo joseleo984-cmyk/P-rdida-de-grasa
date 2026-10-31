@@ -2280,7 +2280,7 @@
       <button type="button" class="icon-btn" data-del-med="${esc(e.id)}" aria-label="Eliminar las medidas del ${esc(fmtDate(e.date))}">✕</button></li>`).join('');
   }
 
-  // ---- Insignias (8 del MVP) ----
+  // ---- Insignias (15 de 18) ----
   function renderInsignias() {
     if (!PROD.coach || navCoach) return;
     const list = Constancia.badges(state, today()), c = Constancia.badgeCount(list);

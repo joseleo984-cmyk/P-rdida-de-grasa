@@ -98,7 +98,7 @@ test('coach: lista con el «sin pagar», ficha con medidas, hábitos, comidas, f
   await expect(page.locator('#coach-detail-medidas')).toContainText(/−5,\d/);
   await expect(page.locator('#fc-semana-title')).toContainText('Esta semana');
   await expect(page.locator('#fc-esfuerzo')).toContainText('Esfuerzo:');
-  await expect(page.locator('#fc-ins li')).toHaveCount(8);
+  await expect(page.locator('#fc-ins li')).toHaveCount(15);
   await expect(page.locator('#fc-const-sum')).toContainText('6 de 8');
   await expect(page.locator('#coach-detail-view')).toContainText('Hábitos de la semana');
   await expect(page.locator('#coach-detail-view')).toContainText('Comidas');
@@ -164,8 +164,8 @@ test('asesorado: Inicio «Mi día», Comidas, Entrenar (con animación), Progres
   await page.locator('#btn-fotovistas').click();
   await expect(page.locator('#fv-list li')).toHaveCount(4);
   await page.evaluate(() => PGNav.show('insignias'));
-  await expect(page.locator('#insig-count')).toHaveText('6 de 8 insignias');
-  await expect(page.locator('#insig-list li.earned')).toHaveCount(6);
+  await expect(page.locator('#insig-count')).toHaveText('10 de 15 insignias');
+  await expect(page.locator('#insig-list li.earned')).toHaveCount(10);
   await page.locator('#tab-entrenar').click();
   await expect(page.locator('#view-rutina')).toContainText('Rutina de hoy');
   await expect(page.locator('#view-rutina')).toContainText('Pecho y tríceps');
