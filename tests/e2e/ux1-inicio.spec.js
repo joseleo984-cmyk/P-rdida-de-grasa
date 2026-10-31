@@ -37,8 +37,9 @@ test('barra del asesorado: Inicio · Comidas · Entrenar · Progreso · Más; H�
   await seg.nth(2).click();
   await expect(p.locator('#view-insignias')).toBeVisible();
   await expect(p.locator('#tab-registro')).toHaveAttribute('aria-current', 'page');
-  await expect(p.locator('#topbar-back')).toBeVisible();
-  await p.locator('#topbar-back').click();
+  // Logros (diseño B) es una pestaña dentro de Progreso: sin «‹ Progreso» (se vuelve con las pestañas)
+  await expect(p.locator('#topbar-back')).toBeHidden();
+  await p.locator('#tab-registro').click();
   await p.locator('#btn-medirme').click();
   await expect(p.locator('#view-medidas')).toBeVisible();
   await expect(p.locator('#tab-registro')).toHaveAttribute('aria-current', 'page');

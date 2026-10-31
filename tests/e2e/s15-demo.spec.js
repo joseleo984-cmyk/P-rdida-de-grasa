@@ -99,7 +99,7 @@ test('coach: lista con el «sin pagar», ficha con medidas, hábitos, comidas, f
   await expect(page.locator('#fc-semana-title')).toContainText('Esta semana');
   await expect(page.locator('#fc-esfuerzo')).toContainText('Esfuerzo:');
   await expect(page.locator('#fc-ins li')).toHaveCount(17);
-  await expect(page.locator('#fc-const-sum')).toContainText('de 15');
+  await expect(page.locator('#fc-const-sum')).toContainText('de 17');
   await expect(page.locator('#coach-detail-view')).toContainText('Hábitos de la semana');
   await expect(page.locator('#coach-detail-view')).toContainText('Comidas');
   await expect(page.locator('#coach-detail-view')).toContainText('kcal');
