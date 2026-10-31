@@ -41,7 +41,9 @@ La frase del dolor, tal como la diría el coach: *«Me pasó el mes entero detr�
 
 ## 3. Precio y modelo de cobro
 
-**Recomendación (fase 1, ajustada por José el 2026-10-31):** gratis los **2 primeros** asesorados; desde el **tercero**, **USD 5 por asesorado activo al mes** (antes eran 5 gratis; **este cambio reemplaza lo de `decisiones-negocio.md` #4, actualizar ese archivo**), cobrado en COP y **fuera de la app** (link de pago o transferencia). **Asesorado activo** = registra al menos 1 vez en el mes (propuesta de `vision-plataforma.md`; **[José]** confirmar la definición).
+**Calendario del cobro (decisión de José, 2026-10-31):** durante el **piloto y las pruebas de 30 días, todo gratis: hasta 5 asesorados por coach**. El cobro empieza **después** del piloto y las pruebas.
+
+**Recomendación para cuando empiece el cobro (fase 1, ajustada por José):** gratis los **2 primeros** asesorados; desde el **tercero**, **USD 5 por asesorado activo al mes** (antes eran 5 gratis; **este cambio reemplaza lo de `decisiones-negocio.md` #4, actualizar ese archivo**), cobrado en COP y **fuera de la app** (link de pago o transferencia). **Asesorado activo** = registra al menos 1 vez en el mes (propuesta de `vision-plataforma.md`; **[José]** confirmar la definición).
 
 **Por qué funciona (razones):**
 - Se valida sin construir cobros: solo hay que ver si el coach paga al pasar de 2.
@@ -50,7 +52,7 @@ La frase del dolor, tal como la diría el coach: *«Me pasó el mes entero detr�
 
 **Anclaje de precio (ético):** mostrar el costo **por asesorado** y compararlo con lo que el coach ya cobra («con lo que cobras a 1 asesorado en un mes (400.000) pagas la plataforma de ~20 asesorados»), no con un «precio tachado» inventado. Mostrar primero el plan gratis, luego el de pago.
 
-**Precio fundador:** los 2 coaches del piloto (y los primeros 8) mantienen su precio mientras sigan activos. El cupo debe ser **real**, no inventado. **[José]** decidir cuántos cupos y por cuánto tiempo.
+**Precio fundador:** aplica cuando empiece el cobro; los 2 coaches del piloto (y los primeros 8) mantienen su precio mientras sigan activos. El cupo debe ser **real**, no inventado. **[José]** decidir cuántos cupos y por cuánto tiempo.
 
 **2 alternativas (a comparar, no a aplicar ya):**
 
@@ -67,17 +69,17 @@ La frase del dolor, tal como la diría el coach: *«Me pasó el mes entero detr�
 
 **Cómo llega el primer coach (suposición: la confianza viene de ti, no de anuncios):**
 1. **Los 2 del piloto** son los primeros casos de éxito. Nada se publica sin su permiso por escrito.
-2. **Tu red directa:** José escribe por Instagram y WhatsApp a 10 coaches conocidos o referidos por los del piloto, con una oferta concreta: «prueba con tus 2 primeros asesorados, gratis».
+2. **Tu red directa:** José escribe por Instagram y WhatsApp a 10 coaches conocidos o referidos por los del piloto, con una oferta concreta: «prueba gratis con hasta 5 asesorados durante el piloto».
 3. **Referido entre coaches:** cada coach activo recibe un enlace; si trae a otro que supera 2 asesorados, gana un mes sin tarifa (**suposición**; probar, §6).
-4. **Página de venta simple** con el mensaje de §2 y un solo botón: «Quiero probarlo con mis 2 primeros».
+4. **Página de venta simple** con el mensaje de §2 y un solo botón: «Quiero probarlo con mis primeros asesorados».
 
 **De piloto a pago:**
 
 | Paso | Qué ocurre | Señal |
 |---|---|---|
-| 1. Probar | El coach invita a sus 2 primeros asesorados (gratis) | Los 2 registran 3 días por semana |
+| 1. Probar (gratis, hasta 5) | El coach invita hasta 5 asesorados durante el piloto y las pruebas | ≥ 3 de 5 registran 3 días por semana |
 | 2. Notar valor | Ve el panel el lunes y escribe a alguien por lo que vio | Escribió a ≥ 1 asesorado por semana |
-| 3. Crecer | Invita al tercer asesorado | Pasa el límite gratis |
+| 3. Crecer | Al terminar el piloto, invita al tercer asesorado | Pasa el límite gratis (el cobro aún no corre durante el piloto) |
 | 4. Pagar | Recibe aviso amable 7 días antes del tercero con el costo por asesorado | Paga el primer mes |
 
 La app oficial **no se conecta a la nube** hasta que el abogado apruebe los textos. Mientras tanto, el embudo solo llega hasta el paso 1 con material real; el resto se prueba con el concierge del piloto R0. **[Abogado]** fecha de aprobación.
@@ -94,7 +96,7 @@ Regla de oro: **se aplican al coach (el comprador) y a la constancia del asesora
 | **Aversión a la pérdida (bien usada)** | «Un asesorado que se apaga sin que lo notes es una mensualidad que se pierde» (pérdida del coach, real) | Aviso al coach: «3 asesorados llevan 5 días sin registrar» con sugerencia de mensaje amable. **Nunca** «perdiste tu racha» al asesorado (`diseno/04` §7: constancia por semanas, con comodines) |
 | **Reducción de fricción** | Un solo botón, sin tarjeta para probar, 3 pasos visibles: invitar, registrar, ver | Código de invitación, registro en 30 segundos, una acción clara en Inicio (`diseno/03`) |
 | **Anclaje de precio** | Primero «Gratis hasta 2», luego «USD 5 por asesorado»; mostrar el costo frente a la mensualidad que el coach ya cobra | En la lista de asesorados, resumen del mes sin presión: «activos este mes: N» |
-| **Efecto de dotación / compromiso** | «Prueba con tus 2 primeros, tus datos son tuyos y puedes descargarlos» | El coach ya ha cargado sus asesorados y el historial; el aviso de pago llega con tiempo y sin urgencia falsa |
+| **Efecto de dotación / compromiso** | «Prueba gratis con hasta 5, tus datos son tuyos y puedes descargarlos» | El coach ya ha cargado sus asesorados y el historial; el aviso de pago llega con tiempo y sin urgencia falsa |
 | **Pequeños pasos** | «Empieza con 1 asesorado hoy» | Microcelebración al registrar y hitos de proceso, no de peso (`diseno/04`) |
 | **Autoridad prudente** | Mostrar que los textos legales los revisó un abogado, **solo cuando sea cierto** | Pantallas de consentimiento claras, sin premarcar |
 
@@ -112,8 +114,8 @@ Todos con la app actual o el concierge del piloto. Las metas son **hipótesis**,
 |---|---|---|---|---|
 | 1 | **Mensaje A/B/C** | Enviar a 30 coaches (10 por variante) por mensaje directo con la frase de §2 | Respuestas y «sí, cuéntame más» por variante | Una variante supera a las otras en ≥ 2× |
 | 2 | **Llamada de 15 minutos** | Agendar demos con quien responda y enseñar la lista de asesorados con datos de prueba (no reales) | % de demos que piden probarlo con sus 2 | ≥ 30 % |
-| 3 | **Precio fundador** | Ofrecer a los 2 del piloto: precio fijo mientras sigan, pago anticipado de un mes | Aceptan, aceptan a otro precio, o no | 2 de 2 aceptan (`piloto-r0` M6) |
-| 4 | **Página de una pantalla** | Página con el mensaje ganador y botón «Probar con mis 2 primeros» (formulario con nombre y WhatsApp, con aviso Ley 1581) | Visitas a clic y clic a formulario | ≥ 10 % de formularios sobre visitas |
+| 3 | **Precio fundador (solo preguntar, no cobrar)** | Preguntar a los 2 del piloto si aceptarían, al terminar, precio fijo mientras sigan; sin pago anticipado porque el piloto es gratis | Aceptan, aceptan a otro precio, o no | 2 de 2 dicen sí (`piloto-r0` M6) |
+| 4 | **Página de una pantalla** | Página con el mensaje ganador y botón «Probar gratis con mis primeros asesorados» (formulario con nombre y WhatsApp, con aviso Ley 1581) | Visitas a clic y clic a formulario | ≥ 10 % de formularios sobre visitas |
 | 5 | **Referido entre coaches** | Pedir a cada coach del piloto presentar a 2 colegas con un mes sin tarifa | Presentaciones hechas y coaches que prueban | ≥ 2 presentaciones por coach |
 
 **Reporte semanal a José:** contactos, respuestas, demos, pruebas iniciadas, pagos prometidos. **[José]** quién ejecuta cada paso y cuántas horas por semana puede dedicar (suposición: ≤ 5 h).
@@ -147,8 +149,8 @@ Todos con la app actual o el concierge del piloto. Las metas son **hipótesis**,
 ## 3 decisiones que necesitamos de José
 
 1. ~~Cuánto cobran los coaches~~ → **respondido: COP 400.000 al mes.**
-2. ~~Precio fundador~~ → **respondido: sí; gratis 2, cobro desde el tercero.** Falta: ¿cuántos cupos de precio fundador?
-3. ~~Horas~~ → ver estimado abajo; falta que José confirme si puede.
+2. ~~Precio~~ → **respondido: piloto y pruebas gratis hasta 5 asesorados por coach; después, gratis 2 y cobro desde el tercero.** Falta: ¿cuántos cupos de precio fundador y cuándo termina el piloto?
+3. ~~Horas~~ → **respondido: 5 h por semana.**
 
-### Tiempo necesario de José (hipótesis)
-**~4 a 5 horas por semana durante 4 semanas (~18 h en total):** 2 h para escribir y dar seguimiento a ~30 mensajes, 1,5 a 2 h para 6 a 8 llamadas de 15 minutos, 0,5 h para el reporte semanal y 0,5 h para la página y el formulario (sobre todo en la semana 1). Si solo puedes 2 h por semana, se reducen a 15 coaches y 3 experimentos (1, 3 y 5).
+### Tiempo de José (confirmado: 5 horas por semana)
+**5 horas por semana alcanzan** para el plan completo (~18 a 20 h en 4 semanas): 2 h para escribir y dar seguimiento a ~30 mensajes, 1,5 a 2 h para 6 a 8 llamadas de 15 minutos, 0,5 h para el reporte semanal y 0,5 h para la página y el formulario (sobre todo en la semana 1). Con 5 h se hacen los 5 experimentos.
