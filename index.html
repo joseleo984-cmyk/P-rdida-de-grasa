@@ -306,6 +306,11 @@
             <button type="button" class="btn-link" data-goto="habitos">Corregir otro día ›</button>
           </div>
         </section>
+        <section id="home-rec" class="home-card home-rec hidden" aria-labelledby="rec-aviso-title">
+          <h3 id="rec-aviso-title" class="home-label">Tu recordatorio</h3>
+          <p id="rec-aviso-text" class="small"></p>
+          <button type="button" class="btn btn-ghost btn-tall" id="rec-luego">Luego</button>
+        </section>
         <section id="home-toca" class="home-card home-toca hidden" aria-labelledby="toca-title">
           <h3 id="toca-title" class="home-label">Hoy toca medirte</h3>
           <p id="toca-text" class="small"></p>
@@ -1357,6 +1362,13 @@
         <li><button type="button" class="more-row" id="row-ayuda"><span class="more-text"><strong>Ayuda</strong><span class="more-sub">Respuestas a las dudas más comunes</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li class="needs-login hidden"><button type="button" class="more-row" id="row-salir"><span class="more-text"><strong>Cerrar sesión</strong><span class="more-sub">Salir de tu cuenta en este teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
       </ul>
+      <!-- Piloto 1: recordatorio diario (máx. 1). Apagado por defecto; la hora se guarda solo en este teléfono. Es un aviso al abrir la app (no una notificación push). -->
+      <section id="rec-card" class="card pc-only" aria-labelledby="rec-title">
+        <h3 id="rec-title">Recordatorio diario</h3>
+        <label class="rec-row"><input type="checkbox" id="rec-on"> <span>Avisarme para registrar mi día</span></label>
+        <label class="rec-row"><span>A partir de las</span> <select id="rec-hour" aria-label="Hora del recordatorio"></select></label>
+        <p class="small muted">Te lo mostramos al abrir la app, pasada esa hora, si hoy aún no registras. No es una notificación y no se envía a nadie. Puedes apagarlo cuando quieras.</p>
+      </section>
     </section>
 
     <!-- M6: EXPORTAR A EXCEL (coach, producto «coach»; concepto jurídico 6). Solo lo que el coach ya ve (coach_pull); nunca fotos. Casilla LITERAL antes de CADA descarga;
@@ -1907,6 +1919,7 @@
   <script src="admin.js"></script>
   <script src="estado-cliente.js"></script>
   <script src="inicio-view.js"></script>
+  <script src="piloto.js"></script>
   <script src="photos.js"></script>
   <script src="etapa2.js"></script>
   <script src="app.js"></script>
