@@ -2082,3 +2082,13 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 .rec-row input[type="checkbox"] { width: 24px; height: 24px; flex: none; }
 .res-lines { margin: 6px 0 8px; padding-left: 20px; }
 .res-lines li { margin: 2px 0; }
+
+/* Función 5: liga semanal (solo alias y puntos) */
+.liga-notice { margin: 8px 0; padding: 10px 12px; border-left: 4px solid var(--accent, #1aa6a0); background: var(--surface-2, rgba(127,127,127,.1)); border-radius: 8px; font-size: .92rem; }
+.liga-min { font-weight: 700; margin: 10px 0; }
+.liga-table { list-style: none; margin: 10px 0; padding: 0; }
+.liga-table li { display: flex; gap: 12px; align-items: center; padding: 10px 6px; border-bottom: 1px solid rgba(127,127,127,.25); min-height: 44px; }
+.liga-table li.me { font-weight: 800; }
+.liga-rank { width: 1.6em; text-align: center; opacity: .7; }
+.liga-alias { flex: 1; overflow-wrap: anywhere; }
+.liga-pts { white-space: nowrap; }

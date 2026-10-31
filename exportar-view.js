@@ -176,6 +176,8 @@
     const CT = window.ConsentTexts, t = CT.get('A7'), A = acc();
     $('#xla-ver').textContent = CT.version('A7');
     $('#xla-clause').textContent = t.clauseExport || '';
+    $('#xla-clause-liga').textContent = t.clauseLiga || '';
+    $('#xla-clause-liga').classList.toggle('hidden', !t.clauseLiga);
     $('#xla-intro').textContent = CT.fill(t.intro, {});
     $('#xla-clause13').textContent = t.clause || '';
     $('#xla-clause13').classList.toggle('hidden', !t.clause);

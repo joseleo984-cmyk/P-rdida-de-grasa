@@ -13,7 +13,7 @@ PRs #32–#38: etapas 1-2, estilo v2, aviso de dolor, metas, analítica coach, p
 - SQL: migración en supabase/migrations/ + `npm run build:db` → supabase/r1.sql. José lo pega en Supabase y confirma «OK r1 v1» antes de juntar.
 
 ## Frenado / pendiente de terceros
-- Ligas: textos del abogado aprobados (concepto 7), no construidas.
+- Ligas: construidas en la rama claude/piloto-funciones (equipo/handoffs/liga-semanal.md); falta que José pegue r1.sql v1.16 y el abogado revise alias, cláusula 15 y premios.
 - Alertas L6 apagadas (`ALERTS_FILTER = false`) hasta que nutricionista/médico valide umbrales.
 - Abogado: frase de la meta del team en la política. José: fecha de vigencia de la política.
 

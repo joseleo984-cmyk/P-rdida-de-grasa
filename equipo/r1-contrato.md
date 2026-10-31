@@ -906,3 +906,19 @@ Una sola migración aditiva e idempotente encima de v1.14: `supabase/migrations/
 **Remote (real y fake):** `client.myPoints()`, `client.myTeamGoal()`, `client.setTeamOptOut(out)`, `coach.points(from, to)`, `coach.teamGoal()`, `coach.setTeamGoal(metric, target)`, `coach.deleteTeamGoal()`.
 
 **Compatibilidad:** con la app nueva y el SQL viejo, los puntos y la meta no aparecen (la línea de Inicio queda oculta) y el ranking sigue sin los criterios Hábitos y Puntos (se desactivan con una nota); el resto funciona. Pegar el SQL antes de publicar. Los puntos empiezan a contar desde que se pega (no hay historia hacia atrás: solo hoy y ayer).
+
+## 25. Cambios v1.16 (liga semanal de constancia; concepto jurídico 7, puntos 3, 4, 8, 11 y 12)
+
+Migración `supabase/migrations/20261103120000_r1_liga.sql` (aditiva, idempotente). Pruebas: `supabase/tests/200_liga.test.sql`, `tests/liga.test.js`, `tests/e2e/piloto-liga.spec.js`.
+
+| # | Cambio | Error / resultado |
+|---|---|---|
+| 25.1 | `core.consent_events.kind` admite `liga` (la casilla literal del concepto 7, punto 4; la app la registra con la huella del texto completo, versión `0.1-A9-liga`). | |
+| 25.2 | `grasa.coach_links.liga_opt_in boolean default false` y `liga_alias text`. APAGADA por defecto. | |
+| 25.3 | `grasa.liga_join()`: vínculo activo; coach activo con acuerdo `0.6-A7-coach` (cláusula 15); A3 + A4 + `adult` + `liga` vigentes; hábitos y comidas compartidos; pago al día. Asigna un alias del catálogo cerrado (24, único dentro del team). | `liga_not_enabled`, `consent_required`, `liga_consent_required`, `liga_requires_habits`, `paused` (42501); `liga_full` (22023) |
+| 25.4 | `grasa.liga_leave()`: apaga y borra el alias. Idempotente. | |
+| 25.5 | `grasa.my_liga()`: `{ enabled, opted_in, alias, week_start, week_end, min:5, participants, published, table }`. `table` SOLO si participas y hay 5 o más: `[{ alias, points, me }]` ordenada por puntos de constancia (tope 80). Nunca nombres, ids, peso, medidas, comidas ni fotos. Sin histórico: cada lunes arranca de cero. | |
+| 25.6 | `grasa.coach_liga()`: `{ enabled, min, published, participants }` (el número solo con 5 o más). El coach NO tiene función que muestre alias ni personas. | `forbidden` si no es coach |
+| 25.7 | Cuenta en la liga solo quien sigue vinculado, sin pausa por pago y con todos los consentimientos vigentes (revocar `liga` lo saca aunque el interruptor siguiera encendido). Menores de 18: la app solo admite adultos y la unión lo exige otra vez. | |
+
+**Remote (real y fake):** `client.myLiga()`, `client.joinLiga()`, `client.leaveLiga()`, `coach.liga()`. **Acuerdo del coach:** versión `0.6-A7-coach` = la 0.5 + «Cláusula 15» (la 7.6 del concepto, literal); `0.4` y `0.5` siguen valiendo para el resto de la app; la 0.6 solo se pide para habilitar la liga.

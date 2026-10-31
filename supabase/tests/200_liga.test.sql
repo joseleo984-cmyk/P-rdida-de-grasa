@@ -55,6 +55,8 @@ select tests.ok((grasa.my_liga() ->> 'alias') = any (tests.catalog()), 'el alias
 select tests.ok((grasa.my_liga() ->> 'published')::boolean = false and (grasa.my_liga() -> 'table') = 'null'::jsonb, 'con 1 participante no hay tabla');
 reset role;
 
+select tests.ok(grasa.export_agreement_of(tests.uid('x')) = '0.6-A7-coach', 'la 0.6 del acuerdo sigue valiendo para exportar (trae la cláusula 14)');
+
 -- ================= Mínimo 5: con 4 o menos no se publica nada =================
 do $$ declare n text; begin
   foreach n in array array['bea', 'c1', 'c2'] loop

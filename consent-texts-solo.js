@@ -12,6 +12,7 @@
 (function (root) {
   'use strict';
   const CT = typeof module !== 'undefined' && module.exports ? require('./consent-texts.js') : root.ConsentTexts;
+  const LG = typeof module !== 'undefined' && module.exports ? require('./liga.js') : root.Liga;
   const POLICY = 'legal/privacidad.html';
 
   CT.TEXTS.AU = {
@@ -69,16 +70,26 @@
       clauseExport: ['Cláusula 14. Descarga y custodia local de datos de los asesorados',
         'Al utilizar la función de exportación o descarga de registros de sus asesorados (archivos en formato Excel, CSV o similares), el Coach asume la condición de Responsable directo e independiente del tratamiento de dicha información a partir del momento de la descarga. El Coach se obliga expresamente a: (i) almacenar los archivos en dispositivos seguros, privados y protegidos contra accesos no autorizados; (ii) utilizar la información exclusivamente para la planificación y seguimiento de la asesoría del cliente; (iii) abstenerse de divulgar, transferir o comercializar estos datos con terceros; y (iv) eliminar de forma definitiva los archivos locales una vez finalice la relación comercial con el asesorado. La Plataforma queda totalmente indemne y exenta de responsabilidad ante cualquier pérdida, filtración o uso indebido de los datos que ocurra fuera de sus servidores una vez exportados por el Coach.'].join('\n'),
     };
+    // Función 5 (liga semanal): se añade la «Cláusula 15. Manejo ético y confidencialidad en dinámicas grupales y ligas de constancia» (cláusula 7.6 del
+    // concepto 7, punto 8), LITERAL y numerada correlativamente tras la 14. Versión 0.6-A7-coach; la 0.5-A7-coach pasa EXACTA a A7_PAST. Quien aceptó la
+    // 0.4 o la 0.5 NO tiene que volver a aceptar para el resto de la app; la 0.6 se le pide solo cuando quiere habilitar la liga de su team (ligaAgreementOK).
+    CT.A7_PAST[CT.version('A7')] = CT.fullText('A7');
+    CT.TEXTS.A7 = { ...CT.TEXTS.A7, version: '0.6-A7-coach', clauseLiga: LG.CLAUSE };
+    // A9: consentimiento de la liga (concepto 7, punto 4), LITERAL. Lo registra la app con la huella del texto completo (título + texto + casilla).
+    CT.TEXTS.A9 = { version: '0.1-A9-liga', kinds: ['liga'], body: LG.CONSENT.join('\n'), title: LG.TITLE, box: LG.BOX, links: [{ label: 'Política de datos', href: POLICY }] };
     // Versiones del acuerdo que siguen valiendo para el resto de la app (sin re-aceptación forzada) y las que valen para exportar (traen la cláusula 14).
-    CT.A7_STILL_VALID = ['0.4-A7-coach', '0.5-A7-coach'];
-    CT.A7_EXPORT_VERSIONS = ['0.5-A7-coach'];
+    CT.A7_STILL_VALID = ['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach'];
+    CT.A7_EXPORT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach'];
+    CT.A7_LIGA_VERSIONS = ['0.6-A7-coach'];
     const a7 = (meta) => (meta && meta.consents && meta.consents.coach_agreement) || null;
     CT.coachAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_STILL_VALID.includes(c.version)); };
+    CT.ligaAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_LIGA_VERSIONS.includes(c.version)); };
     CT.exportAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_EXPORT_VERSIONS.includes(c.version)); };
   }
 
   const fullText0 = CT.fullText;
   CT.fullText = function (id, vars = {}) {
+    if (id === 'A9') { const a = CT.TEXTS.A9; return [a.title, a.body, a.box].join('\n') + '\n' + a.links.map((l) => `[${l.label}]`).join(' '); }
     if (id !== 'A5c') return fullText0(id, vars);
     const t = CT.TEXTS.A5c;
     return [CT.fill(t.intro, vars), ...['body', 'nutrition', 'habits', 'photos'].map((k) => '- ' + t.categories[k]), CT.fill(t.outro, vars)].join('\n') + '\n' + t.links.map((l) => `[${l.label}]`).join(' ');

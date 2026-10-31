@@ -543,6 +543,10 @@
       // v1.15: mis puntos (los CALCULA el servidor; el teléfono solo los muestra), la meta del team (agregada: total y cuántos) y el opt-out.
       async myPoints() { await me(); return pointsOut(await rpc('grasa', 'my_points')); },
       async myTeamGoal() { await me(); return teamGoalOut(await rpc('grasa', 'my_team_goal')); },
+      // r1 v1.16: liga semanal. Todo lo calcula el servidor; la respuesta ya viene con la tabla solo si participas y hay 5 o más.
+      async myLiga() { await me(); return rpc('grasa', 'my_liga'); },
+      async joinLiga() { await me(); return rpc('grasa', 'liga_join'); },
+      async leaveLiga() { await me(); return rpc('grasa', 'liga_leave'); },
       async setTeamOptOut(out) { await me(); return teamGoalOut(await rpc('grasa', 'set_team_opt_out', { p_out: !!out })); },
       async setPhotoShared(photoId, shared) {
         const u = await me();
@@ -733,6 +737,7 @@
         if (!DAY_RE.test(String(from)) || !DAY_RE.test(String(to))) throw new RemoteError('invalid', 'Fecha no válida');
         return rows(await rpc('grasa', 'coach_points', { p_from: from, p_to: to })).map((r) => ({ clientId: r.client_id, points: num(r.points), habitsMet: num(r.habits_met) }));
       },
+      async liga() { await me(); return rpc('grasa', 'coach_liga'); },
       async teamGoal() { await me(); return teamGoalOut(await rpc('grasa', 'coach_team_goal')); },
       async setTeamGoal(metric, target) { await me(); return teamGoalOut(await rpc('grasa', 'set_team_goal', { p_metric: String(metric), p_target: Number(target) })); },
       async deleteTeamGoal() { await me(); await rpc('grasa', 'delete_team_goal'); },

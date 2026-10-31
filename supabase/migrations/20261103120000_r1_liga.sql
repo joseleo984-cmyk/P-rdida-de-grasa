@@ -11,6 +11,7 @@
 --   L5  Menores de 18: la app solo admite mayores de edad (consentimiento `adult` obligatorio); además la unión lo vuelve a exigir.
 --   L6  Salir: apaga el interruptor y borra el alias; desaparece de la tabla activa al instante. Quien deja de estar vinculado, en pausa o sin
 --       consentimiento vigente deja de contar y de verse sin que nadie tenga que hacer nada.
+--   L7  La versión 0.6-A7-coach trae además la cláusula 14, así que sigue valiendo para exportar (grasa.export_agreement_versions pasa a 0.5 y 0.6).
 -- Pruebas: supabase/tests/200_liga.test.sql. Contrato: equipo/r1-contrato.md §25.
 
 -- ============ L0: tipo de consentimiento `liga` ============
@@ -52,6 +53,10 @@ language sql stable security definer set search_path = '' as $$
     and core.consent_is_granted(p_link.client_id, 'grasa', 'adult') and core.consent_is_granted(p_link.client_id, 'grasa', 'liga')
     and not grasa.client_payment_blocked(p_link.client_id)
 $$;
+
+-- L7: exportar sigue funcionando con la 0.6 (que incluye la cláusula 14).
+create or replace function grasa.export_agreement_versions() returns text[]
+language sql immutable set search_path = '' as $$ select array['0.5-A7-coach', '0.6-A7-coach']::text[] $$;
 
 -- ============ L1: unirse ============
 create or replace function grasa.liga_join() returns jsonb

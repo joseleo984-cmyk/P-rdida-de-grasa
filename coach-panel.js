@@ -64,6 +64,9 @@
       const cx = gate.querySelector('.a7-clause-export');   // M6: cláusula 14 (descarga y custodia local)
       cx.textContent = t.clauseExport || '';
       cx.classList.toggle('hidden', !t.clauseExport);
+      const cl = gate.querySelector('.a7-clause-liga');   // función 5: cláusula 15 (ligas)
+      cl.textContent = t.clauseLiga || '';
+      cl.classList.toggle('hidden', !t.clauseLiga);
       gate.querySelector('.a7-text').textContent = ConsentTexts.fill(t.body, {});
       A.fillLinks(gate.querySelector('.a7-links'), t.links);
     }
