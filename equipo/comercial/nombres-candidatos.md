@@ -19,3 +19,10 @@
 **Preselección sugerida (opinión):** Cadencia, Tándem y Rumbo. Reserva: Constante.
 
 **Siguientes pasos:** 1) José elige 3 finalistas; 2) el abogado revisa si se pueden registrar y si hay dominio; 3) consulta anónima a los coaches y asesorados del piloto (con la pregunta «¿qué crees que hace una app con este nombre?»); 4) José decide.
+
+## Propuesta de José (2026-11-01): «Aura Coach»
+Logo propuesto: símbolo de infinito con una marca de visto, en verde y blanco sobre negro.
+- **A favor:** símbolo simple que dice «constancia que se completa»; se lee pequeño (prueba de icono del iPhone); sin cuerpos ni pesas.
+- **Riesgos (suposición, sin verificar):** «Aura» es una palabra muy usada como nombre de marca y de apps (puede chocar en la SIC y en las tiendas de apps); suena a esoterismo o bienestar, no a constancia; «Coach» es genérico y no protege.
+- **Pendientes:** **[Abogado]** búsqueda de marca para «Aura» y alternativas; versión sobre fondo claro y de un solo color; revisar derechos de la imagen si fue generada con IA.
+- Si «Aura» no es viable, el símbolo (infinito + visto) se puede conservar con otro nombre.
