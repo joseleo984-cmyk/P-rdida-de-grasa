@@ -1480,7 +1480,18 @@
     <!-- AYUDA -->
     <section id="view-ayuda" class="view" aria-labelledby="ayuda-title">
       <div class="back-row"><button type="button" class="btn-link back-btn" data-goto="mas">← Más</button><h2 class="back-title" id="ayuda-title" tabindex="-1">Ayuda</h2></div>
-      <div class="card help">
+      <!-- Ayuda del producto «coach»: preguntas con respuesta fija por rol, buscador y botón de soporte (ayuda.js). Sin IA ni datos de salud. -->
+      <div id="ayuda-faq" class="card pc-only">
+        <h3 id="ayuda-role"></h3>
+        <label class="acc-label" for="ayuda-q">Buscar</label>
+        <input type="search" id="ayuda-q" autocomplete="off" placeholder="Por ejemplo: código, pago, fotos" aria-controls="ayuda-list">
+        <div id="ayuda-list" class="help"></div>
+        <p id="ayuda-empty" class="small hidden" role="status">No encontré nada con eso. Escríbenos a soporte y te ayudamos.</p>
+        <a class="btn btn-tall" id="ayuda-soporte" href="#" target="_blank" rel="noopener">Escribir a soporte por WhatsApp</a>
+        <p class="small muted">Soporte: <span id="ayuda-tel"></span>. No escribas datos de salud en el mensaje.</p>
+        <p class="small muted">Textos completos: <a href="legal/terminos.html" data-legal>Términos y Condiciones</a> · <a href="legal/privacidad.html" data-legal>Política de Tratamiento de Datos</a></p>
+      </div>
+      <div class="card help home-legacy">
         <details class="pc-only" open><summary>¿Cómo registro mis medidas y mis hábitos?</summary><p>Entra a <strong>Medidas</strong> para anotar cuello, brazos, espalda, cintura y muslos, y a <strong>Hábitos</strong> para tu agua, tus pasos, tu sueño y tu entrenamiento. Todo se guarda en tu cuenta.</p></details>
         <details class="pc-only"><summary>¿Cómo se ven mis fotos?</summary><p>En <strong>Fotos</strong> las autorizas una sola vez. Tu coach ve las fotos que subes; puedes ocultar una desde la foto y quitarle el permiso a todas cuando quieras.</p></details>
         <details class="home-legacy" open><summary>¿Cómo anoto mi peso?</summary><p>Toca el botón <strong>＋ Registrar</strong> y elige «Mi peso de hoy». También puedes entrar a <strong>Progreso</strong> y llenar el formulario.</p></details>
@@ -2012,6 +2023,7 @@
   <script src="analitica-view.js"></script>
   <script src="puntos-view.js"></script>
   <script src="liga-view.js"></script>
+  <script src="ayuda.js"></script>
   <script src="logros-view.js"></script>
   <script src="admin-view.js"></script>
   <script src="exportar-view.js"></script>
