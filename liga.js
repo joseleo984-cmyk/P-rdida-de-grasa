@@ -21,6 +21,13 @@
   const CLAUSE_TITLE = 'Cláusula 15. Manejo ético y confidencialidad en dinámicas grupales y ligas de constancia:';
   const CLAUSE_BODY = 'En caso de habilitar o participar en funciones de ligas comunitarias o retos de constancia entre sus clientes, el Coach asume formalmente las siguientes obligaciones: (i) abstenerse de revelar, asociar o divulgar por cualquier medio (verbal, escrito, redes sociales o chats grupales) la identidad real de las personas que se encuentren detrás de los alias de la plataforma; (ii) no utilizar las posiciones relativas o tablas de puntos como mecanismo de coacción, presión psicológica, burla, reproche o exposición pública; y (iii) abstenerse de realizar y compartir capturas de pantalla de las tablas grupales. La inobservancia de esta disposición constituirá incumplimiento grave del presente acuerdo y hará responsable al Coach de los perjuicios y violaciones a la intimidad que se ocasionen a los usuarios.';
   const CLAUSE = CLAUSE_TITLE + '\n' + CLAUSE_BODY;
+  // Concepto 8 (31-oct-2026), punto 1: «Cláusula [X]. Prohibición de pagos y responsabilidad sobre incentivos.» LITERAL; [X] = 16 (la siguiente tras la 15).
+  const PREMIOS_TITLE = 'Cláusula 16. Prohibición de pagos y responsabilidad sobre incentivos.';
+  const PREMIOS_BULLETS = [
+    'Queda estrictamente prohibido al Coach ofrecer, prometer, sortear o entregar sumas de dinero en efectivo, transferencias bancarias, criptomonedas o cualquier medio de pago líquido equivalente como premio, incentivo o recompensa dentro del marco de la plataforma.',
+    'Cualquier estímulo, cortesía o premio en especie (tales como artículos deportivos, sesiones gratuitas, planes, bonos, entre otros) que el Coach decida ofrecer corre por su cuenta y riesgo, y es de su exclusiva y entera responsabilidad. El Coach asume la obligación de entrega, cumplimiento y garantía, eximiendo de forma expresa y manteniendo indemne a la plataforma y a José Granados frente a cualquier reclamación, queja o demanda de terceros derivada de la oferta o materialización de dichos estímulos.',
+  ];
+  const CLAUSE_PREMIOS = [PREMIOS_TITLE, ...PREMIOS_BULLETS.map((b) => '- ' + b)].join('\n');
 
   // Texto exacto que ve la persona al unirse (la huella del consentimiento es el SHA-256 de ESTA cadena).
   const consentFullText = () => [TITLE, ...CONSENT, BOX].join('\n');
@@ -36,7 +43,7 @@
     return { state: 'table', alias: m.alias || '', participants: m.participants || rows.length, rows, weekStart: m.week_start, weekEnd: m.week_end };
   }
 
-  const api = { MIN, TITLE, CONSENT, BOX, BUTTON, NOTICE, MIN_MESSAGE, CLAUSE_TITLE, CLAUSE_BODY, CLAUSE, consentFullText, view };
+  const api = { MIN, TITLE, CONSENT, BOX, BUTTON, NOTICE, MIN_MESSAGE, CLAUSE_TITLE, CLAUSE_BODY, CLAUSE, PREMIOS_TITLE, PREMIOS_BULLETS, CLAUSE_PREMIOS, consentFullText, view };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Liga = api;
 })(typeof window !== 'undefined' ? window : globalThis);

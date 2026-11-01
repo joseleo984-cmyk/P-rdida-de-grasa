@@ -102,13 +102,13 @@
     if (!show) return;
     const g = coachLiga, body = $('#liga-coach-body');
     if (!g.enabled) {
-      body.innerHTML = `<p class="small">Tus asesorados pueden unirse a una tabla semanal por alias, solo de constancia (voluntaria y con mínimo de ${g.min}). Para habilitarla, acepta la versión del acuerdo con la cláusula 15 (manejo ético y confidencialidad en ligas).</p>
+      body.innerHTML = `<p class="small">Tus asesorados pueden unirse a una tabla semanal por alias, solo de constancia (voluntaria y con mínimo de ${g.min}). Para habilitarla, acepta la versión del acuerdo con la cláusulas 15 (manejo ético y confidencialidad en ligas) y 16 (prohibición de pagos e incentivos).</p>
         <button type="button" class="btn btn-tall" id="btn-liga-habilitar">Habilitar la liga</button>`;
       return;
     }
     body.innerHTML = `<p id="liga-coach-state" class="small">${g.published ? `Liga habilitada: participan ${esc(g.participants)} personas.` : `Liga habilitada. Se publica cuando haya ${g.min} participantes o más.`}</p>
       <p class="small muted">Tú no ves quién es cada alias. Tu acuerdo te obliga a no revelarlo, a no usar la tabla para presionar y a no compartir capturas.</p>
-      <details class="small"><summary>Ver la cláusula 15</summary><p>${esc(LG.CLAUSE)}</p></details>`;
+      <details class="small"><summary>Ver las cláusulas 15 y 16</summary><p>${esc(LG.CLAUSE)}</p><p>${esc(LG.CLAUSE_PREMIOS)}</p></details>`;
   }
   function openAgreement() {
     const t = CT.get('A7');
@@ -117,6 +117,7 @@
     $('#lga-c13').textContent = t.clause || '';
     $('#lga-c14').textContent = t.clauseExport || '';
     $('#lga-c15').textContent = t.clauseLiga || '';
+    $('#lga-c16').textContent = t.clausePremios || '';
     $('#lga-body').textContent = CT.fill(t.body, {});
     $('#lga-ok').checked = false;
     $('#lga-error').classList.add('hidden');

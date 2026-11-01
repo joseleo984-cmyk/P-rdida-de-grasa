@@ -21,3 +21,11 @@ Aplica el **concepto jurídico 7** (`equipo/legal/concepto-7-2026-10-26.md`), qu
 
 ## Pruebas
 `npm test` (liga, legal literal), `PGOPTIONS='-c qa.strict=on' npm run test:db` (200_liga: 26 comprobaciones; 937 en total), E2E `piloto-liga`. Caché del SW v57. Prueba en iPhone pendiente.
+
+
+---
+## Actualización 31-oct (concepto 8, aprobación del abogado)
+El abogado **aprobó** todo (cláusula 15, 24 alias, diseño, mensajes, recordatorio local) y entregó el texto que faltaba: **Cláusula 16 «Prohibición de pagos y responsabilidad sobre incentivos»** (`equipo/legal/concepto-8-2026-10-31.md`, literal en `liga.js`).
+- Acuerdo del coach sube a **0.7-A7-coach** (= 0.6 + cláusula 16). La liga exige la 0.7: un coach que solo aceptó la 0.6 debe aceptar la 0.7 para mantenerla habilitada. Exportar sigue valiendo con 0.5, 0.6 y 0.7.
+- SQL nuevo: `supabase/migrations/20261104120000_r1_liga_premios.sql` (v1.17, 2 funciones). **José debe pegarlo en Supabase.**
+- Ya no hay puntos legales pendientes de la liga. Falta solo la prueba en iPhone.

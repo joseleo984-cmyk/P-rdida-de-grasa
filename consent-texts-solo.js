@@ -75,12 +75,16 @@
     // 0.4 o la 0.5 NO tiene que volver a aceptar para el resto de la app; la 0.6 se le pide solo cuando quiere habilitar la liga de su team (ligaAgreementOK).
     CT.A7_PAST[CT.version('A7')] = CT.fullText('A7');
     CT.TEXTS.A7 = { ...CT.TEXTS.A7, version: '0.6-A7-coach', clauseLiga: LG.CLAUSE };
+    // Concepto 8 (31-oct-2026, punto 1): «Cláusula 16. Prohibición de pagos y responsabilidad sobre incentivos.», LITERAL. Versión 0.7-A7-coach; la 0.6 pasa EXACTA
+    // a A7_PAST. Quien tiene la 0.4, 0.5 o 0.6 sigue usando el resto de la app; la 0.7 (con las cláusulas 15 y 16) se pide solo para habilitar la liga.
+    CT.A7_PAST[CT.version('A7')] = CT.fullText('A7');
+    CT.TEXTS.A7 = { ...CT.TEXTS.A7, version: '0.7-A7-coach', clausePremios: LG.CLAUSE_PREMIOS };
     // A9: consentimiento de la liga (concepto 7, punto 4), LITERAL. Lo registra la app con la huella del texto completo (título + texto + casilla).
     CT.TEXTS.A9 = { version: '0.1-A9-liga', kinds: ['liga'], body: LG.CONSENT.join('\n'), title: LG.TITLE, box: LG.BOX, links: [{ label: 'Política de datos', href: POLICY }] };
     // Versiones del acuerdo que siguen valiendo para el resto de la app (sin re-aceptación forzada) y las que valen para exportar (traen la cláusula 14).
-    CT.A7_STILL_VALID = ['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach'];
-    CT.A7_EXPORT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach'];
-    CT.A7_LIGA_VERSIONS = ['0.6-A7-coach'];
+    CT.A7_STILL_VALID = ['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach'];
+    CT.A7_EXPORT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach'];
+    CT.A7_LIGA_VERSIONS = ['0.7-A7-coach'];
     const a7 = (meta) => (meta && meta.consents && meta.consents.coach_agreement) || null;
     CT.coachAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_STILL_VALID.includes(c.version)); };
     CT.ligaAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_LIGA_VERSIONS.includes(c.version)); };

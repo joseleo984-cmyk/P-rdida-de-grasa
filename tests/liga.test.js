@@ -41,7 +41,7 @@ test('servidor falso: sin la cláusula del acuerdo no hay liga; con ella, apagad
   assert.strictEqual((await a.client.myLiga()).enabled, false);
   await assert.rejects(a.client.joinLiga(), (e) => e.detail === 'liga_not_enabled');
   assert.strictEqual((await coach.coach.liga()).enabled, false);
-  await coach.account.recordConsents([ev('coach_agreement', true, '0.6-A7-coach')]);
+  await coach.account.recordConsents([ev('coach_agreement', true, '0.7-A7-coach')]);
   const m = await a.client.myLiga();
   assert.deepStrictEqual([m.enabled, m.opted_in, m.alias], [true, false, null], 'habilitada pero apagada por defecto');
   await assert.rejects(a.client.joinLiga(), (e) => e.detail === 'liga_consent_required', 'sin la casilla no se une');
@@ -55,7 +55,7 @@ test('servidor falso: sin la cláusula del acuerdo no hay liga; con ella, apagad
 
 test('servidor falso: con 4 no se publica nada; con 5, tabla solo con alias y puntos; el coach solo ve cuántos; salir lo quita al instante', async () => {
   const { be, coach, people, ev } = await start();
-  await coach.account.recordConsents([ev('coach_agreement', true, '0.6-A7-coach')]);
+  await coach.account.recordConsents([ev('coach_agreement', true, '0.7-A7-coach')]);
   await joinAll(people, ev, 4);
   assert.deepStrictEqual([(await people[0].client.myLiga()).published, (await people[0].client.myLiga()).table], [false, null], 'con 4: ni tabla ni puntajes');
   assert.deepStrictEqual(await coach.coach.liga(), { enabled: true, min: 5, published: false, participants: null }, 'el coach no ve ni el número con menos de 5');

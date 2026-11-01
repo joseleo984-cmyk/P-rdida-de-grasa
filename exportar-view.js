@@ -178,6 +178,8 @@
     $('#xla-clause').textContent = t.clauseExport || '';
     $('#xla-clause-liga').textContent = t.clauseLiga || '';
     $('#xla-clause-liga').classList.toggle('hidden', !t.clauseLiga);
+    $('#xla-clause-premios').textContent = t.clausePremios || '';
+    $('#xla-clause-premios').classList.toggle('hidden', !t.clausePremios);
     $('#xla-intro').textContent = CT.fill(t.intro, {});
     $('#xla-clause13').textContent = t.clause || '';
     $('#xla-clause13').classList.toggle('hidden', !t.clause);

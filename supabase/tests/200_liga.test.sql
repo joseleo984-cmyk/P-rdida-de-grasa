@@ -44,7 +44,7 @@ end $$;
 select tests.login('ana');
 select tests.ok((grasa.my_liga() ->> 'enabled')::boolean = false and (grasa.my_liga() ->> 'opted_in')::boolean = false, 'sin cláusula en el acuerdo: liga no habilitada y apagada por defecto');
 select tests.throws($$select grasa.liga_join()$$, 'liga_not_enabled', 'unirse sin que el coach acepte la cláusula de ligas: no');
-reset role; select tests.agree_v('x', '0.6-A7-coach'); select tests.login('ana');
+reset role; select tests.agree_v('x', '0.7-A7-coach'); select tests.login('ana');
 select tests.ok((grasa.my_liga() ->> 'enabled')::boolean and not (grasa.my_liga() ->> 'opted_in')::boolean, 'con la cláusula: habilitada pero apagada (la persona decide)');
 select tests.throws($$select grasa.liga_join()$$, 'consent_required', 'sin «mayor de edad» no se puede entrar (menores fuera)');
 reset role; select tests.consent('ana', 'adult'); select tests.login('ana');
@@ -55,12 +55,12 @@ select tests.ok((grasa.my_liga() ->> 'alias') = any (tests.catalog()), 'el alias
 select tests.ok((grasa.my_liga() ->> 'published')::boolean = false and (grasa.my_liga() -> 'table') = 'null'::jsonb, 'con 1 participante no hay tabla');
 reset role;
 
-select tests.ok(grasa.export_agreement_of(tests.uid('x')) = '0.6-A7-coach', 'la 0.6 del acuerdo sigue valiendo para exportar (trae la cláusula 14)');
+select tests.ok(grasa.export_agreement_of(tests.uid('x')) = '0.7-A7-coach', 'la 0.6 del acuerdo sigue valiendo para exportar (trae la cláusula 14)');
 
 -- ================= Mínimo 5: con 4 o menos no se publica nada =================
 do $$ declare n text; begin
   foreach n in array array['bea', 'c1', 'c2'] loop
-    perform tests.agree_v('x', '0.6-A7-coach') where false;
+    perform tests.agree_v('x', '0.7-A7-coach') where false;
     insert into core.consent_events (user_id, app_id, kind, granted, version, text_hash, client_at)
       select tests.uid(n), 'grasa', k, true, 't', tests.h(k), now() from unnest(array['adult', 'liga']) k;
     perform tests.login(n); perform grasa.liga_join(); reset role;

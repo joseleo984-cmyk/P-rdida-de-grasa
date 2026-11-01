@@ -25,7 +25,7 @@ test('asesorado: la liga solo aparece si el coach la habilita; opt-in con el tex
   await closeAviso(p);
   await verPuntos(p);
   await expect(p.locator('#liga-box')).toBeHidden();                       // el coach no ha aceptado la cláusula de ligas
-  await como(p, 'laura@coach.co', `${ev} await r.account.recordConsents([ev('coach_agreement', true, '0.6-A7-coach')]);`);
+  await como(p, 'laura@coach.co', `${ev} await r.account.recordConsents([ev('coach_agreement', true, '0.7-A7-coach')]);`);
   await p.evaluate(() => window.PGLiga.reload());
   await expect(p.locator('#liga-box')).toBeVisible();
   await expect(p.locator('#liga-body')).toContainText('Es voluntaria');
@@ -70,16 +70,17 @@ test('asesorado: la liga solo aparece si el coach la habilita; opt-in con el tex
   expect(errors).toEqual([]);
 });
 
-test('coach: habilitar la liga = aceptar el acuerdo con la cláusula 15 literal; luego solo ve si se publica y cuántos, nunca alias', async ({ browser }, testInfo) => {
+test('coach: habilitar la liga = aceptar el acuerdo con las cláusulas 15 y 16 literales; luego solo ve si se publica y cuántos, nunca alias', async ({ browser }, testInfo) => {
   const CLIENTS = [{ email: 'ana@c.co', name: 'Ana Martínez', paidDays: 20, habitDays: [H.hab(0)] }];
   const { p, errors } = await H.coachApp(browser, testInfo, CLIENTS);
   await p.locator('#tab-mas').click();
   await p.locator('#row-c-retos').click();
   await expect(p.locator('#liga-coach')).toBeVisible();
-  await expect(p.locator('#liga-coach-body')).toContainText('cláusula 15');
+  await expect(p.locator('#liga-coach-body')).toContainText('cláusulas 15');
   await p.locator('#btn-liga-habilitar').click();
   await expect(p.locator('#lga-c15')).toHaveText(L.CLAUSE);
-  await expect(p.locator('#lga-ver')).toHaveText('0.6-A7-coach');
+  await expect(p.locator('#lga-c16')).toHaveText(L.CLAUSE_PREMIOS);
+  await expect(p.locator('#lga-ver')).toHaveText('0.7-A7-coach');
   await p.locator('#btn-lga-ok').click();
   await expect(p.locator('#lga-error')).toBeVisible();                     // sin marcar la casilla no se acepta
   await p.locator('#lga-ok').check();
@@ -88,6 +89,6 @@ test('coach: habilitar la liga = aceptar el acuerdo con la cláusula 15 literal;
   await expect(p.locator('#liga-coach')).not.toContainText(/alias:|Halcón|Titán/);
   const be = await H.backend(p);
   const last = be.consentEvents.filter((c) => c.kind === 'coach_agreement').pop();
-  expect([last.granted, last.version]).toEqual([true, '0.6-A7-coach']);
+  expect([last.granted, last.version]).toEqual([true, '0.7-A7-coach']);
   expect(errors).toEqual([]);
 });

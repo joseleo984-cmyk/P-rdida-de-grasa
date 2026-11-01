@@ -471,6 +471,8 @@
     $('#acc-a7-clause-export').classList.toggle('hidden', !t.clauseExport);
     $('#acc-a7-clause-liga').textContent = t.clauseLiga || '';   // función 5: cláusula 15 (ligas)
     $('#acc-a7-clause-liga').classList.toggle('hidden', !t.clauseLiga);
+    $('#acc-a7-clause-premios').textContent = t.clausePremios || '';   // concepto 8: cláusula 16 (incentivos)
+    $('#acc-a7-clause-premios').classList.toggle('hidden', !t.clausePremios);
     $('#acc-a7-text').textContent = CT.fill(t.body, {});
     fillLinks($('#acc-a7-links'), t.links);
   }

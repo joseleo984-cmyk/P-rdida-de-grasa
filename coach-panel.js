@@ -67,6 +67,9 @@
       const cl = gate.querySelector('.a7-clause-liga');   // función 5: cláusula 15 (ligas)
       cl.textContent = t.clauseLiga || '';
       cl.classList.toggle('hidden', !t.clauseLiga);
+      const cp = gate.querySelector('.a7-clause-premios');   // concepto 8: cláusula 16 (incentivos)
+      cp.textContent = t.clausePremios || '';
+      cp.classList.toggle('hidden', !t.clausePremios);
       gate.querySelector('.a7-text').textContent = ConsentTexts.fill(t.body, {});
       A.fillLinks(gate.querySelector('.a7-links'), t.links);
     }
