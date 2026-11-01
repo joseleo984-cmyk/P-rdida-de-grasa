@@ -101,11 +101,12 @@ test('3.5 Acuerdo del coach: la cláusula aprobada está LITERAL en el texto que
   assert.ok(norm(read('equipo/legal/borradores/acuerdo-coach.md')).includes(expected), 'equipo/legal/borradores/acuerdo-coach.md');
   // El texto anterior (0.3-A7) se conserva EXACTO en A7_PAST (para «Mi acuerdo» y la copia por correo) y no trae la cláusula.
   // M6 (concepto 6): la versión vigente es 0.5-A7-coach (añade la cláusula 14); la 0.4-A7-coach, con la 13 y sin la 14, queda EXACTA en A7_PAST.
-  assert.strictEqual(CT.version('A7'), '0.7-A7-coach');   // concepto 8: la 0.7 añade la cláusula 16 (incentivos); la 0.6 trae la 15 (ligas)
+  assert.strictEqual(CT.version('A7'), '0.8-A7-coach');   // concepto 2.3: la 0.8 = la 0.7 (cláusulas 13 a 16) con la casilla literal del abogado; la 0.7 añade la 16, la 0.6 trae la 15
   assert.ok(CT.A7_PAST['0.3-A7'] && !/Cláusula/.test(CT.A7_PAST['0.3-A7']));
   assert.strictEqual(CT.agreementText('0.3-A7'), CT.A7_PAST['0.3-A7']);
   assert.ok(norm(CT.A7_PAST['0.4-A7-coach']).includes(expected) && !/Cláusula 14/.test(CT.A7_PAST['0.4-A7-coach']));
-  assert.strictEqual(CT.agreementText('0.7-A7-coach'), CT.fullText('A7'));
+  assert.strictEqual(CT.agreementText('0.8-A7-coach'), CT.fullText('A7'));
+  assert.ok(CT.A7_PAST['0.7-A7-coach'] && /Cláusula 16/.test(CT.A7_PAST['0.7-A7-coach']) && /Acepto el Acuerdo del coach\./.test(CT.A7_PAST['0.7-A7-coach']), '0.7 queda EXACTA con su casilla de siempre');
   assert.ok(CT.A7_PAST['0.6-A7-coach'] && /Cláusula 15/.test(CT.A7_PAST['0.6-A7-coach']) && !/Cláusula 16/.test(CT.A7_PAST['0.6-A7-coach']), '0.6 queda EXACTA, sin la 16');
   assert.ok(CT.A7_PAST['0.5-A7-coach'] && /Cláusula 14/.test(CT.A7_PAST['0.5-A7-coach']) && !/Cláusula 15/.test(CT.A7_PAST['0.5-A7-coach']), '0.5 queda EXACTA, sin la 15');
 });
@@ -268,13 +269,13 @@ test('concepto 6 · cláusula del acuerdo: «Cláusula 14. …» LITERAL en el A
   assert.strictEqual(CT.TEXTS.A7.clauseExport, expected);
   assert.ok(CT.fullText('A7').includes(expected), 'fullText(A7) la incluye: es lo que se acepta y se hashea');
   assert.ok(CT.fullText('A7').indexOf('Cláusula 13.') < CT.fullText('A7').indexOf('Cláusula 14.'), 'va después de la 13');
-  assert.strictEqual(CT.version('A7'), '0.7-A7-coach');
+  assert.strictEqual(CT.version('A7'), '0.8-A7-coach');
   assert.ok(norm(read('equipo/legal/borradores/acuerdo-coach.md')).includes(norm(expected)), 'equipo/legal/borradores/acuerdo-coach.md');
   assert.ok(read('supabase/functions/_shared/textos-acuerdo.mjs').includes(JSON.stringify(CT.fullText('A7')).slice(1, -1)), 'textos-acuerdo.mjs (npm run build:funcion)');
   // Sin re-aceptación forzada para el resto de la app: 0.4 sigue valiendo; para exportar hace falta la 0.5.
   const m = (v) => ({ consents: { coach_agreement: { granted: true, version: v } } });
-  assert.deepStrictEqual(['0.3-A7', '0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach'].map((v) => CT.coachAgreementOK(m(v))), [false, true, true, true, true]);
-  assert.deepStrictEqual(['0.3-A7', '0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach'].map((v) => CT.exportAgreementOK(m(v))), [false, false, true, true, true]);
+  assert.deepStrictEqual(['0.3-A7', '0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach'].map((v) => CT.coachAgreementOK(m(v))), [false, true, true, true, true, true]);
+  assert.deepStrictEqual(['0.3-A7', '0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach'].map((v) => CT.exportAgreementOK(m(v))), [false, false, true, true, true, true]);
   assert.strictEqual(CT.exportAgreementOK({ consents: { coach_agreement: { granted: false, version: '0.5-A7-coach' } } }), false);
 });
 
@@ -406,7 +407,7 @@ test('concepto 7 · liga: el consentimiento A9 guarda el texto completo; el acue
   assert.ok(norm(read('equipo/legal/borradores/acuerdo-coach.md')).includes(norm(L.CLAUSE)), 'borrador del acuerdo');
   assert.ok(read('supabase/functions/_shared/textos-acuerdo.mjs').includes(JSON.stringify(CT.fullText('A7')).slice(1, -1)), 'textos-acuerdo.mjs (npm run build:funcion)');
   const m = (v) => ({ consents: { coach_agreement: { granted: true, version: v } } });
-  assert.deepStrictEqual(['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach'].map((v) => CT.ligaAgreementOK(m(v))), [false, false, false, true]);
+  assert.deepStrictEqual(['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach'].map((v) => CT.ligaAgreementOK(m(v))), [false, false, false, true, true]);
   assert.strictEqual(CT.ligaAgreementOK({ consents: { coach_agreement: { granted: false, version: '0.7-A7-coach' } } }), false);
 });
 
@@ -441,5 +442,20 @@ test('concepto 8 · cláusula 16 (incentivos) LITERAL en liga.js, en lo que se a
   assert.ok(CT.fullText('A7').indexOf('Cláusula 15.') < CT.fullText('A7').indexOf('Cláusula 16.'));
   assert.ok(norm(read('equipo/legal/borradores/acuerdo-coach.md')).includes(norm(L.CLAUSE_PREMIOS)), 'borrador del acuerdo');
   assert.ok(read('supabase/functions/_shared/textos-acuerdo.mjs').includes(JSON.stringify(CT.fullText('A7')).slice(1, -1)), 'textos-acuerdo.mjs (npm run build:funcion)');
-  assert.deepStrictEqual(CT.A7_LIGA_VERSIONS, ['0.7-A7-coach'], 'la liga exige la versión con las cláusulas 15 y 16');
+  assert.deepStrictEqual(CT.A7_LIGA_VERSIONS, ['0.7-A7-coach', '0.8-A7-coach'], 'la liga exige la versión con las cláusulas 15 y 16');
+});
+
+test('concepto 2.3 · pantalla de entrada del coach: casilla 1 (acuerdo 0.8) y casilla 2 (A10, coach_data) LITERALES y como eventos distintos', () => {
+  const md = read('equipo/legal/concepto-10-2026-11-05.md');
+  const norm2 = (x) => x.replace(/[\[\]]/g, '').replace(/\s+/g, ' ').trim();
+  assert.ok(norm2(md).includes(norm2(CT.TEXTS.A7.body.replace('0.8', 'X.X'))), 'casilla 1 literal en el concepto');
+  assert.ok(norm2(md).includes(norm2(CT.TEXTS.A10.body)), 'casilla 2 literal en el concepto');
+  assert.deepStrictEqual(CT.kinds('A10'), ['coach_data']);
+  assert.deepStrictEqual(CT.kinds('A7'), ['coach_agreement']);
+  assert.notStrictEqual(CT.version('A10'), CT.version('A7'));
+  assert.strictEqual(CT.fullText('A10').split('\n')[0], CT.TEXTS.A10.body);
+  assert.strictEqual(CT.coachDataOK({ consents: { coach_data: { granted: true, version: CT.version('A10') } } }), true);
+  assert.strictEqual(CT.coachDataOK({ consents: { coach_data: { granted: false, version: CT.version('A10') } } }), false);
+  assert.strictEqual(CT.coachDataOK({ consents: { coach_agreement: { granted: true, version: CT.version('A7') } } }), false);
+  assert.ok(read('supabase/migrations/20261105120000_r1_coach_datos.sql').includes("'coach_data'"));
 });

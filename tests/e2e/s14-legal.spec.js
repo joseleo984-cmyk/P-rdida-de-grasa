@@ -303,14 +303,14 @@ async function coachOldAgreement(browser, testInfo) {
 test('acuerdo del coach: la cláusula 13 aprobada se muestra LITERAL; quien aceptó la versión anterior debe aceptar la nueva y su texto viejo sigue en «Mi acuerdo»', async ({ browser }, testInfo) => {
   test.setTimeout(90_000);
   const { p, errors, texts } = await coachOldAgreement(browser, testInfo);
-  expect(texts.ver).toBe('0.7-A7-coach');   // M6: la vigente trae además las cláusulas 14 y 15
+  expect(texts.ver).toBe('0.8-A7-coach');   // M6: la vigente trae además las cláusulas 14 y 15
   expect(norm(texts.clause)).toBe(norm(CLAUSE));
   expect(texts.old).not.toContain('Cláusula');
   // Con la versión anterior, ya no basta: Mi acuerdo avisa y enseña el texto viejo, intacto (su huella coincide)
   await p.locator('#tab-mas').click();
   await p.locator('#row-c-acuerdo').click();
   await expect(p.locator('#acuerdo-new')).toBeVisible();
-  await expect(p.locator('#acuerdo-new-text')).toContainText('versión nueva del acuerdo (0.7-A7-coach)');
+  await expect(p.locator('#acuerdo-new-text')).toContainText('versión nueva del acuerdo (0.8-A7-coach)');
   await expect(p.locator('#acuerdo-text')).toHaveText(texts.old);
   await H.layout(p);
   await p.getByRole('button', { name: 'Revisar y aceptar la versión nueva' }).click();
@@ -326,16 +326,22 @@ test('acuerdo del coach: la cláusula 13 aprobada se muestra LITERAL; quien acep
   for (const d of [true, false]) { await dark(p, d); await H.layout(p); }
   await gate.locator('input[name=a7]').check();
   await gate.getByRole('button', { name: 'Aceptar el acuerdo' }).click();
+  await expect(gate.locator('.a7-error')).toContainText('segunda casilla');   // concepto 2.3: la autorización de datos es una casilla aparte y también obligatoria
+  await gate.locator('input[name=a10]').check();
+  await gate.getByRole('button', { name: 'Aceptar el acuerdo' }).click();
   await expect(gate).toBeHidden();
   const be = await H.backend(p);
   const ev = be.consentEvents.filter((e) => e.kind === 'coach_agreement').pop();
-  expect([ev.granted, ev.version, ev.textHash]).toEqual([true, '0.7-A7-coach', H.sha(texts.cur)]);
+  expect([ev.granted, ev.version, ev.textHash]).toEqual([true, '0.8-A7-coach', H.sha(texts.cur)]);
+  const ev10 = be.consentEvents.filter((e) => e.kind === 'coach_data').pop();   // evento DISTINTO, con su propia versión y huella
+  expect([ev10.granted, ev10.version]).toEqual([true, '0.1-A10-coach']);
+  expect(ev10.textHash).not.toBe(ev.textHash);
   expect(texts.cur).toContain(norm(CLAUSE).split(':')[0]);
   // Mi acuerdo ya muestra la versión nueva, con la cláusula
   await p.locator('#tab-mas').click();
   await p.locator('#row-c-acuerdo').click();
   await expect(p.locator('#acuerdo-new')).toBeHidden();
-  await expect(p.locator('#acuerdo-version')).toHaveText('0.7-A7-coach');
+  await expect(p.locator('#acuerdo-version')).toHaveText('0.8-A7-coach');
   expect(norm(await p.locator('#acuerdo-text').innerText())).toContain(norm(CLAUSE));
   expect(errors).toEqual([]);
 });
@@ -349,6 +355,15 @@ test('el registro como coach también muestra la cláusula antes de la casilla d
   await p.locator('#form-acc-role input[value=coach]').check();
   await expect(p.locator('#acc-a7-clause')).toBeVisible();
   expect(norm(await p.locator('#acc-a7-clause').innerText())).toBe(norm(CLAUSE));
+  // Concepto 2.3: dos casillas separadas, vacías, con su texto literal (la 1 del acuerdo y la 2 de datos y transmisión internacional)
+  await expect(p.locator('#acc-a7')).not.toBeChecked();
+  await expect(p.locator('#acc-a10')).not.toBeChecked();
+  await expect(p.locator('#acc-a7-text')).toHaveText('He leído y acepto el Acuerdo del Coach (versión 0.8), comprometiéndome a respetar los límites éticos y legales del servicio, la confidencialidad de mis asesorados y la prohibición estricta de descargar, capturar o difundir sus fotografías corporales o datos sensibles fuera de la plataforma.');
+  await expect(p.locator('#acc-a10-text')).toHaveText('Autorizo a José Granados a tratar mis datos personales de registro y gestión conforme a la Política de Tratamiento de Datos, y consiento su transmisión internacional a servidores en la nube (Supabase, EE. UU.) y proveedores de correo (Brevo, Francia) bajo medidas de seguridad internacionales.');
+  await p.locator('#acc-business').fill('Mi Negocio');
+  await p.locator('#acc-a7').check();
+  await p.locator('#form-acc-role').getByRole('button').last().click();
+  await expect(p.locator('#acc-role-error')).toContainText('segunda casilla');   // con una sola casilla no avanza
   await H.layout(p);
   expect(errors).toEqual([]);
 });

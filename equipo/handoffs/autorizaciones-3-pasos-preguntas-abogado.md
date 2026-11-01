@@ -41,3 +41,11 @@ Base: Ley 1581 de 2012, Decreto 1377 de 2013, Ley 527 de 1999 (lo sancionable es
 
 **Pendiente antes de construir:** el abogado dio una *estructura recomendada* con textos de ejemplo. **No son los textos literales aprobados.** Se usan los literales ya vigentes (Acuerdo A7 0.7 y autorización de copia en la nube vigente); si quiere cambiar su redacción, debe entregarla como texto definitivo.
 Tampoco quedó respondido todavía: bienvenida sin casillas, barra «Paso N de 3», frases de apoyo (preguntas 4 y 5), enlace antes de la casilla (6) y qué se re-pide si cambia una versión (8).
+
+## Construido (pantalla 2.3 del concepto 10)
+Con la confirmación del abogado se construyó la **doble casilla del coach** (sin agrupar en 3 pasos, que sigue pendiente de las preguntas 4 a 8):
+- Casilla 1: Acuerdo del Coach, versión **0.8-A7-coach** (mismas cláusulas 13 a 16; solo cambia la frase de la casilla, literal del abogado). La 0.7 queda exacta en `A7_PAST`.
+- Casilla 2: autorización de datos y transmisión internacional, texto **A10** (`0.1-A10-coach`), tipo de consentimiento nuevo `coach_data` (SQL v1.18).
+- Ambas desmarcadas, obligatorias y sin «Marcar todo»; se registran como **dos eventos** con su versión y huella. Aparecen en el registro del coach y en la puerta «Antes de ver a tus clientes».
+- Solo en el producto coach (la app oficial conserva su flujo). El servidor todavía NO exige `coach_data` (no hay coaches reales); el muro de re-consentimiento queda para versiones futuras.
+- SQL: `supabase/migrations/20261105120000_r1_coach_datos.sql` (también está en `supabase/r1.sql`). **Falta que José lo pegue en Supabase** antes de usar esta pantalla contra un servidor real.

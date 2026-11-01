@@ -8,11 +8,11 @@
   const APP = 'grasa';
   const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const CONSENT_KINDS = ['terms', 'privacy', 'adult', 'sensitive_health', 'cloud_transfer', 'photos_cloud', 'photo_view_coach', 'coach_agreement',
-    'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos', 'liga'];
+    'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos', 'liga', 'coach_data'];
   // r1 v1.16 (liga semanal): catálogo CERRADO de alias (mismo orden que grasa.liga_aliases) y versiones del acuerdo que traen la cláusula de ligas.
   const LIGA_ALIASES = ['Halcón', 'Titán', 'Roble', 'Fénix', 'Cóndor', 'Jaguar', 'Delfín', 'Lince', 'Pino', 'Cedro', 'Águila', 'Lobo',
     'Puma', 'Ceiba', 'Colibrí', 'Roca', 'Río', 'Volcán', 'Nevado', 'Ámbar', 'Trueno', 'Coral', 'Bosque', 'Montaña'];
-  const LIGA_AGREEMENT_VERSIONS = ['0.7-A7-coach'];
+  const LIGA_AGREEMENT_VERSIONS = ['0.7-A7-coach', '0.8-A7-coach'];
   const RECORD_KINDS = ['profile', 'entry', 'food', 'habit', 'library'];
   const SHARE_KEYS = ['body', 'notes', 'nutrition', 'habits', 'photos'];
   const RETRYABLE = { offline: true, server: true, rate_limited: true }; // consent_required y agreement_required: no se reintentan solos
@@ -1277,7 +1277,7 @@
         return done(undefined);
       },
     };
-    const EXPORT_AGREEMENT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach'];
+    const EXPORT_AGREEMENT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach'];
     const exportOut = (x) => ({ id: x.id, createdAt: x.createdAt, clients: x.clients, categories: x.categories.slice(), from: x.from, to: x.to });
     const GOAL_RANGES = { weight_kg: { min: 30, max: 300, dec: 1 }, waist_cm: { min: 40, max: 200, dec: 1 }, protein_g: { min: 20, max: 400, dec: 0 },
       water_days: { min: 1, max: 7, dec: 0 }, steps_days: { min: 1, max: 7, dec: 0 }, sleep_days: { min: 1, max: 7, dec: 0 }, trained_days: { min: 1, max: 7, dec: 0 } };
