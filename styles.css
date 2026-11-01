@@ -2095,3 +2095,18 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 .rec-lunes-list { list-style: none; margin: 8px 0 0; padding: 0; }
 .rec-lunes-list li { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(127,127,127,.25); }
 .rec-lunes-list li > span { overflow-wrap: anywhere; }
+
+/* Pedido adicional: bienvenida e inicio del coach */
+.cw { text-align: center; display: grid; gap: 14px; padding: 24px 16px; }
+.cw-logo { width: 64px; height: 42px; margin: 0 auto; }
+.cw-legend { list-style: none; margin: 0; padding: 12px; display: grid; gap: 8px; text-align: left; border: 1px solid var(--line); border-radius: 12px; }
+.cw-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+.cw-g { background: var(--ok, #2e9e41); } .cw-y { background: var(--warn, #b25e00); } .cw-n { background: var(--muted, #6b7a70); }
+.ci-hoy { font-weight: 800; font-size: 1.2rem; margin: 0 0 10px; }
+.ci-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.ci-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 8px; text-align: center; }
+.ci-stats b { display: block; font-size: 1.4rem; }
+.ci-stats span { font-size: .75rem; color: var(--muted); }
+.ci-list { list-style: none; margin: 0; padding: 0; }
+.ci-list li { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.ci-pill { font-size: .75rem; font-weight: 600; }

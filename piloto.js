@@ -152,7 +152,27 @@
     };
   }
 
-  const api = { reconocer, hito, optionLabel, HITO_OPTIONS, MAX_RECONOCER, avisoCoach, plantilla, TEMPLATES, REENG_SOFT, REENG_DAYS, MSG_MAX, resumenSemanal, REC_HOURS, REC_DEFAULT_HOUR, REC_TEXT, recClean, recDue, recHourLabel };
+  // ---------- 9 · Inicio del coach: «Hoy, escríbele a N personas» ----------
+  // Resume la lista con la regla que el coach ya usa (al día / se está apagando / sin registrar). Solo constancia: ni peso, ni fotos, ni cifras de salud.
+  // `rows`: [{ id, name, level ('aldia'|'revisar'|'atencion'), days (días sin registrar o null), daysLogged7 }].
+  const INICIO_MAX = 5;
+  function inicioCoach(rows) {
+    const list = (rows || []).filter((r) => r && r.id);
+    const kind = (r) => (r.level === 'aldia' ? 'constante' : r.level === 'revisar' ? 'apaga' : 'sin');
+    const count = { constante: 0, apaga: 0, sin: 0 };
+    const items = list.map((r) => {
+      const k = kind(r), n = Math.max(0, Math.min(7, Number(r.daysLogged7) || 0));
+      count[k]++;
+      const detail = k === 'constante' ? `${n} de 7 días` : k === 'apaga' ? (r.days != null ? `${r.days} días sin registrar` : `${n} de 7 días`) : (r.days != null ? `${r.days} días sin registrar` : 'Aún no registra');
+      return { id: r.id, name: r.name, kind: k, detail, pill: k === 'constante' ? 'Constante' : k === 'apaga' ? 'Se está apagando' : 'Sin registrar', action: k === 'constante' ? 'Felicitar' : 'Escribirle', score: k === 'sin' ? 2 : k === 'apaga' ? 1 : 0, days: r.days == null ? 1e9 : r.days };
+    });
+    items.sort((a, b) => b.score - a.score || b.days - a.days || String(a.name).localeCompare(String(b.name), 'es'));
+    const hoy = count.apaga + count.sin;
+    const headline = !list.length ? 'Aún no tienes asesorados' : hoy === 0 ? 'Hoy nadie necesita un mensaje' : `Hoy, escríbele a ${hoy} ${hoy === 1 ? 'persona' : 'personas'}`;
+    return { hoy, headline, constantes: count.constante, apagan: count.apaga, sinRegistrar: count.sin, items: items.slice(0, INICIO_MAX).map(({ score, days, ...x }) => x) };
+  }
+
+  const api = { inicioCoach, INICIO_MAX, reconocer, hito, optionLabel, HITO_OPTIONS, MAX_RECONOCER, avisoCoach, plantilla, TEMPLATES, REENG_SOFT, REENG_DAYS, MSG_MAX, resumenSemanal, REC_HOURS, REC_DEFAULT_HOUR, REC_TEXT, recClean, recDue, recHourLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Piloto = api;
 })(typeof window !== 'undefined' ? window : globalThis);

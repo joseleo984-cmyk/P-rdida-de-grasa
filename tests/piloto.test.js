@@ -135,3 +135,26 @@ test('hito: se ofrece a las 6 semanas (14 días) y a las 8 (cierre); en semanas,
   assert.match(h6.closing, /semanas, nunca en kilos/);
   assert.doesNotMatch(JSON.stringify(h6) + JSON.stringify(h8), /\bkg\b|kcal|\bcm\b|peso\b(?! )|perdiste|fallaste/i);
 });
+
+test('inicio del coach: cuenta quién necesita un mensaje, ordena por urgencia y solo muestra constancia', () => {
+  const rows = [
+    { id: 'a', name: 'Ana', level: 'aldia', days: 0, daysLogged7: 6 },
+    { id: 'b', name: 'Beto', level: 'revisar', days: 3, daysLogged7: 2 },
+    { id: 'c', name: 'Carla', level: 'atencion', days: 8, daysLogged7: 0 },
+    { id: 'd', name: 'Dani', level: 'atencion', days: null, daysLogged7: 0 },
+  ];
+  const r = P.inicioCoach(rows);
+  assert.strictEqual(r.hoy, 3);
+  assert.strictEqual(r.headline, 'Hoy, escríbele a 3 personas');
+  assert.deepStrictEqual([r.constantes, r.apagan, r.sinRegistrar], [1, 1, 2]);
+  assert.deepStrictEqual(r.items.map((i) => i.id), ['d', 'c', 'b', 'a']);
+  assert.strictEqual(r.items[0].detail, 'Aún no registra');
+  assert.strictEqual(r.items[1].detail, '8 días sin registrar');
+  assert.strictEqual(r.items[3].action, 'Felicitar');
+  assert.strictEqual(r.items[3].detail, '6 de 7 días');
+  assert.doesNotMatch(JSON.stringify(r), /\bkg\b|kcal|\bcm\b|peso|foto|perdiste/i);
+  assert.strictEqual(P.inicioCoach([rows[0]]).headline, 'Hoy nadie necesita un mensaje');
+  assert.strictEqual(P.inicioCoach([{ id: 'x', name: 'X', level: 'revisar', days: 3, daysLogged7: 1 }]).headline, 'Hoy, escríbele a 1 persona');
+  assert.strictEqual(P.inicioCoach([]).headline, 'Aún no tienes asesorados');
+  assert.strictEqual(P.inicioCoach(Array.from({ length: 9 }, (_, i) => ({ id: 'i' + i, name: 'N' + i, level: 'atencion', days: 9, daysLogged7: 0 }))).items.length, P.INICIO_MAX);
+});

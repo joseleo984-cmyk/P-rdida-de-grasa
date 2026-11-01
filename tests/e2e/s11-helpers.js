@@ -19,6 +19,7 @@ async function useConfig(page, { producto = 'coach', soloNube = true } = {}) {
 // Un «teléfono» nuevo (contexto propio), con el reloj fijo, los diálogos aceptados y los errores de consola recogidos.
 async function phone(browser, testInfo, { prefs = {}, config = {} } = {}) {
   const ctx = await browser.newContext({ ...testInfo.project.use, baseURL: testInfo.project.use.baseURL, acceptDownloads: true });
+  await ctx.addInitScript(() => { try { if (!sessionStorage.getItem('__bienv')) { sessionStorage.setItem('__bienv', '1'); localStorage.setItem('perdida-grasa:coachBienvenida', '1'); } } catch (e) { /* sin almacenamiento */ } });   // la bienvenida del coach se prueba aparte (coach-inicio.spec.js)
   const p = await ctx.newPage();
   const errors = [];
   p.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
