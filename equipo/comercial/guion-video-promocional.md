@@ -50,3 +50,20 @@ Frase de cierre: **«Ve quién se está apagando antes de que se vaya.»**
 3. Grabar la primera versión; probarla con los 2 coaches del piloto: ¿se reconocen en el dolor?
 4. Subir la versión final y medir con los experimentos 1 y 2 de `propuesta-comercial.md`.
 5. Después, la página de bienvenida cierra el embudo: el video atrae y la página convierte.
+
+---
+
+## Versión corta de 15 segundos (estados de WhatsApp e Instagram)
+Vertical 9:16, con subtítulos. Mismas reglas de contenido que la versión larga. **Suposición:** los estados de WhatsApp aceptan videos cortos; confirmar la duración máxima al subir.
+
+| # | Seg. | Imagen | Texto en pantalla | Voz en off |
+|---|---|---|---|---|
+| 1 (gancho) | 0 a 3 | Chats sin responder en el celular del coach | «¿Quién se está apagando hoy?» | «¿Sabes quién de tus clientes se está apagando hoy?» |
+| 2 (dolor) | 3 a 6 | Chat, galería y hoja de cálculo pasan rápido | «Chats. Fotos. Hojas.» | «Chats, fotos y hojas… y se te va uno sin avisar.» |
+| 3 (solución) | 6 a 12 | Panel del coach con 3 personas de ejemplo (constante, se apaga, sin registrar) | «Ves a quién escribirle» | «Con [NOMBRE] ves en una pantalla a quién escribirle hoy.» |
+| 4 (cierre) | 12 a 15 | Logo + botón | «Piloto gratis · Escríbeme» | «Pruébalo gratis en el piloto.» |
+
+**Cierre con acción (elegir uno) [José]:** «Escríbeme por WhatsApp» con tu número, o el enlace a la página cuando esté lista. Si se muestra tu número, es dato tuyo que ya decidiste publicar (decisión 12); confirma que quieres usarlo en el video.
+
+**Cómo se usa:** la versión de 15 segundos va primero en estados e historias para llamar la atención; la de 50 segundos va en el perfil, en mensajes directos a coaches y en la página.
+**Métrica extra:** coaches que escriben por WhatsApp después de ver el estado (meta como hipótesis: ≥ 2 por cada 100 contactos que lo ven).
