@@ -52,3 +52,5 @@
 | 30 | Revisión legal de la liga | No se pide si no es necesario: se usa el texto literal del Concepto 7. |
 
 | 31 | Base de datos del piloto | **`plataforma`** (decisión de José, 2026-11-01). `pruebas` y la demo solo con datos inventados, nunca con datos reales. `plataforma` no se conecta a la app oficial hasta que el abogado apruebe los textos. |
+| 32 | Aprobación legal del piloto | El abogado se compromete a entregar **a más tardar el viernes 6 de noviembre de 2026** la aprobación de T&C, Política v1.2, A1-A8 y Acuerdo del Coach. **Mínimo no negociable para encender `plataforma` con personas reales:** Política v1.2 y A1-A8. T&C y Acuerdo del Coach podrían esperar con un «Términos de Participación en Piloto Beta» transitorio (**no existe aún; por redactar**). Texto literal en `legal/respuesta-abogado-piloto-2026-11-01.md`. |
+| 33 | Vigencia y captación | Los textos cubren las 8 semanas sin aviso temporal. **Obligatorio** en el formulario de contacto y en los correos comerciales usar los dos textos literales de esa respuesta (casilla sin marcar; opt-out en el pie). |

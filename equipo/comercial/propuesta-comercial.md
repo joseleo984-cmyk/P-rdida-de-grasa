@@ -132,8 +132,8 @@ Todos con la app actual o el concierge del piloto. Las metas son **hipótesis**,
 - Nada de nutrición clínica: si el coach no es nutricionista titulado, la venta no sugiere dietas ni planes de comida terapéuticos (P14).
 
 **Datos y ley (Ley 1581 de 2012 y conceptos jurídicos):**
-- Todo formulario de contacto (página, listas de espera) lleva aviso de tratamiento y no pide datos que no necesite. **[Abogado]** texto del aviso para marketing, que no existe aún.
-- Mensajes en frío a coaches: usar un solo contacto, con opción de no recibir más. **[Abogado]** si requiere autorización previa.
+- Todo formulario de contacto (página, listas de espera) lleva aviso de tratamiento y no pide datos que no necesite. Texto **aprobado por el abogado** (2026-11-01): casilla obligatoria sin marcar en el formulario y opt-out en el pie de los correos, copiados literal de `equipo/legal/respuesta-abogado-piloto-2026-11-01.md`.
+- Mensajes en frío a coaches: usar un solo contacto, con opción de no recibir más. **Validar:** el pie aprobado dice «solicitaste información o tienes un vínculo con nosotros», lo que no encaja con un primer contacto en frío; **suposición:** el primer contacto es personal (no masivo) y los correos comerciales solo van a quien llenó el formulario o ya tiene vínculo. **[Abogado]** confirmarlo.
 - **Cualquier texto legal que se muestre en la venta se copia literal** de `equipo/legal/` (T&C, Política, conceptos). No se parafrasea ni se «suaviza».
 - Hasta que el abogado apruebe los textos y se conecte la nube, **no se invitan asesorados reales a la app oficial**.
 - Cobro: la plataforma es portal de contacto (P15); no puede prometer lo que haga el coach. Premios del coach: solo bajo las reglas del Concepto 7 (sin efectivo; el coach asume su responsabilidad).
@@ -217,3 +217,8 @@ Detalle y criterios en `pedido-funciones-piloto.md`. **Este documento no cambia 
 8. Hito de 6 semanas y cierre de ciclo
 
 **Revisión legal de la liga:** José decide no pedirla si no es necesario. El Concepto 7 ya trae el texto literal del opt-in y exige Política v1.2; se usa **tal cual**, sin cambiar una palabra. Solo habría que volver al abogado si el texto cambia.
+
+### Calendario legal del piloto (respuesta del abogado, 2026-11-01)
+- **Viernes 6 de nov.:** aprobación final de todos los textos (compromiso del abogado). Piloto desde la segunda semana de noviembre (9 a 15 de nov.).
+- **Mínimo para encender `plataforma`:** Política v1.2 y A1-A8. Si faltan T&C o Acuerdo del Coach, se usa un «Términos de Participación en Piloto Beta» transitorio (por redactar; **[Abogado]**).
+- Las 8 semanas quedan cubiertas sin aviso extra. Formularios y correos comerciales llevan los dos textos literales aprobados.
