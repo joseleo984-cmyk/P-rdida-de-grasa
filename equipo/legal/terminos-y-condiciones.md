@@ -1,126 +1,109 @@
-> ⚠️ **Borrador — debe revisarlo un abogado antes de usarse con datos reales; no es asesoría legal.**
-> Autor: Agente Analista de Producto · 2026-10-21 · Edición **piloto** (rev. 2): describe la app **sin servidor**. Lo previsto para la versión con cuentas está en §13 y exigirá aceptar de nuevo. Las notas en *cursiva* marcadas "NOTA" son internas: no se publican (`npm run legal` las quita).
-> Número de versión: se mantiene en 0.1 mientras sea borrador (nadie real lo ha aceptado). Se subirá cuando el abogado apruebe el texto definitivo, que será la versión con la que arranca el piloto.
->
-> **Datos que debe completar el Stakeholder** (los mismos que en la Política; no debe quedar ningún marcador):
->
-> | Marcador | Qué poner |
-> |---|---|
-> | `[NOMBRE COMPLETO DEL RESPONSABLE]` ✅ José Granados (confirmar si lleva segundo apellido) | Nombre y apellidos como en la cédula |
-> | `[NÚMERO DE CÉDULA]` ✅ no se publica (decisión del responsable; no la exige el art. 13 del Decreto 1377) | Cédula de ciudadanía |
-> | `[CIUDAD]` ✅ Barranquilla | Ciudad de domicilio |
-> | `[CORREO DE CONTACTO]` ✅ joseleo984@gmail.com | Correo de soporte y reclamos (puede ser el mismo de datos personales) |
-> | `[TELÉFONO / WHATSAPP]` ✅ +57 312 887 6135 | Número de contacto |
-> | `[FECHA DE VIGENCIA]` | Día en que se publica esta versión |
-> | `[FECHA DE FIN DEL PILOTO]` ✅ 4 semanas desde el inicio del piloto | Último día del piloto |
+# Términos y Condiciones de Uso — «Pérdida de Grasa»
 
-# Términos y Condiciones de Uso — "Pérdida de Grasa"
+**Versión:** 1.0 · **Vigente desde:** 1 de noviembre de 2026
 
-**Versión:** 0.1 · **Edición:** piloto, sin servidor · **Vigentes desde:** [FECHA DE VIGENCIA]
+Bienvenido/a a la plataforma «Pérdida de Grasa». Estos Términos y Condiciones de Uso regulan el acceso y utilización de nuestra aplicación tecnológica.
 
-## 1. Quiénes somos y qué aceptas
+## 1. Identificación y Aceptación de los Términos
 
-La app "Pérdida de Grasa" (la "app") la ofrece **José Granados**, persona natural, domiciliada en **Barranquilla**, Colombia, correo **joseleo984@gmail.com**, teléfono **+57 312 887 6135** ("nosotros").
+La plataforma «Pérdida de Grasa» (la «app» o la «plataforma») es operada por José Granados, persona natural domiciliada en Barranquilla, Atlántico, Colombia, con canal de atención en cuentademomisapps@gmail.com y línea de soporte (+57) 312 887 6125.
 
-Al usar la app aceptas estos Términos y la **Política de Tratamiento de Datos Personales** (documento aparte). La app guarda en tu teléfono la versión y la fecha de lo que aceptaste. Si no estás de acuerdo, no uses la app.
+Al crear una cuenta, iniciar sesión o utilizar las funciones de la plataforma, declaras que has leído, comprendido y aceptado en su totalidad estos Términos y Condiciones de Uso, así como nuestra Política de Tratamiento de Datos Personales (documento independiente). Conservamos una bitácora técnica e inalterable que acredita la versión específica de los textos legales que aceptaste, la fecha y la huella criptográfica de su contenido. Si no estás de acuerdo con estas disposiciones, debes abstenerte de registrarte o utilizar la plataforma.
 
-## 2. Qué es (y qué no es) la app
+## 2. Naturaleza del Servicio y Deslinde Médico-Nutricional
 
-- La app te ayuda a **registrar y ver tu progreso** en un proceso de pérdida de grasa: peso, medidas, comidas, hábitos y fotos. Calcula estimaciones (calorías, macros, % de grasa) y te da recomendaciones generales.
-- **No es un servicio médico ni nutricional.** Las cifras y recomendaciones son **estimaciones orientativas** basadas en fórmulas generales. **No reemplazan** el diagnóstico ni el tratamiento de un médico, nutricionista u otro profesional de la salud.
-- Consulta a un profesional antes de cambiar tu alimentación o actividad física, en especial si estás embarazada o lactando, o tienes diabetes, enfermedades cardíacas, renales, trastornos de la conducta alimentaria u otra condición de salud. Si tienes síntomas, deja de seguir el plan y busca atención médica.
-- La app tiene un **mínimo de calorías de seguridad**, pero eres tú quien decide cómo aplicar la información.
+- **Herramienta tecnológica:** La plataforma es un entorno digital diseñado para facilitar el registro personal de variables antropométricas, comidas y hábitos diarios, así como la interacción y seguimiento deportivo entre un entrenador («coach») y su asesorado.
+- **No presta servicios médicos ni clínicos:** Las funcionalidades de la app, las estimaciones calóricas y los porcentajes corporales aproximados son herramientas referenciales basadas en fórmulas generales; no constituyen diagnóstico médico, valoración clínica, tratamiento ni prescripción nutricional personalizada.
+- **Consulta profesional indispensable:** Los usuarios deben consultar con un médico o profesional de la salud antes de iniciar cualquier déficit calórico, programa de entrenamiento o cambio sustancial en sus hábitos de vida, especialmente en casos de embarazo, lactancia, antecedentes cardiovasculares, diabetes, trastornos de la conducta alimentaria (TCA) o afecciones renales. Si experimentas dolor, fatiga extrema o malestar, debes interrumpir cualquier rutina y buscar atención médica de inmediato.
+- **Autonomía del usuario:** Aunque la plataforma incorpora límites mínimos referenciales de aporte calórico por seguridad, cada usuario y su respectivo coach son los únicos responsables de definir y aplicar las pautas adoptadas.
 
-## 3. Cómo funciona el piloto
+## 3. Modelo de Acceso y Creación de Cuenta
 
-- El piloto dura aproximadamente **4 semanas** contadas desde su inicio, y participan clientes invitados por sus coaches.
-- **Tus datos se guardan solo en tu teléfono.** No hay cuentas, servidor ni nube.
-- Cada semana puedes **exportar un archivo** y **enviárselo tú mismo/a** a tu coach por WhatsApp (u otro medio que acuerdes). Si eliges WhatsApp, aplican también las condiciones de ese servicio (Meta).
-- **Cuida tus datos:** si borras la app, los datos del navegador o cambias de teléfono sin exportar, **se pierden**. La app te recuerda hacer copias.
-- Tu participación es **voluntaria** y puedes salirte cuando quieras.
+- **Uso mediante cuenta:** Para acceder a las funciones de acompañamiento, interacción con un coach y sincronización en la nube, es indispensable crear una cuenta personal utilizando un correo electrónico válido, al cual se remitirá un código de acceso de un solo uso (OTP).
+- **Requerimiento funcional de datos:** Para operar el servicio de acompañamiento deportivo, la app requiere procesar tu peso, medidas corporales y hábitos de actividad e hidratación. Si bien la ley califica estos datos como sensibles y su suministro no es obligatorio, el usuario reconoce que su tratamiento resulta indispensable para la prestación técnica del servicio contratado. Si no deseas que estos datos sean tratados, puedes solicitar la eliminación de tu cuenta en cualquier momento.
+- **Gestión modular de permisos:** La vinculación con un coach y la visualización de fotografías corporales se gestionan mediante autorizaciones diferenciadas e independientes, las cuales puedes revocar o modificar según tus preferencias.
 
-## 4. Quién es quién: plataforma, coach y cliente
+## 4. Seguridad de la Cuenta y Responsabilidad de Acceso
 
-| Parte | Qué hace | Qué no hace |
+- Eres el único responsable de la veracidad del correo electrónico suministrado y de mantener bajo tu custodia y confidencialidad los accesos a tu dispositivo y a tu cuenta de correo.
+- Las sesiones caducan de forma periódica por seguridad técnica y se renuevan mientras continúes navegando activamente en la app.
+- Las cuentas son de uso estrictamente personal e intransferible. Queda prohibido ceder, prestar o permitir el acceso de terceros a tu perfil.
+
+## 5. Definición de Roles: Plataforma, Coach y Cliente
+
+| Rol | Obligaciones y Facultades | Exclusiones y Deslindes |
 |---|---|---|
-| **Nosotros** | Ofrecemos la herramienta (la app) y, en el piloto, armamos un resumen semanal para tu coach con los archivos que tú envías. | **No prestamos** el servicio de coaching ni de nutrición, ni supervisamos los planes de cada coach. |
-| **Coach** | Es un profesional **independiente** que te acompaña. Fija su precio, su plan y su forma de trabajar. En el piloto trata tus archivos **por cuenta nuestra**, solo para tu seguimiento. | No es empleado, agente ni socio nuestro. No puede usar tus datos para otra cosa, ni reenviarlos o publicarlos. |
-| **Tú (cliente)** | Registras tus datos, decides qué y cuándo compartes y contratas el coaching directamente con tu coach. | — |
+| Nosotros (La Plataforma) | Proveemos el soporte técnico, la infraestructura en la nube, el panel operativo del coach y la custodia segura de las cuentas y autorizaciones legales. | No prestamos servicios de entrenamiento deportivo ni nutrición. No supervisamos ni avalamos los métodos de cada coach. No accedemos a tus métricas salvo requerimiento de soporte técnico expreso o mandamiento de autoridad competente. |
+| El Coach | Profesional o entrenador independiente que define sus programas, metodologías, seguimiento y tarifas. Actúa como Responsable Independiente del Tratamiento de los datos que reciba. | No es empleado, agente ni representante de la plataforma. Tiene prohibido descargar, almacenar, capturar o difundir tus fotografías corporales, así como utilizar tus datos para finalidades ajenas a tu acompañamiento. |
+| Tú (El Cliente / Asesorado) | Registras tu evolución, defines los permisos otorgados a tu coach y contratas los servicios de acompañamiento deportivo directamente con él. | Eres responsable de la exactitud de los datos reportados y de verificar la idoneidad profesional de tu coach. |
 
-- **El contrato de coaching es entre tú y tu coach.** El coach responde por la calidad, la idoneidad y el cumplimiento de su servicio y de sus recomendaciones.
-- **Compromisos del coach en el piloto:** no presentarse como médico o nutricionista si no lo es; mantener la confidencialidad; usar tus archivos solo para tu seguimiento; no reenviarlos ni publicarlos; y borrarlos al terminar el piloto.
+- **Portal de Contacto (Art. 53 Ley 1480 de 2011):** La plataforma actúa exclusivamente como un portal de contacto y facilitador tecnológico entre coaches y asesorados. La relación comercial, los términos del entrenamiento y los pagos derivados de los servicios del coach se acuerdan, perfeccionan y liquidan de manera directa y privativa entre el coach y el cliente, por fuera de la plataforma. La plataforma no es parte de dicho contrato ni asume responsabilidad alguna por el cumplimiento de las obligaciones pactadas entre ellos.
+- **Atención y traslado de quejas:** Si radicas una queja o inconformidad respecto de la conducta o el servicio de tu coach, la trasladaremos formalmente a dicho profesional en un plazo máximo de dos (2) días hábiles e informaremos al usuario. Las quejas inherentes a la disponibilidad de la plataforma tecnológica, incidencias de cuenta o ejercicio de derechos de Habeas Data serán atendidas directamente por nosotros.
+- **Límites de la práctica deportiva y nutricional:** El coach no presta servicios médicos ni formula diagnósticos clínicos. De conformidad con la Ley 73 de 1979 y el Decreto 2270 de 1980, la dietoterapia, el diseño de planes de alimentación para tratar enfermedades y la nutrición clínica están estrictamente reservados a nutricionistas dietistas titulados con tarjeta profesional vigente. Salvo que acredite legalmente dicha titulación, el coach debe limitar su labor a impartir pautas generales de estilo de vida, hábitos saludables y entrenamiento en personas sanas.
 
-*NOTA: rol del coach como encargado y "Términos para coaches" aparte, a validar con el abogado (P2 y P11 de preguntas-abogado.md).*
+## 6. Requisitos de Capacidad y Edad Mínima
 
-## 5. Requisitos de uso
+- El servicio está reservado de manera estricta y exclusiva a mayores de dieciocho (18) años. Al registrarte, declaras bajo la gravedad de juramento cumplir con la mayoría de edad legal.
+- La plataforma no admite el registro de menores de edad. Si se comprueba que una cuenta pertenece a un menor de edad, procederemos de inmediato al bloqueo de su acceso, cancelación de la sincronización y eliminación definitiva de toda su información en un plazo máximo de cuarenta y ocho (48) horas, notificando lo pertinente a la dirección de correo registrada.
+- Queda prohibido registrar información o imágenes pertenecientes a terceras personas.
 
-- La app es solo para **mayores de 18 años**.
-- Usa la app para tu propio seguimiento. No registres datos ni fotos de otras personas sin su permiso.
-- Protege tu teléfono con clave o biometría: cualquiera con acceso a él puede ver tus datos.
+## 7. Condiciones Económicas y Tarifas
 
-## 6. Precio
+- **Gratuidad de la app para el asesorado:** El acceso y uso de la plataforma es actualmente gratuito para los clientes/asesorados en esta etapa del servicio. Los costos correspondientes a la asesoría o acompañamiento del coach son acordados y cobrados directamente por este último, sin intervención de la plataforma.
+- **Tarifas para el coach:** Las condiciones de uso del panel y las tarifas por cliente activo aplicables a los coaches se rigen por su respectivo Acuerdo del Coach.
+- **Modificaciones futuras:** En caso de que a futuro se habiliten funcionalidades de pago directo o pasarelas transaccionales dentro de la aplicación, se publicarán de forma previa y destacada las tarifas, políticas de facturación, condiciones de reversión y el derecho de retracto conforme al Estatuto del Consumidor, solicitando la aceptación expresa del usuario antes de cualquier cobro.
 
-- **Para ti, la app es gratuita durante el piloto.** Lo que pagues por el coaching lo acuerdas y pagas **directamente con tu coach, fuera de la app**.
-- **Para el coach**, participar en el piloto es gratuito. Las condiciones comerciales para coaches después del piloto se acordarán por separado.
+## 8. Propiedad Intelectual, Contenidos y Fotografías
 
-## 7. Tu contenido y tus datos
+- **Titularidad de tus datos:** Los datos personales y el contenido que registras en la app son de tu propiedad. Nos otorgas una autorización de uso técnico, no exclusiva y temporal, con el único fin de procesarlos, alojarlos y transmitirlos de conformidad con la Política de Tratamiento de Datos Personales.
+- **Régimen de fotografías corporales:** La carga de fotografías corporales es enteramente voluntaria. Si autorizas la visualización de fotos a tu coach, este podrá ver las imágenes de progreso que cargues en tu cuenta a través de enlaces cifrados temporales con vigencia de sesenta (60) segundos. El acceso deja bitácora auditable en tu perfil. Tienes la potestad de ocultar fotos específicas o revocar de manera global el permiso en cualquier momento, provocando el bloqueo inmediato del acceso para el coach.
+- **Prohibición de contenidos ilícitos:** Está prohibido subir material que infrinja derechos de autor, vulnere la privacidad de terceros o contenga material sexualmente explícito, pornográfico o difamatorio.
 
-- **Tus datos son tuyos.** Puedes exportarlos y borrarlos cuando quieras desde la app.
-- Si nos envías tu archivo, nos autorizas a usarlo solo para lo que dice la Política de Datos (tu seguimiento y la evaluación del piloto con resultados anónimos).
-- Las fotos de progreso son solo para tu seguimiento. No subas contenido ilegal, ofensivo o sexual explícito.
+## 9. Conductas Prohibidas
 
-## 8. Usos no permitidos
+Al hacer uso de la plataforma, te comprometes a abstenerte de:
 
-No puedes: usar la app para fines ilegales; intentar vulnerar su seguridad; copiarla, revenderla o modificarla para hacerla pasar como propia sin autorización. Los coaches no pueden usar los datos de sus clientes para fines distintos al seguimiento.
+- Emplear la plataforma para fines ilícitos, fraudulentos o contrarios al ordenamiento jurídico colombiano.
+- Introducir virus, programas maliciosos o vulnerar la seguridad, autenticación y controles de acceso por fila (RLS) de la app.
+- Copiar, reproducir, revender, decompilar o aplicar ingeniería inversa a la plataforma o a su código fuente.
+- Por parte de los coaches: descargar, capturar mediante capturas de pantalla, reenviar, divulgar o almacenar fotografías corporales o datos sensibles de los clientes fuera de las herramientas de la plataforma. El incumplimiento dará lugar a la suspensión inmediata de la cuenta y al ejercicio de las acciones judiciales correspondientes.
 
-## 9. Disponibilidad y cambios
+## 10. Disponibilidad Técnica, Almacenamiento y Copias de Seguridad
 
-- La app es una **versión de prueba**: puede tener errores, interrupciones o cambios durante el piloto.
-- Podemos cambiar, agregar o retirar funciones. Si dejamos de ofrecerla, te avisaremos para que exportes tus datos.
+- **Disponibilidad:** Procuramos un alto estándar de disponibilidad del servicio; no obstante, la app puede experimentar interrupciones temporales por mantenimiento técnico, fallas en proveedores de infraestructura en la nube o contingencias de fuerza mayor.
+- **Aviso técnico sobre fase piloto:** Durante la fase piloto del producto, el almacenamiento en la nube no genera copias de seguridad redundantes automáticas. Ante una falla severa del servidor, existe riesgo de desactualización de datos alojados exclusivamente en la nube. Por consiguiente, se recomienda a los usuarios realizar exportaciones periódicas de sus métricas a través de la opción de exportación disponible en la app. Al transitar a la fase comercial definitiva se adoptará un plan con respaldo redundante automático.
+- **Discontinuación del servicio:** Si la plataforma decidiera suspender o terminar definitivamente la prestación del servicio, emitirá una notificación previa con una antelación mínima de treinta (30) días calendario, garantizando a todos los usuarios el tiempo idóneo para exportar de forma gratuita su información histórica.
 
-## 10. Limitación de responsabilidad
+## 11. Limitación de Responsabilidad
 
-En la medida en que la ley colombiana lo permita:
-- **No respondemos** por resultados de salud, estéticos o de peso, ni por decisiones que tomes con base en las estimaciones de la app.
-- **No respondemos** por el servicio, los consejos, los planes o los precios de los coaches, que son profesionales independientes.
-- **No respondemos** por la pérdida de datos causada por borrar la app o los datos del navegador, cambiar de teléfono sin exportar, ni por fallas del dispositivo o de servicios de terceros como WhatsApp.
-- Nada de lo anterior limita los derechos que te reconoce el **Estatuto del Consumidor (Ley 1480 de 2011)** ni nuestra responsabilidad por dolo o culpa grave.
+Conforme a las leyes de la República de Colombia y con estricto apego a las disposiciones del Estatuto del Consumidor (Ley 1480 de 2011):
 
-## 11. Terminación y borrado
+- La plataforma no responde por resultados corporales, metabólicos, estéticos ni de reducción de peso, los cuales dependen exclusivamente de factores biológicos, cumplimiento individual y la idoneidad del coach contratado.
+- No respondemos por los actos, omisiones, diagnósticos, planes, dietas o cobros efectuados por los coaches, quienes actúan con total independencia jurídica y profesional.
+- No respondemos por la pérdida de datos atribuible a negligencia del usuario en la custodia de sus credenciales, desinstalación indebida de la app o fallas de conectividad externas.
+- **Reserva de responsabilidad obligatoria:** Ninguna cláusula contenida en estos Términos busca exonerar ni limitar la responsabilidad legal de José Granados que resulte improrrogable por ley, en particular aquella derivada de dolo o culpa grave, deficiencias directas de seguridad en el software atribuibles a la plataforma (artículo 43 de la Ley 1480 de 2011), o el incumplimiento del régimen de protección de datos personales consagrado en la Ley 1581 de 2012.
 
-- **Tú** puedes dejar de usar la app cuando quieras. Para borrar lo que hay en tu teléfono: Perfil → Datos → Borrar todo. Para que borremos los archivos que enviaste (nosotros y tu coach), escríbenos a joseleo984@gmail.com.
-- Al terminar el piloto, los archivos enviados se borran en el plazo que indica la Política de Datos. Puedes seguir usando la app en tu teléfono.
-- Podemos pedirle a un participante que deje el piloto si incumple estos Términos.
+## 12. Terminación, Inactividad y Cancelación de Cuenta
 
-## 12. Cambios a estos Términos
+- **Cancelación voluntaria:** Puedes dar de baja y eliminar tu cuenta en cualquier momento directamente desde la app (Más → Mis datos y permisos). Dicha acción ejecuta la eliminación en cascada de tu perfil, métricas, fotografías y vínculos activos con coaches. Conforme a la ley, se conservará únicamente la evidencia técnica del consentimiento otorgado por el término de tres (3) años, bajo un identificador alfanumérico estrictamente disociado que no permite identificarte.
+- **Depuración por inactividad:** Las cuentas que permanezcan trescientos sesenta y cinco (365) días sin iniciar sesión serán eliminadas automáticamente del servidor. La plataforma enviará un correo de advertencia al día 335 de inactividad y un recordatorio final al día 358, procediendo al borrado definitivo al cumplirse el año de abandono.
+- **Terminación por incumplimiento:** La plataforma se reserva la potestad de suspender o cancelar unilateralmente y sin previo aviso las cuentas de usuarios o coaches que violen estos Términos, cometan conductas abusivas o infrinjan la ley.
 
-Si los cambiamos de manera relevante, la app te mostrará la nueva versión y te pedirá **aceptarla de nuevo** para seguir usándola.
+## 13. Modificaciones a los Términos
 
-## 13. Cambios previstos para la versión con cuentas (R1 y siguientes)
+Nos reservamos el derecho de actualizar o modificar estos Términos para reflejar mejoras operativas, regulatorias o funcionales. Cuando se produzca un cambio sustancial en las condiciones del servicio, la app desplegará la versión actualizada y solicitará tu aceptación expresa para continuar utilizando las funciones en línea.
 
-Cuando la app tenga **cuentas e inicio de sesión**, estos Términos se reemplazarán por una nueva versión que **deberás aceptar de nuevo**. **Nada de esto aplica en el piloto.** Lo que se prevé:
+## 14. Ley Aplicable y Solución de Controversias
 
-- **Cuentas personales** para coaches y clientes, con inicio de sesión por código enviado al correo; **vínculo con tu coach** por código de invitación y desvinculación cuando quieras.
-- **Datos en un servidor** (Supabase, con datos alojados probablemente en Estados Unidos) para sincronizar entre dispositivos y como copia de seguridad, según la nueva Política de Datos.
-- **Panel del coach:** el coach ve en la app lo que tú decidas compartir, fotos incluidas si las autorizas, sin que tengas que enviar archivos.
-- **Precios, fase 1:** gratis para el cliente. Para el coach, gratis hasta 5 clientes y luego **USD 5 por cliente activo al mes** (cobrado en pesos), pagado **fuera de la app**.
-- **Precios, fase 2:** el cliente podrá **pagar su mensualidad al coach dentro de la app** por medio de una pasarela de pagos, con un reparto entre el coach y la plataforma. Se publicarán las reglas de cobros, reembolsos y derecho de retracto.
-- **Retos y comunidad:** participación voluntaria, reglas de convivencia, moderación y premios a cargo del coach organizador.
-- **Eliminación de cuenta** desde la app y cierre de cuentas por incumplimiento.
+Estos Términos y Condiciones se interpretan y rigen conforme a las leyes de la República de Colombia.
 
-## 14. Ley aplicable y controversias
+En caso de cualquier diferencia, reclamación o disputa originada por la utilización de la plataforma, el usuario y la plataforma acuerdan acudir en primera instancia al mecanismo de arreglo directo, remitiendo una comunicación motivada a cuentademomisapps@gmail.com, la cual será atendida en un plazo máximo de quince (15) días hábiles. En caso de no alcanzarse un acuerdo, las partes podrán acudir a las autoridades administrativas de control, en particular la Superintendencia de Industria y Comercio (SIC), o a la jurisdicción ordinaria de los jueces competentes de Colombia.
 
-Estos Términos se rigen por las **leyes de la República de Colombia**. Antes de acudir a otras vías, escríbenos a **joseleo984@gmail.com** e intentaremos resolverlo de forma directa en 15 días hábiles. Como consumidor, puedes acudir a la **Superintendencia de Industria y Comercio** o a los jueces competentes de Colombia.
+## 15. Contacto Legal
 
-## 15. Contacto
+Para cualquier notificación, requerimiento de soporte o consulta relacionada con estos Términos:
 
-José Granados · joseleo984@gmail.com · +57 312 887 6135 · Barranquilla, Colombia.
-
-## Historial de versiones
-
-| Versión | Fecha | Cambio |
-|---|---|---|
-| 0.1 | 2026-10-21 | Primer borrador (describía la versión con servidor y pagos) |
-| 0.1 (edición piloto, rev. 2) | 2026-10-21 | Describe solo la fase piloto sin servidor y gratuita. Cuentas, servidor, pagos, retos y comunidad pasan a §13. La versión se subirá cuando el abogado apruebe el texto definitivo. |
-
-*NOTA de versión para Dev: igual que en la Política. Cambiar a la vez Versión, LEGAL_VERSIONS, LEGAL_CHANGES y el test de buildConsent.*
+- **Responsable:** José Granados, persona natural
+- **Domicilio:** Barranquilla, Atlántico, Colombia
+- **Correo de atención:** cuentademomisapps@gmail.com
+- **Soporte y mensajería:** (+57) 312 887 6125

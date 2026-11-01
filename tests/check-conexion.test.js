@@ -57,12 +57,12 @@ test('legal: marcadores pendientes y aviso de borrador se detectan; texto limpio
   assert.ok(C.checkLegal({}).problems.length, 'sin archivos legales también falla');
 });
 
-test('el repo, hoy: config.js vacío pasa la reversa y los legales v0.1 NO pasan (faltan fechas del abogado)', () => {
+test('el repo, hoy: conectado a plataforma (config.js y legales v1.x pasan); la reversa (vacía) NO pasaría', () => {
   const root = path.join(__dirname, '..');
   const rep = Object.fromEntries(C.run(root, {}).map(([n, p]) => [n, p]));
-  assert.ok(rep['config.js'].length > 0, 'vacío: aún no se puede conectar');
-  assert.ok(rep['legal/*.html'].length > 0, 'v0.1 trae [FECHA DE VIGENCIA]');
-  assert.deepStrictEqual(C.run(root, { empty: true })[0][1], []);
+  assert.deepStrictEqual(rep['config.js'], [], 'config.js conectado y bien formado');
+  assert.deepStrictEqual(rep['legal/*.html'], [], 'legales publicados: sin marcadores ni aviso de borrador');
+  assert.ok(C.run(root, { empty: true })[0][1].length > 0, 'ya no está vacío: la reversa pide dejarlo vacío');
 });
 
 test('CLI: código de salida 1 si algo falla, 0 si todo está en orden (carpeta temporal)', () => {

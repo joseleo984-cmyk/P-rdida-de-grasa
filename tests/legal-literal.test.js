@@ -75,15 +75,16 @@ test('3.3 A6b (fotos con el coach): el cuerpo es el texto aprobado y la versión
   assert.strictEqual(norm(CT.fullText('A6b', { coach: 'Laura Fit' })).startsWith(norm(t).replace('{coach}', 'Laura Fit')), true);
 });
 
-test('3.4 Política: los párrafos §6 y §7.1 aprobados están, LITERALES, en la política vigente, en el borrador v0.3 y en la página legal de la app', () => {
-  const [p6, p71] = A['3.4'];
-  assert.match(p6, /^§6\./); assert.match(p71, /^§7\.1\./);
+test('3.4 Política (texto definitivo del abogado, 1/11/2026): §6 fotos con 60 s y bitácora, §7.1 coach y §7.1.1 copias de trabajo, en el .md y en la página legal, una sola vez', () => {
   const docs = { 'equipo/legal/politica-tratamiento-datos.md': norm(read('equipo/legal/politica-tratamiento-datos.md')),
-    'equipo/legal/borradores/politica-tratamiento-datos-v0.3-cuentas.md': norm(read('equipo/legal/borradores/politica-tratamiento-datos-v0.3-cuentas.md')),
     'legal/privacidad.html': norm(visible(read('legal/privacidad.html'))) };
-  for (const [file, text] of Object.entries(docs)) for (const p of [p6, p71]) assert.ok(text.includes(norm(p)), `${file}: falta «${p.slice(0, 30)}…»`);
-  // No se duplican: cada párrafo aparece UNA sola vez por documento (la adenda los añade sin reemplazar ni repetir).
-  for (const [file, text] of Object.entries(docs)) for (const p of [p6, p71]) assert.strictEqual(text.split(norm(p)).length - 1, 1, `${file}: «${p.slice(0, 20)}…» repetido`);
+  const frases = ['Régimen Especial de Fotografías de Progreso', 'La visualización se realiza a través de enlaces cifrados temporales con vigencia de sesenta (60) segundos.',
+    'El coach tiene prohibido contractualmente descargar, almacenar, realizar capturas de pantalla, reenviar o difundir tus fotografías corporales.',
+    'El coach asume la custodia legal, la reserva y la confidencialidad de tales archivos, comprometiéndose a destinarlos exclusivamente a tu asesoría personalizada.',
+    'Las fotografías corporales quedan excluidas en su totalidad de esta función y nunca pueden ser descargadas por esta vía.',
+    'Las estimaciones de calorías y el registro descriptivo de comidas provisto por el catálogo de la app tienen propósitos exclusivamente informativos'];
+  for (const [file, text] of Object.entries(docs)) for (const f of frases) assert.strictEqual(text.split(norm(f)).length - 1, 1, `${file}: «${f.slice(0, 30)}…»`);
+  for (const text of Object.values(docs)) assert.ok(!/una a una/.test(text), 'sin la redacción antigua «una a una»');
 });
 
 test('3.5 Acuerdo del coach: la cláusula aprobada está LITERAL en el texto que se acepta (A7 del producto coach) y en el borrador del acuerdo', () => {
@@ -284,15 +285,12 @@ test('concepto 6 · casilla previa a cada descarga: LITERAL en exportar.js (y en
   assert.ok(read('exportar-view.js').includes('X.CUSTODY_TEXT'), 'la vista pinta la casilla desde la constante');
 });
 
-test('concepto 6 · párrafo de la política: LITERAL en la política publicada (§6.5), en el borrador con cuentas y en legal/privacidad.html, una sola vez', () => {
-  const [p] = concept6().policy;
-  const docs = { 'equipo/legal/politica-tratamiento-datos.md': read('equipo/legal/politica-tratamiento-datos.md'),
-    'equipo/legal/borradores/politica-tratamiento-datos-v0.3-cuentas.md': read('equipo/legal/borradores/politica-tratamiento-datos-v0.3-cuentas.md'),
-    'legal/privacidad.html': visible(read('legal/privacidad.html')) };
-  for (const [f, t] of Object.entries(docs)) assert.strictEqual(norm(t).split(norm(p)).length - 1, 1, f);
+test('concepto 6 · política: las copias locales de trabajo del coach (§7.1.1) están en la política publicada y en la página legal, y excluyen las fotos', () => {
   const html = read('legal/privacidad.html');
-  const s6 = html.slice(html.indexOf('<h2 id="s6">'), html.indexOf('<h2 id="s7">'));
-  assert.ok(norm(visible(s6)).includes(norm(p)), 'va en la sección «¿Con quién compartimos tus datos?»');
+  const s71 = html.slice(html.indexOf('<h3 id="s7-1-1">'), html.indexOf('<h3 id="s7-1-2">'));
+  assert.ok(s71.length > 100, 'sección 7.1.1 con ancla');
+  assert.ok(norm(visible(s71)).includes(norm('Las fotografías corporales quedan excluidas en su totalidad de esta función')));
+  assert.ok(norm(read('equipo/legal/politica-tratamiento-datos.md')).includes(norm('Copias locales de trabajo del Coach')));
 });
 
 // ---------- Política v1.1 (concepto 2, anexo puntos 1 y 4; concepto 6) ----------
@@ -303,15 +301,15 @@ function annex(n) {
   return [...s.matchAll(/«([\s\S]*?)»/g)].map((m) => m[1]);
 }
 
-test('v1.1 · finalidad L6d (anexo 4): LITERAL en las finalidades (§4) de la política publicada y del borrador, con la numeración correlativa', () => {
+test('v1.1 · finalidad L6d (anexo 4): en las finalidades (§4) de la política publicada y de la página legal, con la redacción definitiva del abogado (1/11/2026)', () => {
   const [t] = annex(4);
   assert.match(t, /^\[Finalidad X\.X\] Desarrollar análisis/);
-  const body = t.replace('[Finalidad X.X] ', '');
+  // El abogado ajustó la redacción en el texto definitivo (p. ej. «titular» en minúscula, «enfocada en advertir…»): manda esta versión.
+  const body = 'Desarrollar análisis y procesamientos automatizados sobre las variables, hábitos y métricas registrados voluntariamente por el titular (tales como peso, ingesta nutricional reportada y horas de sueño) con el objetivo exclusivo de emitir señales operativas y alertas preventivas de seguridad dirigidas a su coach. Dichas alertas tienen naturaleza meramente orientativa, enfocada en advertir posibles patrones de riesgo físico o alimentario y facilitar la sugerencia oportuna de consulta con profesionales de la salud. La plataforma no realiza diagnósticos clínicos, valoraciones médicas automatizadas ni prescripciones nutricionales o de entrenamiento a partir de estos análisis.';
   const html = read('legal/privacidad.html');
   const s4 = norm(visible(html.slice(html.indexOf('<h2 id="s4">'), html.indexOf('<h2 id="s5">'))));
-  assert.ok(s4.includes(norm('Finalidad 4.5 ' + body)), 'legal/privacidad.html §4');
-  assert.ok(norm(read('equipo/legal/politica-tratamiento-datos.md')).includes(norm('Finalidad 4.5 ' + body)));
-  assert.ok(norm(read('equipo/legal/borradores/politica-tratamiento-datos-v0.3-cuentas.md')).includes(norm('Finalidad 4.8 ' + body)));
+  assert.ok(s4.includes(norm(body)), 'legal/privacidad.html §4');
+  assert.ok(norm(read('equipo/legal/politica-tratamiento-datos.md')).includes(norm(body)), 'política publicada');
   // La finalidad se describe, pero las alertas L6 siguen APAGADAS (Etapa 3): ningún archivo de la app las emite.
   for (const f of ['app.js', 'coach-panel.js', 'analitica-view.js', 'index.html', 'exportar-view.js', 'aviso-politica.js']) {
     assert.ok(!read(f).includes('Alerta de seguridad operativa'), f + ' no muestra alertas L6');
@@ -349,14 +347,14 @@ test('concepto 7 se lee bien: finalidad, aviso y botón del punto 5', () => {
   assert.strictEqual(c.boton, 'Entendido');
 });
 
-test('concepto 7 · Política v1.2: la finalidad LITERAL en §4 de la política publicada (4.6), del borrador (4.9) y de legal/privacidad.html, una sola vez', () => {
+test('concepto 7 · Política v1.2: la finalidad en §4 de la política publicada y de legal/privacidad.html, una sola vez (mismo texto del concepto salvo comillas y mayúscula inicial de «titular», como lo dejó el abogado)', () => {
+  const lite = (t) => norm(t).toLowerCase().replace(/[«»"]/g, '');
   const body = concept7().finalidad.replace('[Finalidad X.X] ', '');
   const html = read('legal/privacidad.html');
-  const s4 = norm(visible(html.slice(html.indexOf('<h2 id="s4">'), html.indexOf('<h2 id="s5">'))));
-  assert.ok(s4.includes(norm('Finalidad 4.6 ' + body)), 'legal/privacidad.html §4');
-  assert.strictEqual(norm(visible(html)).split(norm(body)).length - 1, 1, 'una sola vez en la página');
-  assert.ok(norm(read('equipo/legal/politica-tratamiento-datos.md')).includes(norm('Finalidad 4.6 ' + body)));
-  assert.ok(norm(read('equipo/legal/borradores/politica-tratamiento-datos-v0.3-cuentas.md')).includes(norm('Finalidad 4.9 ' + body)));
+  const s4 = lite(visible(html.slice(html.indexOf('<h2 id="s4">'), html.indexOf('<h2 id="s5">'))));
+  assert.ok(s4.includes(lite(body)), 'legal/privacidad.html §4');
+  assert.strictEqual(lite(visible(html)).split(lite(body)).length - 1, 1, 'una sola vez en la página');
+  assert.ok(lite(read('equipo/legal/politica-tratamiento-datos.md')).includes(lite(body)));
   assert.strictEqual(JSON.parse(read('legal/VERSIONS.json')).privacy.version, '1.2');
 });
 

@@ -353,14 +353,18 @@ test('el registro como coach también muestra la cláusula antes de la casilla d
   expect(errors).toEqual([]);
 });
 
-test('política: la página legal trae, literales, §6 y §7.1 aprobados (adenda 24/10/2026) sin repetirlos', async ({ page }) => {
+test('política: la página legal trae el texto definitivo del abogado (1/11/2026): §6 de fotos y §7.1 del coach, sin repetirlos y sin la redacción antigua', async ({ page }) => {
   await page.goto('legal/privacidad.html');
   const text = norm(await page.locator('main').innerText());
-  for (const par of [P6, P71]) {
+  for (const par of ['La visualización se realiza a través de enlaces cifrados temporales con vigencia de sesenta (60) segundos.',
+    'Las fotografías corporales quedan excluidas en su totalidad de esta función y nunca pueden ser descargadas por esta vía.']) {
     expect(text).toContain(norm(par));
     expect(text.split(norm(par)).length - 1).toBe(1);
   }
-  await expect(page.getByRole('heading', { name: 'Adenda 24/10/2026' })).toBeVisible();
+  expect(text).not.toContain('una a una');
+  await expect(page.getByRole('heading', { name: /Régimen Especial de Fotografías de Progreso/ })).toBeVisible();
+  await expect(page.locator('main')).toContainText('cuentademomisapps@gmail.com');
+  await expect(page.locator('main')).not.toContainText(/Borrador|Calle 18|joseleo984/i);
 });
 
 test('app OFICIAL sin cambios: «Foto», sin aviso ni bitácora, textos y selector de siempre; importar abre el selector directo', async ({ app, page }) => {

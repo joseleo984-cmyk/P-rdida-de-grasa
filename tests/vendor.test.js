@@ -47,9 +47,10 @@ test('vendor: se carga en index.html antes de remote.js, se precachea en sw.js y
   assert.ok(/DEMO_FILES\s*=/.test(mentions[0]), 'el fake solo se publica en DEMO_FILES');
 });
 
-test('config.js sigue vacío en el repo (sin URL ni clave hasta que lo decida el Stakeholder)', () => {
+test('config.js: conectado a plataforma con URL y clave PUBLICABLE; nunca una clave secreta ni la de pruebas', () => {
   const cfg = read('config.js');
-  assert.match(cfg, /url: ''/);
-  assert.match(cfg, /key: ''/);
+  assert.match(cfg, /url: 'https:\/\/[a-z0-9]{20}\.supabase\.co'/);
+  assert.match(cfg, /key: 'sb_publishable_[A-Za-z0-9_-]+'/);
+  assert.ok(!cfg.includes('myeuoqvyyhveoxrpkjvg') && !cfg.includes('sb_publishable_rWpR'), 'no es la de pruebas');
   assert.ok(!/sb_secret_|service_role/.test(cfg.replace(/\/\/.*$/gm, '')));
 });

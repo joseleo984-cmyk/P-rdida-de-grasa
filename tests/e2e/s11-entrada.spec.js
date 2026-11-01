@@ -133,6 +133,8 @@ test('la barra del cliente en modo coach: Inicio · Comidas · Entrenar · Progr
 });
 
 test('la app OFICIAL (config sin producto ni soloNube) no cambia: barra de siempre, sin clases nuevas ni pantallas nuevas', async ({ page }) => {
+  // La app oficial real ya está conectada a plataforma: aquí se prueba la oficial SIN servidor (el config.js vacío de antes).
+  await page.route('**/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: "window.PG_CONFIG = { env: '', url: '', key: '', mode: 'real' };" }));
   await page.goto('index.html');
   expect(await page.evaluate(() => [document.body.classList.contains('producto-coach'), document.body.classList.contains('solo-nube'), Producto.coach, Producto.soloNube])).toEqual([false, false, false, false]);
   await expect(page.locator('#consent')).toBeVisible();

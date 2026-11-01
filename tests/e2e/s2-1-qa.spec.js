@@ -122,10 +122,8 @@ test('datos de una versión más nueva: aceptar en la pantalla legal no los sobr
 });
 
 // Bloquea el PILOTO (no la historia): los textos aún tienen marcadores sin rellenar ([NOMBRE COMPLETO], [CORREO]…).
-// Ley 1581: la autorización exige identificar al responsable y su contacto. Cuando se rellenen, este test pasará
-// y Playwright avisará para quitar `test.fail`.
+// Ley 1581: la autorización exige identificar al responsable y su contacto. Textos definitivos del abogado (1/11/2026): sin marcadores pendientes.
 test('textos legales sin marcadores por rellenar ([NOMBRE COMPLETO], [CORREO]…)', async () => {
-  test.fail(true, 'S2-1 D2: marcadores pendientes en los borradores legales (bloquea el piloto con datos reales)');
   for (const f of ['terminos.html', 'privacidad.html']) {
     const txt = fs.readFileSync(path.join(__dirname, '../../legal', f), 'utf8').replace(/<[^>]*>/g, ' ');
     expect(txt.match(/\[[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ ]{2,}[^\]]*\]/g) || [], f).toEqual([]);
@@ -170,9 +168,9 @@ test('"Deshacer" de una copia tras retirar la autorización de salud no escribe'
   expect(JSON.stringify((await app.stored()).foods)).toBe(after);
 });
 
-test('textos legales de la fase piloto: legibles a 390 px, sin desbordes y con anclas que llevan a su sección', async ({ app, page }) => {
+test('textos legales definitivos: legibles a 390 px, sin desbordes y con anclas que llevan a su sección', async ({ app, page }) => {
   await app.open({ legal: false });
-  for (const [link, anchor, heading] of [['Qué datos y para qué', 's5', /Datos sensibles/], ['Por qué solo mayores de 18', 's7', /Menores de edad/]]) {
+  for (const [link, anchor, heading] of [['Qué datos y para qué', 's3', /Categorías de Datos Tratados/], ['Por qué solo mayores de 18', 's9', /Prohibición de Registro de Menores de Edad/]]) {
     await page.getByRole('link', { name: link }).click();
     const fr = page.frameLocator('#legal-frame');
     await expect(fr.locator('h1')).toBeVisible();
@@ -180,7 +178,7 @@ test('textos legales de la fase piloto: legibles a 390 px, sin desbordes y con a
     await expect(fr.locator(`#${anchor}`)).toBeInViewport();
     const ov = await fr.locator('body').evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(ov, 'scroll horizontal en el texto legal').toBeLessThanOrEqual(0);
-    await expect(fr.locator('body')).toContainText('sin servidor');
+    await expect(fr.locator('body')).toContainText('cuentademomisapps@gmail.com');   // texto definitivo con cuentas: identifica al responsable
     await expect(fr.locator('body')).not.toContainText(/Dudas para el abogado/i);
     await page.locator('#legal-close').click();
   }
