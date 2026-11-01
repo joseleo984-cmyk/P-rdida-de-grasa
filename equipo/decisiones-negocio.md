@@ -51,3 +51,4 @@
 | 29 | Orden de construcción para el piloto | 1) recordatorio diario, 2) resumen semanal del asesorado, 3) aviso al coach con guía, 4) plantillas de reenganche, 5) liga, 6) lista «a quién reconocer», 7) reporte para José, 8) hito de 6 semanas y cierre de ciclo. Ver `comercial/pedido-funciones-piloto.md`. |
 | 30 | Revisión legal de la liga | No se pide si no es necesario: se usa el texto literal del Concepto 7. |
 
+| 31 | Base de datos del piloto | **`plataforma`** (decisión de José, 2026-11-01). `pruebas` y la demo solo con datos inventados, nunca con datos reales. `plataforma` no se conecta a la app oficial hasta que el abogado apruebe los textos. |
