@@ -17,12 +17,12 @@ Total: **5 casillas en 3 pantallas**, con una barra «Paso N de 3» y un botón 
 - Solo cambian textos de interfaz que no son legales: títulos de paso («Tus reglas del juego»), frases de apoyo («Cada casilla es tuya: nada viene marcado»). **Esas frases también las debe ver el abogado**, porque acompañan a una autorización.
 
 ## ¿La «autorización única» reduce pasos?
-Sí, si el abogado la aprueba para el coach: el paso 3 se podría unir al paso 1 o 2 (quedarían 2 pasos) siempre que el texto diga con claridad qué se autoriza (copia en la nube y transmisión internacional) y siga separada de Términos y Política. Si no la aprueba, quedan 3 pasos.
+**Decisión del abogado: NO autorizó la aceptación única.** Cada autorización sigue con su casilla propia y no se unen. La opción de bajar a 2 pasos queda descartada: si se agrupa, son **3 pasos con 5 casillas** (o los que el abogado valide), sin unir textos.
 
 ## Preguntas concretas
 1. ¿Se pueden mostrar Términos, Política y mayoría de edad en una misma pantalla, con **tres casillas separadas**, sin marcar y obligatorias antes de usar la app?
 2. ¿El Acuerdo del coach puede ir en una pantalla aparte antes de ver datos de asesorados (como hoy), o debe ir junto a los Términos?
-3. ¿La autorización de copia en la nube y transmisión internacional puede ir **junta** con el Acuerdo del coach en una sola pantalla, siempre con casilla propia?
+3. (Sigue abierta) ¿La copia en la nube y transmisión internacional puede ir en la misma **pantalla** que el Acuerdo del coach, con casilla propia cada una? Unir los textos en una sola casilla ya no es opción.
 4. ¿Podemos agregar una pantalla de bienvenida sin casillas **antes** del primer paso, y una barra «Paso N de 3»? ¿Hay que decir «Son 3 pasos» o basta «pasos cortos»?
 5. ¿Las frases de apoyo («Te pedimos esto para cuidar tus datos…») están bien, o prefiere que no haya texto entre el título y las casillas?
 6. ¿Hay que mostrar el enlace al texto completo de cada documento antes de la casilla (hoy es «Leer los Términos», «Leer la Política»)?
