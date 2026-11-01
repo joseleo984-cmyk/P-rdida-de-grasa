@@ -830,6 +830,14 @@
         </form>
         <p class="small muted">Tu uso personal de la app (tu propio peso, comidas y hábitos) no cambia.</p>
       </div>
+      <!-- Pedido adicional: bienvenida del coach (una vez por teléfono, sin casillas; las autorizaciones no cambian) -->
+      <section id="coach-welcome" class="card cw hidden" aria-labelledby="cw-title" data-testid="coach-welcome">
+        <svg class="cw-logo" viewBox="0 0 80 52" aria-hidden="true"><path d="M26 10c-9 0-16 7-16 16s7 16 16 16c8 0 12-6 18-16s10-16 18-16c9 0 16 7 16 16" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round"/><path d="M52 28l8 8 14-17" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h2 id="cw-title" tabindex="-1">Bienvenido, coach.</h2>
+        <p class="muted">Aquí verás quién va constante, quién se está apagando y a quién escribirle hoy.</p>
+        <ul class="cw-legend" aria-hidden="true"><li><i class="cw-dot cw-g"></i> Constantes esta semana</li><li><i class="cw-dot cw-y"></i> Se están apagando</li><li><i class="cw-dot cw-n"></i> Sin registrar</li></ul>
+        <button type="button" class="btn btn-tall" id="btn-cw-start">Empezar</button>
+      </section>
       <div id="coach-list-view">
         <!-- r1 v1.13 (M10): aviso de la plataforma (solo coaches activos; se cierra y el cierre se recuerda en este teléfono) y coach suspendido -->
         <div id="coach-avisos" class="pa-list"></div>
@@ -843,6 +851,16 @@
             <button type="button" class="btn btn-ghost btn-tall" id="btn-coach-refresh">Actualizar</button>
           </div>
           <!-- UX Etapa 1: filtros «Necesitan atención · Todos · Vencen pronto · Sin pagar» (la lista va ordenada por atención y el pago es un dato secundario) -->
+          <!-- Pedido adicional: resumen de inicio del coach (solo constancia; nunca peso ni fotos) -->
+          <section id="coach-inicio" class="card hidden" aria-labelledby="ci-hoy" data-testid="coach-inicio">
+            <p class="ci-hoy" id="ci-hoy"></p>
+            <div class="ci-stats" role="group" aria-label="Resumen de la semana">
+              <div><b id="ci-n-const">0</b><span>Constantes</span></div>
+              <div><b id="ci-n-apaga">0</b><span>Se apagan</span></div>
+              <div><b id="ci-n-sin">0</b><span>Sin registrar</span></div>
+            </div>
+            <ul id="ci-list" class="ci-list"></ul>
+          </section>
           <div id="coach-filters" class="cli-filters pc-only" role="group" aria-label="Filtrar asesorados"></div>
           <!-- Piloto 6: «A quién reconocer este lunes» (lun–mié): hasta 3 personas por constancia o regreso; felicitar es 1 toque (nota del coach). -->
           <section id="coach-reconocer" class="card pc-only hidden" aria-labelledby="rec-lunes-title">

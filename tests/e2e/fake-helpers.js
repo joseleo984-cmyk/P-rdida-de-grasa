@@ -28,6 +28,7 @@ async function answerCloud(p, on = true) {
 
 async function loginAsCoach(page, email, biz, { agreement = true, cloud = true } = {}) {
   const seed = consentsSeed({ cloud, coach: agreement });
+  await page.evaluate(() => localStorage.setItem('perdida-grasa:coachBienvenida', '1'));   // la bienvenida del coach se prueba en coach-inicio.spec.js
   await page.evaluate(async ({ email, biz, seed }) => {
     const be = window.__pgFakeBackend;
     const r = RemoteFake.createFake({ backend: be, storage: localStorage });
@@ -50,6 +51,7 @@ async function loginAsCoach(page, email, biz, { agreement = true, cloud = true }
 }
 async function newPhone(browser, testInfo, { backend, path, prefs = {} }) {
   const ctx = await browser.newContext({ ...testInfo.project.use, baseURL: testInfo.project.use.baseURL, permissions: ['clipboard-read', 'clipboard-write'] });
+  await ctx.addInitScript(() => { try { if (!sessionStorage.getItem('__bienv')) { sessionStorage.setItem('__bienv', '1'); localStorage.setItem('perdida-grasa:coachBienvenida', '1'); } } catch (e) { /* sin almacenamiento */ } });   // la bienvenida del coach se prueba aparte (coach-inicio.spec.js)
   const p = await ctx.newPage();
   p.on('dialog', (d) => d.accept());
   await p.clock.install({ time: new Date('2026-10-21T12:00:00-05:00') });

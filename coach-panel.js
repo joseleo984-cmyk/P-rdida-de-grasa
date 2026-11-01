@@ -265,7 +265,19 @@
       toast(`Felicitación enviada a ${displayName(c)}`);
     } catch (err) { toast(errText(err), true); }
   }
+  // Pedido adicional: inicio del coach («Hoy, escríbele a N personas»). Solo constancia; el botón abre la ficha, donde están las plantillas.
+  function renderInicio() {
+    const box = $('#coach-inicio');
+    if (!box || !window.Piloto) return;
+    const all = rowsNow();
+    const r = Piloto.inicioCoach(all.map(({ c, at }) => ({ id: c.info.clientId, name: displayName(c), level: at.level, days: at.days, daysLogged7: at.daysLogged7 })));
+    box.classList.toggle('hidden', !all.length);
+    $('#ci-hoy').textContent = r.headline;
+    $('#ci-n-const').textContent = r.constantes; $('#ci-n-apaga').textContent = r.apagan; $('#ci-n-sin').textContent = r.sinRegistrar;
+    $('#ci-list').innerHTML = r.items.map((i) => `<li><span><strong>${esc(i.name)}</strong> <span class="small muted">· ${esc(i.detail)}</span><br><span class="ci-pill">${esc(i.pill)}</span></span><button type="button" class="btn btn-ghost" data-client="${esc(i.id)}" aria-label="${esc(i.action)}: ${esc(i.name)}. Abrir su ficha">${esc(i.action)}</button></li>`).join('');
+  }
   function renderListPay() {
+    renderInicio();
     renderReconocer();
     const ul = $('#coach-clients');
     const all = rowsNow();
@@ -451,6 +463,7 @@
     $('#coach-detail-view').classList.add('hidden');
     $('#coach-list-view').classList.remove('hidden');
     fichaBar(false);
+    renderWelcome();
     const btn = focusId && document.querySelector(`#coach-clients [data-client="${CSS.escape(focusId)}"]`);
     (btn || $('#coach-title-list')).focus();
   }
@@ -807,6 +820,7 @@
       const b = ev.target.closest('[data-client]');
       if (b) openClient(b.dataset.client);
     });
+    $('#ci-list').addEventListener('click', (ev) => { const b = ev.target.closest('[data-client]'); if (b) openClient(b.dataset.client); });
     $('#btn-fc-dolor').addEventListener('click', () => { if (current) reviewPain(current); });
     $('#btn-coach-back').addEventListener('click', () => showList(current));
     $('#btn-coach-compare').addEventListener('click', compareNow);
@@ -946,6 +960,24 @@
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshNotes(); });
   }
 
+  // Pedido adicional: bienvenida una sola vez por teléfono. No guarda nada del usuario ni cambia las autorizaciones (el acuerdo A7 sigue antes de ver clientes).
+  const WELCOME_KEY = PGNS.key('coachBienvenida');
+  const welcomeSeen = () => { try { return localStorage.getItem(WELCOME_KEY) === '1'; } catch { return true; } };
+  function renderWelcome() {
+    const w = $('#coach-welcome'), list = $('#coach-list-view');
+    if (!w || !list) return;
+    const show = !welcomeSeen() && agreementOK() && $('#coach-detail-view').classList.contains('hidden');
+    w.classList.toggle('hidden', !show);
+    list.classList.toggle('hidden', show);
+    if (show) w.querySelector('h2').focus({ preventScroll: true });
+  }
+  function wireWelcome() {
+    const b = $('#btn-cw-start');
+    if (!b) return;
+    b.addEventListener('click', () => { try { localStorage.setItem(WELCOME_KEY, '1'); } catch { /* sin espacio */ } renderWelcome(); $('#coach-title-list').focus({ preventScroll: true }); });
+    document.addEventListener('click', (ev) => { if (ev.target.closest && ev.target.closest('#tab-coach, #tab-panel')) setTimeout(renderWelcome, 0); });
+    renderWelcome();
+  }
   function start() {
     if (A || !window.PGAccount) return;
     A = window.PGAccount;
@@ -954,6 +986,7 @@
     wireAgreement();
     wireCoach();
     wireClient();
+    wireWelcome();
     if (PROD.coach) { $('#coach-title-list').textContent = 'Mis asesorados'; $('#btn-coach-back').textContent = '← Mis asesorados'; }
     refreshNotes();
     document.addEventListener('pg:account-changed', (ev) => {

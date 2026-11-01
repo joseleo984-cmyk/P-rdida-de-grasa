@@ -45,6 +45,8 @@ const enterCoach = async (page, site) => {
   const log = await openDemo(page, site);
   await page.getByRole('button', { name: /Ver como coach/ }).click();
   await expect(page.locator('#coach-clients .cli-pay-row')).toHaveCount(8);
+  const start = page.locator('#btn-cw-start');   // bienvenida del coach (se prueba en coach-inicio.spec.js)
+  if (await start.isVisible()) await start.click();
   return log;
 };
 const enterClient = async (page, site, query = '') => {
@@ -279,6 +281,9 @@ for (const scheme of ['light', 'dark']) {
     await page.getByRole('button', { name: /Ver como coach/ }).click();
     await expect(page.locator('#coach-clients .cli-pay-row')).toHaveCount(8);
     await page.addStyleTag({ content: WIDE });
+    await expect(page.locator('#coach-welcome')).toBeVisible();   // la bienvenida del coach también cabe en 390 px con letra ancha
+    await noOverflow(page);
+    await page.locator('#btn-cw-start').click();
     await noOverflow(page);
     await page.locator('#coach-filters button', { hasText: 'Todos' }).click();
     await page.locator('#coach-clients .cli-pay-row').filter({ hasText: 'Ana Demo' }).locator('.cli-main').click();

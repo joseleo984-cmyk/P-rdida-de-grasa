@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Maqueta Inicio Coach</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Concepto: app de una columna con 5 pantallas en secuencia (bienvenida, tres pasos de autorización, inicio). Una acción por pantalla. */
+:root{
+  --bg:#f6f8f5; --surface:#ffffff; --fg:#14201a; --muted:#56655c; --line:#dfe6e0;
+  --accent:#4ee05a; --accent-ink:#0b1a10; --accent-text:#157a26; --soft:#e7f6e9;
+  --warn:#b25e00; --warn-soft:#fdeed8; --off:#6b7a70; --off-soft:#e9edea;
+  --display:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;
+  --body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c110e; --surface:#151c17; --fg:#eef3ee; --muted:#9bab9f; --line:#26312a;
+  --accent:#4ee05a; --accent-ink:#0b1a10; --accent-text:#6be676; --soft:#16291a;
+  --warn:#f0a445; --warn-soft:#2d2210; --off:#93a398; --off-soft:#1f2822; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c110e; --surface:#151c17; --fg:#eef3ee; --muted:#9bab9f; --line:#26312a;
+  --accent:#4ee05a; --accent-ink:#0b1a10; --accent-text:#6be676; --soft:#16291a;
+  --warn:#f0a445; --warn-soft:#2d2210; --off:#93a398; --off-soft:#1f2822; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 var(--body);margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
+.wrap{max-width:520px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);line-height:1.1;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,9vw,2.7rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.6rem;font-weight:800;margin-bottom:8px}
+h3{font-size:1.05rem;font-weight:600}
+p{margin:0 0 12px}
+.banner{background:var(--warn-soft);color:var(--warn);font-size:.8rem;padding:8px 12px;border-radius:8px;margin:12px 0}
+.top{display:flex;justify-content:space-between;align-items:center;padding:6px 0;min-height:44px}
+.link{font:600 .85rem var(--body);color:var(--muted);background:none;border:0;cursor:pointer;padding:8px 4px}
+.btn{display:block;width:100%;text-align:center;background:var(--accent);color:var(--accent-ink);font:700 1.05rem var(--body);border:0;border-radius:14px;padding:16px;cursor:pointer}
+.btn[disabled]{background:var(--off-soft);color:var(--off);cursor:not-allowed}
+.btn:focus-visible,.link:focus-visible,input:focus-visible{outline:3px solid var(--accent-text);outline-offset:2px}
+.muted{color:var(--muted)}
+.screen[hidden]{display:none}
+/* Bienvenida */
+.welcome{min-height:78vh;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:12px 0}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:1.3rem}
+.logo svg{width:52px;height:34px}
+.hello{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:8px}
+.hello div{display:flex;gap:10px;align-items:center}
+.dot{width:12px;height:12px;border-radius:50%;flex:none}
+.g{background:var(--accent)} .y{background:var(--warn)} .n{background:var(--off)}
+/* Pasos */
+.steps{display:flex;gap:6px;margin:6px 0 14px}
+.steps span{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.steps span.on{background:var(--accent)}
+.why{background:var(--soft);color:var(--fg);border-radius:12px;padding:10px 12px;font-size:.9rem;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:6px 16px;margin-bottom:14px}
+.consent{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+.consent:first-child{border-top:0}
+.consent input{width:24px;height:24px;margin-top:2px}
+.consent b{display:block}
+.consent small{display:block;color:var(--muted);margin-top:2px}
+.consent .ph{font-size:.8rem;color:var(--warn);margin-top:4px}
+/* Inicio */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0}
+.row{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line);align-items:center}
+.row:first-of-type{border-top:0}
+.pill{font-size:.72rem;font-weight:600;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.ok{background:var(--soft);color:var(--accent-text)} .mid{background:var(--warn-soft);color:var(--warn)} .off{background:var(--off-soft);color:var(--off)}
+.act{grid-column:1/-1;display:flex;gap:8px}
+.act button{font:600 .8rem var(--body);border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:8px;padding:6px 12px;cursor:pointer}
+.today{background:var(--accent);color:var(--accent-ink);border-radius:18px;padding:16px;margin:10px 0}
+.today b{font-family:var(--display);font-size:1.25rem;display:block}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.stats b{font-family:var(--display);font-size:1.4rem;display:block}
+.stats span{font-size:.72rem;color:var(--muted)}
+.tabs{position:sticky;bottom:0;display:flex;justify-content:space-around;background:var(--surface);border-top:1px solid var(--line);padding:10px 0 12px;margin-top:20px;font-size:.78rem;color:var(--muted)}
+.tabs .cur{color:var(--accent-text);font-weight:700}
+.ex{font-size:.75rem;color:var(--muted)}
+</style>
+
+<div class="wrap">
+  <div class="banner">Maqueta de trabajo. Datos de ejemplo. Los textos legales son marcadores: el texto literal lo pone el equipo técnico con lo aprobado por el abogado.</div>
+
+  <!-- 1. Bienvenida -->
+  <section class="screen" id="s-bienvenida" aria-labelledby="t-bienvenida">
+    <div class="welcome">
+      <div class="logo">
+        <svg viewBox="0 0 80 52" aria-hidden="true"><path d="M26 10c-9 0-16 7-16 16s7 16 16 16c8 0 12-6 18-16s10-16 18-16c9 0 16 7 16 16" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round"/><path d="M52 28l8 8 14-17" fill="none" stroke="var(--fg)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>NOMBRE</span>
+      </div>
+      <h1 id="t-bienvenida">Bienvenido, coach.</h1>
+      <p class="muted">Aquí verás quién va constante, quién se está apagando y a quién escribirle hoy.</p>
+      <div class="hello" aria-hidden="true">
+        <div><i class="dot g"></i> Constantes esta semana</div>
+        <div><i class="dot y"></i> Se están apagando</div>
+        <div><i class="dot n"></i> Sin registrar</div>
+      </div>
+      <button class="btn" data-go="paso-1" type="button">Empezar</button>
+      <p class="ex">Son 3 pasos cortos. Te tomará menos de 2 minutos.</p>
+    </div>
+  </section>
+
+  <!-- 2. Paso 1 -->
+  <section class="screen" id="s-paso-1" hidden aria-labelledby="t-p1">
+    <div class="top"><button class="link" data-go="bienvenida" type="button">‹ Atrás</button><span class="muted" style="font-size:.85rem">Paso 1 de 3</span></div>
+    <div class="steps" aria-hidden="true"><span class="on"></span><span></span><span></span></div>
+    <h2 id="t-p1">Tus reglas del juego</h2>
+    <div class="why">Te pedimos esto para cuidar tus datos y los de tus asesorados. Cada casilla es tuya: nada viene marcado.</div>
+    <div class="card">
+      <label class="consent" for="a1"><input id="a1" type="checkbox"><span><b>Términos y Condiciones</b><small>Cómo funciona la plataforma.</small><span class="ph">[Texto literal aprobado por el abogado, con enlace]</span></span></label>
+      <label class="consent" for="a2"><input id="a2" type="checkbox"><span><b>Política de Tratamiento de Datos</b><small>Qué datos se guardan y para qué.</small><span class="ph">[Texto literal aprobado por el abogado, con enlace]</span></span></label>
+      <label class="consent" for="a3"><input id="a3" type="checkbox"><span><b>Tengo 18 años o más</b></span></label>
+    </div>
+    <button class="btn" id="b1" data-go="paso-2" type="button" disabled>Continuar</button>
+    <p class="ex" id="h1">Marca las tres casillas para continuar.</p>
+  </section>
+
+  <!-- 3. Paso 2 -->
+  <section class="screen" id="s-paso-2" hidden aria-labelledby="t-p2">
+    <div class="top"><button class="link" data-go="paso-1" type="button">‹ Atrás</button><span class="muted" style="font-size:.85rem">Paso 2 de 3</span></div>
+    <div class="steps" aria-hidden="true"><span class="on"></span><span class="on"></span><span></span></div>
+    <h2 id="t-p2">Tu acuerdo como coach</h2>
+    <div class="why">Antes de ver datos de tus asesorados, aceptas cómo los vas a cuidar. Después podrás verlo y descargarlo en Más → Mi acuerdo.</div>
+    <div class="card">
+      <label class="consent" for="a4"><input id="a4" type="checkbox"><span><b>Acuerdo del coach</b><small>Qué puedes hacer con los datos y qué no.</small><span class="ph">[Texto literal del Acuerdo del Coach]</span></span></label>
+    </div>
+    <button class="btn" id="b2" data-go="paso-3" type="button" disabled>Continuar</button>
+  </section>
+
+  <!-- 4. Paso 3 -->
+  <section class="screen" id="s-paso-3" hidden aria-labelledby="t-p3">
+    <div class="top"><button class="link" data-go="paso-2" type="button">‹ Atrás</button><span class="muted" style="font-size:.85rem">Paso 3 de 3</span></div>
+    <div class="steps" aria-hidden="true"><span class="on"></span><span class="on"></span><span class="on"></span></div>
+    <h2 id="t-p3">Tus datos en la nube</h2>
+    <div class="why">Para usar la app en varios aparatos y ver a tus asesorados, se guarda una copia en la nube. Es tu decisión.</div>
+    <div class="card">
+      <label class="consent" for="a5"><input id="a5" type="checkbox"><span><b>Guardar mi copia en la nube</b><small>Sirve para entrar desde cualquier teléfono.</small><span class="ph">[Texto literal de la autorización de copia en la nube y transmisión internacional]</span></span></label>
+    </div>
+    <button class="btn" id="b3" data-go="inicio" type="button" disabled>Entrar</button>
+    <p class="ex">La lista exacta de casillas la define el equipo técnico con el abogado. Aquí es un ejemplo de cómo agruparlas.</p>
+  </section>
+
+  <!-- 5. Inicio -->
+  <section class="screen" id="s-inicio" hidden aria-labelledby="t-inicio">
+    <div class="top"><span class="logo" style="font-size:1.05rem">NOMBRE</span><span class="muted" style="font-size:.85rem">Lunes</span></div>
+    <h2 id="t-inicio">Buenos días, coach</h2>
+    <div class="today"><b>Hoy, escríbele a 2 personas</b>Una se está apagando y otra lleva 8 días sin registrar.</div>
+    <div class="stats" aria-label="Resumen de la semana">
+      <div><b>6</b><span>Constantes</span></div>
+      <div><b>2</b><span>Se apagan</span></div>
+      <div><b>1</b><span>Sin registrar</span></div>
+    </div>
+    <h3>Tu semana</h3>
+    <div class="panel">
+      <div class="row"><span><b>Persona A</b> <span class="muted">· 6 de 7 días</span></span><span class="pill ok">Constante</span><div class="act"><button type="button">Felicitar</button></div></div>
+      <div class="row"><span><b>Persona B</b> <span class="muted">· 2 de 7 días</span></span><span class="pill mid">Se está apagando</span><div class="act"><button type="button">Escribirle</button></div></div>
+      <div class="row"><span><b>Persona C</b> <span class="muted">· 8 días sin registrar</span></span><span class="pill off">Sin registrar</span><div class="act"><button type="button">Escribirle</button></div></div>
+    </div>
+    <p class="ex">Datos de ejemplo. Nunca se muestran pesos ni fotos en esta pantalla.</p>
+    <nav class="tabs" aria-label="Menú"><span class="cur">Inicio</span><span>Asesorados</span><span>Retos</span><span>Más</span></nav>
+    <button class="link" data-go="bienvenida" type="button">Volver a empezar la demostración</button>
+  </section>
+</div>
+
+<script>
+(function(){
+  var names=['bienvenida','paso-1','paso-2','paso-3','inicio'];
+  function show(n){
+    if(names.indexOf(n)<0)n='bienvenida';
+    names.forEach(function(x){document.getElementById('s-'+x).hidden=(x!==n)});
+    try{history.replaceState(null,'','#'+n)}catch(e){}
+    window.scrollTo(0,0);
+  }
+  document.addEventListener('click',function(ev){
+    var b=ev.target.closest('[data-go]');
+    if(b&&!b.disabled)show(b.getAttribute('data-go'));
+  });
+  function bind(btn,ids){
+    var el=document.getElementById(btn);
+    function upd(){el.disabled=!ids.every(function(i){return document.getElementById(i).checked})}
+    ids.forEach(function(i){document.getElementById(i).addEventListener('change',upd)});
+  }
+  bind('b1',['a1','a2','a3']);bind('b2',['a4']);bind('b3',['a5']);
+  show((location.hash||'').slice(1)||'bienvenida');
+  window.addEventListener('hashchange',function(){show(location.hash.slice(1))});
+})();
+</script>
+
+</html>
