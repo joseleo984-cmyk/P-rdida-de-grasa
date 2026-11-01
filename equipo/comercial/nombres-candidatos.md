@@ -26,3 +26,10 @@ Logo propuesto: símbolo de infinito con una marca de visto, en verde y blanco s
 - **Riesgos (suposición, sin verificar):** «Aura» es una palabra muy usada como nombre de marca y de apps (puede chocar en la SIC y en las tiendas de apps); suena a esoterismo o bienestar, no a constancia; «Coach» es genérico y no protege.
 - **Pendientes:** **[Abogado]** búsqueda de marca para «Aura» y alternativas; versión sobre fondo claro y de un solo color; revisar derechos de la imagen si fue generada con IA.
 - Si «Aura» no es viable, el símbolo (infinito + visto) se puede conservar con otro nombre.
+
+## Finalistas elegidos por José (2026-11-01): Aura, Kinetic, Ritmo
+- **Reserva:** Cadencia y Tándem (de la lista original).
+- **Aura Coach:** riesgos ya anotados arriba (nombre muy usado; suena a esoterismo).
+- **Kinetic Coach:** en inglés; habla de movimiento y cuerpo, lo que choca un poco con «constancia, no cuerpo»; nombre usado en otros sectores. **Suposición, sin verificar.**
+- **Ritmo:** el que mejor dice constancia y está en español; genérico, más difícil de registrar. «Ritmo App»: la palabra «App» no protege.
+- **Siguiente:** búsqueda de marca por el abogado (`pregunta-abogado-marca.md`), dominio y tiendas de apps (José), y consulta anónima con coaches y asesorados del piloto.
