@@ -518,6 +518,8 @@ test('en pausa por pago el cliente aún ve sus comidas (sin agregar, editar ni b
 });
 
 test('la app OFICIAL no cambia: sin tarjeta «Mis comidas de hoy», sin fila nueva en Más ni pantalla nueva; las comidas de siempre siguen', async ({ page }) => {
+  // La app oficial real ya está conectada a plataforma: aquí se prueba la oficial SIN servidor (el config.js vacío de antes).
+  await page.route('**/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: "window.PG_CONFIG = { env: '', url: '', key: '', mode: 'real' };" }));
   await page.goto('index.html');
   expect(await page.evaluate(() => [Producto.coach, Producto.soloNube])).toEqual([false, false]);
   await page.locator('#form-consent input[name=terms]').check();

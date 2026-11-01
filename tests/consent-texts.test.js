@@ -79,11 +79,11 @@ test('A5: una línea por categoría, con el nombre del coach; la huella cambia c
   assert.match(sha(a), /^[0-9a-f]{64}$/);
 });
 
-test('A2 muestra la versión VIGENTE de los textos legales (hoy 0.1, enlaces a legal/*.html)', () => {
+test('A2 muestra la versión VIGENTE de los textos legales (hoy 1.0, enlaces a legal/*.html)', () => {
   const t = CT.fullText('A2', { legalVersion: Schema.LEGAL_VERSIONS.terms });
-  assert.match(t, /\(versión 0\.1\)/);
+  assert.match(t, /\(versión 1\.0\)/);
   assert.deepStrictEqual(CT.get('A2').links.map((l) => l.href), ['legal/terminos.html', 'legal/privacidad.html']);
-  assert.strictEqual(Schema.LEGAL_VERSIONS.terms, '0.1'); // no se suben hasta que el abogado apruebe los textos
+  assert.strictEqual(Schema.LEGAL_VERSIONS.terms, '1.0'); // Términos 1.0 aprobados por el abogado el 1/11/2026
 });
 
 test('A7: el resumen incluye lo esencial del acuerdo', () => {

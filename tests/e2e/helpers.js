@@ -52,7 +52,14 @@ const appReady = (page) => expect(page.locator('.tabbar button, [data-testid="le
 // Consentimiento vigente (todas las casillas) para sembrar estados que no deben pasar por la pantalla legal.
 const CONSENT = require('../../schema.js').buildConsent({ terms: true, privacy: true, adult: true, sensitiveHealth: true, photos: true }, '2026-10-01T12:00:00.000Z');
 
+// La app oficial ya está conectada a `plataforma` (config.js real). Estas pruebas parten de la app SIN servidor (modo local o servidor FALSO con ?remote=fake),
+// así que se sirve el config.js vacío de antes; las pruebas que necesitan otro config.js lo interceptan después (la ruta más reciente gana).
+const EMPTY_CONFIG = "window.PG_CONFIG = { env: '', url: '', key: '', mode: 'real' };";
 const test = base.extend({
+  page: async ({ page }, use) => {
+    await page.route('**/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: EMPTY_CONFIG }));
+    await use(page);
+  },
   app: async ({ page }, use, testInfo) => {
     const errors = [];
     let allowErrors = false;

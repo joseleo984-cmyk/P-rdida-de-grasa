@@ -31,7 +31,7 @@ test('primer uso: pantalla a pantalla completa, 5 casillas sin marcar y Continua
   expect(await app.scrollWidth()).toBeLessThanOrEqual(390);
 });
 
-test('los textos se leen dentro de la app con aviso de borrador, sin notas internas y sin perder lo marcado', async ({ app, page }) => {
+test('los textos se leen dentro de la app, definitivos (sin aviso de borrador), sin notas internas y sin perder lo marcado', async ({ app, page }) => {
   await app.open({ legal: false });
   await box(page, 'terms').check();
   await box(page, 'adult').check();
@@ -39,7 +39,7 @@ test('los textos se leen dentro de la app con aviso de borrador, sin notas inter
   const dialog = page.locator('#legal-dialog');
   await expect(dialog).toBeVisible();
   const frame = page.frameLocator('#legal-frame');
-  await expect(frame.locator('.draft')).toHaveText(/Borrador pendiente de revisión legal/);
+  await expect(frame.locator('.draft')).toHaveCount(0);   // textos definitivos del abogado (1/11/2026)
   await expect(frame.locator('h1')).toContainText('Términos y Condiciones');
   await expect(frame.locator('body')).not.toContainText('NOTA');
   await expect(page.locator('#legal-close')).toBeFocused();
@@ -165,10 +165,10 @@ test('enlaces de fotos y mayor de 18 abren su sección del texto; datos más nue
   await app.open({ state: { schemaVersion: 99, entries: [] }, legal: false });
   app.allowConsoleErrors();
   await page.getByRole('link', { name: 'Qué hacemos con tus fotos' }).click();
-  await expect(page.locator('#legal-frame')).toHaveAttribute('src', 'legal/privacidad.html#s5');
-  await expect(page.frameLocator('#legal-frame').locator('#s5')).toBeInViewport();
+  await expect(page.locator('#legal-frame')).toHaveAttribute('src', 'legal/privacidad.html#s6');
+  await expect(page.frameLocator('#legal-frame').locator('#s6')).toBeInViewport();
   await page.locator('#legal-close').click();
-  await expect(page.getByRole('link', { name: 'Por qué solo mayores de 18' })).toHaveAttribute('href', 'legal/privacidad.html#s7');
+  await expect(page.getByRole('link', { name: 'Por qué solo mayores de 18' })).toHaveAttribute('href', 'legal/privacidad.html#s9');
   await expect(page.locator('#btn-consent-reload')).toBeVisible();
   await expect(page.locator('#btn-consent-reset')).toBeVisible();
   const [reload] = await Promise.all([page.waitForEvent('load'), page.locator('#btn-consent-reload').click()]);

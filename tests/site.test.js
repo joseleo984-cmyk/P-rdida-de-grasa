@@ -15,7 +15,7 @@ const REF = 'myeuoqvyyhveoxrpkjvg';
 const DEMO_FILES = ['demo.js', 'demo-data.js', 'demo.css', 'remote-fake.js'];
 const inRoot = (f) => !f.startsWith(path.join(dir, 'pruebas') + path.sep) && !f.startsWith(path.join(dir, 'demo') + path.sep);
 
-test('la raíz no incluye la URL ni la clave de pruebas y su config.js sigue vacío', () => {
+test('la raíz no incluye la URL ni la clave de pruebas y su config.js apunta a plataforma', () => {
   const files = walk(dir).filter((f) => !f.startsWith(path.join(dir, 'pruebas') + path.sep));
   for (const f of files) {
     const t = fs.readFileSync(f, 'utf8');
@@ -23,10 +23,10 @@ test('la raíz no incluye la URL ni la clave de pruebas y su config.js sigue vac
     assert.ok(!t.includes('sb_publishable_rWpR'), 'clave de pruebas en ' + f);
   }
   const cfg = read('config.js');
-  assert.ok(!cfg.includes('supabase.co'));
   assert.match(cfg, /env:\s*''/);
-  assert.match(cfg, /url:\s*''/);
-  assert.match(cfg, /key:\s*''/);
+  assert.match(cfg, /url:\s*'https:\/\/naybnhxtragszulpisav\.supabase\.co'/);
+  assert.match(cfg, /key:\s*'sb_publishable_[A-Za-z0-9_-]+'/);
+  assert.ok(!/sb_secret_|service_role/.test(cfg));
 });
 
 test('captcha: la raíz no lleva la captchaSiteKey de pruebas y ningún archivo lleva claves con forma de secreta', () => {
@@ -119,7 +119,7 @@ test('demo: /demo/ no lleva claves ni URLs de Supabase ni captcha, usa env demo 
   assert.strictEqual(m.scope, './');
   // El sw de la raíz y el de pruebas no precachean nada de la demo
   assert.ok(!/demo/.test(read('sw.js')) && !/demo/.test(read('pruebas/sw.js')));
-  assert.ok(/cacheName\(58\)/.test(read('demo/sw.js')));
+  assert.ok(/cacheName\(59\)/.test(read('demo/sw.js')));
   // Insignias v4 (logros): los dos archivos se publican y se precachean en los tres sitios (funcionan sin conexión).
   for (const pre of ['', 'pruebas/', 'demo/']) for (const f of ['logros.js', 'logros-view.js']) {
     assert.ok(fs.existsSync(path.join(dir, pre + f)), pre + f);

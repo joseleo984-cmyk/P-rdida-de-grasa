@@ -1,6 +1,6 @@
 {
   "_nota": "Versiones PUBLICADAS de los textos legales (fuente única). La app lee este archivo (aviso-politica.js) para mostrar el aviso informativo y habilitar «Exportar a Excel»; tests/legal.test.js exige que coincida con los .md y con Schema.LEGAL_VERSIONS. acceptedStillValid = versiones cuya aceptación sigue vigente sin re-aceptación forzada (cambio informativo: conceptos 2 y 7).",
-  "terms": { "version": "0.1", "acceptedStillValid": [] },
+  "terms": { "version": "1.0", "publishedAt": "2026-11-01", "acceptedStillValid": [] },
   "privacy": {
     "version": "1.2",
     "publishedAt": "2026-10-26",

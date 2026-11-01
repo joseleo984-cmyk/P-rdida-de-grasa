@@ -29,18 +29,18 @@ test('LEGAL-01: los HTML legales están en la caché del service worker y en el 
   assert.ok(/\['legal', 'legal'\]/.test(pages), 'build-site.js no copia legal/');
 });
 
-test('LEGAL-01: el HTML no muestra notas internas ni la cabecera de trabajo (siguen en los .md)', () => {
+test('LEGAL-01: el HTML no muestra notas internas ni la cabecera de trabajo', () => {
   for (const d of Legal.build()) {
     assert.ok(!/NOTA|Alternativas:|A confirmar|Autor: Agente|Dudas para el abogado/.test(d.html), d.out + ' muestra notas internas');
-    assert.ok(/NOTA/.test(fs.readFileSync(path.join(ROOT, d.src), 'utf8')), d.src + ' debería conservar sus notas');
   }
   assert.strictEqual(Legal.publicMarkdown('> cabecera\n\n# T\n- a\n- *NOTA: x*\n\nTexto *NOTA, y:* **z** *(Alternativas: w)*'), '# T\n- a\n\nTexto **z**');
 });
 
-test('LEGAL-01: anclas de sección para los enlaces de la app (#s5 fotos/salud, #s7 menores)', () => {
+test('LEGAL-01: anclas de sección para los enlaces de la app (#s3 datos, #s6 fotos, #s9 menores)', () => {
   const privacy = Legal.build().find((d) => d.out === 'legal/privacidad.html').html;
-  assert.match(privacy, /<h2 id="s5">5\. Datos sensibles/);
-  assert.match(privacy, /<h2 id="s7">7\. Menores de edad/);
+  assert.match(privacy, /<h2 id="s3">3\. Categorías de Datos Tratados/);
+  assert.match(privacy, /<h2 id="s6">6\. Régimen Especial de Fotografías de Progreso/);
+  assert.match(privacy, /<h2 id="s9">9\. Prohibición de Registro de Menores de Edad/);
   const index = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   for (const id of index.match(/legal\/privacidad\.html#(s[\d-]+)/g) || []) assert.ok(privacy.includes(`id="${id.split('#')[1]}"`), id);
   assert.strictEqual(Legal.publicMarkdown('# T\n## 1. A\nx\n## Dudas para el abogado\n- ¿y?\n### sub\nz\n## 2. B\ny'), '# T\n## 1. A\nx\n## 2. B\ny');
@@ -71,7 +71,7 @@ test('consent: buildConsent exige T&C, Política y mayor de 18; facultativas por
   assert.throws(() => Schema.buildConsent(boxes, 'ayer'), /Fecha/);
   const c = Schema.buildConsent({ terms: true, privacy: true, adult: true }, NOW);
   assert.deepStrictEqual(c, {
-    termsVersion: '0.1', privacyVersion: '1.2', sensitiveHealth: false, photos: false, adult: true,
+    termsVersion: '1.0', privacyVersion: '1.2', sensitiveHealth: false, photos: false, adult: true,
     acceptedAt: NOW, updatedAt: NOW, sensitiveHealthAt: NOW, photosAt: NOW,
   });
 });

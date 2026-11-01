@@ -1,6 +1,6 @@
 # Procedimiento: conectar la app oficial al proyecto Supabase `plataforma`
 
-**Estado hoy (2026-10-23):** la app oficial NO está conectada: `config.js` está vacío (solo local). **No ejecutar nada de este documento hasta que el abogado apruebe los textos** (`equipo/legal/paquete-abogado.md`, `preasesoria-legal.md`: piloto cerrado de 2 coaches y ~10 adultos conocidos). Este procedimiento es para revisarlo ahora y ejecutarlo luego, en una sola PR.
+**Estado (2026-11-01):** conectada en la rama `claude/conectar-plataforma` (pendiente de merge con aprobación de José): `config.js` con la URL y la clave publicable de `plataforma`, textos legales definitivos (Política 1.2, Términos 1.0; `equipo/legal/concepto-9-2026-11-01.md`), caché del SW v59. Antes: la app oficial NO estaba conectada (`config.js` vacío). **No ejecutar nada de este documento hasta que el abogado apruebe los textos** (`equipo/legal/paquete-abogado.md`, `preasesoria-legal.md`: piloto cerrado de 2 coaches y ~10 adultos conocidos). Este procedimiento es para revisarlo ahora y ejecutarlo luego, en una sola PR.
 
 Quién: **SH** = Stakeholder (José), **EQ** = equipo (Dev). Regla: nada de claves secretas en el repositorio; solo la URL y la clave **publicable** (`sb_publishable_…`).
 
