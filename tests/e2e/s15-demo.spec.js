@@ -189,6 +189,8 @@ test('asesorado que no pagó: ve la pantalla de pausa; Reiniciar demo restaura l
 });
 
 test('r1 v1.13: ?rol=admin abre el panel admin con coaches ficticios (cifras del boceto M7) y el coach de la demo ve Analítica, Ranking y el aviso', async ({ page, site }) => {
+  // Las cifras del boceto M7 cuentan asesorados activos del MES en curso: con el reloj real fallan los primeros días de cada mes (aún no hay registros del mes). Se fija mitad de mes.
+  await page.clock.install({ time: new Date('2026-10-21T17:00:00Z') });
   const log = await openDemo(page, site, '?rol=admin');
   await expect(page.locator('#adm-coaches .adm-row')).toHaveCount(5);
   await expect(page.locator('#adm-coaches .an-k').nth(0)).toContainText('4 / 5');
