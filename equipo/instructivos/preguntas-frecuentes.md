@@ -2,7 +2,7 @@
 
 Piloto de 8 semanas · Versión 1 · Para imprimir o enviar como PDF
 
-> Soporte: **[TELÉFONO/WHATSAPP DE SOPORTE]** · **[HORARIO]**
+> Soporte: **3128876125** · **[HORARIO]**
 
 ---
 

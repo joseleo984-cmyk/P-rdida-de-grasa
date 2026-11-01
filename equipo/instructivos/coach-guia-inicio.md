@@ -3,7 +3,7 @@
 **Piloto de 8 semanas · desde la segunda semana de noviembre de 2026**
 Versión 1 · Para imprimir o enviar como PDF
 
-> Datos a completar antes de enviar: Enlace de la app: **[ENLACE DE LA APP]** · Soporte: **[TELÉFONO/WHATSAPP DE SOPORTE]** · Horario de soporte: **[HORARIO]**
+> Datos a completar antes de enviar: Enlace de la app: **[ENLACE DE LA APP]** · Soporte: **3128876125** · Horario de soporte: **[HORARIO]**
 
 ---
 
@@ -160,7 +160,7 @@ Qué ve el asesorado:
 - [ ] Instala la app en tu teléfono y entra a «Más → Cómo instalar la app» para comprobarlo.
 - [ ] Crea tu cuenta y acepta el acuerdo. Revisa «Más → Mi acuerdo».
 - [ ] Crea al menos **una rutina** y asígnala.
-- [ ] Revisa que sepas dónde está el soporte: **[TELÉFONO DE SOPORTE]**.
+- [ ] Revisa que sepas dónde está el soporte: **3128876125**.
 
 **Día 1**
 - [ ] Invita a tus asesorados por WhatsApp o QR (usa los textos de `mensajes-bienvenida.md`).
@@ -201,6 +201,6 @@ Estas funciones **no están disponibles para el piloto** hasta que se confirmen.
 
 ## 15. Ayuda
 
-- Soporte: **[TELÉFONO/WHATSAPP DE SOPORTE]** · **[HORARIO]**
+- Soporte: **3128876125** · **[HORARIO]**
 - Preguntas comunes: `preguntas-frecuentes.md` (sección coaches)
 - Si pasa algo grave con datos de una persona, avísanos **el mismo día**.

@@ -73,7 +73,7 @@ Cómo usar: copia el texto, cambia lo que está entre [corchetes] y envíalo por
 
 # Checklist: experiencia en los primeros 7 días
 
-Marca cada punto. Si algo sale «mal», anótalo y avisa a soporte: **[TELÉFONO DE SOPORTE]**.
+Marca cada punto. Si algo sale «mal», anótalo y avisa a soporte: **3128876125**.
 
 ## Día 0 a 1: instalar y entrar
 - [ ] El asesorado abrió el enlace en Safari (iPhone) o Chrome (Android).

@@ -3,7 +3,7 @@
 **Piloto de 8 semanas · desde la segunda semana de noviembre de 2026**
 Versión 1 · Para imprimir o enviar como PDF
 
-> Enlace de la app: **[ENLACE DE LA APP]** · Tu coach: **[NOMBRE DEL COACH]** · Ayuda: **[TELÉFONO/WHATSAPP DE SOPORTE]**
+> Enlace de la app: **[ENLACE DE LA APP]** · Tu coach: **[NOMBRE DEL COACH]** · Ayuda: **3128876125**
 
 ---
 
@@ -202,4 +202,4 @@ Estas funciones **todavía no están disponibles**:
 
 1. Mira el documento **Preguntas frecuentes** (sección asesorados).
 2. Escríbele a tu coach.
-3. Soporte: **[TELÉFONO/WHATSAPP DE SOPORTE]**
+3. Soporte: **3128876125**
