@@ -11,7 +11,7 @@ Seguir `equipo/handoffs/conectar-plataforma.md` tal cual. Lo que falta y solo Jo
 - [ ] `supabase/r1.sql` más reciente pegado en `plataforma` y «OK r1 v1».
 - [ ] Aprobación explícita de José para el merge a `main` y OTP por correo/Brevo activo.
 Después: correr las pruebas del §2 del procedimiento, prueba en iPhone real (`equipo/prueba-iphone.md`) y avisar a José. Fecha objetivo: antes de la 2.ª semana de noviembre.
-Al conectar, actualizar en los instructivos el marcador `[ENLACE DE LA APP]`.
+Hecho: el marcador `[ENLACE DE LA APP]` ya se reemplazó por https://joseleo984-cmyk.github.io/P-rdida-de-grasa/ (José decidió dejar esa dirección).
 
 ## B. Mejoras de la app (de lo que se vio al escribir los instructivos)
 1. **Nombre del coach en la invitación:** el mensaje de WhatsApp que arma `invite.js` no lleva el nombre comercial del coach. Pedido de José: tomarlo del registro del coach (limpiado/escapado como ya hace `invite.js`).
