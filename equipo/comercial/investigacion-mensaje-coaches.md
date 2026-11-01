@@ -21,7 +21,7 @@
 ## Ajustes sugeridos al mensaje
 1. Agregar el contraste «WhatsApp para hablar, [NOMBRE] para ver cómo van» (reduce la objeción de «ya uso WhatsApp»).
 2. Mantener «se está apagando»; es un lenguaje que el sector ya usa («se fue en silencio»).
-3. Probar un cuarto mensaje en los experimentos: **«Tu cliente se va en silencio entre el mes 2 y 3. Entérate a los 7 días.»** Medirlo contra las 3 variantes de `propuesta-comercial.md`.
+3. **Hecho (2026-11-01):** se añadió como variante D en `propuesta-comercial.md`: **«Tu cliente se va en silencio entre el mes 2 y 3. Entérate a los 7 días.»** Medirlo contra las 3 variantes de `propuesta-comercial.md`.
 4. En la página y el video, resaltar **español, pesos colombianos y precio por asesorado** como diferencia (suposición a validar).
 
 ## No usar

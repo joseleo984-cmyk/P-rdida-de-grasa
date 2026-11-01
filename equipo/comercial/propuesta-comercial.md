@@ -27,13 +27,14 @@ La frase del dolor, tal como la diría el coach: *«Me pasó el mes entero detr�
 **Mensaje en 1 frase (recomendado):**
 > «Ve quién se está apagando antes de que se vaya, sin perseguir a nadie por WhatsApp.»
 
-**3 variantes (para probar, ver §6):**
+**4 variantes (para probar, ver §6; la D sale de la investigación en `investigacion-mensaje-coaches.md`, hipótesis por validar):**
 
 | Variante | Enfoque | Frase |
 |---|---|---|
 | A. Tiempo | Menos persecución | «Recupera tus tardes: tus asesorados te cuentan cómo van solos.» |
 | B. Retención | Que no se vayan | «Un asesorado que se apaga avisa a tiempo. Tú lo ves el lunes, no al mes.» |
 | C. Orden | Pagos y seguimiento juntos | «Pagos, hábitos y constancia de tus asesorados en una sola pantalla.» |
+| D. Silencio (nueva, 2026-11-01) | Que no se vayan sin avisar | «Tu cliente se va en silencio entre el mes 2 y 3. Entérate a los 7 días.» |
 
 **Lo que NO se dice:** nada de «baja de peso», «pierde grasa en X semanas» ni «resultados garantizados». Se vende **constancia y orden**, no resultados corporales (ver §7).
 
@@ -112,7 +113,7 @@ Todos con la app actual o el concierge del piloto. Las metas son **hipótesis**,
 
 | # | Experimento | Cómo | Métrica | Meta (hipótesis) |
 |---|---|---|---|---|
-| 1 | **Mensaje A/B/C** | Enviar a 30 coaches (10 por variante) por mensaje directo con la frase de §2 | Respuestas y «sí, cuéntame más» por variante | Una variante supera a las otras en ≥ 2× |
+| 1 | **Mensaje A/B/C** | Enviar a 32 coaches (8 por variante A, B, C y D) por mensaje directo con la frase de §2 | Respuestas y «sí, cuéntame más» por variante | Una variante supera a las otras en ≥ 2× (con 8 por variante es solo una señal; repetir si hay empate) |
 | 2 | **Llamada de 15 minutos** | Agendar demos con quien responda y enseñar la lista de asesorados con datos de prueba (no reales) | % de demos que piden probarlo con sus 2 | ≥ 30 % |
 | 3 | **Precio fundador (solo preguntar, no cobrar)** | Preguntar a los 2 del piloto si aceptarían, al terminar, precio fijo mientras sigan; sin pago anticipado porque el piloto es gratis | Aceptan, aceptan a otro precio, o no | 2 de 2 dicen sí (`piloto-r0` M6) |
 | 4 | **Página de una pantalla** | Página con el mensaje ganador y botón «Probar gratis con mis primeros asesorados» (formulario con nombre y WhatsApp, con aviso Ley 1581) | Visitas a clic y clic a formulario | ≥ 10 % de formularios sobre visitas |
