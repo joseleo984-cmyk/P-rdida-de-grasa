@@ -1,9 +1,10 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prototipo del tour de bienvenida</title>
+<title>Prototipo del tour</title>
 <style>
 :root{--bg:#eef3f2;--card:#fff;--tx:#14201f;--mut:#51615f;--ac:#0f766e;--on:#fff;--soft:#d9ebe8;--bd:#c9d6d4}
-@media (prefers-color-scheme:dark){:root{--bg:#0e1514;--card:#17211f;--tx:#eaf2f1;--mut:#9fb2af;--ac:#2dd4bf;--on:#06201c;--soft:#1f3330;--bd:#2c3d3a}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1514;--card:#17211f;--tx:#eaf2f1;--mut:#9fb2af;--ac:#2dd4bf;--on:#06201c;--soft:#1f3330;--bd:#2c3d3a}}
+:root[data-theme="dark"]{--bg:#0e1514;--card:#17211f;--tx:#eaf2f1;--mut:#9fb2af;--ac:#2dd4bf;--on:#06201c;--soft:#1f3330;--bd:#2c3d3a}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:18px/1.45 system-ui,-apple-system,sans-serif}
 .wrap{max-width:430px;margin:0 auto;padding:16px}
 .note{font-size:14px;color:var(--mut);margin:0 0 12px}
