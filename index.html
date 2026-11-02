@@ -897,6 +897,11 @@
             <div id="coach-detail-pay" class="detail-pay pc-only"><p id="coach-detail-pay-line" class="small muted"></p><button type="button" class="chip-pay" id="btn-detail-pay"></button></div></div>
           <div id="fc-salud" class="fc-salud pc-only hidden" role="note"></div>
           <div id="fc-dolor" class="fc-salud fc-dolor pc-only hidden" role="note"><p><strong><span aria-hidden="true">▲ </span><span id="fc-dolor-t">Reportó dolor</span></strong><br><span class="small">Sin detalle: la app no pregunta qué le duele. Puedes pausar o revisar su planificación.</span></p><button type="button" class="btn btn-ghost" id="btn-fc-dolor">Marcar revisado</button></div>
+          <section id="fc-lesiones" class="card pc-only hidden" aria-labelledby="fcl-title">
+            <h3 id="fcl-title">Lesiones y condiciones</h3>
+            <div id="fcl-list"></div>
+            <p id="fcl-note" class="small muted"></p>
+          </section>
           <p id="coach-detail-light" class="small"></p>
           <p id="coach-detail-shares" class="small muted"></p>
         </div>
@@ -1428,7 +1433,8 @@
         <li><button type="button" class="more-row" id="row-copia"><span class="more-text"><strong>Descargar una copia</strong><span class="more-sub">Guarda tus datos en un archivo</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-instalar" data-install-guide><span class="more-text"><strong>Cómo instalar la app</strong><span class="more-sub">Ponla en la pantalla de inicio de tu teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-ayuda"><span class="more-text"><strong>Ayuda</strong><span class="more-sub">Respuestas a las dudas más comunes</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
-        <li class="pc-only needs-link hidden"><button type="button" class="more-row" id="row-avisos"><span class="more-text"><strong>Avisos en tu teléfono</strong><span class="more-sub">Mensajes de tu coach y rutinas nuevas</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button></li>
+                <li class="pc-only needs-link hidden"><button type="button" class="more-row" id="row-lesiones"><span class="more-text"><strong>Mis lesiones y condiciones</strong><span class="more-sub">Cuéntale a tu coach qué cuidar al entrenar</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button></li>
+<li class="pc-only needs-avisos hidden"><button type="button" class="more-row" id="row-avisos"><span class="more-text"><strong>Avisos en tu teléfono</strong><span class="more-sub">Mensajes de tu coach y rutinas nuevas</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button></li>
         <li class="pc-only"><button type="button" class="more-row" id="row-tour"><span class="more-text"><strong>Ver el tour otra vez</strong><span class="more-sub">Un recorrido corto por la app</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button></li>
         <li class="needs-login hidden"><button type="button" class="more-row" id="row-salir"><span class="more-text"><strong>Cerrar sesión</strong><span class="more-sub">Salir de tu cuenta en este teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
       </ul>
@@ -1756,6 +1762,44 @@
     </div>
   </dialog>
 
+  <!-- Lesiones y condiciones médicas (v1.20, concepto 13): textos LITERALES del abogado, rellenados desde lesiones.js. -->
+  <dialog id="les-dialog" class="sheet sheet-tall" aria-labelledby="les-title">
+    <div class="sheet-head"><h2 id="les-title" tabindex="-1">Mis lesiones y condiciones</h2></div>
+    <p id="les-vacio" class="small muted">Aún no has registrado nada. Si tienes una molestia, lesión o una condición médica, cuéntale a tu coach para que adapte tus rutinas.</p>
+    <ul id="les-activas" class="les-list"></ul>
+    <details id="les-hist-box" class="les-hist" hidden><summary>Historial (lesiones superadas)</summary><ul id="les-historial" class="les-list"></ul></details>
+    <button type="button" class="btn btn-tall" id="les-add">Registrar lesión o condición</button>
+    <button type="button" class="btn btn-ghost btn-tall" data-les-close>Cerrar</button>
+    <p id="les-msg" class="small" role="status" aria-live="polite"></p>
+  </dialog>
+  <dialog id="les-form-dialog" class="sheet sheet-tall" aria-labelledby="lesf-title">
+    <form id="lesf-form" novalidate>
+      <fieldset class="les-kind"><legend class="sr-only">Tipo de registro</legend>
+        <label class="check"><input type="radio" name="kind" value="lesion" checked> <span>Lesión o molestia</span></label>
+        <label class="check"><input type="radio" name="kind" value="condicion"> <span>Condición médica</span></label>
+      </fieldset>
+      <h2 id="lesf-title" tabindex="-1"></h2>
+      <p id="lesf-body"></p>
+      <label for="lesf-area">Zona, articulación o condición</label>
+      <input id="lesf-area" name="area" type="text" maxlength="80" autocomplete="off">
+      <label for="lesf-desc">Cuéntalo con tus palabras (opcional)</label>
+      <textarea id="lesf-desc" name="description" rows="3" maxlength="500"></textarea>
+      <label for="lesf-onset">Desde cuándo (opcional)</label>
+      <input id="lesf-onset" name="onset" type="date">
+      <p id="lesf-micro" class="small muted"></p>
+      <div id="lesf-auth-row" class="consent-item"><label class="check"><input type="checkbox" name="auth"> <span id="lesf-auth-text"></span></label></div>
+      <p id="lesf-error" class="acc-error" role="alert"></p>
+      <button type="submit" class="btn btn-tall" id="lesf-save"></button>
+      <button type="button" class="btn btn-ghost btn-tall" id="lesf-cancel"></button>
+    </form>
+  </dialog>
+  <dialog id="les-conv-dialog" class="sheet" aria-labelledby="lesc-title">
+    <h2 id="lesc-title" tabindex="-1"></h2>
+    <p id="lesc-body"></p>
+    <button type="button" class="btn btn-tall" id="lesc-yes"></button>
+    <button type="button" class="btn btn-ghost btn-tall" id="lesc-no"></button>
+  </dialog>
+
   <!-- Avisos push (v1.19): consentimiento «justo a tiempo» con el texto literal del abogado (A11). El texto se rellena desde consent-texts-solo.js. -->
   <dialog id="push-dialog" class="sheet" aria-labelledby="push-title">
     <div class="sheet-head"><h2 id="push-title" tabindex="-1">Avisos de tu coach y recordatorios</h2></div>
@@ -1767,8 +1811,9 @@
     </div>
     <div id="push-on" hidden>
       <p class="small">Avisos activados. Elige cuáles quieres recibir:</p>
-      <label class="check"><input type="checkbox" id="push-coach"> <span>Mensajes y notas de tu coach</span></label>
-      <label class="check"><input type="checkbox" id="push-routines"> <span>Actualizaciones de rutinas</span></label>
+      <label class="check push-client"><input type="checkbox" id="push-coach"> <span>Mensajes y notas de tu coach</span></label>
+      <label class="check push-client"><input type="checkbox" id="push-routines"> <span>Actualizaciones de rutinas</span></label>
+      <label class="check push-coach-only"><input type="checkbox" id="push-alerts"> <span>Avisos de asesorados</span></label>
       <p class="small muted push-note"></p>
       <button type="button" class="btn btn-ghost btn-tall" id="push-off">Desactivar avisos</button>
       <button type="button" class="btn btn-tall" data-push-close>Cerrar</button>
@@ -2040,6 +2085,7 @@
   <script src="schema.js"></script>
   <script src="consent-texts.js"></script>
   <script src="liga.js"></script>
+  <script src="lesiones.js"></script>
   <script src="consent-texts-solo.js"></script>
   <script src="pagos.js"></script>
   <script src="medidas.js"></script>
@@ -2079,6 +2125,7 @@
   <script src="ayuda.js"></script>
   <script src="tour.js"></script>
   <script src="push-view.js"></script>
+  <script src="lesiones-view.js"></script>
   <script src="logros-view.js"></script>
   <script src="admin-view.js"></script>
   <script src="exportar-view.js"></script>

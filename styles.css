@@ -2128,3 +2128,18 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 #push-dialog ul { padding-left: 20px; }
 #push-dialog .btn { width: 100%; margin-top: 8px; }
 #push-dialog .check { display: flex; gap: 10px; align-items: center; margin: 8px 0; }
+
+/* Lesiones y condiciones */
+.les-list { list-style: none; margin: 0 0 12px; padding: 0; }
+.les-item { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; margin-bottom: 10px; }
+.les-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+.les-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.les-notes { margin: 6px 0 0; padding-left: 18px; }
+.les-note-form { display: flex; gap: 8px; margin-top: 8px; }
+.les-note-form input { flex: 1; min-width: 0; }
+#les-form-dialog label:not(.check) { display: block; margin-top: 10px; }
+#les-form-dialog input[type=text], #les-form-dialog input[type=date], #les-form-dialog textarea { width: 100%; }
+.les-kind { border: 0; padding: 0; margin: 0 0 8px; }
+#les-form-dialog input[type=text], #les-form-dialog input[type=date], #les-form-dialog textarea, .les-note-form input { box-sizing: border-box; max-width: 100%; }
+#les-dialog, #les-form-dialog, #les-conv-dialog, #push-dialog { padding: 16px; }
+#les-dialog .sheet-head, #push-dialog .sheet-head { padding: 0 0 8px; }

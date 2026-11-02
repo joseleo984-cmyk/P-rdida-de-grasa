@@ -3,7 +3,7 @@
 //   · cualquier otro POST (lo llama un Database Webhook al insertarse en grasa.push_outbox) → reclama lo pendiente y lo envía.
 // El contenido del aviso NO viaja: solo `kind`. La app fija las frases (neutrales, sin datos de salud) en el service worker.
 export const SUBJECT = 'mailto:cuentademomisapps@gmail.com';
-export const KINDS = ['coach_msg', 'routine'];
+export const KINDS = ['coach_msg', 'routine', 'client_alert'];
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const json = (status, body) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 

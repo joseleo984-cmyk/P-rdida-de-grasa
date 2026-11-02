@@ -276,6 +276,7 @@
     $$('#view-mas .coach-only').forEach((el) => el.classList.toggle('hidden', !navCoach || navAdmin));
     $$('#view-mas .admin-only').forEach((el) => el.classList.toggle('hidden', !(PROD.coach && signed && (meta.roles || []).includes('admin'))));
     $$('#view-mas .needs-link').forEach((el) => el.classList.toggle('hidden', !(signed && !navAcct.isCoach && meta.link)));
+    $$('#view-mas .needs-avisos').forEach((el) => el.classList.toggle('hidden', !(signed && (navAcct.isCoach || meta.link))));   // avisos: asesorados con coach y coaches
     $('#view-mas .needs-login').classList.toggle('hidden', !signed);
   }
   $('#btn-more-login').addEventListener('click', () => $('#btn-account-login').click());

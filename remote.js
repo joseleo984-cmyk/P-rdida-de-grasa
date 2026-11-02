@@ -202,6 +202,7 @@
     const bucket = () => sb.storage.from(BUCKET);
     const gifBucket = () => sb.storage.from(GIF_BUCKET);
     const rows = (d) => (Array.isArray(d) ? d : d == null ? [] : [d]);
+    const injuryOut = (x) => (x ? { id: x.id, kind: x.kind, area: x.area, description: x.description || '', status: x.status, onset: x.onset || null, convertedAt: x.convertedAt || null, createdAt: x.createdAt, updatedAt: x.updatedAt, notes: Array.isArray(x.notes) ? x.notes : [] } : null);
 
     // Sesión guardada por supabase-js (§5.7): se lee SIN red, sirve offline aunque el token haya caducado.
     function readSession() {
@@ -547,6 +548,14 @@
       async myLiga() { await me(); return rpc('grasa', 'my_liga'); },
       async joinLiga() { await me(); return rpc('grasa', 'liga_join'); },
       async leaveLiga() { await me(); return rpc('grasa', 'liga_leave'); },
+      // r1 v1.20: lesiones y condiciones médicas (texto libre de la propia persona; la plataforma no interpreta ni diagnostica).
+      async myInjuries() { await me(); return rows(await rpc('grasa', 'my_injuries')).flat().map(injuryOut); },
+      async saveInjury({ id, kind, area, description, status, onset, version, textHash }) {
+        await me();
+        return injuryOut(await rpc('grasa', 'injury_save', { p_id: id || uuid(), p_kind: kind, p_area: area, p_description: description || null, p_status: status || 'activa', p_onset: onset || null, p_version: version, p_text_hash: textHash }));
+      },
+      async convertInjury(id, { version, textHash }) { await me(); return injuryOut(await rpc('grasa', 'injury_convert', { p_id: id, p_version: version, p_text_hash: textHash })); },
+      async deleteInjury(id) { await me(); await rpc('grasa', 'injury_delete', { p_id: id }); },
       async setTeamOptOut(out) { await me(); return teamGoalOut(await rpc('grasa', 'set_team_opt_out', { p_out: !!out })); },
       async setPhotoShared(photoId, shared) {
         const u = await me();
@@ -597,6 +606,14 @@
         if (!photo || !photo.id || !String(path || '').startsWith(clientId + '/')) throw new RemoteError('forbidden', 'Foto no compartida');
         await rpc('grasa', 'coach_photo_opened', { p_photo: photo.id });
         return signedBlob(path);
+      },
+      // r1 v1.20: lo que el asesorado declaró (solo con vínculo activo y su autorización vigente) y el seguimiento del coach.
+      async clientInjuries(clientId) { await me(); return rows(await rpc('grasa', 'coach_injuries', { p_client: clientId })).flat().map(injuryOut); },
+      async addInjuryNote(injuryId, body) {
+        await me();
+        const text = String(body || '').trim();
+        if (!text || text.length > 500) throw new RemoteError('invalid', 'La nota debe tener entre 1 y 500 caracteres');
+        return rpc('grasa', 'injury_note_add', { p_injury: injuryId, p_body: text });
       },
       async addComment(clientId, { id, refDate, body } = {}) {
         await me();
@@ -811,7 +828,7 @@
 
     // r1 v1.19: avisos push. El servidor guarda solo el identificador técnico del dispositivo y 2 preferencias; la clave pública viene de la función `push-enviar`.
     const push = {
-      async state() { await me(); const s = (await rpc('grasa', 'push_state')) || {}; return { consent: s.consent === true, devices: Number(s.devices) || 0, coachMsgs: s.coach_msgs !== false, routines: s.routines !== false }; },
+      async state() { await me(); const s = (await rpc('grasa', 'push_state')) || {}; return { consent: s.consent === true, devices: Number(s.devices) || 0, coachMsgs: s.coach_msgs !== false, routines: s.routines !== false, alerts: s.alerts !== false }; },
       async publicKey() {
         await me();
         if (offlineNow()) throw new RemoteError('offline', MESSAGES.offline);
@@ -823,7 +840,7 @@
       async register({ endpoint, p256dh, auth: authKey }) { await me(); await rpc('grasa', 'push_register', { p_endpoint: endpoint, p_p256dh: p256dh, p_auth: authKey }); },
       async unregister(endpoint) { await me(); await rpc('grasa', 'push_unregister', { p_endpoint: endpoint }); },
       async off() { await me(); await rpc('grasa', 'push_off'); },
-      async setPrefs({ coachMsgs, routines }) { await me(); await rpc('grasa', 'push_set_prefs', { p_coach_msgs: !!coachMsgs, p_routines: !!routines }); },
+      async setPrefs({ coachMsgs, routines, alerts }) { await me(); await rpc('grasa', 'push_set_prefs', { p_coach_msgs: !!coachMsgs, p_routines: !!routines, p_alerts: alerts !== false }); },
     };
 
     return { kind: 'real', auth, account, sync, client, coach, admin, push };
