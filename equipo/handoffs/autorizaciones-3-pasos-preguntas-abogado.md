@@ -31,3 +31,11 @@ Total: **5 casillas en 3 pantallas**, con una barra «Paso N de 3» y un botón 
 
 ## Reglas que no se tocan
 Obligatorias antes de usar la app · casillas separadas y sin marcar · textos literales aprobados · versión y huella SHA-256 sin cambios.
+
+## Respuestas del abogado a las preguntas 4 a 8 (concepto 11, 2 nov 2026)
+Texto completo y literal: `equipo/legal/concepto-11-2026-11-02.md`. Resumen para construir:
+- **P4 barra «Paso N de 3»:** aprobada. Si un paso trae algo opcional, el encabezado lo dice («Paso 2 de 3: Permisos opcionales»).
+- **P5 frases de apoyo:** aprobadas si son neutrales y fácticas, sin contradecir el texto legal y sin persuadir ni culpar. Revisar las de la maqueta («Cada casilla es tuya: nada viene marcado», «Te pedimos esto para cuidar tus datos…») contra esa regla antes de usarlas.
+- **P6 enlace antes de la casilla:** aprobado y recomendado; abre el texto íntegro sin reiniciar el formulario, y la casilla se refiere al documento visible arriba.
+- **P8 re-consentimiento:** solo se re-pide con cambios sustanciales (finalidades, categorías sensibles, responsables/encargados, obligaciones del coach) y solo a quien le impacta. Erratas y mejoras de redacción: aviso pasivo.
+- **Pendiente de construir (no hecho):** (1) agrupar en pasos con la barra; (2) revisar los textos de apoyo; (3) el «muro de re-consentimiento» modular por versión (coaches / opt-in de liga / toda la base).
