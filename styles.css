@@ -2143,3 +2143,10 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 #les-form-dialog input[type=text], #les-form-dialog input[type=date], #les-form-dialog textarea, .les-note-form input { box-sizing: border-box; max-width: 100%; }
 #les-dialog, #les-form-dialog, #les-conv-dialog, #push-dialog { padding: 16px; }
 #les-dialog .sheet-head, #push-dialog .sheet-head { padding: 0 0 8px; }
+
+/* Restricciones de entrenamiento */
+#pain-dialog, #rest-warn-dialog, #rest-agree-dialog { padding: 16px; }
+#pain-dialog .btn, #rest-warn-dialog .btn, #rest-agree-dialog .btn { width: 100%; margin-top: 8px; }
+.rest-warn-item { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+#fc-restr h4 { margin: 12px 0 6px; font-size: 1rem; }
+#paso-pain { margin-top: 8px; }

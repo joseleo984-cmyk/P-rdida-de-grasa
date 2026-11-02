@@ -118,6 +118,7 @@
     $('#lga-c14').textContent = t.clauseExport || '';
     $('#lga-c15').textContent = t.clauseLiga || '';
     $('#lga-c16').textContent = t.clausePremios || '';
+    $('#lga-c17').textContent = t.clauseExclusion || '';
     $('#lga-body').textContent = CT.fill(t.body, {});
     $('#lga-ok').checked = false;
     $('#lga-error').classList.add('hidden');

@@ -29,3 +29,14 @@ test('lesiones: cada texto contextual tiene versión propia y la huella sale del
   assert.strictEqual(new Set(v).size, v.length);
   assert.strictEqual(L.fullText('lesion'), L.TEXTS.lesion.title + '\n' + L.TEXTS.lesion.body);
 });
+
+test('restricciones: el cruce de una rutina con la lista «a evitar» y el historial de dolor ignora mayúsculas, tildes y espacios', () => {
+  const rutina = { days: [{ exercises: [{ name: 'Sentadilla Búlgara' }, { name: 'Remo  con barra' }, { name: 'Peso muerto' }] }, { exercises: [{ name: 'sentadilla bulgara' }] }] };
+  const flags = { avoid: [{ exercise: 'peso MUERTO' }], pain: [{ exercise: 'Sentadilla búlgara', day: '2026-10-20' }, { exercise: 'Sentadilla búlgara', day: '2026-10-28' }, { exercise: 'Press', day: '2026-10-01' }] };
+  const r = L.conflicts(rutina, flags);
+  assert.deepStrictEqual(r.map((x) => [x.kind, x.exercise, x.day || null]), [['pain', 'Sentadilla Búlgara', '2026-10-28'], ['avoid', 'Peso muerto', null]]);   // el dolor más reciente; sin repetir el ejercicio de dos días
+  assert.deepStrictEqual(L.conflicts(rutina, null), []);
+  assert.deepStrictEqual(L.conflicts(null, flags), []);
+  assert.strictEqual(L.fmtDay('2026-10-28'), '28/10/2026');
+  assert.strictEqual(L.key('  Elevación   LATERAL '), 'elevacion lateral');
+});
