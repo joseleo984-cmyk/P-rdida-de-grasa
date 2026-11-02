@@ -57,10 +57,10 @@ async function pushClientData(page) {
 test('coach y cliente: invitación, semáforo, ficha filtrada, fotos con registro, comentarios y control del cliente', async ({ app, page, browser }, testInfo) => {
   test.setTimeout(90_000);
   const coach = page;
-  await coach.addInitScript(() => { try { if (!sessionStorage.getItem('__bienv')) { sessionStorage.setItem('__bienv', '1'); localStorage.setItem('perdida-grasa:coachBienvenida', '1'); } } catch (e) { /* sin almacenamiento */ } });
+  await coach.addInitScript(() => { try { if (!sessionStorage.getItem('__bienv')) { sessionStorage.setItem('__bienv', '1'); localStorage.setItem('perdida-grasa:coachBienvenida', '1'); localStorage.setItem('perdida-grasa:tour', '{"a":1,"c":1}'); } } catch (e) { /* sin almacenamiento */ } });
   // ---- Teléfono del cliente ----
   const ctx = await browser.newContext({ ...testInfo.project.use, baseURL: testInfo.project.use.baseURL });
-  await ctx.addInitScript(() => { try { if (!sessionStorage.getItem('__bienv')) { sessionStorage.setItem('__bienv', '1'); localStorage.setItem('perdida-grasa:coachBienvenida', '1'); } } catch (e) { /* sin almacenamiento */ } });
+  await ctx.addInitScript(() => { try { if (!sessionStorage.getItem('__bienv')) { sessionStorage.setItem('__bienv', '1'); localStorage.setItem('perdida-grasa:coachBienvenida', '1'); localStorage.setItem('perdida-grasa:tour', '{"a":1,"c":1}'); } } catch (e) { /* sin almacenamiento */ } });
   const client = await ctx.newPage();
   const clientErrors = [];
   client.on('pageerror', (e) => clientErrors.push(e.message));
