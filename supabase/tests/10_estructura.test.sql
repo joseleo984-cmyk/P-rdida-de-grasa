@@ -7,7 +7,7 @@ select tests.ok(not exists (
   where n.nspname in ('core', 'grasa') and c.relkind in ('r', 'p') and not c.relrowsecurity),
   'todas las tablas de core y grasa tienen RLS activada');
 select tests.ok((select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
-                 where n.nspname in ('core', 'grasa') and c.relkind = 'r') = 29, 'hay 29 tablas (6 core + 23 grasa; v1.11: health_answers, link_pauses, challenges, challenge_members, challenge_marks; v1.12: pain_reports; v1.13: coach_panel_days, coach_admin_events, platform_notices; v1.14: coach_exports; v1.15: points_log, team_goals)');
+                 where n.nspname in ('core', 'grasa') and c.relkind = 'r') = 33, 'hay 33 tablas (6 core + 27 grasa; v1.11: health_answers, link_pauses, challenges, challenge_members, challenge_marks; v1.12: pain_reports; v1.13: coach_panel_days, coach_admin_events, platform_notices; v1.14: coach_exports; v1.15: points_log, team_goals; v1.19: push_devices, push_prefs, push_outbox, push_config)');
 
 -- 2. Las funciones SECURITY DEFINER fijan search_path (sin secuestro por esquemas del usuario).
 select tests.ok(not exists (
