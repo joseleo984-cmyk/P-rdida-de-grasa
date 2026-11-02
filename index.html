@@ -1758,17 +1758,18 @@
 
   <!-- Avisos push (v1.19): consentimiento «justo a tiempo» con el texto literal del abogado (A11). El texto se rellena desde consent-texts-solo.js. -->
   <dialog id="push-dialog" class="sheet" aria-labelledby="push-title">
-    <div class="sheet-head"><h2 id="push-title" tabindex="-1">Avisos y recordatorios en tu teléfono</h2></div>
+    <div class="sheet-head"><h2 id="push-title" tabindex="-1">Avisos de tu coach y recordatorios</h2></div>
     <div id="push-consent" hidden>
       <p id="push-body"></p>
-      <ul id="push-bullets"></ul>
-      <button type="button" class="btn btn-tall" id="push-yes">Continuar y permitir</button>
+      <p class="small muted push-note"></p>
+      <button type="button" class="btn btn-tall" id="push-yes">Activar notificaciones</button>
       <button type="button" class="btn btn-ghost btn-tall" id="push-no">Ahora no</button>
     </div>
     <div id="push-on" hidden>
       <p class="small">Avisos activados. Elige cuáles quieres recibir:</p>
       <label class="check"><input type="checkbox" id="push-coach"> <span>Mensajes y notas de tu coach</span></label>
       <label class="check"><input type="checkbox" id="push-routines"> <span>Actualizaciones de rutinas</span></label>
+      <p class="small muted push-note"></p>
       <button type="button" class="btn btn-ghost btn-tall" id="push-off">Desactivar avisos</button>
       <button type="button" class="btn btn-tall" data-push-close>Cerrar</button>
     </div>

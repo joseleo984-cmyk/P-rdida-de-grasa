@@ -460,18 +460,22 @@ test('concepto 2.3 · pantalla de entrada del coach: casilla 1 (acuerdo 0.8) y c
   assert.ok(read('supabase/migrations/20261105120000_r1_coach_datos.sql').includes("'coach_data'"));
 });
 
-test('concepto de avisos push · Política v1.3: categoría (§3), finalidad (§4) y conservación (§11) del abogado, una sola vez cada una, y aviso informativo', () => {
+test('concepto de avisos push · Política v1.3: filas de §3 y §11 y finalidad de §4 del abogado, una sola vez cada una, y aviso informativo', () => {
   const md = norm(read('equipo/legal/politica-tratamiento-datos.md'));
   const html = norm(visible(read('legal/privacidad.html')));
   for (const frase of [
-    'Identificador técnico del dispositivo (token de notificación push) y preferencias horarias de recordatorio local',
+    'Identificador técnico del dispositivo (token de notificación push) y hora programada de recordatorios',
+    'Alojado en la base de datos (Supabase) bajo tu cuenta',
+    'Facultativo (solo si activas los avisos)',
     'Enviar alertas operativas y notificaciones push relacionadas exclusivamente con el servicio (mensajes del coach, actualizaciones de planes de entrenamiento, hitos de constancia y recordatorios programados por el usuario)',
-    'El token push y el horario se conservan única y exclusivamente mientras la función permanezca habilitada. Si el usuario apaga las notificaciones desde la app, el token debe desvincularse o borrarse del registro activo; si se elimina la cuenta, se destruye de inmediato junto con los demás datos de perfil',
+    'Mientras la función permanezca activa en la app',
+    'Se elimina de inmediato de la base de datos al desactivar los avisos en los ajustes o al cancelar la cuenta',
   ]) {
     assert.ok(md.includes(norm(frase)), 'md: ' + frase.slice(0, 40));
     assert.ok(html.includes(norm(frase)), 'html: ' + frase.slice(0, 40));
     assert.strictEqual(html.split(norm(frase)).length - 1, 1, 'una sola vez: ' + frase.slice(0, 40));
   }
+  assert.ok(md.includes('**Versión:** 1.3 · **Vigente desde:** 2 de noviembre de 2026'), 'fecha aprobada por el abogado');
   const V = JSON.parse(read('legal/VERSIONS.json'));
   assert.deepStrictEqual([V.privacy.version, V.privacy.notice.id, V.privacy.acceptedStillValid], ['1.3', 'politica-1.3', ['0.1', '1.1', '1.2']]);
   const AV = require('../aviso-politica.js');

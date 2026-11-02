@@ -1,9 +1,9 @@
 # Avisos push — parte 1 (mensaje del coach y rutina nueva)
 Estado: construido y probado en servidor falso; **NO probado con un aviso real** (necesita iPhone con la app instalada y los pasos de abajo).
-Texto legal: `equipo/legal/concepto-12-2026-11-01-push.md` (literal del abogado). Política v1.3 (informativa; la 1.2 sigue vigente).
+Texto legal: `equipo/legal/concepto-12-2026-11-01-push.md` (literal del abogado, con el complemento del 2 nov: consentimiento por capas, filas de §3 y §11 y fecha aprobadas). Política v1.3 (informativa; la 1.2 sigue vigente).
 
 ## Qué hace
-- Más → **«Avisos en tu teléfono»** (solo asesorados con coach). Al tocar sale el texto literal A11; «Continuar y permitir» registra el consentimiento `push` (versión `0.1-A11-push`, con huella) y recién ahí el teléfono pide permiso. «Ahora no» no guarda nada.
+- Más → **«Avisos en tu teléfono»** (solo asesorados con coach). Al tocar sale el resumen literal A11 (por capas, con enlace a la Política); «Activar notificaciones» registra el consentimiento `push` (versión `0.1-A11-push`, con huella) y recién ahí el teléfono pide permiso. «Ahora no» no guarda nada.
 - Dos interruptores: mensajes y notas del coach; actualizaciones de rutinas. «Desactivar avisos» borra el identificador del dispositivo y deja el consentimiento en «no».
 - El servidor guarda solo el identificador técnico (endpoint + 2 claves públicas del navegador) y 2 preferencias. Se borran al apagar y al eliminar la cuenta.
 - El aviso lleva solo el TIPO; las frases viven en `sw.js`: «Tienes un mensaje nuevo de tu coach» y «Tu coach actualizó tu rutina». Sin datos de salud, sin vista previa, sin cobros.
@@ -17,5 +17,5 @@ Texto legal: `equipo/legal/concepto-12-2026-11-01-push.md` (literal del abogado)
 
 ## Pendiente (etapa 2)
 - Recordatorio diario (requiere guardar la hora en el servidor y un programador) e insignias (hoy se calculan en el teléfono). El texto legal ya los cubre; faltan los interruptores correspondientes (el abogado pidió 4).
-- Revisar con el abogado (decisiones mías al armar la Política v1.3): (a) la fila de §3 usa «Base de datos de la plataforma» y «Facultativo (autorización independiente)» en las dos columnas que el abogado no dictó; (b) fila nueva en §11 con «Mientras la función permanezca habilitada»; (c) «Vigente desde: 2 de noviembre de 2026»; (d) aviso informativo en pantalla: «…(v1.3) para incluir los avisos opcionales en tu teléfono. Conócela aquí.»; (e) el nombre de la app («Pérdida de Grasa») aparece en la pantalla bloqueada junto al aviso, lo pone el teléfono, y el abogado prohíbe la palabra «grasa» en el contenido del aviso.
+- **Aprobado por el abogado (2 nov):** texto corto por capas en el modal (versión `0.2-A11-push`), filas de §3 y §11, fecha «Vigente desde 2 de noviembre de 2026» y la micro-nota sobre el nombre de la app en la pantalla bloqueada (ya está en la pantalla de avisos). Pendiente solo: el aviso informativo en pantalla «…(v1.3) para incluir los avisos opcionales en tu teléfono. Conócela aquí.» (redacción mía, informativa).
 - La función `push-enviar` nunca se ejecutó contra Supabase ni contra Apple: si no llega el aviso, revisar los logs de la función y que el Webhook exista.

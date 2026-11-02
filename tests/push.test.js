@@ -15,9 +15,11 @@ const norm = (t) => t.replace(/\s+/g, ' ').trim();
 test('avisos push · A11: texto del abogado LITERAL, tipo propio `push` y huella del texto completo', () => {
   const md = norm(read('equipo/legal/concepto-12-2026-11-01-push.md'));
   const t = CT.TEXTS.A11;
-  for (const frase of [t.title, t.body, ...t.bullets, t.buttons.yes, t.buttons.no]) assert.ok(md.includes(norm(frase)), frase.slice(0, 50));
+  for (const frase of [t.title, t.body.replace('Política de Datos.', '[Política de Datos].'), t.buttons.yes, t.buttons.no, t.note]) assert.ok(md.includes(norm(frase)), frase.slice(0, 50));
   assert.deepStrictEqual(CT.kinds('A11'), ['push']);
-  assert.strictEqual(CT.fullText('A11'), [t.title, t.body, '- ' + t.bullets[0], '- ' + t.bullets[1]].join('\n'));
+  assert.strictEqual(CT.fullText('A11'), [t.title, t.body].join('\n'));
+  assert.strictEqual(CT.version('A11'), '0.2-A11-push');
+  assert.doesNotMatch(t.body, /\b(kg|kcal|peso|medidas)\b/i);
   assert.notStrictEqual(CT.version('A11'), CT.version('A10'));
 });
 

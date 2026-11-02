@@ -42,8 +42,11 @@
     const t = root.ConsentTexts && root.ConsentTexts.TEXTS.A11;
     if (!t) return false;
     $('#push-title').textContent = t.title;
-    $('#push-body').textContent = t.body;
-    $('#push-bullets').replaceChildren(...t.bullets.map((b) => { const li = document.createElement('li'); li.textContent = b; return li; }));
+    // Capa 1 (resumen literal) con «Política de Datos» enlazada a la capa 2 (la Política completa, sin salir del formulario).
+    const body = $('#push-body'), i = t.body.lastIndexOf(t.linkText);
+    const a = document.createElement('a'); a.href = 'legal/privacidad.html'; a.className = 'legal-link'; a.setAttribute('data-legal', ''); a.textContent = t.linkText;
+    body.replaceChildren(document.createTextNode(t.body.slice(0, i)), a, document.createTextNode(t.body.slice(i + t.linkText.length)));
+    for (const el of document.querySelectorAll('.push-note')) el.textContent = t.note;
     $('#push-yes').textContent = t.buttons.yes;
     $('#push-no').textContent = t.buttons.no;
     return true;

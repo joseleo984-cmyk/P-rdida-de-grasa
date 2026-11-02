@@ -3,7 +3,8 @@
 const { test, expect } = require('@playwright/test');
 const H = require('./ux1-helpers');
 
-const TITLE = 'Avisos y recordatorios en tu teléfono';
+const TITLE = 'Avisos de tu coach y recordatorios';
+const BODY = 'Activa las notificaciones para saber cuándo tu coach te escribe o actualiza tu rutina, y recibir tus recordatorios diarios. No enviamos datos de salud ni fotos. Puedes apagarlas cuando quieras. Consulta nuestra Política de Datos.';
 const fakeEnv = (perm = 'granted', needsInstall = false) => ({ perm, needsInstall });
 async function setEnv(p, { perm, needsInstall }) {
   await p.evaluate(({ perm, needsInstall }) => {
@@ -27,9 +28,11 @@ test('avisos: el texto del abogado sale solo al activar, «Ahora no» no guarda 
   await expect(p.locator('#row-avisos')).toBeVisible();
   await p.locator('#row-avisos').click();
   await expect(p.locator('#push-title')).toHaveText(TITLE);
-  await expect(p.locator('#push-body')).toContainText('Autorizo a José Granados a registrar el identificador técnico de mi dispositivo en la nube (Supabase)');
-  await expect(p.locator('#push-bullets li')).toHaveText(['Comprendo que estos avisos no contienen datos de salud.', 'Puedo modificar mis preferencias o desactivar los avisos en cualquier momento desde esta pantalla o desde los ajustes de mi teléfono.']);
-  await expect(p.locator('#push-yes')).toHaveText('Continuar y permitir');
+  await expect(p.locator('#push-body')).toHaveText(BODY);
+  await expect(p.locator('#push-body a')).toHaveText('Política de Datos');   // capa 2: la Política completa
+  await expect(p.locator('#push-body a')).toHaveAttribute('href', 'legal/privacidad.html');
+  await expect(p.locator('.push-note').first()).toContainText('El nombre de la app siempre se mostrará en las alertas de tu teléfono');
+  await expect(p.locator('#push-yes')).toHaveText('Activar notificaciones');
   await expect(p.locator('#push-no')).toHaveText('Ahora no');
   await H.layout(p, '#push-dialog button');
   // «Ahora no»: nada guardado ni diálogo del teléfono
@@ -45,7 +48,7 @@ test('avisos: el texto del abogado sale solo al activar, «Ahora no» no guarda 
   await expect(p.locator('#push-on')).toBeVisible();
   s = await pushState(p);
   expect(s.ev.length).toBe(1);
-  expect([s.ev[0].granted, s.ev[0].version, s.ev[0].textHash]).toEqual([true, '0.1-A11-push', H.sha([TITLE, await p.locator('#push-body').innerText(), '- ' + await p.locator('#push-bullets li').nth(0).innerText(), '- ' + await p.locator('#push-bullets li').nth(1).innerText()].join('\n'))]);
+  expect([s.ev[0].granted, s.ev[0].version, s.ev[0].textHash]).toEqual([true, '0.2-A11-push', H.sha([TITLE, BODY].join('\n'))]);
   expect(Object.values(s.dev).flat().length).toBe(1);
   expect(await p.evaluate(() => window.__pushKey)).toMatch(/^BFAKE/);
   // interruptores

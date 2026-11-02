@@ -33,7 +33,7 @@ En este documento, «nosotros» o «la plataforma» hace referencia a José Gran
 | Datos Sensibles de Salud y Antropometría | Peso, medidas corporales (cuello, brazos, espalda, cintura, abdomen, cadera y muslos), porcentaje de grasa estimado, hábitos diarios (agua, pasos, horas de sueño, entrenamiento completado), registros descriptivos de comidas y estimación referencial de calorías. | Alojado en la nube con cifrado y estrictos controles de acceso por fila. | Facultativo (§5) |
 | Fotos de Progreso (Sensibles) | Fotografías corporales de seguimiento físico. | Almacenamiento en la nube con acceso privado y restringido. | Facultativo (autorización independiente) |
 | Vínculo Deportivo | Identificador de tu coach, categorías activas para compartir y notas técnicas del coach. | Base de datos de la plataforma. | Aplica solo si te vinculas a un coach |
-| Avisos en el Teléfono (Push) | Identificador técnico del dispositivo (token de notificación push) y preferencias horarias de recordatorio local. | Base de datos de la plataforma. | Facultativo (autorización independiente) |
+| Notificaciones y Dispositivo | Identificador técnico del dispositivo (token de notificación push) y hora programada de recordatorios. | Alojado en la base de datos (Supabase) bajo tu cuenta. | Facultativo (solo si activas los avisos) |
 | Prueba de Consentimiento | Tipo de permiso, versión legal, fecha, hora y huella criptográfica (SHA-256) del texto aceptado. | Base de datos de la plataforma (inmutable). | Obligatorio por exigencia legal |
 | Bitácora de Acceso a Fotos | Registro de fecha y hora exacta en que el coach visualiza una fotografía corporal. | Base de datos de la plataforma (visible por ti). | Automático al autorizar fotos |
 | Datos Técnicos de Seguridad | Registros de intentos de código de invitación (se eliminan al día siguiente) y logs de sesión. | Servidor de base de datos. | Requerido por seguridad técnica |
@@ -140,7 +140,7 @@ La plataforma «Pérdida de Grasa» está dirigida de forma estricta y exclusiva
 | Inactividad de Cuenta | Hasta trescientos sesenta y cinco (365) días sin inicio de sesión. | Notificación de alerta al día 335; recordatorio al día 358; supresión definitiva de los datos de la nube al día 365 de inactividad. |
 | Desvinculación del Coach | Acceso cesa de forma inmediata. | El coach pierde visualización instantánea; debe destruir copias locales en máximo 30 días. |
 | Prueba Legal de Consentimiento | Tres (3) años posteriores a la cancelación de la cuenta. | Se conservan en estado estrictamente disociado/anonimizado (identificador UUID sin asociar a nombre ni correo), conservando huella hash SHA-256 y marcas temporales, con la finalidad exclusiva de acreditar el cumplimiento legal ante eventuales requerimientos de la SIC. |
-| Avisos en el Teléfono (Push) | Mientras la función permanezca habilitada. | El token push y el horario se conservan única y exclusivamente mientras la función permanezca habilitada. Si el usuario apaga las notificaciones desde la app, el token debe desvincularse o borrarse del registro activo; si se elimina la cuenta, se destruye de inmediato junto con los demás datos de perfil. |
+| Token de notificaciones y horario de avisos | Mientras la función permanezca activa en la app. | Se elimina de inmediato de la base de datos al desactivar los avisos en los ajustes o al cancelar la cuenta. |
 | Registros Técnicos Temporales | Un (1) día calendario. | Purga automática de intentos de código de invitación. |
 
 ## 12. Registro Nacional de Bases de Datos (RNBD)
