@@ -16,6 +16,9 @@ http.createServer((req, res) => {
   let rel;
   try { rel = decodeURIComponent(new URL(req.url, 'http://x').pathname); } catch { res.writeHead(400).end(); return; }
   if (rel.endsWith('/')) rel += 'index.html';
+  // La app oficial ya está conectada a `plataforma` y en modo coach (config.js real). Estas pruebas parten de la app SIN servidor (modo local o servidor FALSO con ?remote=fake):
+  // se sirve el config.js vacío de antes; las pruebas que necesitan otro config.js lo interceptan con page.route (la ruta gana al servidor).
+  if (rel === '/config.js') { res.writeHead(200, { 'Content-Type': TYPES['.js'], 'Cache-Control': 'no-store' }).end("window.PG_CONFIG = { env: '', url: '', key: '', mode: 'real' };"); return; }
   const file = path.join(ROOT, rel);
   // Sin salir de la raíz ni servir node_modules/.git.
   if (!file.startsWith(ROOT + path.sep) || /[\\/](node_modules|\.git)[\\/]/.test(file)) { res.writeHead(403).end(); return; }
