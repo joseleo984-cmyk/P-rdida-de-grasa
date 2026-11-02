@@ -2097,7 +2097,7 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 .rec-lunes-list li > span { overflow-wrap: anywhere; }
 
 /* Pedido adicional: bienvenida e inicio del coach */
-.cw { text-align: center; display: grid; gap: 14px; padding: 24px 16px; }
+.cw-card { text-align: center; display: grid; gap: 14px; padding: 24px 16px; }
 .cw-logo { width: 64px; height: 42px; margin: 0 auto; }
 .cw-legend { list-style: none; margin: 0; padding: 12px; display: grid; gap: 8px; text-align: left; border: 1px solid var(--line); border-radius: 12px; }
 .cw-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }

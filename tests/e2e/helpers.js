@@ -24,6 +24,8 @@ const state = (over = {}) => ({ schemaVersion: 2, profile: PROFILE, entries: [{ 
  * (salvo `photos:false` / `sensitive:false`) y pulsa "Continuar", que solo se habilita con las obligatorias.
  */
 async function acceptLegalIfPresent(page, { photos = true, sensitive = true } = {}) {
+  const welcome = page.locator('#btn-cw-start').filter({ visible: true });   // bienvenida del coach: primera pantalla, antes de aceptar nada
+  if (await welcome.count()) await welcome.click();
   const gate = page.locator('[data-testid="legal-gate"], #legal-gate, #consent, .legal-gate').filter({ visible: true }).first();
   let root = gate;
   if (!(await gate.count())) {
