@@ -182,6 +182,8 @@
     $('#xla-clause-premios').classList.toggle('hidden', !t.clausePremios);
     $('#xla-clause-excl').textContent = t.clauseExclusion || '';
     $('#xla-clause-excl').classList.toggle('hidden', !t.clauseExclusion);
+    $('#xla-clause-chat').textContent = t.clauseChat || '';
+    $('#xla-clause-chat').classList.toggle('hidden', !t.clauseChat);
     $('#xla-intro').textContent = CT.fill(t.intro, {});
     $('#xla-clause13').textContent = t.clause || '';
     $('#xla-clause13').classList.toggle('hidden', !t.clause);

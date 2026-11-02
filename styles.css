@@ -2150,3 +2150,16 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 .rest-warn-item { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
 #fc-restr h4 { margin: 12px 0 6px; font-size: 1rem; }
 #paso-pain { margin-top: 8px; }
+
+/* Chat asesorado ⇄ coach */
+#chat-dialog, #chat-aviso-dialog { padding: 16px; }
+#chat-aviso-dialog .btn { width: 100%; margin-top: 8px; }
+.chat-scroll { max-height: 50vh; overflow-y: auto; padding: 4px 0; }
+.chat-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.chat-msg { max-width: 82%; padding: 8px 12px; border-radius: 16px; border: 1px solid var(--line); overflow-wrap: anywhere; }
+.chat-msg .chat-body { margin: 0; white-space: pre-wrap; }
+.chat-mine { align-self: flex-end; background: var(--accent-soft, var(--card)); }
+.chat-theirs { align-self: flex-start; background: var(--card); }
+.chat-form textarea { box-sizing: border-box; width: 100%; max-width: 100%; }
+.chat-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
+#fc-chat .btn { margin-right: 8px; }

@@ -112,6 +112,7 @@
       return r;
     };
     if (/coach_agreement_required/.test(String(e.details || e.detail || ''))) return mk('agreement_required');
+    if (/chat_agreement_required/.test(String(e.details || e.detail || ''))) return mk('agreement_required');   // r1 v1.22: al coach le falta el Acuerdo 1.0 (chat)
     if (/payment_required/.test(String(e.details || e.detail || ''))) return mk('payment_required');
     if (/export_agreement_required/.test(String(e.details || e.detail || ''))) return mk('export_agreement_required');   // r1 v1.14 (M6)
     if (DB_CODES.includes(msg)) return mk(msg);
@@ -854,7 +855,20 @@
       async setPrefs({ coachMsgs, routines, alerts }) { await me(); await rpc('grasa', 'push_set_prefs', { p_coach_msgs: !!coachMsgs, p_routines: !!routines, p_alerts: alerts !== false }); },
     };
 
-    return { kind: 'real', auth, account, sync, client, coach, admin, push };
+    // r1 v1.22: chat asesorado ⇄ coach (clientId null = soy el asesorado). El servidor impone vínculo activo, Acuerdo 1.0 del coach y límites.
+    const msgOut = (m) => ({ id: m.id, mine: m.mine === true, body: String(m.body || ''), createdAt: m.createdAt, readAt: m.readAt || null });
+    const chat = {
+      async send({ id, clientId, body } = {}) {
+        await me();
+        const text = String(body == null ? '' : body).trim();
+        if (!text || text.length > 1000) throw new RemoteError('invalid', 'El mensaje debe tener entre 1 y 1000 caracteres');
+        return msgOut(await rpc('grasa', 'chat_send', { p_id: id || uuid(), p_client: clientId || null, p_body: text }));
+      },
+      async list(clientId, since) { await me(); return rows(await rpc('grasa', 'chat_list', { p_client: clientId || null, p_since: since || null })).flat().map(msgOut); },
+      async markRead(clientId) { await me(); await rpc('grasa', 'chat_mark_read', { p_client: clientId || null }); },
+      async unread() { await me(); return rows(await rpc('grasa', 'chat_unread')).flat().map((r) => ({ clientId: r.clientId, n: Number(r.n) || 0 })); },
+    };
+    return { kind: 'real', auth, account, sync, client, coach, admin, push, chat };
   }
 
   const api = { config, create, createFake, fakeAllowed, CAPTCHA_SITEKEY_RE, textHash, mapError, RemoteError, PRODUCTION_HOSTS, BUCKET, GIF_BUCKET };

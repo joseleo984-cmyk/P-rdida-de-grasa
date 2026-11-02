@@ -12,8 +12,10 @@
   // r1 v1.16 (liga semanal): catálogo CERRADO de alias (mismo orden que grasa.liga_aliases) y versiones del acuerdo que traen la cláusula de ligas.
   const LIGA_ALIASES = ['Halcón', 'Titán', 'Roble', 'Fénix', 'Cóndor', 'Jaguar', 'Delfín', 'Lince', 'Pino', 'Cedro', 'Águila', 'Lobo',
     'Puma', 'Ceiba', 'Colibrí', 'Roca', 'Río', 'Volcán', 'Nevado', 'Ámbar', 'Trueno', 'Coral', 'Bosque', 'Montaña'];
-  const LIGA_AGREEMENT_VERSIONS = ['0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach'];
-  const RESTRICTIONS_AGREEMENT_VERSIONS = ['0.9-A7-coach'];   // v1.21: cláusula 17 (listas de exclusión)
+  const LIGA_AGREEMENT_VERSIONS = ['0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach', '1.0-A7-coach'];
+  const RESTRICTIONS_AGREEMENT_VERSIONS = ['0.9-A7-coach', '1.0-A7-coach'];   // v1.21: cláusula 17 (listas de exclusión)
+  const CHAT_AGREEMENT_VERSIONS = ['1.0-A7-coach'];   // v1.22: cláusula 18 (chat)
+  const CHAT_MAX_PER_HOUR = 30;
   const RECORD_KINDS = ['profile', 'entry', 'food', 'habit', 'library'];
   const SHARE_KEYS = ['body', 'notes', 'nutrition', 'habits', 'photos'];
   const RETRYABLE = { offline: true, server: true, rate_limited: true }; // consent_required y agreement_required: no se reintentan solos
@@ -111,6 +113,7 @@
       this.exercisePain = [];   // v1.21: dolor por ejercicio { clientId, key, name, day, version, textHash }
       this.avoidList = [];      // v1.21: ejercicios a evitar { coachId, clientId, key, name }
       this.injuries = [];       // v1.20: lesiones y condiciones médicas { id, clientId, kind, area, description, status, onset, version, textHash, convertedAt, createdAt, updatedAt, notes[] }
+      this.chatMessages = [];   // v1.22: chat { id, clientId, coachId, sender: 'client'|'coach', body, createdAt, readAt }
       this.pushDevices = {};    // v1.19: avisos push, userId → [{ endpoint, p256dh, auth }] (solo pruebas; el servidor real guarda lo mismo)
       this.pushPrefs = {};      // v1.19: userId → { coachMsgs, routines }
       this.teamGoals = {};      // v1.15: meta colectiva, `${coachId}|${lunes}` → { coachId, weekStart, metric, target, createdAt }
@@ -168,6 +171,13 @@
         if (e.userId === userId && e.kind === 'coach_agreement') return e.granted === true ? e.version : null;
       }
       return null;
+    }
+    // v1.22: aviso push neutral a cualquier persona (sin contenido). `pref` = la preferencia que lo puede apagar.
+    pushNeutral(userId, kind, pref) {
+      const p = this.pushPrefs[userId] || {};
+      if (!(this.pushDevices[userId] || []).length || !this.hasConsent(userId, 'push') || p[pref] === false) return;
+      if (this.pushOutbox.some((o) => o.userId === userId && o.kind === kind && !o.sentAt)) return;
+      this.pushOutbox.push({ userId, kind, sentAt: null });
     }
     // v1.20: aviso push neutral al coach del asesorado (solo si activó los avisos, tiene dispositivo y no apagó «avisos de asesorados»). Sin contenido.
     pushAlert(clientId, kind) {
@@ -314,13 +324,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, exercisePain, avoidList, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, exercisePain, avoidList, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, exercisePain, avoidList, chatMessages, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, exercisePain, avoidList, chatMessages, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'pushDevices', 'pushPrefs', 'injuries', 'pushOutbox', 'exercisePain', 'avoidList', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports', 'points', 'teamGoals']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'pushDevices', 'pushPrefs', 'injuries', 'pushOutbox', 'exercisePain', 'avoidList', 'chatMessages', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports', 'points', 'teamGoals']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -475,6 +485,7 @@
         delete be.points[u.id];
         be.injuries = be.injuries.filter((i) => i.clientId !== u.id);   // v1.20: en cascada con la cuenta
         be.exercisePain = be.exercisePain.filter((x) => x.clientId !== u.id); be.avoidList = be.avoidList.filter((x) => x.clientId !== u.id && x.coachId !== u.id);
+        be.chatMessages = be.chatMessages.filter((m) => m.clientId !== u.id && m.coachId !== u.id);   // v1.22: el chat se borra con la cuenta
         delete be.pushDevices[u.id]; delete be.pushPrefs[u.id];   // v1.19: el identificador del dispositivo se destruye con la cuenta
         for (const k of Object.keys(be.teamGoals)) if (k.startsWith(u.id + '|')) delete be.teamGoals[k];
         // Sprint 6: antes de borrar, copia mínima y seudonimizada (sin uuid, correo ni nombre), como core.delete_my_account().
@@ -1384,7 +1395,7 @@
         return done(undefined);
       },
     };
-    const EXPORT_AGREEMENT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach'];
+    const EXPORT_AGREEMENT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach', '1.0-A7-coach'];
     const exportOut = (x) => ({ id: x.id, createdAt: x.createdAt, clients: x.clients, categories: x.categories.slice(), from: x.from, to: x.to });
     const GOAL_RANGES = { weight_kg: { min: 30, max: 300, dec: 1 }, waist_cm: { min: 40, max: 200, dec: 1 }, protein_g: { min: 20, max: 400, dec: 0 },
       water_days: { min: 1, max: 7, dec: 0 }, steps_days: { min: 1, max: 7, dec: 0 }, sleep_days: { min: 1, max: 7, dec: 0 }, trained_days: { min: 1, max: 7, dec: 0 } };
@@ -1529,7 +1540,54 @@
       async off() { const u = await authed(); be.pushDevices[u.id] = []; return done(undefined); },
       async setPrefs({ coachMsgs, routines, alerts }) { const u = await authed(); be.pushPrefs[u.id] = { coachMsgs: !!coachMsgs, routines: !!routines, alerts: alerts !== false }; return done(undefined); },
     };
-    return { kind: 'fake', backend: be, auth, account, sync, client, coach, admin, push };
+    // r1 v1.22: chat asesorado ⇄ coach. clientId null = soy el asesorado; con clientId = soy su coach (necesita el Acuerdo 1.0 y vínculo activo).
+    const chatOut = (m, me) => ({ id: m.id, mine: (m.sender === 'client' ? m.clientId : m.coachId) === me, body: m.body, createdAt: m.createdAt, readAt: m.readAt });
+    async function chatParties(clientId) {
+      if (clientId == null) {
+        const u = await authed();
+        if (!(be.hasConsent(u.id, 'sensitive_health') && be.hasConsent(u.id, 'cloud_transfer'))) fail('consent_required', 'Falta aceptar una autorización');
+        const l = be.activeLink(u.id);
+        if (!l) fail('not_found', 'No tienes coach');
+        return { me: u.id, client: u.id, coach: l.coachId, sender: 'client' };
+      }
+      const u = await asCoach();
+      activeLinkCoach(u.id, clientId);
+      if (!CHAT_AGREEMENT_VERSIONS.includes(be.agreementVersion(u.id))) fail('agreement_required', 'Falta aceptar el Acuerdo del coach');
+      return { me: u.id, client: clientId, coach: u.id, sender: 'coach' };
+    }
+    const chat = {
+      async send({ id, clientId, body } = {}) {
+        const p = await chatParties(clientId == null ? null : clientId);
+        const text = String(body == null ? '' : body).trim();
+        if (!id || text.length < 1 || text.length > 1000) fail('invalid', 'El mensaje debe tener entre 1 y 1000 caracteres');
+        const old = be.chatMessages.find((m) => m.id === id);
+        if (old) { if (old.clientId !== p.client || old.coachId !== p.coach || old.sender !== p.sender) fail('forbidden', 'Sin permiso'); return clone(chatOut(old, p.me)); }
+        const hourAgo = be.clock.now() - 3600000;
+        if (be.chatMessages.filter((m) => m.clientId === p.client && m.coachId === p.coach && m.sender === p.sender && Date.parse(m.createdAt) > hourAgo).length >= CHAT_MAX_PER_HOUR) fail('rate_limited', 'Demasiados mensajes: espera un poco');
+        const m = { id, clientId: p.client, coachId: p.coach, sender: p.sender, body: text, createdAt: be._serverStamp(), readAt: null };
+        be.chatMessages.push(m);
+        if (p.sender === 'client') be.pushNeutral(p.coach, 'client_alert', 'alerts'); else be.pushNeutral(p.client, 'coach_msg', 'coachMsgs');
+        return done(clone(chatOut(m, p.me)));
+      },
+      async list(clientId, since) {
+        const p = await chatParties(clientId == null ? null : clientId);
+        const all = be.chatMessages.filter((m) => m.clientId === p.client && m.coachId === p.coach && (!since || m.createdAt > since)).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+        return clone(all.slice(-200).map((m) => chatOut(m, p.me)));
+      },
+      async markRead(clientId) {
+        const p = await chatParties(clientId == null ? null : clientId);
+        const t = iso(be.clock.now());
+        for (const m of be.chatMessages) if (m.clientId === p.client && m.coachId === p.coach && m.sender !== p.sender && !m.readAt) m.readAt = t;
+        return done(undefined);
+      },
+      // Solo cuentas, nunca contenido: [{ clientId, n }] con n > 0.
+      async unread() {
+        const u = await authed();
+        return be.links.filter((l) => l.status === 'active' && (l.clientId === u.id || l.coachId === u.id)).map((l) => ({ clientId: l.clientId,
+          n: be.chatMessages.filter((m) => m.clientId === l.clientId && m.coachId === l.coachId && !m.readAt && m.sender === (l.clientId === u.id ? 'coach' : 'client')).length })).filter((x) => x.n > 0);
+      },
+    };
+    return { kind: 'fake', backend: be, auth, account, sync, client, coach, admin, push, chat };
   }
 
   // Backend persistido en localStorage (solo E2E en el origen de pruebas): sobrevive recargas.
