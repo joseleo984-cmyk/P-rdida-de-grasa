@@ -72,6 +72,9 @@
       cp.classList.toggle('hidden', !t.clausePremios);
       gate.querySelector('.a7-text').textContent = ConsentTexts.fill(t.body, {});
       A.fillLinks(gate.querySelector('.a7-links'), t.links);
+      const t10 = ConsentTexts.TEXTS.A10;   // solo producto coach
+      gate.querySelector('.a10-text').closest('.auth-row').classList.toggle('hidden', !t10);
+      if (t10) { gate.querySelector('.a10-text').textContent = ConsentTexts.fill(t10.body, {}); A.fillLinks(gate.querySelector('.a10-links'), t10.links); }
     }
     if (locked) { cache.clear(); freePhoto(); $('#coach-invite-code').textContent = ''; } // nada de clientes en memoria sin acuerdo
   }
@@ -81,6 +84,7 @@
         ev.preventDefault();
         const err = form.querySelector('.a7-error');
         if (!form.elements.a7.checked) { err.textContent = 'Marca la casilla para continuar.'; err.classList.remove('hidden'); form.elements.a7.focus(); return; }
+        if (ConsentTexts.TEXTS.A10 && !form.elements.a10.checked) { err.textContent = 'Marca también la segunda casilla para continuar.'; err.classList.remove('hidden'); form.elements.a10.focus(); return; }
         err.classList.add('hidden');
         form.setAttribute('aria-busy', 'true');
         const ok = await A.acceptCoachAgreement();

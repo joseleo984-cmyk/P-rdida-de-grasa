@@ -79,12 +79,19 @@
     // a A7_PAST. Quien tiene la 0.4, 0.5 o 0.6 sigue usando el resto de la app; la 0.7 (con las cláusulas 15 y 16) se pide solo para habilitar la liga.
     CT.A7_PAST[CT.version('A7')] = CT.fullText('A7');
     CT.TEXTS.A7 = { ...CT.TEXTS.A7, version: '0.7-A7-coach', clausePremios: LG.CLAUSE_PREMIOS };
+    // Pantalla de entrada del coach (concepto jurídico, punto 2.3), LITERAL. Casilla 1 = el Acuerdo del coach: versión 0.8-A7-coach (mismas cláusulas que la 0.7;
+    // solo cambia el texto de la casilla); la 0.7 pasa EXACTA a A7_PAST. Casilla 2 = A10 (kind `coach_data`), un evento DISTINTO con su propia versión y huella.
+    CT.A7_PAST[CT.version('A7')] = CT.fullText('A7');
+    CT.TEXTS.A7 = { ...CT.TEXTS.A7, version: '0.8-A7-coach', body: 'He leído y acepto el Acuerdo del Coach (versión 0.8), comprometiéndome a respetar los límites éticos y legales del servicio, la confidencialidad de mis asesorados y la prohibición estricta de descargar, capturar o difundir sus fotografías corporales o datos sensibles fuera de la plataforma.' };
+    CT.TEXTS.A10 = { version: '0.1-A10-coach', kinds: ['coach_data'], body: 'Autorizo a José Granados a tratar mis datos personales de registro y gestión conforme a la Política de Tratamiento de Datos, y consiento su transmisión internacional a servidores en la nube (Supabase, EE. UU.) y proveedores de correo (Brevo, Francia) bajo medidas de seguridad internacionales.', links: [{ label: 'Política de datos', href: POLICY }] };
     // A9: consentimiento de la liga (concepto 7, punto 4), LITERAL. Lo registra la app con la huella del texto completo (título + texto + casilla).
     CT.TEXTS.A9 = { version: '0.1-A9-liga', kinds: ['liga'], body: LG.CONSENT.join('\n'), title: LG.TITLE, box: LG.BOX, links: [{ label: 'Política de datos', href: POLICY }] };
     // Versiones del acuerdo que siguen valiendo para el resto de la app (sin re-aceptación forzada) y las que valen para exportar (traen la cláusula 14).
-    CT.A7_STILL_VALID = ['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach'];
-    CT.A7_EXPORT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach'];
-    CT.A7_LIGA_VERSIONS = ['0.7-A7-coach'];
+    CT.A7_STILL_VALID = ['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach'];
+    CT.A7_EXPORT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach'];
+    CT.A7_LIGA_VERSIONS = ['0.7-A7-coach', '0.8-A7-coach'];
+    // Autorización de datos del coach (A10): vigente si está concedida con la versión actual.
+    CT.coachDataOK = (meta) => !!(meta && meta.consents && meta.consents.coach_data && meta.consents.coach_data.granted === true && meta.consents.coach_data.version === CT.version('A10'));
     const a7 = (meta) => (meta && meta.consents && meta.consents.coach_agreement) || null;
     CT.coachAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_STILL_VALID.includes(c.version)); };
     CT.ligaAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_LIGA_VERSIONS.includes(c.version)); };

@@ -80,7 +80,7 @@ test('coach: habilitar la liga = aceptar el acuerdo con las cláusulas 15 y 16 l
   await p.locator('#btn-liga-habilitar').click();
   await expect(p.locator('#lga-c15')).toHaveText(L.CLAUSE);
   await expect(p.locator('#lga-c16')).toHaveText(L.CLAUSE_PREMIOS);
-  await expect(p.locator('#lga-ver')).toHaveText('0.7-A7-coach');
+  await expect(p.locator('#lga-ver')).toHaveText('0.8-A7-coach');
   await p.locator('#btn-lga-ok').click();
   await expect(p.locator('#lga-error')).toBeVisible();                     // sin marcar la casilla no se acepta
   await p.locator('#lga-ok').check();
@@ -89,6 +89,6 @@ test('coach: habilitar la liga = aceptar el acuerdo con las cláusulas 15 y 16 l
   await expect(p.locator('#liga-coach')).not.toContainText(/alias:|Halcón|Titán/);
   const be = await H.backend(p);
   const last = be.consentEvents.filter((c) => c.kind === 'coach_agreement').pop();
-  expect([last.granted, last.version]).toEqual([true, '0.7-A7-coach']);
+  expect([last.granted, last.version]).toEqual([true, '0.8-A7-coach']);
   expect(errors).toEqual([]);
 });

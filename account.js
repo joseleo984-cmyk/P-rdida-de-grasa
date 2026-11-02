@@ -475,6 +475,9 @@
     $('#acc-a7-clause-premios').classList.toggle('hidden', !t.clausePremios);
     $('#acc-a7-text').textContent = CT.fill(t.body, {});
     fillLinks($('#acc-a7-links'), t.links);
+    const t10 = CT.TEXTS.A10;   // casilla 2 (concepto, punto 2.3): autorización de datos y transmisión internacional (solo producto coach)
+    $('#acc-a10').closest('.auth-row').classList.toggle('hidden', !t10);
+    if (t10) { $('#acc-a10-text').textContent = CT.fill(t10.body, {}); fillLinks($('#acc-a10-links'), t10.links); }
   }
   function updateRoleFields() {
     const role = $('#form-acc-role').elements.role.value; // RadioNodeList: vale aunque el formulario esté ocupado (disabled)
@@ -503,7 +506,9 @@
         if (name.length < 2 || name.length > 60) { showError('#acc-role-error', 'Escribe el nombre de tu negocio (de 2 a 60 letras).'); busy(form, false); $('#acc-business').focus(); return; }
         // A7: el acuerdo se acepta ANTES de crear el código de invitación y de ver datos de clientes.
         if (!$('#acc-a7').checked) { showError('#acc-role-error', 'Para ser coach acepta el Acuerdo del coach: marca la casilla.'); busy(form, false); $('#acc-a7').focus(); return; }
+        if (CT.TEXTS.A10 && !$('#acc-a10').checked) { showError('#acc-role-error', 'Para ser coach autoriza también el tratamiento de tus datos: marca la segunda casilla.'); busy(form, false); $('#acc-a10').focus(); return; }
         if (!(await acceptStrict('A7', 'coach_agreement'))) { showError('#acc-role-error', 'No pudimos guardar tu aceptación. Revisa tu conexión e inténtalo de nuevo.'); busy(form, false); return; }
+        if (CT.TEXTS.A10 && !(await acceptStrict('A10', 'coach_data'))) { showError('#acc-role-error', 'No pudimos guardar tu autorización. Revisa tu conexión e inténtalo de nuevo.'); busy(form, false); return; }
         copyAfterAccept();
         await remote.coach.becomeCoach(name);
         meta.coach = await remote.coach.myCoach();
@@ -1092,7 +1097,7 @@
     // Puente para coach-panel.js (S3-4): el mismo Remote y los metadatos de la cuenta. Sin servidor no existe.
     window.PGAccount = { remote, meta: readMeta, setMeta: (m) => writeMeta({ ...readMeta(), ...m }), refresh, errorText,
       // Sprint 6: A7 (acuerdo del coach) y A8 los usa coach-panel.js; ConsentTexts decide si el acuerdo está vigente.
-      acceptCoachAgreement: async () => { const ok = await acceptStrict('A7', 'coach_agreement'); if (ok) copyAfterAccept(); return ok; }, sendAgreementCopy, a8Confirm, fillLinks,
+      acceptCoachAgreement: async () => { let ok = await acceptStrict('A7', 'coach_agreement'); if (ok && CT.TEXTS.A10) ok = await acceptStrict('A10', 'coach_data'); if (ok) copyAfterAccept(); return ok; }, sendAgreementCopy, a8Confirm, fillLinks,
       // Sprint 11: vínculo al día (pago), fotos en la nube (A6a) y que el coach vea cada foto (A6b).
       refreshLink, grantPhotosCloud, setCoachPhotos, revokePhotosCloud, setLigaConsent };
     renderTermsStep();
