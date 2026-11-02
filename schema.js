@@ -38,8 +38,9 @@
   // vigente (LEGAL_COMPAT). Ambas cosas deben coincidir con legal/VERSIONS.json (lo comprueba tests/legal.test.js).
   // v1.2 (26/10/2026, concepto 7, punto 5): también informativa: la 0.1 y la 1.1 siguen vigentes.
   // Términos 1.0 (1/11/2026, dictamen del abogado): versión con cuentas y copia en la nube; cambio sustancial: todos aceptan de nuevo (sin compatibilidad con la 0.1).
-  const LEGAL_VERSIONS = { terms: '1.0', privacy: '1.2' };
-  const LEGAL_COMPAT = { terms: [], privacy: ['0.1', '1.1'] };
+  // v1.3 (2/11/2026, concepto de avisos push): INFORMATIVA (la función es opcional y se autoriza al activarla): la 0.1, la 1.1 y la 1.2 siguen vigentes.
+  const LEGAL_VERSIONS = { terms: '1.0', privacy: '1.3' };
+  const LEGAL_COMPAT = { terms: [], privacy: ['0.1', '1.1', '1.2'] };
   // Edad mínima (decisión del Stakeholder, 2026-10-22): 18 años. Con menos no se guarda el perfil; si ya había uno
   // guardado, no se borra: queda como borrador para que la persona lo corrija (ver normalizeProfile).
   const AGE_MIN = 18;

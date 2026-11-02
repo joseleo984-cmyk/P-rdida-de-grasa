@@ -17,6 +17,7 @@ const ROOT = path.join(__dirname, '..');
 const FN = path.join(ROOT, 'supabase', 'functions');
 const OUT_TEXTOS = path.join(FN, '_shared', 'textos-acuerdo.mjs');
 const OUT_BUNDLE = path.join(FN, 'acuerdo-coach-copia', 'pegar-en-el-panel.ts');
+const OUT_PUSH = path.join(FN, 'push-enviar', 'pegar-en-el-panel.ts');
 
 function textos() {
   const body = JSON.stringify(CT.agreementTexts(), null, 2);
@@ -24,8 +25,7 @@ function textos() {
 }
 
 // Une los módulos en un solo archivo: quita los imports locales y los `export`; deja los imports externos arriba.
-function bundle() {
-  const parts = ['_shared/textos-acuerdo.mjs', '_shared/acuerdo.mjs', '_shared/manejador.mjs', 'acuerdo-coach-copia/index.ts'];
+function bundle(parts = ['_shared/textos-acuerdo.mjs', '_shared/acuerdo.mjs', '_shared/manejador.mjs', 'acuerdo-coach-copia/index.ts'], name = 'acuerdo-coach-copia') {
   const ext = [];
   const bodies = parts.map((p) => {
     const src = (p === '_shared/textos-acuerdo.mjs' ? textos() : fs.readFileSync(path.join(FN, p), 'utf8'));
@@ -35,11 +35,11 @@ function bundle() {
       return true;
     }).map((l) => l.replace(/^export (async function|function|const|let)\b/, '$1')).join('\n');
   });
-  return `// GENERADO por scripts/build-funcion-acuerdo.js: la función «acuerdo-coach-copia» en UN solo archivo para pegarla en el\n// editor del panel de Supabase (Edge Functions). NO editar a mano: se rehace con npm run build:funcion.\n${[...new Set(ext)].join('\n')}\n\n${bodies.join('\n')}`;
+  return `// GENERADO por scripts/build-funcion-acuerdo.js: la función «${name}» en UN solo archivo para pegarla en el\n// editor del panel de Supabase (Edge Functions). NO editar a mano: se rehace con npm run build:funcion.\n${[...new Set(ext)].join('\n')}\n\n${bodies.join('\n')}`;
 }
 
 function main() {
-  const files = [[OUT_TEXTOS, textos()], [OUT_BUNDLE, bundle()]];
+  const files = [[OUT_TEXTOS, textos()], [OUT_BUNDLE, bundle()], [OUT_PUSH, bundle(['_shared/push.mjs', 'push-enviar/index.ts'], 'push-enviar')]];
   if (process.argv.includes('--check')) {
     const bad = files.filter(([f, c]) => !fs.existsSync(f) || fs.readFileSync(f, 'utf8') !== c);
     if (bad.length) { console.error('build:funcion — desactualizado: ' + bad.map(([f]) => path.relative(ROOT, f)).join(', ')); process.exit(1); }

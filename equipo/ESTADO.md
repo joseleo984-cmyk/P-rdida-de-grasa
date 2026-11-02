@@ -28,3 +28,5 @@ PRs #32–#38: etapas 1-2, estilo v2, aviso de dolor, metas, analítica coach, p
 - Falta: aprobación explícita de José para el merge; prueba en iPhone real (`equipo/prueba-iphone.md`) y prueba de humo con cuenta nueva; captcha (Turnstile) al final, en el orden de `equipo/handoffs/captcha-turnstile.md`. El enlace de la app ya está en los instructivos (José decidió dejar la dirección de GitHub Pages: https://joseleo984-cmyk.github.io/P-rdida-de-grasa/).
 
 - 2 nov 2026: el modo coach (`producto: 'coach'`, `soloNube: true`) se enciende en la app oficial por decisión de José (PR aparte, no juntar sin su aprobación). Depende del PR #47 (doble casilla del coach y SQL v1.18).
+
+- 2 nov 2026: avisos push parte 1 (mensaje del coach y rutina nueva) en la rama `claude/push-avisos`; Política v1.3 informativa; falta SQL v1.19, función y Webhook por José y prueba en iPhone (`equipo/handoffs/push-avisos.md`).

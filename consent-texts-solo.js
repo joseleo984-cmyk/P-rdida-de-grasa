@@ -84,6 +84,14 @@
     CT.A7_PAST[CT.version('A7')] = CT.fullText('A7');
     CT.TEXTS.A7 = { ...CT.TEXTS.A7, version: '0.8-A7-coach', body: 'He leído y acepto el Acuerdo del Coach (versión 0.8), comprometiéndome a respetar los límites éticos y legales del servicio, la confidencialidad de mis asesorados y la prohibición estricta de descargar, capturar o difundir sus fotografías corporales o datos sensibles fuera de la plataforma.' };
     CT.TEXTS.A10 = { version: '0.1-A10-coach', kinds: ['coach_data'], body: 'Autorizo a José Granados a tratar mis datos personales de registro y gestión conforme a la Política de Tratamiento de Datos, y consiento su transmisión internacional a servidores en la nube (Supabase, EE. UU.) y proveedores de correo (Brevo, Francia) bajo medidas de seguridad internacionales.', links: [{ label: 'Política de datos', href: POLICY }] };
+    // A11: avisos push. Consentimiento «justo a tiempo» (concepto del 1/11/2026) y, por el concepto de información POR CAPAS (2/11/2026), el modal lleva el resumen
+    // LITERAL del abogado (capa 1) y el enlace a la Política (capa 2). Registra el tipo `push` con la huella del texto completo (título + texto).
+    // La versión 0.1 (texto largo) nunca llegó a producción: se reemplaza por la 0.2.
+    CT.TEXTS.A11 = { version: '0.2-A11-push', kinds: ['push'], title: 'Avisos de tu coach y recordatorios',
+      body: 'Activa las notificaciones para saber cuándo tu coach te escribe o actualiza tu rutina, y recibir tus recordatorios diarios. No enviamos datos de salud ni fotos. Puedes apagarlas cuando quieras. Consulta nuestra Política de Datos.',
+      bullets: [], buttons: { yes: 'Activar notificaciones', no: 'Ahora no' }, linkText: 'Política de Datos',
+      note: 'Nota: El nombre de la app siempre se mostrará en las alertas de tu teléfono. Si prefieres total privacidad en tu pantalla bloqueada, puedes ocultar las previsualizaciones de notificaciones desde los ajustes de tu sistema operativo.',
+      links: [{ label: 'Política de datos', href: POLICY }] };
     // A9: consentimiento de la liga (concepto 7, punto 4), LITERAL. Lo registra la app con la huella del texto completo (título + texto + casilla).
     CT.TEXTS.A9 = { version: '0.1-A9-liga', kinds: ['liga'], body: LG.CONSENT.join('\n'), title: LG.TITLE, box: LG.BOX, links: [{ label: 'Política de datos', href: POLICY }] };
     // Versiones del acuerdo que siguen valiendo para el resto de la app (sin re-aceptación forzada) y las que valen para exportar (traen la cláusula 14).
@@ -100,6 +108,7 @@
 
   const fullText0 = CT.fullText;
   CT.fullText = function (id, vars = {}) {
+    if (id === 'A11') { const a = CT.TEXTS.A11; return [a.title, a.body].join('\n'); }
     if (id === 'A9') { const a = CT.TEXTS.A9; return [a.title, a.body, a.box].join('\n') + '\n' + a.links.map((l) => `[${l.label}]`).join(' '); }
     if (id !== 'A5c') return fullText0(id, vars);
     const t = CT.TEXTS.A5c;

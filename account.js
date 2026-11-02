@@ -623,6 +623,14 @@
     writeMeta(prev);
     return false;
   }
+  // Avisos push (A11, kind `push`): consentimiento «justo a tiempo». Se registra con la huella del texto completo y sube ya, o se deshace (devuelve false).
+  async function setPushConsent(on) {
+    const prev = readMeta();
+    await logConsent('A11', 'push', on === true);
+    if (await flushConsents()) { document.dispatchEvent(new CustomEvent('pg:consents-changed')); return true; }
+    writeMeta(prev);
+    return false;
+  }
   // Sprint 10: copia del acuerdo aceptado por correo (función de borde `acuerdo-coach-copia`). Es COMPLEMENTARIA: el acuerdo ya quedó
   // registrado en la plataforma; si la función no está desplegada o falla, no pasa nada (nunca lanza ni muestra errores técnicos).
   // → { status: 'sent' | 'rate_limited' | 'offline' | 'auth' | 'unavailable' }
@@ -1097,7 +1105,7 @@
     // Puente para coach-panel.js (S3-4): el mismo Remote y los metadatos de la cuenta. Sin servidor no existe.
     window.PGAccount = { remote, meta: readMeta, setMeta: (m) => writeMeta({ ...readMeta(), ...m }), refresh, errorText,
       // Sprint 6: A7 (acuerdo del coach) y A8 los usa coach-panel.js; ConsentTexts decide si el acuerdo está vigente.
-      acceptCoachAgreement: async () => { let ok = await acceptStrict('A7', 'coach_agreement'); if (ok && CT.TEXTS.A10) ok = await acceptStrict('A10', 'coach_data'); if (ok) copyAfterAccept(); return ok; }, sendAgreementCopy, a8Confirm, fillLinks,
+      setPushConsent, acceptCoachAgreement: async () => { let ok = await acceptStrict('A7', 'coach_agreement'); if (ok && CT.TEXTS.A10) ok = await acceptStrict('A10', 'coach_data'); if (ok) copyAfterAccept(); return ok; }, sendAgreementCopy, a8Confirm, fillLinks,
       // Sprint 11: vínculo al día (pago), fotos en la nube (A6a) y que el coach vea cada foto (A6b).
       refreshLink, grantPhotosCloud, setCoachPhotos, revokePhotosCloud, setLigaConsent };
     renderTermsStep();

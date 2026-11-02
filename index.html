@@ -1428,6 +1428,7 @@
         <li><button type="button" class="more-row" id="row-copia"><span class="more-text"><strong>Descargar una copia</strong><span class="more-sub">Guarda tus datos en un archivo</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-instalar" data-install-guide><span class="more-text"><strong>Cómo instalar la app</strong><span class="more-sub">Ponla en la pantalla de inicio de tu teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-ayuda"><span class="more-text"><strong>Ayuda</strong><span class="more-sub">Respuestas a las dudas más comunes</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
+        <li class="pc-only needs-link hidden"><button type="button" class="more-row" id="row-avisos"><span class="more-text"><strong>Avisos en tu teléfono</strong><span class="more-sub">Mensajes de tu coach y rutinas nuevas</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button></li>
         <li class="pc-only"><button type="button" class="more-row" id="row-tour"><span class="more-text"><strong>Ver el tour otra vez</strong><span class="more-sub">Un recorrido corto por la app</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button></li>
         <li class="needs-login hidden"><button type="button" class="more-row" id="row-salir"><span class="more-text"><strong>Cerrar sesión</strong><span class="more-sub">Salir de tu cuenta en este teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
       </ul>
@@ -1755,6 +1756,30 @@
     </div>
   </dialog>
 
+  <!-- Avisos push (v1.19): consentimiento «justo a tiempo» con el texto literal del abogado (A11). El texto se rellena desde consent-texts-solo.js. -->
+  <dialog id="push-dialog" class="sheet" aria-labelledby="push-title">
+    <div class="sheet-head"><h2 id="push-title" tabindex="-1">Avisos de tu coach y recordatorios</h2></div>
+    <div id="push-consent" hidden>
+      <p id="push-body"></p>
+      <p class="small muted push-note"></p>
+      <button type="button" class="btn btn-tall" id="push-yes">Activar notificaciones</button>
+      <button type="button" class="btn btn-ghost btn-tall" id="push-no">Ahora no</button>
+    </div>
+    <div id="push-on" hidden>
+      <p class="small">Avisos activados. Elige cuáles quieres recibir:</p>
+      <label class="check"><input type="checkbox" id="push-coach"> <span>Mensajes y notas de tu coach</span></label>
+      <label class="check"><input type="checkbox" id="push-routines"> <span>Actualizaciones de rutinas</span></label>
+      <p class="small muted push-note"></p>
+      <button type="button" class="btn btn-ghost btn-tall" id="push-off">Desactivar avisos</button>
+      <button type="button" class="btn btn-tall" data-push-close>Cerrar</button>
+    </div>
+    <div id="push-unsupported" hidden>
+      <p>Para recibir avisos en iPhone, instala la app en la pantalla de inicio (Más → Cómo instalar la app) y ábrela desde ese ícono. Si tu navegador no los admite, no se pueden activar aquí.</p>
+      <button type="button" class="btn btn-tall" data-push-close>Cerrar</button>
+    </div>
+    <p id="push-msg" class="small" role="status" aria-live="polite"></p>
+  </dialog>
+
   <dialog id="sheet-qr" class="sheet qr-sheet" aria-labelledby="qr-title">
     <div class="sheet-head">
       <h2 id="qr-title" tabindex="-1">Tu cliente apunta la cámara aquí</h2>
@@ -2053,6 +2078,7 @@
   <script src="liga-view.js"></script>
   <script src="ayuda.js"></script>
   <script src="tour.js"></script>
+  <script src="push-view.js"></script>
   <script src="logros-view.js"></script>
   <script src="admin-view.js"></script>
   <script src="exportar-view.js"></script>
