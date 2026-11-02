@@ -7,13 +7,16 @@ const Producto = require('../producto.js');
 const CT = require('../consent-texts.js');
 require('../consent-texts-solo.js');
 
-test('la app oficial (config.js) NO trae producto ni soloNube; la de pruebas sí', () => {
+test('la app oficial (config.js) y la de pruebas usan el producto coach con entrada solo con cuenta (decisión de José, 2 nov 2026)', () => {
   const read = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
-  assert.ok(!/producto|soloNube/.test(read('config.js')), 'config.js no se toca');
+  assert.match(read('config.js'), /soloNube:\s*true/);
+  assert.match(read('config.js'), /producto:\s*'coach'/);
+  assert.match(read('config.js'), /env:\s*''/, 'la oficial sigue en producción (sin mezclarse con Pruebas)');
   assert.match(read('config.pruebas.js'), /soloNube:\s*true/);
   assert.match(read('config.pruebas.js'), /producto:\s*'coach'/);
   const load = (f) => { const w = {}; new Function('window', read(f))(w); return w.PG_CONFIG; };
-  assert.deepStrictEqual(Producto.read(load('config.js')), { coach: false, soloNube: false });
+  assert.deepStrictEqual(Producto.read(load('config.js')), { coach: true, soloNube: true });
+  assert.deepStrictEqual(Producto.read({}), { coach: false, soloNube: false }, 'sin esas dos líneas (reversa) la app vuelve a «solo en este teléfono»');
   assert.deepStrictEqual(Producto.read(load('config.pruebas.js')), { coach: true, soloNube: true });
 });
 test('read: solo producto exactamente «coach» y soloNube exactamente true', () => {

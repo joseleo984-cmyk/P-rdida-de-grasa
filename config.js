@@ -7,4 +7,8 @@ window.PG_CONFIG = {
   url: 'https://naybnhxtragszulpisav.supabase.co',
   key: 'sb_publishable_lf2oxJLBlRSzJCukKhBw7g_Yy9SD8O5',
   mode: 'real',
+  // Modo coach (piloto con coaches): la app oficial usa el producto «coach» y la entrada «solo con cuenta» (una pantalla de aceptación + enlace del coach).
+  // Reversa: quitar estas dos líneas devuelve la app a «solo en este teléfono» (equipo/handoffs/conectar-plataforma.md §4).
+  producto: 'coach',
+  soloNube: true,
 };

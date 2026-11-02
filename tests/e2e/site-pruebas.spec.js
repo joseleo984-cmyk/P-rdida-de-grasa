@@ -62,7 +62,8 @@ test('(b)(c) raíz y /pruebas/ no se ven entre sí en el mismo origen; banner so
   await open(page, site.base + '/');
   await page.evaluate((s) => localStorage.setItem('perdida-grasa:v1', JSON.stringify(s)), entry(70));
   await page.reload(); await acceptLegalIfPresent(page);
-  await expect(page.locator('#st-weight')).toContainText('70');
+  await page.evaluate(() => PGNav.show('progreso'));   // la raíz también es el producto «coach» (decisión de José, 2 nov 2026)
+  await expect(page.locator('#prog-big')).toContainText('70');
 
   await open(page, site.base + '/pruebas/');
   const banner = page.locator('#env-banner');
@@ -80,7 +81,8 @@ test('(b)(c) raíz y /pruebas/ no se ven entre sí en el mismo origen; banner so
   expect(n.idb).toEqual(expect.arrayContaining(['perdida-grasa-pruebas']));
 
   await open(page, site.base + '/');                      // la raíz sigue con lo suyo
-  await expect(page.locator('#st-weight')).toContainText('70');
+  await page.evaluate(() => PGNav.show('progreso'));
+  await expect(page.locator('#prog-big')).toContainText('70');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('perdida-grasa:v1')).entries[0].weight)).toBe(70);
   await expect(page.locator('#env-banner')).toHaveCount(0);
   await expect(page.locator('meta[name=robots]')).toHaveCount(0);
@@ -102,7 +104,7 @@ test('(d) los service workers de la raíz y de pruebas conviven sin borrarse las
   await open(page, site.base + '/');
   await page.waitForTimeout(500);
   const keys = await page.evaluate(() => caches.keys());
-  expect(keys.sort()).toEqual(['perdida-grasa-demo-v61', 'perdida-grasa-pruebas-v61', 'perdida-grasa-v61']);
+  expect(keys.sort()).toEqual(['perdida-grasa-demo-v62', 'perdida-grasa-pruebas-v62', 'perdida-grasa-v62']);
   for (const k of keys) expect(await page.evaluate(async (k) => (await (await caches.open(k)).keys()).length, k)).toBeGreaterThan(5);
-  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v61')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
+  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v62')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
 });
