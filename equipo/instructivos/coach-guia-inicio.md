@@ -3,7 +3,7 @@
 **Piloto de 8 semanas · desde la segunda semana de noviembre de 2026**
 Versión 1 · Para imprimir o enviar como PDF
 
-> Datos a completar antes de enviar: Enlace de la app: **[ENLACE DE LA APP]** · Soporte: **3128876125** · Horario de soporte: **[HORARIO]**
+> Datos a completar antes de enviar: Enlace de la app: **https://joseleo984-cmyk.github.io/P-rdida-de-grasa/** · Soporte: **3128876125** · Horario de soporte: **[HORARIO]**
 
 ---
 
@@ -29,7 +29,7 @@ La app **no prescribe** dietas ni calorías, y **no promete resultados de salud*
 
 **En iPhone (hazlo en Safari, no en Chrome ni dentro de WhatsApp):**
 
-1. Abre **Safari** y escribe la dirección **[ENLACE DE LA APP]**.
+1. Abre **Safari** y escribe la dirección **https://joseleo984-cmyk.github.io/P-rdida-de-grasa/**.
 2. Toca el botón **Compartir** (un cuadrado con una flecha hacia arriba).
 3. Baja y toca **Añadir a pantalla de inicio** (o «Agregar a inicio»).
 4. Toca **Añadir**.

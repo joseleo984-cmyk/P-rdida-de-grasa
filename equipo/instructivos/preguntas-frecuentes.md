@@ -24,7 +24,7 @@ Revisa que haya abierto **tu** enlace y terminado el registro, eligiendo **Clien
 Es normal: no marcó la casilla de comidas. Solo ves lo que cada persona autoriza. Puedes pedirle con amabilidad que lo active, pero **es su decisión**.
 
 **6. La lista no se actualiza.**
-Toca **Sincronizar ahora** o cierra y abre la app. Si tu teléfono no tiene internet, no se actualiza. Los datos de los asesorados llegan cuando ellos tienen internet.
+Toca **Actualizar** (arriba, en tu lista de asesorados) o cierra y abre la app. Si tu teléfono no tiene internet, no se actualiza. Los datos de los asesorados llegan cuando ellos tienen internet.
 
 **7. No me deja invitar a nadie.**
 Probablemente falta aceptar el **Acuerdo del coach**. Acéptalo y vuelve a **Invitar**. Revisa también **Más → Mi acuerdo**: si hay una versión nueva, debes aceptarla de nuevo.
@@ -58,7 +58,7 @@ Cierra la app del todo (desliza hacia arriba) y ábrela otra vez. Hazlo dos vece
 Abre el enlace en **Safari**. Si lo abres desde WhatsApp u otra app, no aparece la opción. Toca **Compartir → Añadir a pantalla de inicio → Añadir**.
 
 **4. No me sincroniza.**
-Mira el aviso en **Más → Mi plan y perfil**. Si dice «Sin internet», se guardará solo cuando vuelva la señal. Toca **Sincronizar ahora**. Tus datos no se pierden: siguen en tu celular.
+Mira el aviso en **Más → Mi plan y perfil**. Si dice «Sin internet», se guardará solo cuando vuelva la señal. Toca **Guardar ahora**. Tus datos no se pierden: siguen en tu celular.
 
 **5. Cambié de celular. ¿Pierdo mis cosas?**
 Si activaste la **copia en la nube**, entra con tu correo y pides un código nuevo. Tus datos vuelven. Si **no** la activaste, tus datos solo estaban en el celular viejo: descarga una copia allí antes de cambiarlo.
