@@ -233,9 +233,9 @@ test('Política v1.1: con la política 1.0 (o sin el aviso activo) «Descargar E
   expect(errors).toEqual([]);
 });
 
-test('Asesorado: no ve nada de la exportación (ni la fila, ni la pantalla, ni el historial); ve UNA vez el aviso literal de la Política vigente (v1.2, concepto 7) con su enlace', async ({ browser }, testInfo) => {
+test('Asesorado: no ve nada de la exportación (ni la fila, ni la pantalla, ni el historial); ve UNA vez el aviso de la Política vigente (v1.3, avisos push) con su enlace', async ({ browser }, testInfo) => {
   const { p, errors } = await H.clientApp(browser, testInfo);
-  const TEXT = 'Actualizamos nuestra Política de Tratamiento de Datos (v1.2) para incluir la opción voluntaria de retos y ligas de constancia en equipo. Conócela aquí.';
+  const TEXT = 'Actualizamos nuestra Política de Tratamiento de Datos (v1.3) para incluir los avisos opcionales en tu teléfono. Conócela aquí.';
   const aviso = p.locator('#aviso-politica');
   await expect(aviso).toBeVisible();
   await expect(p.locator('#aviso-politica-text')).toHaveText(TEXT);

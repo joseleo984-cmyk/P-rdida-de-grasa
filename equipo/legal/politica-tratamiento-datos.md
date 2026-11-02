@@ -1,6 +1,6 @@
 # Política de Tratamiento de Datos Personales — «Pérdida de Grasa»
 
-**Versión:** 1.2 · **Vigente desde:** 1 de noviembre de 2026
+**Versión:** 1.3 · **Vigente desde:** 2 de noviembre de 2026
 
 Esta Política de Tratamiento de Datos Personales se rige por la Ley Estatutaria 1581 de 2012 y el Decreto 1377 de 2013, compilado en el Decreto Único Reglamentario 1074 de 2015 (Libro 2, Parte 2, Título 2, Capítulo 25), y demás normas que los modifiquen, complementen o reglamenten en la República de Colombia.
 
@@ -33,6 +33,7 @@ En este documento, «nosotros» o «la plataforma» hace referencia a José Gran
 | Datos Sensibles de Salud y Antropometría | Peso, medidas corporales (cuello, brazos, espalda, cintura, abdomen, cadera y muslos), porcentaje de grasa estimado, hábitos diarios (agua, pasos, horas de sueño, entrenamiento completado), registros descriptivos de comidas y estimación referencial de calorías. | Alojado en la nube con cifrado y estrictos controles de acceso por fila. | Facultativo (§5) |
 | Fotos de Progreso (Sensibles) | Fotografías corporales de seguimiento físico. | Almacenamiento en la nube con acceso privado y restringido. | Facultativo (autorización independiente) |
 | Vínculo Deportivo | Identificador de tu coach, categorías activas para compartir y notas técnicas del coach. | Base de datos de la plataforma. | Aplica solo si te vinculas a un coach |
+| Avisos en el Teléfono (Push) | Identificador técnico del dispositivo (token de notificación push) y preferencias horarias de recordatorio local. | Base de datos de la plataforma. | Facultativo (autorización independiente) |
 | Prueba de Consentimiento | Tipo de permiso, versión legal, fecha, hora y huella criptográfica (SHA-256) del texto aceptado. | Base de datos de la plataforma (inmutable). | Obligatorio por exigencia legal |
 | Bitácora de Acceso a Fotos | Registro de fecha y hora exacta en que el coach visualiza una fotografía corporal. | Base de datos de la plataforma (visible por ti). | Automático al autorizar fotos |
 | Datos Técnicos de Seguridad | Registros de intentos de código de invitación (se eliminan al día siguiente) y logs de sesión. | Servidor de base de datos. | Requerido por seguridad técnica |
@@ -53,6 +54,7 @@ Tratamos tus datos personales para las siguientes finalidades legítimas y espec
 - Elaborar análisis estadísticos, métricas agregadas y modelos de uso anonimizados para la mejora técnica y funcional de la plataforma, garantizando que dichos resultados no permitan identificar directa ni indirectamente a ningún titular.
 - Desarrollar análisis y procesamientos automatizados sobre las variables, hábitos y métricas registrados voluntariamente por el titular (tales como peso, ingesta nutricional reportada y horas de sueño) con el objetivo exclusivo de emitir señales operativas y alertas preventivas de seguridad dirigidas a su coach. Dichas alertas tienen naturaleza meramente orientativa, enfocada en advertir posibles patrones de riesgo físico o alimentario y facilitar la sugerencia oportuna de consulta con profesionales de la salud. La plataforma no realiza diagnósticos clínicos, valoraciones médicas automatizadas ni prescripciones nutricionales o de entrenamiento a partir de estos análisis.
 - Calcular indicadores de cumplimiento y adherencia deportiva («puntos de constancia») a partir del reporte voluntario de hábitos, y facilitar la visualización comparativa de dichos puntajes entre miembros del mismo equipo deportivo bajo alias disociados, única y exclusivamente cuando el titular haya otorgado su consentimiento expreso y voluntario para participar en dinámicas comunitarias o ligas semanales.
+- Enviar alertas operativas y notificaciones push relacionadas exclusivamente con el servicio (mensajes del coach, actualizaciones de planes de entrenamiento, hitos de constancia y recordatorios programados por el usuario).
 
 **Compromiso de Privacidad:** No comercializamos tus datos con terceros, no los cedemos para pautas publicitarias ni publicamos tus imágenes en medios abiertos o redes sociales.
 
@@ -138,6 +140,7 @@ La plataforma «Pérdida de Grasa» está dirigida de forma estricta y exclusiva
 | Inactividad de Cuenta | Hasta trescientos sesenta y cinco (365) días sin inicio de sesión. | Notificación de alerta al día 335; recordatorio al día 358; supresión definitiva de los datos de la nube al día 365 de inactividad. |
 | Desvinculación del Coach | Acceso cesa de forma inmediata. | El coach pierde visualización instantánea; debe destruir copias locales en máximo 30 días. |
 | Prueba Legal de Consentimiento | Tres (3) años posteriores a la cancelación de la cuenta. | Se conservan en estado estrictamente disociado/anonimizado (identificador UUID sin asociar a nombre ni correo), conservando huella hash SHA-256 y marcas temporales, con la finalidad exclusiva de acreditar el cumplimiento legal ante eventuales requerimientos de la SIC. |
+| Avisos en el Teléfono (Push) | Mientras la función permanezca habilitada. | El token push y el horario se conservan única y exclusivamente mientras la función permanezca habilitada. Si el usuario apaga las notificaciones desde la app, el token debe desvincularse o borrarse del registro activo; si se elimina la cuenta, se destruye de inmediato junto con los demás datos de perfil. |
 | Registros Técnicos Temporales | Un (1) día calendario. | Purga automática de intentos de código de invitación. |
 
 ## 12. Registro Nacional de Bases de Datos (RNBD)

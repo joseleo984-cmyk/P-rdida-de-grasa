@@ -8,7 +8,7 @@
   const APP = 'grasa';
   const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const CONSENT_KINDS = ['terms', 'privacy', 'adult', 'sensitive_health', 'cloud_transfer', 'photos_cloud', 'photo_view_coach', 'coach_agreement',
-    'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos', 'liga', 'coach_data'];
+    'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos', 'liga', 'coach_data', 'push'];
   // r1 v1.16 (liga semanal): catálogo CERRADO de alias (mismo orden que grasa.liga_aliases) y versiones del acuerdo que traen la cláusula de ligas.
   const LIGA_ALIASES = ['Halcón', 'Titán', 'Roble', 'Fénix', 'Cóndor', 'Jaguar', 'Delfín', 'Lince', 'Pino', 'Cedro', 'Águila', 'Lobo',
     'Puma', 'Ceiba', 'Colibrí', 'Roca', 'Río', 'Volcán', 'Nevado', 'Ámbar', 'Trueno', 'Coral', 'Bosque', 'Montaña'];
@@ -106,6 +106,8 @@
       this.coachEvents = [];    // v1.13: suspensiones / reactivaciones { coachId, active, reason, at } (solo el admin)
       this.exports = [];        // v1.14 (M6): exportaciones a Excel { id, coachId, createdAt, clients, categories, from, to, custody, agreementVersion } (sin contenido)
       this.points = {};         // v1.15: puntos de constancia CALCULADOS por el «servidor» (puntos.js = grasa.points_refresh), userId → [{ day, source, points }]
+      this.pushDevices = {};    // v1.19: avisos push, userId → [{ endpoint, p256dh, auth }] (solo pruebas; el servidor real guarda lo mismo)
+      this.pushPrefs = {};      // v1.19: userId → { coachMsgs, routines }
       this.teamGoals = {};      // v1.15: meta colectiva, `${coachId}|${lunes}` → { coachId, weekStart, metric, target, createdAt }
       this.challenges = {};     // v1.11: retos del coach, id → { id, coachId, title, habit, target, start, end, createdAt, deletedAt, members: [clientId], marks: { clientId: { day: { private } } } }
       this._online = true;
@@ -298,13 +300,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports', 'points', 'teamGoals']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'pushDevices', 'pushPrefs', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports', 'points', 'teamGoals']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -457,6 +459,7 @@
         for (const [k, ch] of Object.entries(be.challenges)) { if (ch.coachId === u.id) delete be.challenges[k]; else { ch.members = ch.members.filter((m) => m !== u.id); delete ch.marks[u.id]; } }
         be.linkPauses = be.linkPauses.filter((x) => be.links.some((l) => l.id === x.linkId));
         delete be.points[u.id];
+        delete be.pushDevices[u.id]; delete be.pushPrefs[u.id];   // v1.19: el identificador del dispositivo se destruye con la cuenta
         for (const k of Object.keys(be.teamGoals)) if (k.startsWith(u.id + '|')) delete be.teamGoals[k];
         // Sprint 6: antes de borrar, copia mínima y seudonimizada (sin uuid, correo ni nombre), como core.delete_my_account().
         const pseudo = (id) => pseudoHash('fake-salt:' + id);
@@ -1404,7 +1407,25 @@
       },
     };
 
-    return { kind: 'fake', backend: be, auth, account, sync, client, coach, admin };
+    // r1 v1.19: avisos push (mismas reglas que el servidor: sin el consentimiento `push` no se guarda el dispositivo; apagar los borra).
+    const push = {
+      async state() { const u = await authed(); const p = be.pushPrefs[u.id] || {}; return { consent: be.hasConsent(u.id, 'push'), devices: (be.pushDevices[u.id] || []).length, coachMsgs: p.coachMsgs !== false, routines: p.routines !== false }; },
+      async publicKey() { await authed(); if (be.pushMode === 'unavailable') fail('unavailable', 'Los avisos no están disponibles por ahora'); return 'BFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKE'; },
+      async register({ endpoint, p256dh, auth: authKey }) {
+        const u = await authed();
+        if (!be.hasConsent(u.id, 'push')) fail('forbidden', 'Falta autorizar los avisos');
+        if (!/^https:\/\//.test(String(endpoint || ''))) fail('invalid', 'Dispositivo no válido');
+        const list = (be.pushDevices[u.id] || []).filter((d) => d.endpoint !== endpoint);
+        list.push({ endpoint, p256dh, auth: authKey });
+        be.pushDevices[u.id] = list.slice(-5);
+        be.pushPrefs[u.id] = be.pushPrefs[u.id] || { coachMsgs: true, routines: true };
+        return done(undefined);
+      },
+      async unregister(endpoint) { const u = await authed(); be.pushDevices[u.id] = (be.pushDevices[u.id] || []).filter((d) => d.endpoint !== endpoint); return done(undefined); },
+      async off() { const u = await authed(); be.pushDevices[u.id] = []; return done(undefined); },
+      async setPrefs({ coachMsgs, routines }) { const u = await authed(); be.pushPrefs[u.id] = { coachMsgs: !!coachMsgs, routines: !!routines }; return done(undefined); },
+    };
+    return { kind: 'fake', backend: be, auth, account, sync, client, coach, admin, push };
   }
 
   // Backend persistido en localStorage (solo E2E en el origen de pruebas): sobrevive recargas.

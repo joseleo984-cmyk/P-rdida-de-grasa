@@ -809,7 +809,24 @@
         exports: Number(x.exports) || 0 };   // r1 v1.14: solo la cantidad de exportaciones del mes
     }
 
-    return { kind: 'real', auth, account, sync, client, coach, admin };
+    // r1 v1.19: avisos push. El servidor guarda solo el identificador técnico del dispositivo y 2 preferencias; la clave pública viene de la función `push-enviar`.
+    const push = {
+      async state() { await me(); const s = (await rpc('grasa', 'push_state')) || {}; return { consent: s.consent === true, devices: Number(s.devices) || 0, coachMsgs: s.coach_msgs !== false, routines: s.routines !== false }; },
+      async publicKey() {
+        await me();
+        if (offlineNow()) throw new RemoteError('offline', MESSAGES.offline);
+        let res;
+        try { res = await sb.functions.invoke('push-enviar', { body: { accion: 'clave' } }); } catch { throw new RemoteError('unavailable', 'Los avisos no están disponibles por ahora'); }
+        if (!res || res.error || !res.data || !res.data.publicKey) throw new RemoteError('unavailable', 'Los avisos no están disponibles por ahora');
+        return String(res.data.publicKey);
+      },
+      async register({ endpoint, p256dh, auth: authKey }) { await me(); await rpc('grasa', 'push_register', { p_endpoint: endpoint, p_p256dh: p256dh, p_auth: authKey }); },
+      async unregister(endpoint) { await me(); await rpc('grasa', 'push_unregister', { p_endpoint: endpoint }); },
+      async off() { await me(); await rpc('grasa', 'push_off'); },
+      async setPrefs({ coachMsgs, routines }) { await me(); await rpc('grasa', 'push_set_prefs', { p_coach_msgs: !!coachMsgs, p_routines: !!routines }); },
+    };
+
+    return { kind: 'real', auth, account, sync, client, coach, admin, push };
   }
 
   const api = { config, create, createFake, fakeAllowed, CAPTCHA_SITEKEY_RE, textHash, mapError, RemoteError, PRODUCTION_HOSTS, BUCKET, GIF_BUCKET };

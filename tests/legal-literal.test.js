@@ -356,15 +356,15 @@ test('concepto 7 · Política v1.2: la finalidad en §4 de la política publicad
   assert.ok(s4.includes(lite(body)), 'legal/privacidad.html §4');
   assert.strictEqual(lite(visible(html)).split(lite(body)).length - 1, 1, 'una sola vez en la página');
   assert.ok(lite(read('equipo/legal/politica-tratamiento-datos.md')).includes(lite(body)));
-  assert.strictEqual(JSON.parse(read('legal/VERSIONS.json')).privacy.version, '1.2');
+  assert.strictEqual(JSON.parse(read('legal/VERSIONS.json')).privacy.version, '1.3');   // la 1.3 (avisos push) conserva esta finalidad
 });
 
 test('concepto 7 · aviso v1.2: texto y botón «Entendido» LITERALES en aviso-politica.js; «[enlace]» es el enlace real a la política', () => {
   const c = concept7();
   const AV = require('../aviso-politica.js');
-  assert.strictEqual(AV.TEXT, c.aviso);
+  assert.strictEqual(AV.TEXT_V12, c.aviso);   // el literal del concepto 7 es el aviso de la v1.2 (historial); el vigente es el de la v1.3
   assert.strictEqual(AV.BUTTON, c.boton);
-  assert.deepStrictEqual(AV.parts(), { before: c.aviso.slice(0, c.aviso.indexOf(' [enlace]')).replace(/aquí$/, ''), link: 'aquí', after: '.', href: 'legal/privacidad.html' });
+  assert.deepStrictEqual(AV.parts(), { before: AV.TEXT.slice(0, AV.TEXT.indexOf(' [enlace]')).replace(/aquí$/, ''), link: 'aquí', after: '.', href: 'legal/privacidad.html' });
 });
 
 function liga7() {
@@ -458,4 +458,23 @@ test('concepto 2.3 · pantalla de entrada del coach: casilla 1 (acuerdo 0.8) y c
   assert.strictEqual(CT.coachDataOK({ consents: { coach_data: { granted: false, version: CT.version('A10') } } }), false);
   assert.strictEqual(CT.coachDataOK({ consents: { coach_agreement: { granted: true, version: CT.version('A7') } } }), false);
   assert.ok(read('supabase/migrations/20261105120000_r1_coach_datos.sql').includes("'coach_data'"));
+});
+
+test('concepto de avisos push · Política v1.3: categoría (§3), finalidad (§4) y conservación (§11) del abogado, una sola vez cada una, y aviso informativo', () => {
+  const md = norm(read('equipo/legal/politica-tratamiento-datos.md'));
+  const html = norm(visible(read('legal/privacidad.html')));
+  for (const frase of [
+    'Identificador técnico del dispositivo (token de notificación push) y preferencias horarias de recordatorio local',
+    'Enviar alertas operativas y notificaciones push relacionadas exclusivamente con el servicio (mensajes del coach, actualizaciones de planes de entrenamiento, hitos de constancia y recordatorios programados por el usuario)',
+    'El token push y el horario se conservan única y exclusivamente mientras la función permanezca habilitada. Si el usuario apaga las notificaciones desde la app, el token debe desvincularse o borrarse del registro activo; si se elimina la cuenta, se destruye de inmediato junto con los demás datos de perfil',
+  ]) {
+    assert.ok(md.includes(norm(frase)), 'md: ' + frase.slice(0, 40));
+    assert.ok(html.includes(norm(frase)), 'html: ' + frase.slice(0, 40));
+    assert.strictEqual(html.split(norm(frase)).length - 1, 1, 'una sola vez: ' + frase.slice(0, 40));
+  }
+  const V = JSON.parse(read('legal/VERSIONS.json'));
+  assert.deepStrictEqual([V.privacy.version, V.privacy.notice.id, V.privacy.acceptedStillValid], ['1.3', 'politica-1.3', ['0.1', '1.1', '1.2']]);
+  const AV = require('../aviso-politica.js');
+  assert.match(AV.TEXT, /\(v1\.3\).*avisos opcionales en tu teléfono.*\[enlace\]\.$/);
+  assert.doesNotMatch(AV.TEXT, /\bkg\b|peso|grasa|dieta/i);
 });
