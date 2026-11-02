@@ -84,6 +84,12 @@
     CT.A7_PAST[CT.version('A7')] = CT.fullText('A7');
     CT.TEXTS.A7 = { ...CT.TEXTS.A7, version: '0.8-A7-coach', body: 'He leído y acepto el Acuerdo del Coach (versión 0.8), comprometiéndome a respetar los límites éticos y legales del servicio, la confidencialidad de mis asesorados y la prohibición estricta de descargar, capturar o difundir sus fotografías corporales o datos sensibles fuera de la plataforma.' };
     CT.TEXTS.A10 = { version: '0.1-A10-coach', kinds: ['coach_data'], body: 'Autorizo a José Granados a tratar mis datos personales de registro y gestión conforme a la Política de Tratamiento de Datos, y consiento su transmisión internacional a servidores en la nube (Supabase, EE. UU.) y proveedores de correo (Brevo, Francia) bajo medidas de seguridad internacionales.', links: [{ label: 'Política de datos', href: POLICY }] };
+    // Concepto 13 (2/11/2026, punto 9): «Uso de listas de exclusión y adaptaciones», LITERAL, para el Acuerdo del Coach. Versión 0.9-A7-coach (cláusulas 13 a 16 + esta, la 17);
+    // la 0.8 pasa EXACTA a A7_PAST. Quien tiene la 0.4–0.8 sigue usando el resto de la app; esta se pide solo para ver el historial de dolor y editar la lista «a evitar».
+    CT.A7_PAST[CT.version('A7')] = CT.fullText('A7');
+    CT.TEXTS.A7 = { ...CT.TEXTS.A7, version: '0.9-A7-coach', clauseExclusion: (root.Lesiones || require('./lesiones.js')).TEXTS.clausulaExclusion };
+    // A13: consentimiento contextual del reporte de dolor por ejercicio (concepto 13, punto 2): el modal LITERAL de la primera vez; tipo `pain_report`.
+    CT.TEXTS.A13 = { version: '0.1-A13-dolor', kinds: ['pain_report'], body: (root.Lesiones || require('./lesiones.js')).fullText('dolor'), links: [{ label: 'Política de datos', href: POLICY }] };
     // A11: avisos push. Consentimiento «justo a tiempo» (concepto del 1/11/2026) y, por el concepto de información POR CAPAS (2/11/2026), el modal lleva el resumen
     // LITERAL del abogado (capa 1) y el enlace a la Política (capa 2). Registra el tipo `push` con la huella del texto completo (título + texto).
     // La versión 0.1 (texto largo) nunca llegó a producción: se reemplaza por la 0.2.
@@ -97,20 +103,23 @@
     // A9: consentimiento de la liga (concepto 7, punto 4), LITERAL. Lo registra la app con la huella del texto completo (título + texto + casilla).
     CT.TEXTS.A9 = { version: '0.1-A9-liga', kinds: ['liga'], body: LG.CONSENT.join('\n'), title: LG.TITLE, box: LG.BOX, links: [{ label: 'Política de datos', href: POLICY }] };
     // Versiones del acuerdo que siguen valiendo para el resto de la app (sin re-aceptación forzada) y las que valen para exportar (traen la cláusula 14).
-    CT.A7_STILL_VALID = ['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach'];
-    CT.A7_EXPORT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach'];
-    CT.A7_LIGA_VERSIONS = ['0.7-A7-coach', '0.8-A7-coach'];
+    CT.A7_STILL_VALID = ['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach'];
+    CT.A7_EXPORT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach'];
+    CT.A7_LIGA_VERSIONS = ['0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach'];
+    CT.A7_RESTRICTIONS_VERSIONS = ['0.9-A7-coach'];
     // Autorización de datos del coach (A10): vigente si está concedida con la versión actual.
     CT.coachDataOK = (meta) => !!(meta && meta.consents && meta.consents.coach_data && meta.consents.coach_data.granted === true && meta.consents.coach_data.version === CT.version('A10'));
     const a7 = (meta) => (meta && meta.consents && meta.consents.coach_agreement) || null;
     CT.coachAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_STILL_VALID.includes(c.version)); };
     CT.ligaAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_LIGA_VERSIONS.includes(c.version)); };
+    CT.restrictionsAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_RESTRICTIONS_VERSIONS.includes(c.version)); };
     CT.exportAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_EXPORT_VERSIONS.includes(c.version)); };
   }
 
   const fullText0 = CT.fullText;
   CT.fullText = function (id, vars = {}) {
     if (id === 'A12') return CT.TEXTS.A12.body;
+    if (id === 'A13') return CT.TEXTS.A13.body;
     if (id === 'A11') { const a = CT.TEXTS.A11; return [a.title, a.body].join('\n'); }
     if (id === 'A9') { const a = CT.TEXTS.A9; return [a.title, a.body, a.box].join('\n') + '\n' + a.links.map((l) => `[${l.label}]`).join(' '); }
     if (id !== 'A5c') return fullText0(id, vars);

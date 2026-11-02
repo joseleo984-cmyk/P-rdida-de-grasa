@@ -473,6 +473,8 @@
     $('#acc-a7-clause-liga').classList.toggle('hidden', !t.clauseLiga);
     $('#acc-a7-clause-premios').textContent = t.clausePremios || '';   // concepto 8: cláusula 16 (incentivos)
     $('#acc-a7-clause-premios').classList.toggle('hidden', !t.clausePremios);
+    $('#acc-a7-clause-excl').textContent = t.clauseExclusion || '';   // concepto 13: cláusula 17 (listas de exclusión)
+    $('#acc-a7-clause-excl').classList.toggle('hidden', !t.clauseExclusion);
     $('#acc-a7-text').textContent = CT.fill(t.body, {});
     fillLinks($('#acc-a7-links'), t.links);
     const t10 = CT.TEXTS.A10;   // casilla 2 (concepto, punto 2.3): autorización de datos y transmisión internacional (solo producto coach)
@@ -639,6 +641,16 @@
     writeMeta(prev);
     return false;
   }
+  // Dolor por ejercicio (A13, kind `pain_report`): consentimiento contextual al tocar por primera vez «Reportar molestia o dolor»; sube ya o se deshace.
+  async function setPainConsent(on) {
+    const prev = readMeta();
+    await logConsent('A13', 'pain_report', on === true);
+    if (await flushConsents()) { document.dispatchEvent(new CustomEvent('pg:consents-changed')); return true; }
+    writeMeta(prev);
+    return false;
+  }
+  // Acuerdo del Coach actualizado (cláusula 17): solo registra el acuerdo vigente (no repite la autorización de datos).
+  async function acceptAgreementUpdate() { const ok = await acceptStrict('A7', 'coach_agreement'); if (ok) copyAfterAccept(); return ok; }
   // Sprint 10: copia del acuerdo aceptado por correo (función de borde `acuerdo-coach-copia`). Es COMPLEMENTARIA: el acuerdo ya quedó
   // registrado en la plataforma; si la función no está desplegada o falla, no pasa nada (nunca lanza ni muestra errores técnicos).
   // → { status: 'sent' | 'rate_limited' | 'offline' | 'auth' | 'unavailable' }
@@ -1113,7 +1125,7 @@
     // Puente para coach-panel.js (S3-4): el mismo Remote y los metadatos de la cuenta. Sin servidor no existe.
     window.PGAccount = { remote, meta: readMeta, setMeta: (m) => writeMeta({ ...readMeta(), ...m }), refresh, errorText,
       // Sprint 6: A7 (acuerdo del coach) y A8 los usa coach-panel.js; ConsentTexts decide si el acuerdo está vigente.
-      setPushConsent, setInjuryConsent, acceptCoachAgreement: async () => { let ok = await acceptStrict('A7', 'coach_agreement'); if (ok && CT.TEXTS.A10) ok = await acceptStrict('A10', 'coach_data'); if (ok) copyAfterAccept(); return ok; }, sendAgreementCopy, a8Confirm, fillLinks,
+      setPushConsent, setInjuryConsent, setPainConsent, acceptAgreementUpdate, acceptCoachAgreement: async () => { let ok = await acceptStrict('A7', 'coach_agreement'); if (ok && CT.TEXTS.A10) ok = await acceptStrict('A10', 'coach_data'); if (ok) copyAfterAccept(); return ok; }, sendAgreementCopy, a8Confirm, fillLinks,
       // Sprint 11: vínculo al día (pago), fotos en la nube (A6a) y que el coach vea cada foto (A6b).
       refreshLink, grantPhotosCloud, setCoachPhotos, revokePhotosCloud, setLigaConsent };
     renderTermsStep();

@@ -460,6 +460,8 @@
     if (px.shown !== st.i) {
       px.shown = st.i;
       $('#paso-name').textContent = s.name;
+      if ($('#paso-pain-status')) $('#paso-pain-status').textContent = '';   // v1.21: el reporte de dolor es por ejercicio
+      if (window.RestrView) RestrView.syncPainButton();
       $('#paso-line').textContent = s.mode === 'sets' ? s.line : 'Indicación de tu coach';
       $('#paso-note').textContent = s.note;
       $('#paso-note').classList.toggle('hidden', !s.note);
@@ -861,6 +863,7 @@
     for (const b of document.querySelectorAll('#form-rutina button')) b.disabled = true;
     try {
       const t = target, id = t.routine ? t.routine.id : null;
+      if (t.kind === 'client' && window.RestrView && !(await RestrView.confirmAssign([{ id: t.clientId, name: t.name }], draft))) { busy = false; for (const b of document.querySelectorAll('#form-rutina button')) b.disabled = false; return; }
       const out = t.kind === 'template' ? await A.remote.coach.saveTemplate(id, draft) : await A.remote.coach.saveClientRoutine(t.clientId, id, draft);
       t.routine = out;
       dirty = false;
@@ -1051,6 +1054,7 @@
     const btn = $('#btn-rc-assign');
     btn.disabled = true;
     try {
+      if (window.RestrView && !(await RestrView.confirmAssign([{ id: ctx.clientId, name: ctx.name }], t))) { btn.disabled = false; return; }   // v1.21: advertencia (lista «a evitar» / dolor)
       await A.remote.coach.assignTemplate(id, [ctx.clientId]);
       toast(`«${t.title}» asignada a ${ctx.name}`);
       await loadFicha({ keep: true });
@@ -1120,6 +1124,7 @@
       if (dailyOn() && pub.templateId !== t.id && !confirm(`Ya publicaste «${pub.title}» para hoy. ¿Cambiarla por «${t.title}»?`)) return;
       b.disabled = true;
       try {
+        if (window.RestrView && !(await RestrView.confirmAssign('all', t))) { b.disabled = false; return; }
         pub = await A.remote.coach.publishDaily(t.id, today());
         toast(`«${t.title}» es la rutina de hoy para todos tus asesorados`);
         renderLib();
@@ -1174,6 +1179,7 @@
     $('#btn-da-ok').disabled = true;
     try {
       const t = assignFor.template;
+      if (window.RestrView && !(await RestrView.confirmAssign(ids.map((i) => { const c = clientsList.find((x) => x.clientId === i); return { id: i, name: c ? pname(c) : 'Asesorado' }; }), t))) { busy = false; $('#btn-da-ok').disabled = false; return; }
       await A.remote.coach.assignTemplate(t.id, ids);
       const opener = assignFor.opener;
       assignFor = null;

@@ -199,6 +199,7 @@
               <p class="small a7-clause-export hidden" id="acc-a7-clause-export"></p>
               <p class="small a7-clause-liga hidden" id="acc-a7-clause-liga"></p>
               <p class="small a7-clause-premios hidden" id="acc-a7-clause-premios"></p>
+              <p class="small a7-clause-excl hidden" id="acc-a7-clause-excl"></p>
               <div class="auth-row"><label class="check"><input type="checkbox" name="a7" id="acc-a7"> <span id="acc-a7-text"></span></label><span class="auth-links" id="acc-a7-links"></span></div>
               <div class="auth-row"><label class="check"><input type="checkbox" name="a10" id="acc-a10"> <span id="acc-a10-text"></span></label><span class="auth-links" id="acc-a10-links"></span></div>
             </div>
@@ -833,6 +834,7 @@
         <p class="small a7-clause-export hidden"></p>
         <p class="small a7-clause-liga hidden"></p>
         <p class="small a7-clause-premios hidden"></p>
+        <p class="small a7-clause-excl hidden"></p>
         <form class="a7-form" novalidate>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a10"> <span class="a10-text"></span></label><span class="auth-links a10-links"></span></div>
@@ -901,6 +903,11 @@
             <h3 id="fcl-title">Lesiones y condiciones</h3>
             <div id="fcl-list"></div>
             <p id="fcl-note" class="small muted"></p>
+          </section>
+          <section id="fc-restr" class="card pc-only hidden" aria-labelledby="fcr-title">
+            <h3 id="fcr-title">Restricciones de entrenamiento</h3>
+            <div id="fcr-body"></div>
+            <p id="fcr-note" class="small muted"></p>
           </section>
           <p id="coach-detail-light" class="small"></p>
           <p id="coach-detail-shares" class="small muted"></p>
@@ -1029,6 +1036,7 @@
         <p class="small a7-clause-export hidden"></p>
         <p class="small a7-clause-liga hidden"></p>
         <p class="small a7-clause-premios hidden"></p>
+        <p class="small a7-clause-excl hidden"></p>
         <form class="a7-form" novalidate>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a10"> <span class="a10-text"></span></label><span class="auth-links a10-links"></span></div>
@@ -1700,6 +1708,7 @@
       <p class="small a7-clause xla-clause" id="xla-clause"></p>
       <p class="small a7-clause xla-clause" id="xla-clause-liga"></p>
       <p class="small a7-clause xla-clause" id="xla-clause-premios"></p>
+      <p class="small a7-clause xla-clause" id="xla-clause-excl"></p>
       <details class="xla-more"><summary>Ver el resto del acuerdo</summary><p class="small" id="xla-intro"></p><p class="small a7-clause" id="xla-clause13"></p></details>
       <label class="xl-custody xla-check"><input type="checkbox" id="xla-ok"><span id="xla-body"></span></label>
       <div class="xla-links" id="xla-links"></div>
@@ -1735,6 +1744,7 @@
       <p id="lga-c14" class="small a7-clause"></p>
       <p id="lga-c15" class="small a7-clause"></p>
       <p id="lga-c16" class="small a7-clause"></p>
+      <p id="lga-c17" class="small a7-clause"></p>
       <label class="check"><input type="checkbox" id="lga-ok"> <span id="lga-body"></span></label>
       <p id="lga-error" class="acc-error hidden" role="alert"></p>
       <div class="row-actions a8-actions">
@@ -1760,6 +1770,30 @@
         </div>
       </form>
     </div>
+  </dialog>
+
+  <!-- Dolor por ejercicio y restricciones (v1.21, concepto 13): textos LITERALES del abogado, rellenados desde lesiones.js. -->
+  <dialog id="pain-dialog" class="sheet" aria-labelledby="pain-title">
+    <h2 id="pain-title" tabindex="-1"></h2>
+    <p id="pain-body"></p>
+    <button type="button" class="btn btn-tall" id="pain-yes"></button>
+    <button type="button" class="btn btn-ghost btn-tall" id="pain-no"></button>
+    <p id="pain-msg" class="acc-error" role="alert"></p>
+  </dialog>
+  <dialog id="rest-warn-dialog" class="sheet sheet-tall" aria-labelledby="rest-warn-title">
+    <h2 id="rest-warn-title" tabindex="-1">Antes de asignar</h2>
+    <div id="rest-warn-list"></div>
+    <button type="button" class="btn btn-tall" id="rest-warn-yes"></button>
+    <button type="button" class="btn btn-ghost btn-tall" id="rest-warn-no"></button>
+  </dialog>
+  <dialog id="rest-agree-dialog" class="sheet sheet-tall" aria-labelledby="rest-agree-title">
+    <h2 id="rest-agree-title" tabindex="-1">Acuerdo del Coach actualizado</h2>
+    <p class="small">Para programar rutinas con las listas de ejercicios a evitar y los reportes de dolor, acepta la versión actualizada del Acuerdo. Esta es la cláusula nueva:</p>
+    <p id="rest-agree-clause" class="small a7-clause"></p>
+    <div class="auth-row"><label class="check"><input type="checkbox" id="rest-agree-box"> <span id="rest-agree-text"></span></label></div>
+    <p id="rest-agree-err" class="acc-error" role="alert"></p>
+    <button type="button" class="btn btn-tall" id="rest-agree-ok">Aceptar el acuerdo</button>
+    <button type="button" class="btn btn-ghost btn-tall" id="rest-agree-no">Ahora no</button>
   </dialog>
 
   <!-- Lesiones y condiciones médicas (v1.20, concepto 13): textos LITERALES del abogado, rellenados desde lesiones.js. -->
@@ -1881,6 +1915,8 @@
         <h2 id="paso-name" tabindex="-1"></h2>
         <p id="paso-line"></p>
         <p id="paso-note" class="paso-note hidden"></p>
+        <button type="button" class="btn btn-ghost hidden" id="paso-pain">Reportar molestia o dolor</button>
+        <p id="paso-pain-status" class="small muted" role="status" aria-live="polite"></p>
       </div>
       <ol id="paso-sets" class="paso-sets" aria-label="Series"></ol>
       <div class="paso-big">
@@ -2126,6 +2162,7 @@
   <script src="tour.js"></script>
   <script src="push-view.js"></script>
   <script src="lesiones-view.js"></script>
+  <script src="restricciones-view.js"></script>
   <script src="logros-view.js"></script>
   <script src="admin-view.js"></script>
   <script src="exportar-view.js"></script>

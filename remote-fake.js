@@ -8,11 +8,12 @@
   const APP = 'grasa';
   const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const CONSENT_KINDS = ['terms', 'privacy', 'adult', 'sensitive_health', 'cloud_transfer', 'photos_cloud', 'photo_view_coach', 'coach_agreement',
-    'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos', 'liga', 'coach_data', 'push', 'injury'];
+    'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos', 'liga', 'coach_data', 'push', 'injury', 'pain_report'];
   // r1 v1.16 (liga semanal): catálogo CERRADO de alias (mismo orden que grasa.liga_aliases) y versiones del acuerdo que traen la cláusula de ligas.
   const LIGA_ALIASES = ['Halcón', 'Titán', 'Roble', 'Fénix', 'Cóndor', 'Jaguar', 'Delfín', 'Lince', 'Pino', 'Cedro', 'Águila', 'Lobo',
     'Puma', 'Ceiba', 'Colibrí', 'Roca', 'Río', 'Volcán', 'Nevado', 'Ámbar', 'Trueno', 'Coral', 'Bosque', 'Montaña'];
-  const LIGA_AGREEMENT_VERSIONS = ['0.7-A7-coach', '0.8-A7-coach'];
+  const LIGA_AGREEMENT_VERSIONS = ['0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach'];
+  const RESTRICTIONS_AGREEMENT_VERSIONS = ['0.9-A7-coach'];   // v1.21: cláusula 17 (listas de exclusión)
   const RECORD_KINDS = ['profile', 'entry', 'food', 'habit', 'library'];
   const SHARE_KEYS = ['body', 'notes', 'nutrition', 'habits', 'photos'];
   const RETRYABLE = { offline: true, server: true, rate_limited: true }; // consent_required y agreement_required: no se reintentan solos
@@ -107,6 +108,8 @@
       this.exports = [];        // v1.14 (M6): exportaciones a Excel { id, coachId, createdAt, clients, categories, from, to, custody, agreementVersion } (sin contenido)
       this.points = {};         // v1.15: puntos de constancia CALCULADOS por el «servidor» (puntos.js = grasa.points_refresh), userId → [{ day, source, points }]
       this.pushOutbox = [];     // v1.20: cola de avisos push (solo pruebas): { userId, kind, sentAt }
+      this.exercisePain = [];   // v1.21: dolor por ejercicio { clientId, key, name, day, version, textHash }
+      this.avoidList = [];      // v1.21: ejercicios a evitar { coachId, clientId, key, name }
       this.injuries = [];       // v1.20: lesiones y condiciones médicas { id, clientId, kind, area, description, status, onset, version, textHash, convertedAt, createdAt, updatedAt, notes[] }
       this.pushDevices = {};    // v1.19: avisos push, userId → [{ endpoint, p256dh, auth }] (solo pruebas; el servidor real guarda lo mismo)
       this.pushPrefs = {};      // v1.19: userId → { coachMsgs, routines }
@@ -311,13 +314,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, exercisePain, avoidList, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, exercisePain, avoidList, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'pushDevices', 'pushPrefs', 'injuries', 'pushOutbox', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports', 'points', 'teamGoals']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'pushDevices', 'pushPrefs', 'injuries', 'pushOutbox', 'exercisePain', 'avoidList', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports', 'points', 'teamGoals']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -471,6 +474,7 @@
         be.linkPauses = be.linkPauses.filter((x) => be.links.some((l) => l.id === x.linkId));
         delete be.points[u.id];
         be.injuries = be.injuries.filter((i) => i.clientId !== u.id);   // v1.20: en cascada con la cuenta
+        be.exercisePain = be.exercisePain.filter((x) => x.clientId !== u.id); be.avoidList = be.avoidList.filter((x) => x.clientId !== u.id && x.coachId !== u.id);
         delete be.pushDevices[u.id]; delete be.pushPrefs[u.id];   // v1.19: el identificador del dispositivo se destruye con la cuenta
         for (const k of Object.keys(be.teamGoals)) if (k.startsWith(u.id + '|')) delete be.teamGoals[k];
         // Sprint 6: antes de borrar, copia mínima y seudonimizada (sin uuid, correo ni nombre), como core.delete_my_account().
@@ -492,6 +496,7 @@
     };
     const recOut = (r) => ({ id: r.id, kind: r.kind, nkey: r.nkey, date: r.date, data: clone(r.data), updatedAt: r.updatedAt, deletedAt: r.deletedAt, serverUpdatedAt: r.serverUpdatedAt });
     const photoOut = (p) => ({ id: p.id, date: p.date, pose: p.pose, width: p.width, height: p.height, storagePath: p.storagePath, sharedWithCoach: p.sharedWithCoach, createdAt: p.createdAt, updatedAt: p.updatedAt, deletedAt: p.deletedAt, serverUpdatedAt: p.serverUpdatedAt });
+    const exKey = (n) => String(n || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
     const injuryView = (i) => ({ id: i.id, kind: i.kind, area: i.area, description: i.description || '', status: i.status, onset: i.onset || null, convertedAt: i.convertedAt || null, createdAt: i.createdAt, updatedAt: i.updatedAt, notes: (i.notes || []).slice() });
     const commentOut = (c) => ({ id: c.id, linkId: c.linkId, coachId: c.coachId, clientId: c.clientId, refDate: c.refDate, body: c.body, createdAt: c.createdAt, readAt: c.readAt, deletedAt: c.deletedAt, serverUpdatedAt: c.serverUpdatedAt });
 
@@ -819,6 +824,19 @@
         be.pushAlert(u.id, 'client_alert');
         return done(clone(injuryView(i)));
       },
+      async reportExercisePain({ exercise, day, version, textHash }) {
+        const u = await authed();
+        if (!(be.hasConsent(u.id, 'sensitive_health') && be.hasConsent(u.id, 'cloud_transfer'))) fail('consent_required', 'Falta aceptar una autorización');
+        if (!be.hasConsent(u.id, 'pain_report')) fail('forbidden', 'Falta autorizar el reporte de dolor');
+        const name = String(exercise || '').trim(), key = exKey(name);
+        if (!key || name.length > 80 || !day || !version || !/^[0-9a-f]{64}$/.test(String(textHash || ''))) fail('invalid', 'Datos no válidos');
+        const l = be.activeLink(u.id);
+        if (!l) fail('not_found', 'No tienes coach');
+        if (!be.exercisePain.some((x) => x.clientId === u.id && x.key === key && x.day === day)) be.exercisePain.push({ clientId: u.id, key, name, day, version, textHash });
+        be.pushAlert(u.id, 'client_alert');
+        return done({ exercise: name, day });
+      },
+      async myExercisePain() { const u = await authed(); return clone(be.exercisePain.filter((x) => x.clientId === u.id).sort((a, b) => (a.day < b.day ? 1 : -1)).map((x) => ({ exercise: x.name, day: x.day }))); },
       async deleteInjury(id) { const u = await authed(); be.injuries = be.injuries.filter((i) => !(i.id === id && i.clientId === u.id)); return done(undefined); },
       async joinLiga() {
         const u = await authed();
@@ -954,6 +972,30 @@
         activeLinkCoach(u.id, clientId);
         if (!be.hasConsent(clientId, 'injury')) return [];
         return clone(be.injuries.filter((i) => i.clientId === clientId).sort((a, b) => (a.status === 'superada') - (b.status === 'superada') || (a.updatedAt < b.updatedAt ? 1 : -1)).map((i) => injuryView(i)));
+      },
+      async exerciseFlags(clientId) {
+        const u = await asCoach();
+        activeLinkCoach(u.id, clientId);
+        if (!RESTRICTIONS_AGREEMENT_VERSIONS.includes(be.agreementVersion(u.id))) return { agreement: false, avoid: [], pain: [] };
+        return clone({ agreement: true, avoid: be.avoidList.filter((a) => a.coachId === u.id && a.clientId === clientId).map((a) => ({ exercise: a.name })),
+          pain: be.hasConsent(clientId, 'pain_report') ? be.exercisePain.filter((x) => x.clientId === clientId).sort((a, b) => (a.day < b.day ? 1 : -1)).map((x) => ({ exercise: x.name, day: x.day })) : [] });
+      },
+      async avoidAdd(clientId, exercise) {
+        const u = await asCoach();
+        activeLinkCoach(u.id, clientId);
+        if (!RESTRICTIONS_AGREEMENT_VERSIONS.includes(be.agreementVersion(u.id))) fail('forbidden', 'Falta aceptar el Acuerdo actualizado');
+        const name = String(exercise || '').trim(), key = exKey(name);
+        if (!key || name.length > 80) fail('invalid', 'Escribe el nombre del ejercicio');
+        if (!be.avoidList.some((a) => a.coachId === u.id && a.clientId === clientId && a.key === key)) be.avoidList.push({ coachId: u.id, clientId, key, name });
+        return done(undefined);
+      },
+      async avoidRemove(clientId, exercise) {
+        const u = await asCoach();
+        activeLinkCoach(u.id, clientId);
+        if (!RESTRICTIONS_AGREEMENT_VERSIONS.includes(be.agreementVersion(u.id))) fail('forbidden', 'Falta aceptar el Acuerdo actualizado');
+        const key = exKey(exercise);
+        be.avoidList = be.avoidList.filter((a) => !(a.coachId === u.id && a.clientId === clientId && a.key === key));
+        return done(undefined);
       },
       async addInjuryNote(injuryId, body) {
         const u = await asCoach();
@@ -1342,7 +1384,7 @@
         return done(undefined);
       },
     };
-    const EXPORT_AGREEMENT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach'];
+    const EXPORT_AGREEMENT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach'];
     const exportOut = (x) => ({ id: x.id, createdAt: x.createdAt, clients: x.clients, categories: x.categories.slice(), from: x.from, to: x.to });
     const GOAL_RANGES = { weight_kg: { min: 30, max: 300, dec: 1 }, waist_cm: { min: 40, max: 200, dec: 1 }, protein_g: { min: 20, max: 400, dec: 0 },
       water_days: { min: 1, max: 7, dec: 0 }, steps_days: { min: 1, max: 7, dec: 0 }, sleep_days: { min: 1, max: 7, dec: 0 }, trained_days: { min: 1, max: 7, dec: 0 } };

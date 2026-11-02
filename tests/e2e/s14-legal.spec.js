@@ -303,14 +303,14 @@ async function coachOldAgreement(browser, testInfo) {
 test('acuerdo del coach: la cláusula 13 aprobada se muestra LITERAL; quien aceptó la versión anterior debe aceptar la nueva y su texto viejo sigue en «Mi acuerdo»', async ({ browser }, testInfo) => {
   test.setTimeout(90_000);
   const { p, errors, texts } = await coachOldAgreement(browser, testInfo);
-  expect(texts.ver).toBe('0.8-A7-coach');   // M6: la vigente trae además las cláusulas 14 y 15
+  expect(texts.ver).toBe('0.9-A7-coach');   // M6: la vigente trae además las cláusulas 14 y 15
   expect(norm(texts.clause)).toBe(norm(CLAUSE));
   expect(texts.old).not.toContain('Cláusula');
   // Con la versión anterior, ya no basta: Mi acuerdo avisa y enseña el texto viejo, intacto (su huella coincide)
   await p.locator('#tab-mas').click();
   await p.locator('#row-c-acuerdo').click();
   await expect(p.locator('#acuerdo-new')).toBeVisible();
-  await expect(p.locator('#acuerdo-new-text')).toContainText('versión nueva del acuerdo (0.8-A7-coach)');
+  await expect(p.locator('#acuerdo-new-text')).toContainText('versión nueva del acuerdo (0.9-A7-coach)');
   await expect(p.locator('#acuerdo-text')).toHaveText(texts.old);
   await H.layout(p);
   await p.getByRole('button', { name: 'Revisar y aceptar la versión nueva' }).click();
@@ -332,7 +332,7 @@ test('acuerdo del coach: la cláusula 13 aprobada se muestra LITERAL; quien acep
   await expect(gate).toBeHidden();
   const be = await H.backend(p);
   const ev = be.consentEvents.filter((e) => e.kind === 'coach_agreement').pop();
-  expect([ev.granted, ev.version, ev.textHash]).toEqual([true, '0.8-A7-coach', H.sha(texts.cur)]);
+  expect([ev.granted, ev.version, ev.textHash]).toEqual([true, '0.9-A7-coach', H.sha(texts.cur)]);
   const ev10 = be.consentEvents.filter((e) => e.kind === 'coach_data').pop();   // evento DISTINTO, con su propia versión y huella
   expect([ev10.granted, ev10.version]).toEqual([true, '0.1-A10-coach']);
   expect(ev10.textHash).not.toBe(ev.textHash);
@@ -341,7 +341,7 @@ test('acuerdo del coach: la cláusula 13 aprobada se muestra LITERAL; quien acep
   await p.locator('#tab-mas').click();
   await p.locator('#row-c-acuerdo').click();
   await expect(p.locator('#acuerdo-new')).toBeHidden();
-  await expect(p.locator('#acuerdo-version')).toHaveText('0.8-A7-coach');
+  await expect(p.locator('#acuerdo-version')).toHaveText('0.9-A7-coach');
   expect(norm(await p.locator('#acuerdo-text').innerText())).toContain(norm(CLAUSE));
   expect(errors).toEqual([]);
 });

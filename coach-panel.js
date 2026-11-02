@@ -70,6 +70,9 @@
       const cp = gate.querySelector('.a7-clause-premios');   // concepto 8: cláusula 16 (incentivos)
       cp.textContent = t.clausePremios || '';
       cp.classList.toggle('hidden', !t.clausePremios);
+      const cx2 = gate.querySelector('.a7-clause-excl');   // concepto 13: cláusula 17 (listas de exclusión)
+      cx2.textContent = t.clauseExclusion || '';
+      cx2.classList.toggle('hidden', !t.clauseExclusion);
       gate.querySelector('.a7-text').textContent = ConsentTexts.fill(t.body, {});
       A.fillLinks(gate.querySelector('.a7-links'), t.links);
       const t10 = ConsentTexts.TEXTS.A10;   // solo producto coach
@@ -728,7 +731,8 @@
     // Progreso (categoría body, obligatoria). Nunca notas ni biblioteca.
     // Producto «coach»: estas dos tarjetas son las heredadas (ocultas) y traen «Objetivo diario» y metas de proteína calculadas por la plataforma:
     // la plataforma no prescribe (concepto jurídico, L5), así que ni se dibujan.
-    if (window.LesionesView) LesionesView.coach(c.info.clientId);   // v1.20: lesiones y condiciones declaradas + seguimiento
+    if (window.LesionesView) LesionesView.coach(c.info.clientId);
+    if (window.RestrView) RestrView.coach(c.info.clientId);   // v1.21: ejercicios a evitar e historial de dolor   // v1.20: lesiones y condiciones declaradas + seguimiento
     if (!PROD.coach) renderDetailLegacy(c, sh);
 
     // Fotos (solo si las compartió; metadatos de coach_pull). La imagen se pide al abrirla: URL firmada de corta

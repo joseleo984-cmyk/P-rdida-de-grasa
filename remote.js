@@ -556,6 +556,9 @@
       },
       async convertInjury(id, { version, textHash }) { await me(); return injuryOut(await rpc('grasa', 'injury_convert', { p_id: id, p_version: version, p_text_hash: textHash })); },
       async deleteInjury(id) { await me(); await rpc('grasa', 'injury_delete', { p_id: id }); },
+      // r1 v1.21: dolor por ejercicio (consentimiento contextual `pain_report`).
+      async reportExercisePain({ exercise, day, version, textHash }) { await me(); return rpc('grasa', 'pain_report_exercise', { p_exercise: exercise, p_day: day, p_version: version, p_text_hash: textHash }); },
+      async myExercisePain() { await me(); return rows(await rpc('grasa', 'my_exercise_pain')).flat(); },
       async setTeamOptOut(out) { await me(); return teamGoalOut(await rpc('grasa', 'set_team_opt_out', { p_out: !!out })); },
       async setPhotoShared(photoId, shared) {
         const u = await me();
@@ -609,6 +612,14 @@
       },
       // r1 v1.20: lo que el asesorado declaró (solo con vínculo activo y su autorización vigente) y el seguimiento del coach.
       async clientInjuries(clientId) { await me(); return rows(await rpc('grasa', 'coach_injuries', { p_client: clientId })).flat().map(injuryOut); },
+      // r1 v1.21: lista «a evitar» e historial de dolor por ejercicio. Sin el Acuerdo 0.9 devuelve { agreement: false } y nada más.
+      async exerciseFlags(clientId) {
+        await me();
+        const r = (await rpc('grasa', 'coach_exercise_flags', { p_client: clientId })) || {};
+        return { agreement: r.agreement === true, avoid: rows(r.avoid), pain: rows(r.pain) };
+      },
+      async avoidAdd(clientId, exercise) { await me(); await rpc('grasa', 'avoid_add', { p_client: clientId, p_exercise: exercise }); },
+      async avoidRemove(clientId, exercise) { await me(); await rpc('grasa', 'avoid_remove', { p_client: clientId, p_exercise: exercise }); },
       async addInjuryNote(injuryId, body) {
         await me();
         const text = String(body || '').trim();

@@ -180,6 +180,8 @@
     $('#xla-clause-liga').classList.toggle('hidden', !t.clauseLiga);
     $('#xla-clause-premios').textContent = t.clausePremios || '';
     $('#xla-clause-premios').classList.toggle('hidden', !t.clausePremios);
+    $('#xla-clause-excl').textContent = t.clauseExclusion || '';
+    $('#xla-clause-excl').classList.toggle('hidden', !t.clauseExclusion);
     $('#xla-intro').textContent = CT.fill(t.intro, {});
     $('#xla-clause13').textContent = t.clause || '';
     $('#xla-clause13').classList.toggle('hidden', !t.clause);
