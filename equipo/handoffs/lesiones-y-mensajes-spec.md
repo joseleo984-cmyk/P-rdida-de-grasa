@@ -1,5 +1,5 @@
 # Lesiones, seguimiento del coach y mensajes en los dos sentidos — especificación y consulta al abogado
-Estado: **propuesta, NO construida.** Pedido de José (2 nov 2026). Los textos legales quedan vacíos hasta que el abogado responda; los datos reales no se recogen hasta entonces.
+Estado: **propuesta, NO construida.** Pedido de José (2 nov 2026). **Lesiones, condiciones médicas, dolor por ejercicio, restricciones, lista «a evitar» y avisos al coach: el abogado ya respondió** (textos literales en `equipo/legal/concepto-13-2026-11-02-lesiones.md`). **Mensajes en los dos sentidos: SIN respuesta del abogado todavía** (las preguntas 1 y 5 de arriba sobre el chat quedan abiertas).
 
 ## 1. Qué pidió José
 1. La comunicación coach ⇄ asesorado debe ser **bidireccional** dentro de la app (hoy solo el coach escribe notas; el asesorado usa WhatsApp en la pantalla de pausa).
@@ -46,5 +46,5 @@ Contexto: hoy el coach solo ve «Reportó dolor» sin detalle y solo el coach es
 ## 5b. Pregunta adicional para el abogado
 11. Lesión temporal vs. condición médica de por vida: ¿la condición médica exige una autorización o texto distinto de la lesión? ¿Cuánto se conserva una lesión «superada» (¿se borra o queda como historial para el coach?) y qué pasa con una condición cuando termina el vínculo? ¿Qué advertencia debe verse al convertir una lesión en condición médica?
 
-## 6. Orden de construcción propuesto
-1) Mensajes en los dos sentidos + aviso push al coach. 2) Lesión + seguimiento + estados. 3) Dolor por ejercicio + «Ejercicios a evitar» + recordatorio al asignar. Cada paso con su SQL completo para pegar y sus pruebas; los textos literales se completan al llegar el concepto.
+## 6. Orden de construcción propuesto (actualizado: lo que ya tiene concepto va primero)
+1) Lesión y condición médica + seguimiento + estados (concepto 13). 2) Dolor por ejercicio («Reportar molestia o dolor») + lista «a evitar» + advertencias al asignar + aviso push al coach. 3) Mensajes en los dos sentidos, cuando el abogado conteste el chat. Cada paso con su SQL completo para pegar y sus pruebas; los textos literales se completan al llegar el concepto.
