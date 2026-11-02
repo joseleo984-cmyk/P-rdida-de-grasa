@@ -1597,7 +1597,7 @@
     document.body.classList.toggle('consent-open', open);
     $('#consent').classList.toggle('hidden', !open || PROD.soloNube);
     // Bienvenida del coach: la PRIMERA pantalla (antes de aceptar nada), una vez por teléfono y sin casillas. No sale con un enlace de invitación de un coach.
-    const showWelcome = open && PROD.soloNube && !welcomeSeen() && !hasInvite() && !(window.PG_CONFIG && window.PG_CONFIG.demo);   // la demo no tiene aceptación legal ni bienvenida
+    const showWelcome = open && PROD.soloNube && !welcomeSeen() && !hasInvite() && ['', 'pruebas'].includes(PGNS.env);   // solo la oficial y Pruebas (la otra copia no tiene aceptación legal ni bienvenida)
     $('#coach-welcome').classList.toggle('hidden', !showWelcome);
     $('#solo').classList.toggle('hidden', !(open && PROD.soloNube) || showWelcome);
     if (showWelcome && !welcomeFocused) { welcomeFocused = true; $('#cw-title').focus({ preventScroll: true }); }
