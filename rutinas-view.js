@@ -460,7 +460,8 @@
     if (px.shown !== st.i) {
       px.shown = st.i;
       $('#paso-name').textContent = s.name;
-      if ($('#paso-pain-status')) $('#paso-pain-status').textContent = '';   // v1.21: el reporte de dolor es por ejercicio
+      if ($('#paso-pain-status')) $('#paso-pain-status').textContent = '';
+      if ($('#paso-pain-chat')) $('#paso-pain-chat').classList.add('hidden');   // v1.21: el reporte de dolor es por ejercicio
       if (window.RestrView) RestrView.syncPainButton();
       $('#paso-line').textContent = s.mode === 'sets' ? s.line : 'Indicación de tu coach';
       $('#paso-note').textContent = s.note;

@@ -54,8 +54,9 @@
   async function load() {
     try { items = await clientApi().myInjuries(); render(); } catch { say('No pudimos cargar tus registros. Revisa tu conexión.'); }
   }
+  function chatBtn(on) { const b = $('#les-chat'); if (b) b.classList.toggle('hidden', !(on && root.ChatView)); }
   async function openList() {
-    say(''); const d = $('#les-dialog'); if (!d.open) d.showModal();
+    say(''); chatBtn(false); const d = $('#les-dialog'); if (!d.open) d.showModal();
     $('#les-title').focus({ preventScroll: true });
     await load();
   }
@@ -96,7 +97,7 @@
     try {
       if (!hasConsent() && !(await A().setInjuryConsent(true))) { err.textContent = 'No pudimos guardar tu autorización. Revisa tu conexión e inténtalo de nuevo.'; return; }
       await clientApi().saveInjury({ kind, area, description: f.elements.description.value.trim(), status: 'activa', onset: f.elements.onset.value || null, version: L.TEXTS[kind].version, textHash: await sha(L.fullText(kind)) });
-      $('#les-form-dialog').close(); say('Guardado. Tu coach lo verá en tu ficha.'); await load();
+      $('#les-form-dialog').close(); say('Guardado. Tu coach lo verá en tu ficha.'); chatBtn(true); await load();
     } catch { err.textContent = 'No pudimos guardar. Revisa tu conexión e inténtalo de nuevo.'; }
     finally { for (const b of f.querySelectorAll('button')) b.disabled = false; }
   }
@@ -144,6 +145,7 @@
     const row = $('#row-lesiones'); if (!row) return;
     row.addEventListener('click', openList);
     $('#les-add').addEventListener('click', openForm);
+    $('#les-chat').addEventListener('click', () => { $('#les-dialog').close(); root.ChatView && root.ChatView.openClient(); });
     $('#lesf-form').addEventListener('submit', saveForm);
     $('#lesf-form').addEventListener('change', (ev) => { if (ev.target.name === 'kind') fillForm(); });
     $('#lesf-cancel').addEventListener('click', () => $('#les-form-dialog').close());

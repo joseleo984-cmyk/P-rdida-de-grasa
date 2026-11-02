@@ -135,6 +135,6 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
     updateBadges();
   }
-  root.ChatView = { coach: coachSection, updateBadges };
+  root.ChatView = { coach: coachSection, updateBadges, openClient };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
 })(window);
