@@ -3,7 +3,7 @@
 **Piloto de 8 semanas · desde la segunda semana de noviembre de 2026**
 Versión 1 · Para imprimir o enviar como PDF
 
-> Enlace de la app: **[ENLACE DE LA APP]** · Tu coach: **[NOMBRE DEL COACH]** · Ayuda: **3128876125**
+> Enlace de la app: **https://joseleo984-cmyk.github.io/P-rdida-de-grasa/** · Tu coach: **[NOMBRE DEL COACH]** · Ayuda: **3128876125**
 
 ---
 
