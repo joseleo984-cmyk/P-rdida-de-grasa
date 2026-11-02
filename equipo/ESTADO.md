@@ -26,3 +26,5 @@ PRs #32–#38: etapas 1-2, estilo v2, aviso de dolor, metas, analítica coach, p
 ## 2026-11-01 · Conexión a `plataforma` (rama `claude/conectar-plataforma`, sin juntar)
 - Hecho: SQL v1.17 aplicado en plataforma («OK r1 v1»); Brevo por SMTP probado (código de 6 dígitos llegó); DPA de Supabase y Brevo aceptados; textos legales definitivos del abogado (Política 1.2, Términos 1.0); URL y clave publicable en `config.js`; pruebas en verde.
 - Falta: aprobación explícita de José para el merge; prueba en iPhone real (`equipo/prueba-iphone.md`) y prueba de humo con cuenta nueva; captcha (Turnstile) al final, en el orden de `equipo/handoffs/captcha-turnstile.md`. El enlace de la app ya está en los instructivos (José decidió dejar la dirección de GitHub Pages: https://joseleo984-cmyk.github.io/P-rdida-de-grasa/).
+
+- 2 nov 2026: el modo coach (`producto: 'coach'`, `soloNube: true`) se enciende en la app oficial por decisión de José (PR aparte, no juntar sin su aprobación). Depende del PR #47 (doble casilla del coach y SQL v1.18).

@@ -68,3 +68,9 @@ Objetivo: la app vuelve a funcionar solo en cada teléfono, sin hablar con el se
 - Subir `LEGAL_VERSIONS` hace que **todas** las personas vuelvan a aceptar; a quienes ya tenían cuenta de pruebas no les afecta (otro proyecto y otro almacenamiento).
 - El servidor exige A3 + A4 (clientes) y A7 (coaches) **sin mirar la versión**; la app es la que pide aceptar de nuevo cuando cambia una versión. Un cliente que no re-acepta por versión puede seguir sincronizando en el servidor mientras la app no lo bloquee (la app sí lo bloquea localmente).
 - El Acuerdo del coach aún no tiene página propia: hasta que exista, el enlace «Leer acuerdo completo» abre la política.
+
+## Modo coach en la app oficial (decisión de José, 2 nov 2026)
+`config.js` ahora trae `producto: 'coach'` y `soloNube: true` (igual que `/pruebas/`): la app oficial es la del piloto con coaches, con una sola pantalla de aceptación y entrada con el enlace del coach. Sin esas dos líneas la app volvía a «solo en este teléfono».
+- El aviso «Borrador de prueba, pendiente del abogado» solo se muestra en Pruebas y la demo (env distinto de ''), no en la oficial.
+- **Reversa:** quitar esas dos líneas de `config.js` (y subir el caché de `sw.js`). Los datos ya guardados en Plataforma no se tocan.
+- Requiere el SQL v1.17 y v1.18 en Plataforma (ya aplicados por José).

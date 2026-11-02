@@ -1592,6 +1592,7 @@
     document.body.classList.toggle('consent-open', open);
     $('#consent').classList.toggle('hidden', !open || PROD.soloNube);
     $('#solo').classList.toggle('hidden', !(open && PROD.soloNube));
+    const draft = $('#solo .draft-badge'); if (draft) draft.classList.toggle('hidden', !PGNS.env);   // el aviso de borrador es solo de Pruebas y la demo (la app oficial, env '', no lo muestra)
     document.body.classList.toggle('no-health', !open && !can('sensitiveHealth'));
     document.body.classList.toggle('no-photos', !open && !photosAllowed());
     // Con datos de una versión más nueva no se puede guardar la aceptación: se ofrece la salida de "Borrar todo".
