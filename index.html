@@ -64,6 +64,15 @@
     </div>
   </section>
 
+      <!-- Bienvenida del coach: PRIMERA pantalla, antes de «Antes de empezar» (una vez por teléfono, sin casillas; las autorizaciones no cambian). No sale con enlace de invitación de un coach. -->
+      <section id="coach-welcome" class="consent cw hidden" aria-labelledby="cw-title" data-testid="coach-welcome">
+        <div class="card cw-card"><svg class="cw-logo" viewBox="0 0 80 52" aria-hidden="true"><path d="M26 10c-9 0-16 7-16 16s7 16 16 16c8 0 12-6 18-16s10-16 18-16c9 0 16 7 16 16" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round"/><path d="M52 28l8 8 14-17" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h2 id="cw-title" tabindex="-1">Bienvenido, coach.</h2>
+        <p class="muted">Aquí verás quién va constante, quién se está apagando y a quién escribirle hoy.</p>
+        <ul class="cw-legend" aria-hidden="true"><li><i class="cw-dot cw-g"></i> Constantes esta semana</li><li><i class="cw-dot cw-y"></i> Se están apagando</li><li><i class="cw-dot cw-n"></i> Sin registrar</li></ul>
+        <button type="button" class="btn btn-tall" id="btn-cw-start">Empezar</button>
+      </div></section>
+
   <!-- Sprint 11 (soloNube, SOLO copia de pruebas): UNA pantalla de aceptación. Reemplaza a la pantalla legal local (#consent) y a las
        casillas A1/A2 y A3/A4 del paso del correo. Marca visible: borrador de prueba, pendiente del abogado. -->
   <section id="solo" class="consent hidden" aria-labelledby="solo-title" data-testid="solo-gate">
@@ -832,14 +841,6 @@
         </form>
         <p class="small muted">Tu uso personal de la app (tu propio peso, comidas y hábitos) no cambia.</p>
       </div>
-      <!-- Pedido adicional: bienvenida del coach (una vez por teléfono, sin casillas; las autorizaciones no cambian) -->
-      <section id="coach-welcome" class="card cw hidden" aria-labelledby="cw-title" data-testid="coach-welcome">
-        <svg class="cw-logo" viewBox="0 0 80 52" aria-hidden="true"><path d="M26 10c-9 0-16 7-16 16s7 16 16 16c8 0 12-6 18-16s10-16 18-16c9 0 16 7 16 16" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round"/><path d="M52 28l8 8 14-17" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <h2 id="cw-title" tabindex="-1">Bienvenido, coach.</h2>
-        <p class="muted">Aquí verás quién va constante, quién se está apagando y a quién escribirle hoy.</p>
-        <ul class="cw-legend" aria-hidden="true"><li><i class="cw-dot cw-g"></i> Constantes esta semana</li><li><i class="cw-dot cw-y"></i> Se están apagando</li><li><i class="cw-dot cw-n"></i> Sin registrar</li></ul>
-        <button type="button" class="btn btn-tall" id="btn-cw-start">Empezar</button>
-      </section>
       <div id="coach-list-view">
         <!-- r1 v1.13 (M10): aviso de la plataforma (solo coaches activos; se cierra y el cierre se recuerda en este teléfono) y coach suspendido -->
         <div id="coach-avisos" class="pa-list"></div>

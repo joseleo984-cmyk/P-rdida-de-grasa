@@ -467,7 +467,6 @@
     $('#coach-detail-view').classList.add('hidden');
     $('#coach-list-view').classList.remove('hidden');
     fichaBar(false);
-    renderWelcome();
     const btn = focusId && document.querySelector(`#coach-clients [data-client="${CSS.escape(focusId)}"]`);
     (btn || $('#coach-title-list')).focus();
   }
@@ -964,24 +963,6 @@
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshNotes(); });
   }
 
-  // Pedido adicional: bienvenida una sola vez por teléfono. No guarda nada del usuario ni cambia las autorizaciones (el acuerdo A7 sigue antes de ver clientes).
-  const WELCOME_KEY = PGNS.key('coachBienvenida');
-  const welcomeSeen = () => { try { return localStorage.getItem(WELCOME_KEY) === '1'; } catch { return true; } };
-  function renderWelcome() {
-    const w = $('#coach-welcome'), list = $('#coach-list-view');
-    if (!w || !list) return;
-    const show = !welcomeSeen() && agreementOK() && $('#coach-detail-view').classList.contains('hidden');
-    w.classList.toggle('hidden', !show);
-    list.classList.toggle('hidden', show);
-    if (show) w.querySelector('h2').focus({ preventScroll: true });
-  }
-  function wireWelcome() {
-    const b = $('#btn-cw-start');
-    if (!b) return;
-    b.addEventListener('click', () => { try { localStorage.setItem(WELCOME_KEY, '1'); } catch { /* sin espacio */ } renderWelcome(); $('#coach-title-list').focus({ preventScroll: true }); });
-    document.addEventListener('click', (ev) => { if (ev.target.closest && ev.target.closest('#tab-coach, #tab-panel')) setTimeout(renderWelcome, 0); });
-    renderWelcome();
-  }
   function start() {
     if (A || !window.PGAccount) return;
     A = window.PGAccount;
@@ -990,7 +971,6 @@
     wireAgreement();
     wireCoach();
     wireClient();
-    wireWelcome();
     if (PROD.coach) { $('#coach-title-list').textContent = 'Mis asesorados'; $('#btn-coach-back').textContent = '← Mis asesorados'; }
     refreshNotes();
     document.addEventListener('pg:account-changed', (ev) => {

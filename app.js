@@ -1586,12 +1586,21 @@
     $('#view-' + v).prepend($('#tpl-health-gate').content.cloneNode(true));
   }
 
+  const WELCOME_KEY = PGNS.key('coachBienvenida');
+  let welcomeFocused = false;
+  const welcomeSeen = () => { try { return localStorage.getItem(WELCOME_KEY) === '1'; } catch { return true; } };
+  const hasInvite = () => { try { return !!((window.Invite && Invite.codeFromSearch(location.search)) || localStorage.getItem(PGNS.key('invite'))); } catch { return false; } };
+  document.addEventListener('click', (ev) => { if (ev.target.closest && ev.target.closest('#btn-cw-start')) { try { localStorage.setItem(WELCOME_KEY, '1'); } catch { /* sin espacio */ } renderConsent(); const t = $('#solo-title'); if (t) t.focus({ preventScroll: true }); } });
   function renderConsent() {
     const status = Schema.consentStatus(state.consent);
     const open = status !== 'ok';
     document.body.classList.toggle('consent-open', open);
     $('#consent').classList.toggle('hidden', !open || PROD.soloNube);
-    $('#solo').classList.toggle('hidden', !(open && PROD.soloNube));
+    // Bienvenida del coach: la PRIMERA pantalla (antes de aceptar nada), una vez por teléfono y sin casillas. No sale con un enlace de invitación de un coach.
+    const showWelcome = open && PROD.soloNube && !welcomeSeen() && !hasInvite() && ['', 'pruebas'].includes(PGNS.env);   // solo la oficial y Pruebas (la otra copia no tiene aceptación legal ni bienvenida)
+    $('#coach-welcome').classList.toggle('hidden', !showWelcome);
+    $('#solo').classList.toggle('hidden', !(open && PROD.soloNube) || showWelcome);
+    if (showWelcome && !welcomeFocused) { welcomeFocused = true; $('#cw-title').focus({ preventScroll: true }); }
     const draft = $('#solo .draft-badge'); if (draft) draft.classList.toggle('hidden', !PGNS.env);   // el aviso de borrador es solo de Pruebas y la demo (la app oficial, env '', no lo muestra)
     document.body.classList.toggle('no-health', !open && !can('sensitiveHealth'));
     document.body.classList.toggle('no-photos', !open && !photosAllowed());
