@@ -1,5 +1,5 @@
 # Lesiones, seguimiento del coach y mensajes en los dos sentidos — especificación y consulta al abogado
-Estado: **propuesta, NO construida.** Pedido de José (2 nov 2026). **Lesiones, condiciones médicas, dolor por ejercicio, restricciones, lista «a evitar» y avisos al coach: el abogado ya respondió** (textos literales en `equipo/legal/concepto-13-2026-11-02-lesiones.md`). **Mensajes en los dos sentidos: SIN respuesta del abogado todavía** (las preguntas 1 y 5 de arriba sobre el chat quedan abiertas).
+Estado: **propuesta, NO construida.** Pedido de José (2 nov 2026). **Lesiones, condiciones médicas, dolor por ejercicio, restricciones, lista «a evitar» y avisos al coach: el abogado ya respondió** (textos literales en `equipo/legal/concepto-13-2026-11-02-lesiones.md`). **Mensajes en los dos sentidos: el abogado respondió el aviso previo, la conservación y la cláusula del Acuerdo** (`equipo/legal/concepto-14-2026-11-02-chat.md`).
 
 ## 1. Qué pidió José
 1. La comunicación coach ⇄ asesorado debe ser **bidireccional** dentro de la app (hoy solo el coach escribe notas; el asesorado usa WhatsApp en la pantalla de pausa).

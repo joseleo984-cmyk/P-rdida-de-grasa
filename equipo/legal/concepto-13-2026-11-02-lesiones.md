@@ -44,5 +44,5 @@ Advertencia al Coach al asignar un ejercicio marcado «a evitar»:
 [ Asignar de todos modos ]   [ Cancelar ]
 10. **Desvinculación o revocación:** el panel del coach deja de mostrar de inmediato el historial de dolor, los reportes y la restricción declarada; el coach queda inhabilitado para usar esa información y destruye copias locales en máx. 30 días calendario; en la cuenta del asesorado permanece mientras la cuenta esté abierta (puede eliminarla cuando quiera).
 
-## C. Pendiente (no respondido)
-Las preguntas sobre **mensajes en los dos sentidos** (chat asesorado ⇄ coach: aviso previo, conservación, borrado, Acuerdo) NO están contestadas en estos dictámenes.
+## C. Chat
+Las respuestas sobre **mensajes en los dos sentidos** están en `concepto-14-2026-11-02-chat.md`.
