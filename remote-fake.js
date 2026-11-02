@@ -8,7 +8,7 @@
   const APP = 'grasa';
   const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const CONSENT_KINDS = ['terms', 'privacy', 'adult', 'sensitive_health', 'cloud_transfer', 'photos_cloud', 'photo_view_coach', 'coach_agreement',
-    'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos', 'liga', 'coach_data', 'push'];
+    'share_body', 'share_notes', 'share_nutrition', 'share_habits', 'share_photos', 'liga', 'coach_data', 'push', 'injury'];
   // r1 v1.16 (liga semanal): catálogo CERRADO de alias (mismo orden que grasa.liga_aliases) y versiones del acuerdo que traen la cláusula de ligas.
   const LIGA_ALIASES = ['Halcón', 'Titán', 'Roble', 'Fénix', 'Cóndor', 'Jaguar', 'Delfín', 'Lince', 'Pino', 'Cedro', 'Águila', 'Lobo',
     'Puma', 'Ceiba', 'Colibrí', 'Roca', 'Río', 'Volcán', 'Nevado', 'Ámbar', 'Trueno', 'Coral', 'Bosque', 'Montaña'];
@@ -106,6 +106,8 @@
       this.coachEvents = [];    // v1.13: suspensiones / reactivaciones { coachId, active, reason, at } (solo el admin)
       this.exports = [];        // v1.14 (M6): exportaciones a Excel { id, coachId, createdAt, clients, categories, from, to, custody, agreementVersion } (sin contenido)
       this.points = {};         // v1.15: puntos de constancia CALCULADOS por el «servidor» (puntos.js = grasa.points_refresh), userId → [{ day, source, points }]
+      this.pushOutbox = [];     // v1.20: cola de avisos push (solo pruebas): { userId, kind, sentAt }
+      this.injuries = [];       // v1.20: lesiones y condiciones médicas { id, clientId, kind, area, description, status, onset, version, textHash, convertedAt, createdAt, updatedAt, notes[] }
       this.pushDevices = {};    // v1.19: avisos push, userId → [{ endpoint, p256dh, auth }] (solo pruebas; el servidor real guarda lo mismo)
       this.pushPrefs = {};      // v1.19: userId → { coachMsgs, routines }
       this.teamGoals = {};      // v1.15: meta colectiva, `${coachId}|${lunes}` → { coachId, weekStart, metric, target, createdAt }
@@ -163,6 +165,15 @@
         if (e.userId === userId && e.kind === 'coach_agreement') return e.granted === true ? e.version : null;
       }
       return null;
+    }
+    // v1.20: aviso push neutral al coach del asesorado (solo si activó los avisos, tiene dispositivo y no apagó «avisos de asesorados»). Sin contenido.
+    pushAlert(clientId, kind) {
+      const l = this.activeLink(clientId);
+      if (!l) return;
+      const c = l.coachId, p = this.pushPrefs[c] || {};
+      if (!(this.pushDevices[c] || []).length || !this.hasConsent(c, 'push') || p.alerts === false) return;
+      if (this.pushOutbox.some((o) => o.userId === c && o.kind === kind && !o.sentAt)) return;
+      this.pushOutbox.push({ userId: c, kind, sentAt: null });
     }
     hasConsent(userId, kind) {
       for (let i = this.consentEvents.length - 1; i >= 0; i--) {
@@ -300,13 +311,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'pushDevices', 'pushPrefs', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports', 'points', 'teamGoals']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'pushDevices', 'pushPrefs', 'injuries', 'pushOutbox', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports', 'points', 'teamGoals']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -459,6 +470,7 @@
         for (const [k, ch] of Object.entries(be.challenges)) { if (ch.coachId === u.id) delete be.challenges[k]; else { ch.members = ch.members.filter((m) => m !== u.id); delete ch.marks[u.id]; } }
         be.linkPauses = be.linkPauses.filter((x) => be.links.some((l) => l.id === x.linkId));
         delete be.points[u.id];
+        be.injuries = be.injuries.filter((i) => i.clientId !== u.id);   // v1.20: en cascada con la cuenta
         delete be.pushDevices[u.id]; delete be.pushPrefs[u.id];   // v1.19: el identificador del dispositivo se destruye con la cuenta
         for (const k of Object.keys(be.teamGoals)) if (k.startsWith(u.id + '|')) delete be.teamGoals[k];
         // Sprint 6: antes de borrar, copia mínima y seudonimizada (sin uuid, correo ni nombre), como core.delete_my_account().
@@ -480,6 +492,7 @@
     };
     const recOut = (r) => ({ id: r.id, kind: r.kind, nkey: r.nkey, date: r.date, data: clone(r.data), updatedAt: r.updatedAt, deletedAt: r.deletedAt, serverUpdatedAt: r.serverUpdatedAt });
     const photoOut = (p) => ({ id: p.id, date: p.date, pose: p.pose, width: p.width, height: p.height, storagePath: p.storagePath, sharedWithCoach: p.sharedWithCoach, createdAt: p.createdAt, updatedAt: p.updatedAt, deletedAt: p.deletedAt, serverUpdatedAt: p.serverUpdatedAt });
+    const injuryView = (i) => ({ id: i.id, kind: i.kind, area: i.area, description: i.description || '', status: i.status, onset: i.onset || null, convertedAt: i.convertedAt || null, createdAt: i.createdAt, updatedAt: i.updatedAt, notes: (i.notes || []).slice() });
     const commentOut = (c) => ({ id: c.id, linkId: c.linkId, coachId: c.coachId, clientId: c.clientId, refDate: c.refDate, body: c.body, createdAt: c.createdAt, readAt: c.readAt, deletedAt: c.deletedAt, serverUpdatedAt: c.serverUpdatedAt });
 
     function validRecord(r) {
@@ -777,6 +790,36 @@
       },
       // r1 v1.16: liga semanal (opt-in reforzado, alias de catálogo, mínimo 5, solo alias y puntos).
       async myLiga() { const u = await authed(); return clone(be.ligaOut(u.id)); },
+      // r1 v1.20: lesiones y condiciones médicas (mismas reglas que grasa.injury_save / injury_convert / my_injuries).
+      async myInjuries() { const u = await authed(); return clone(be.injuries.filter((i) => i.clientId === u.id).sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1)).map((i) => injuryView(i))); },
+      async saveInjury({ id, kind, area, description, status, onset, version, textHash }) {
+        const u = await authed();
+        if (!(be.hasConsent(u.id, 'sensitive_health') && be.hasConsent(u.id, 'cloud_transfer'))) fail('consent_required', 'Falta aceptar una autorización');
+        if (!be.hasConsent(u.id, 'injury')) fail('forbidden', 'Falta autorizar el registro de tu restricción');
+        if (!['lesion', 'condicion'].includes(kind) || !['activa', 'recuperacion', 'superada'].includes(status || 'activa') || !version || !/^[0-9a-f]{64}$/.test(String(textHash || ''))) fail('invalid', 'Datos no válidos');
+        const a = String(area || '').trim();
+        if (a.length < 2 || a.length > 80 || String(description || '').length > 500) fail('invalid', 'Datos no válidos');
+        const iid = id || randUUID();
+        const ex = be.injuries.find((i) => i.id === iid);
+        if (ex && ex.clientId !== u.id) fail('forbidden', 'No es tu registro');
+        const now = iso(be.clock.now());
+        if (ex) { Object.assign(ex, { area: a, description: String(description || '').trim() || null, status: ex.kind === 'condicion' ? 'activa' : (status || 'activa'), onset: onset || null, updatedAt: now }); be.pushAlert(u.id, 'client_alert'); return done(clone(injuryView(ex))); }
+        const row = { id: iid, clientId: u.id, kind, area: a, description: String(description || '').trim() || null, status: kind === 'condicion' ? 'activa' : (status || 'activa'), onset: onset || null, version, textHash, convertedAt: null, createdAt: now, updatedAt: now, notes: [] };
+        be.injuries.push(row);
+        be.pushAlert(u.id, 'client_alert');
+        return done(clone(injuryView(row)));
+      },
+      async convertInjury(id, { version, textHash }) {
+        const u = await authed();
+        if (!be.hasConsent(u.id, 'injury')) fail('forbidden', 'Falta autorizar el registro de tu restricción');
+        const i = be.injuries.find((x) => x.id === id && x.clientId === u.id);
+        if (!i) fail('not_found', 'No existe ese registro');
+        if (i.kind !== 'lesion') fail('invalid', 'Ya es una condición médica');
+        Object.assign(i, { kind: 'condicion', status: 'activa', convertedAt: iso(be.clock.now()), version, textHash, updatedAt: iso(be.clock.now()) });
+        be.pushAlert(u.id, 'client_alert');
+        return done(clone(injuryView(i)));
+      },
+      async deleteInjury(id) { const u = await authed(); be.injuries = be.injuries.filter((i) => !(i.id === id && i.clientId === u.id)); return done(undefined); },
       async joinLiga() {
         const u = await authed();
         const l = be.activeLink(u.id);
@@ -904,6 +947,25 @@
         be._persist();
         if (!be.blobs[p.storagePath]) fail('not_found', 'Foto no encontrada');
         return be.blobs[p.storagePath];
+      },
+      // r1 v1.20: solo con vínculo activo y la autorización de la persona vigente (si la retira o se desvincula, el coach no ve nada).
+      async clientInjuries(clientId) {
+        const u = await asCoach();
+        activeLinkCoach(u.id, clientId);
+        if (!be.hasConsent(clientId, 'injury')) return [];
+        return clone(be.injuries.filter((i) => i.clientId === clientId).sort((a, b) => (a.status === 'superada') - (b.status === 'superada') || (a.updatedAt < b.updatedAt ? 1 : -1)).map((i) => injuryView(i)));
+      },
+      async addInjuryNote(injuryId, body) {
+        const u = await asCoach();
+        const i = be.injuries.find((x) => x.id === injuryId);
+        if (!i) fail('not_found', 'No existe ese registro');
+        activeLinkCoach(u.id, i.clientId);
+        if (!be.hasConsent(i.clientId, 'injury')) fail('forbidden', 'La persona retiró su autorización');
+        const text = String(body || '').trim();
+        if (!text || text.length > 500) fail('invalid', 'La nota debe tener entre 1 y 500 caracteres');
+        const n = { id: randUUID(), body: text, createdAt: iso(be.clock.now()) };
+        i.notes.push(n); i.updatedAt = n.createdAt;
+        return done(clone(n));
       },
       async addComment(clientId, { id, refDate, body } = {}) {
         const u = await asCoach();
@@ -1409,7 +1471,7 @@
 
     // r1 v1.19: avisos push (mismas reglas que el servidor: sin el consentimiento `push` no se guarda el dispositivo; apagar los borra).
     const push = {
-      async state() { const u = await authed(); const p = be.pushPrefs[u.id] || {}; return { consent: be.hasConsent(u.id, 'push'), devices: (be.pushDevices[u.id] || []).length, coachMsgs: p.coachMsgs !== false, routines: p.routines !== false }; },
+      async state() { const u = await authed(); const p = be.pushPrefs[u.id] || {}; return { consent: be.hasConsent(u.id, 'push'), devices: (be.pushDevices[u.id] || []).length, coachMsgs: p.coachMsgs !== false, routines: p.routines !== false, alerts: p.alerts !== false }; },
       async publicKey() { await authed(); if (be.pushMode === 'unavailable') fail('unavailable', 'Los avisos no están disponibles por ahora'); return 'BFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKE'; },
       async register({ endpoint, p256dh, auth: authKey }) {
         const u = await authed();
@@ -1418,12 +1480,12 @@
         const list = (be.pushDevices[u.id] || []).filter((d) => d.endpoint !== endpoint);
         list.push({ endpoint, p256dh, auth: authKey });
         be.pushDevices[u.id] = list.slice(-5);
-        be.pushPrefs[u.id] = be.pushPrefs[u.id] || { coachMsgs: true, routines: true };
+        be.pushPrefs[u.id] = be.pushPrefs[u.id] || { coachMsgs: true, routines: true, alerts: true };
         return done(undefined);
       },
       async unregister(endpoint) { const u = await authed(); be.pushDevices[u.id] = (be.pushDevices[u.id] || []).filter((d) => d.endpoint !== endpoint); return done(undefined); },
       async off() { const u = await authed(); be.pushDevices[u.id] = []; return done(undefined); },
-      async setPrefs({ coachMsgs, routines }) { const u = await authed(); be.pushPrefs[u.id] = { coachMsgs: !!coachMsgs, routines: !!routines }; return done(undefined); },
+      async setPrefs({ coachMsgs, routines, alerts }) { const u = await authed(); be.pushPrefs[u.id] = { coachMsgs: !!coachMsgs, routines: !!routines, alerts: alerts !== false }; return done(undefined); },
     };
     return { kind: 'fake', backend: be, auth, account, sync, client, coach, admin, push };
   }

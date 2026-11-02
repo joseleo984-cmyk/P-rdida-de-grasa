@@ -52,6 +52,13 @@
     return true;
   }
 
+  // Coach: solo «Avisos de asesorados»; asesorado: mensajes del coach y rutinas.
+  const isCoach = () => { const m = root.PGAccount && root.PGAccount.meta && root.PGAccount.meta(); return !!(m && (m.roles || []).includes('coach')); };
+  function fillPrefs(s) {
+    $('#push-coach').checked = s.coachMsgs; $('#push-routines').checked = s.routines; $('#push-alerts').checked = s.alerts !== false;
+    for (const e of document.querySelectorAll('.push-client')) e.classList.toggle('hidden', isCoach());
+    for (const e of document.querySelectorAll('.push-coach-only')) e.classList.toggle('hidden', !isCoach());
+  }
   async function open() {
     const d = $('#push-dialog');
     if (!d || !fillText()) return;
@@ -62,7 +69,7 @@
       try {
         const s = await remote().state();
         if (s.consent && s.devices > 0 && env().permission() === 'granted') {
-          $('#push-coach').checked = s.coachMsgs; $('#push-routines').checked = s.routines;
+          fillPrefs(s);
           show('on');
         }
       } catch { say('No pudimos revisar tus avisos. Revisa tu conexión.'); }
@@ -88,8 +95,7 @@
       const key = await remote().publicKey();
       const sub = await env().subscribe(key);
       await remote().register(sub);
-      const s = await remote().state();
-      $('#push-coach').checked = s.coachMsgs; $('#push-routines').checked = s.routines;
+      fillPrefs(await remote().state());
       show('on'); say('Avisos activados.');
     } catch (e) {
       say(e && e.code === 'unavailable' ? 'Los avisos no están disponibles por ahora. Inténtalo más tarde.' : 'No pudimos activar los avisos. Inténtalo de nuevo.');
@@ -108,7 +114,7 @@
   }
 
   async function savePrefs() {
-    try { await remote().setPrefs({ coachMsgs: $('#push-coach').checked, routines: $('#push-routines').checked }); say('Guardado.'); }
+    try { await remote().setPrefs({ coachMsgs: $('#push-coach').checked, routines: $('#push-routines').checked, alerts: $('#push-alerts').checked }); say('Guardado.'); }
     catch { say('No pudimos guardar el cambio. Revisa tu conexión.'); }
   }
 
@@ -119,7 +125,7 @@
     $('#push-yes').addEventListener('click', activate);
     $('#push-no').addEventListener('click', () => $('#push-dialog').close());
     $('#push-off').addEventListener('click', deactivate);
-    for (const id of ['#push-coach', '#push-routines']) $(id).addEventListener('change', savePrefs);
+    for (const id of ['#push-coach', '#push-routines', '#push-alerts']) $(id).addEventListener('change', savePrefs);
     for (const b of document.querySelectorAll('#push-dialog [data-push-close]')) b.addEventListener('click', () => $('#push-dialog').close());
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();

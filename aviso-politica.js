@@ -11,7 +11,9 @@
   'use strict';
   // v1.2 (concepto 7, punto 5): el aviso vigente. El de la v1.1 (concepto 2, anexo 1) queda como historial: quien no lo vio, ve solo el de la v1.2.
   // v1.3 (avisos push opcionales, informativa): el aviso vigente; el de la v1.2 queda como historial.
-  const TEXT = 'Actualizamos nuestra Política de Tratamiento de Datos (v1.3) para incluir los avisos opcionales en tu teléfono. Conócela aquí [enlace].';
+  // v1.4 (lesiones y condiciones, informativa): el aviso vigente; los de la v1.3 y v1.2 quedan como historial.
+  const TEXT = 'Actualizamos nuestra Política de Tratamiento de Datos (v1.4) para incluir el registro voluntario de lesiones y condiciones físicas. Conócela aquí [enlace].';
+  const TEXT_V13 = 'Actualizamos nuestra Política de Tratamiento de Datos (v1.3) para incluir los avisos opcionales en tu teléfono. Conócela aquí [enlace].';
   const TEXT_V12 = 'Actualizamos nuestra Política de Tratamiento de Datos (v1.2) para incluir la opción voluntaria de retos y ligas de constancia en equipo. Conócela aquí [enlace].';
   const TEXT_V11 = 'Actualizamos nuestra Política de Tratamiento de Datos Personales (v1.1) para detallar el uso de tus registros (peso, medidas y comidas), el alcance de las estimaciones nutricionales y el funcionamiento de las alertas operativas de seguridad. Conócela aquí [enlace].';
   const BUTTON = 'Entendido';
@@ -29,7 +31,7 @@
     if (!userId || !n || n.active !== true || !n.id) return false;
     return !(Array.isArray(seen) && seen.includes(seenKey(userId, versions)));
   }
-  const api = { TEXT, TEXT_V12, TEXT_V11, BUTTON, HREF, parts, shouldShow, seenKey };
+  const api = { TEXT, TEXT_V13, TEXT_V12, TEXT_V11, BUTTON, HREF, parts, shouldShow, seenKey };
 
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   root.AvisoPolitica = api;

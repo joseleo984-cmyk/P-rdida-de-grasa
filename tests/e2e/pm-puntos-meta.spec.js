@@ -8,7 +8,7 @@ const { iso, TODAY } = H;
 
 const SHOTS = process.env.SHOTS_PM || '';
 const shot = async (p, name) => { if (SHOTS) { fs.mkdirSync(SHOTS, { recursive: true }); await p.screenshot({ path: path.join(SHOTS, name), fullPage: false }); } };
-const AVISO_13 = 'Actualizamos nuestra Política de Tratamiento de Datos (v1.3) para incluir los avisos opcionales en tu teléfono. Conócela aquí.';
+const AVISO_14 = 'Actualizamos nuestra Política de Tratamiento de Datos (v1.4) para incluir el registro voluntario de lesiones y condiciones físicas. Conócela aquí.';
 // Todos comparten hábitos y comidas (en el producto coach compartir comidas es obligatorio).
 const shareAll = (p) => p.evaluate(() => window.__pgFakeBackend.links.forEach((l) => { l.shares.nutrition = true; l.shares.habits = true; }));
 // Sincroniza y vuelve a pedir los puntos (en la app pasa solo tras cada guardado; aquí se fuerza para no esperar).
@@ -235,18 +235,18 @@ test('coach: filtros por estado operativo (Requieren revisión, Al día con regi
   expect(errors).toEqual([]);
 });
 
-test('aviso v1.3: texto y «Entendido», UNA vez (también para quien ya cerró el de la v1.2), sin re-aceptar', async ({ browser }, testInfo) => {
+test('aviso v1.4: texto y «Entendido», UNA vez (también para quien ya cerró el de la v1.3), sin re-aceptar', async ({ browser }, testInfo) => {
   const { p, errors } = await H.clientApp(browser, testInfo);
   await autoLogro(p);
   const uid = await p.evaluate(() => PGAccount.meta().userId);
-  await p.evaluate((u) => localStorage.setItem('perdida-grasa:aviso-politica', JSON.stringify([`${u}|politica-1.2`])), uid);
+  await p.evaluate((u) => localStorage.setItem('perdida-grasa:aviso-politica', JSON.stringify([`${u}|politica-1.3`])), uid);
   await p.reload(); await H.ready(p);
   await expect(p.locator('#aviso-politica')).toBeVisible();
-  await expect(p.locator('#aviso-politica-text')).toHaveText(AVISO_13);
+  await expect(p.locator('#aviso-politica-text')).toHaveText(AVISO_14);
   await expect(p.locator('#aviso-politica-text a')).toHaveAttribute('href', 'legal/privacidad.html');
   await expect(p.locator('#btn-aviso-politica')).toHaveText('Entendido');
   await expect(p.locator('#solo')).toBeHidden();   // no pide re-aceptar
-  await shot(p, 'pm-aviso-v13.png');
+  await shot(p, 'pm-aviso-v14.png');
   await p.locator('#btn-aviso-politica').click();
   await expect(p.locator('#aviso-politica')).toBeHidden();
   await p.reload(); await H.ready(p);

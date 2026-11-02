@@ -54,7 +54,7 @@ test('avisos: el texto del abogado sale solo al activar, «Ahora no» no guarda 
   // interruptores
   await expect(p.locator('#push-coach')).toBeChecked();
   await p.locator('#push-coach').uncheck();
-  await expect.poll(async () => Object.values((await pushState(p)).prefs)[0]).toEqual({ coachMsgs: false, routines: true });
+  await expect.poll(async () => Object.values((await pushState(p)).prefs)[0]).toEqual({ coachMsgs: false, routines: true, alerts: true });
   // desactivar: se borra el dispositivo y el consentimiento queda en «no»
   await p.locator('#push-off').click();
   await expect(p.locator('#push-consent')).toBeVisible();
@@ -78,7 +78,7 @@ test('avisos: si el teléfono NO permite, queda todo desactivado y sin dispositi
   expect(errors).toEqual([]);
 });
 
-test('avisos: en iPhone sin instalar la app se explica cómo instalarla y no se pide nada; el coach no ve la fila', async ({ browser }, testInfo) => {
+test('avisos: en iPhone sin instalar la app se explica cómo instalarla y no se pide nada; el coach ve solo su interruptor', async ({ browser }, testInfo) => {
   const { p, errors } = await H.clientApp(browser, testInfo);
   await setEnv(p, fakeEnv('granted', true));
   await open(p);
@@ -87,8 +87,16 @@ test('avisos: en iPhone sin instalar la app se explica cómo instalarla y no se 
   await expect(p.locator('#push-consent')).toBeHidden();
   expect((await pushState(p)).ev).toEqual([]);
   await p.locator('#push-unsupported [data-push-close]').click();
+  // El coach también tiene la fila, pero con su propio interruptor: solo «Avisos de asesorados»
   const c = await H.coachApp(browser, testInfo, []);
+  await setEnv(c.p, fakeEnv('granted'));
   await c.p.locator('#tab-mas').click();
-  await expect(c.p.locator('#row-avisos')).toBeHidden();
+  await expect(c.p.locator('#row-avisos')).toBeVisible();
+  await c.p.locator('#row-avisos').click();
+  await c.p.locator('#push-yes').click();
+  await expect(c.p.locator('#push-on')).toBeVisible();
+  await expect(c.p.locator('#push-alerts')).toBeVisible();
+  await expect(c.p.locator('#push-coach')).toBeHidden();
+  await expect(c.p.locator('#push-routines')).toBeHidden();
   expect(errors).toEqual([]);
 });

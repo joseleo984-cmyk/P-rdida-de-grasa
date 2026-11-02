@@ -92,6 +92,8 @@
       bullets: [], buttons: { yes: 'Activar notificaciones', no: 'Ahora no' }, linkText: 'Política de Datos',
       note: 'Nota: El nombre de la app siempre se mostrará en las alertas de tu teléfono. Si prefieres total privacidad en tu pantalla bloqueada, puedes ocultar las previsualizaciones de notificaciones desde los ajustes de tu sistema operativo.',
       links: [{ label: 'Política de datos', href: POLICY }] };
+    // A12: autorización contextual de la restricción física declarada (concepto 13, punto 8), LITERAL; tipo `injury`. Se pide al guardar la primera lesión o condición.
+    CT.TEXTS.A12 = { version: '0.1-A12-lesion', kinds: ['injury'], body: (root.Lesiones || require('./lesiones.js')).TEXTS.autorizacion, links: [{ label: 'Política de datos', href: POLICY }] };
     // A9: consentimiento de la liga (concepto 7, punto 4), LITERAL. Lo registra la app con la huella del texto completo (título + texto + casilla).
     CT.TEXTS.A9 = { version: '0.1-A9-liga', kinds: ['liga'], body: LG.CONSENT.join('\n'), title: LG.TITLE, box: LG.BOX, links: [{ label: 'Política de datos', href: POLICY }] };
     // Versiones del acuerdo que siguen valiendo para el resto de la app (sin re-aceptación forzada) y las que valen para exportar (traen la cláusula 14).
@@ -108,6 +110,7 @@
 
   const fullText0 = CT.fullText;
   CT.fullText = function (id, vars = {}) {
+    if (id === 'A12') return CT.TEXTS.A12.body;
     if (id === 'A11') { const a = CT.TEXTS.A11; return [a.title, a.body].join('\n'); }
     if (id === 'A9') { const a = CT.TEXTS.A9; return [a.title, a.body, a.box].join('\n') + '\n' + a.links.map((l) => `[${l.label}]`).join(' '); }
     if (id !== 'A5c') return fullText0(id, vars);

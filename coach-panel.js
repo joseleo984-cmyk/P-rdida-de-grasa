@@ -728,6 +728,7 @@
     // Progreso (categoría body, obligatoria). Nunca notas ni biblioteca.
     // Producto «coach»: estas dos tarjetas son las heredadas (ocultas) y traen «Objetivo diario» y metas de proteína calculadas por la plataforma:
     // la plataforma no prescribe (concepto jurídico, L5), así que ni se dibujan.
+    if (window.LesionesView) LesionesView.coach(c.info.clientId);   // v1.20: lesiones y condiciones declaradas + seguimiento
     if (!PROD.coach) renderDetailLegacy(c, sh);
 
     // Fotos (solo si las compartió; metadatos de coach_pull). La imagen se pide al abrirla: URL firmada de corta

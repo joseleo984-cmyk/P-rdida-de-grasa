@@ -1,6 +1,6 @@
 # Política de Tratamiento de Datos Personales — «Pérdida de Grasa»
 
-**Versión:** 1.3 · **Vigente desde:** 2 de noviembre de 2026
+**Versión:** 1.4 · **Vigente desde:** 2 de noviembre de 2026
 
 Esta Política de Tratamiento de Datos Personales se rige por la Ley Estatutaria 1581 de 2012 y el Decreto 1377 de 2013, compilado en el Decreto Único Reglamentario 1074 de 2015 (Libro 2, Parte 2, Título 2, Capítulo 25), y demás normas que los modifiquen, complementen o reglamenten en la República de Colombia.
 
@@ -34,6 +34,7 @@ En este documento, «nosotros» o «la plataforma» hace referencia a José Gran
 | Fotos de Progreso (Sensibles) | Fotografías corporales de seguimiento físico. | Almacenamiento en la nube con acceso privado y restringido. | Facultativo (autorización independiente) |
 | Vínculo Deportivo | Identificador de tu coach, categorías activas para compartir y notas técnicas del coach. | Base de datos de la plataforma. | Aplica solo si te vinculas a un coach |
 | Notificaciones y Dispositivo | Identificador técnico del dispositivo (token de notificación push) y hora programada de recordatorios. | Alojado en la base de datos (Supabase) bajo tu cuenta. | Facultativo (solo si activas los avisos) |
+| Restricciones de Salud y Molestias | Reportes de molestia física por ejercicio y restricciones de salud auto-declaradas. | Base de datos de la plataforma. | Facultativo (autorización contextual) |
 | Prueba de Consentimiento | Tipo de permiso, versión legal, fecha, hora y huella criptográfica (SHA-256) del texto aceptado. | Base de datos de la plataforma (inmutable). | Obligatorio por exigencia legal |
 | Bitácora de Acceso a Fotos | Registro de fecha y hora exacta en que el coach visualiza una fotografía corporal. | Base de datos de la plataforma (visible por ti). | Automático al autorizar fotos |
 | Datos Técnicos de Seguridad | Registros de intentos de código de invitación (se eliminan al día siguiente) y logs de sesión. | Servidor de base de datos. | Requerido por seguridad técnica |
@@ -141,6 +142,7 @@ La plataforma «Pérdida de Grasa» está dirigida de forma estricta y exclusiva
 | Desvinculación del Coach | Acceso cesa de forma inmediata. | El coach pierde visualización instantánea; debe destruir copias locales en máximo 30 días. |
 | Prueba Legal de Consentimiento | Tres (3) años posteriores a la cancelación de la cuenta. | Se conservan en estado estrictamente disociado/anonimizado (identificador UUID sin asociar a nombre ni correo), conservando huella hash SHA-256 y marcas temporales, con la finalidad exclusiva de acreditar el cumplimiento legal ante eventuales requerimientos de la SIC. |
 | Token de notificaciones y horario de avisos | Mientras la función permanezca activa en la app. | Se elimina de inmediato de la base de datos al desactivar los avisos en los ajustes o al cancelar la cuenta. |
+| Restricciones de salud y reportes de molestia | Misma vigencia que el perfil de entrenamiento: mientras la cuenta esté activa. | Se eliminan en cascada tras la baja de la cuenta; el coach pierde el acceso de forma inmediata al desvincularse y debe destruir sus copias locales de trabajo en máximo treinta (30) días calendario. |
 | Registros Técnicos Temporales | Un (1) día calendario. | Purga automática de intentos de código de invitación. |
 
 ## 12. Registro Nacional de Bases de Datos (RNBD)

@@ -2,8 +2,8 @@
 // Cada entorno (raíz / pruebas) tiene su propia caché: config.js + ns.js deciden el nombre (ver ns.js).
 self.window = self;
 importScripts('config.js', 'ns.js');
-const CACHE = PGNS.cacheName(66);
-const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'consent-texts.js', 'liga.js', 'ayuda.js', 'tour.js', 'push-view.js', 'producto.js', 'consent-texts-solo.js', 'pagos.js', 'medidas.js', 'habitos.js', 'constancia.js', 'logros.js', 'puntos.js', 'platos.js', 'rutinas.js', 'paso.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'exportar.js', 'estado-cliente.js', 'inicio-view.js', 'piloto.js', 'photos.js', 'etapa2.js', 'app.js', 'config.js', 'ns.js', 'vendor/supabase-2.117.2.js', 'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'rutinas-view.js', 'etapa2-view.js', 'analitica.js', 'admin.js', 'analitica-view.js', 'puntos-view.js', 'liga-view.js', 'logros-view.js', 'admin-view.js', 'exportar-view.js', 'aviso-politica.js', 'manifest.webmanifest', 'icon.svg', 'fonts/BricolageGrotesque-Bold.ttf', 'legal/terminos.html', 'legal/privacidad.html', 'legal/VERSIONS.json'];
+const CACHE = PGNS.cacheName(67);
+const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'consent-texts.js', 'liga.js', 'ayuda.js', 'tour.js', 'push-view.js', 'lesiones.js', 'lesiones-view.js', 'producto.js', 'consent-texts-solo.js', 'pagos.js', 'medidas.js', 'habitos.js', 'constancia.js', 'logros.js', 'puntos.js', 'platos.js', 'rutinas.js', 'paso.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'exportar.js', 'estado-cliente.js', 'inicio-view.js', 'piloto.js', 'photos.js', 'etapa2.js', 'app.js', 'config.js', 'ns.js', 'vendor/supabase-2.117.2.js', 'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'rutinas-view.js', 'etapa2-view.js', 'analitica.js', 'admin.js', 'analitica-view.js', 'puntos-view.js', 'liga-view.js', 'logros-view.js', 'admin-view.js', 'exportar-view.js', 'aviso-politica.js', 'manifest.webmanifest', 'icon.svg', 'fonts/BricolageGrotesque-Bold.ttf', 'legal/terminos.html', 'legal/privacidad.html', 'legal/VERSIONS.json'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -40,6 +40,7 @@ self.addEventListener('fetch', (e) => {
 const PUSH_TEXT = {
   coach_msg: { title: 'Mensaje nuevo', body: 'Tienes un mensaje nuevo de tu coach' },
   routine: { title: 'Rutina actualizada', body: 'Tu coach actualizó tu rutina' },
+  client_alert: { title: 'Aviso', body: 'Tienes un aviso de un asesorado' },
 };
 self.addEventListener('push', (e) => {
   let kind = '';

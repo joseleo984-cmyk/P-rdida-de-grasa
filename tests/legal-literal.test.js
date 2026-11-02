@@ -356,7 +356,7 @@ test('concepto 7 · Política v1.2: la finalidad en §4 de la política publicad
   assert.ok(s4.includes(lite(body)), 'legal/privacidad.html §4');
   assert.strictEqual(lite(visible(html)).split(lite(body)).length - 1, 1, 'una sola vez en la página');
   assert.ok(lite(read('equipo/legal/politica-tratamiento-datos.md')).includes(lite(body)));
-  assert.strictEqual(JSON.parse(read('legal/VERSIONS.json')).privacy.version, '1.3');   // la 1.3 (avisos push) conserva esta finalidad
+  assert.strictEqual(JSON.parse(read('legal/VERSIONS.json')).privacy.version, '1.4');   // la 1.4 conserva esta finalidad
 });
 
 test('concepto 7 · aviso v1.2: texto y botón «Entendido» LITERALES en aviso-politica.js; «[enlace]» es el enlace real a la política', () => {
@@ -475,10 +475,23 @@ test('concepto de avisos push · Política v1.3: filas de §3 y §11 y finalidad
     assert.ok(html.includes(norm(frase)), 'html: ' + frase.slice(0, 40));
     assert.strictEqual(html.split(norm(frase)).length - 1, 1, 'una sola vez: ' + frase.slice(0, 40));
   }
-  assert.ok(md.includes('**Versión:** 1.3 · **Vigente desde:** 2 de noviembre de 2026'), 'fecha aprobada por el abogado');
-  const V = JSON.parse(read('legal/VERSIONS.json'));
-  assert.deepStrictEqual([V.privacy.version, V.privacy.notice.id, V.privacy.acceptedStillValid], ['1.3', 'politica-1.3', ['0.1', '1.1', '1.2']]);
+  assert.ok(md.includes('Vigente desde:** 2 de noviembre de 2026'), 'fecha aprobada por el abogado');
   const AV = require('../aviso-politica.js');
-  assert.match(AV.TEXT, /\(v1\.3\).*avisos opcionales en tu teléfono.*\[enlace\]\.$/);
+  assert.match(AV.TEXT_V13, /\(v1\.3\).*avisos opcionales en tu teléfono.*\[enlace\]\.$/);
+});
+
+test('concepto 13 · Política v1.4: la categoría de §3 y la conservación de §11 (lesiones y restricciones) están, una sola vez, y el aviso informativo es el vigente', () => {
+  const md = norm(read('equipo/legal/politica-tratamiento-datos.md'));
+  const html = norm(visible(read('legal/privacidad.html')));
+  for (const frase of ['Reportes de molestia física por ejercicio y restricciones de salud auto-declaradas', 'Misma vigencia que el perfil de entrenamiento: mientras la cuenta esté activa']) {
+    assert.ok(md.includes(norm(frase)), 'md: ' + frase.slice(0, 40));
+    assert.ok(html.includes(norm(frase)), 'html: ' + frase.slice(0, 40));
+    assert.strictEqual(html.split(norm(frase)).length - 1, 1, 'una sola vez: ' + frase.slice(0, 40));
+  }
+  assert.ok(md.includes('**Versión:** 1.4'));
+  const V = JSON.parse(read('legal/VERSIONS.json'));
+  assert.deepStrictEqual([V.privacy.version, V.privacy.notice.id, V.privacy.acceptedStillValid], ['1.4', 'politica-1.4', ['0.1', '1.1', '1.2', '1.3']]);
+  const AV = require('../aviso-politica.js');
+  assert.match(AV.TEXT, /\(v1\.4\).*lesiones y condiciones físicas.*\[enlace\]\.$/);
   assert.doesNotMatch(AV.TEXT, /\bkg\b|peso|grasa|dieta/i);
 });
