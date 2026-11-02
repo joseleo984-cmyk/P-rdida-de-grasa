@@ -15,7 +15,7 @@ Estado: **propuesta, NO construida.** Pedido de José (2 nov 2026). Los textos l
 
 ## 3. Diseño propuesto
 **Lesión (asesorado → coach)**
-- «Reportar una lesión» (Más o Inicio): zona/ejercicio (de una lista o texto), fecha, descripción **en sus palabras** (opcional), si quiere compartirla con su coach (autorización específica). Estado: **activa → en recuperación → resuelta**, que el asesorado puede actualizar.
+- «Reportar una lesión» (Más o Inicio): zona/ejercicio (de una lista o texto), fecha, descripción **en sus palabras** (opcional), si quiere compartirla con su coach (autorización específica). Dos tipos: **lesión** (temporal) con estados **activa → en recuperación → superada**, y **condición médica** (de por vida, sin «superada»; sigue vigente y el coach la ve siempre). Una lesión que queda para siempre **se convierte en condición médica** (lo decide el asesorado o lo propone el coach y el asesorado confirma). El asesorado actualiza los estados.
 - Dolor por ejercicio: en el paso a paso, botón opcional «Me dolió» por ejercicio; se suma al historial.
 **Seguimiento (coach)**
 - Ficha del asesorado: «Lesiones y restricciones» con estado, descripción y línea de tiempo; el coach agrega **notas de seguimiento** y cambia el estado (con aviso al asesorado: «Tu coach actualizó el seguimiento»).
@@ -27,7 +27,7 @@ Estado: **propuesta, NO construida.** Pedido de José (2 nov 2026). Los textos l
 - Al coach: «Tienes un aviso de un asesorado» (mensaje nuevo, lesión nueva o actualizada). Al asesorado: «Tienes un mensaje nuevo de tu coach» / «Tu coach actualizó el seguimiento». Nunca nombre, ejercicio, zona ni texto en la pantalla bloqueada. El coach activa los avisos con el mismo consentimiento de la v1.19.
 
 ## 4. Servidor (SQL, nuevo; se entrega completo para pegar)
-Tablas nuevas (RLS, sin acceso directo): `injuries` (asesorado, zona/ejercicio, fecha, descripción, estado, compartida con el coach, versión y huella de la autorización), `injury_notes` (seguimiento del coach y respuestas), `avoid_exercises` (coach × asesorado × ejercicio, origen: dolor/lesión/coach), `messages` (o `comments.author`). Funciones: reportar/actualizar lesión, seguimiento del coach, lista a evitar, consulta al asignar. Borrado en cascada con la cuenta; al desvincularse el coach pierde acceso inmediato.
+Tablas nuevas (RLS, sin acceso directo): `injuries` (asesorado, tipo `lesion`/`condicion`, zona/ejercicio, fecha, descripción, estado `activa`/`recuperacion`/`superada`, compartida con el coach, versión y huella de la autorización), `injury_notes` (seguimiento del coach y respuestas), `avoid_exercises` (coach × asesorado × ejercicio, origen: dolor/lesión/coach), `messages` (o `comments.author`). Funciones: reportar/actualizar lesión, seguimiento del coach, lista a evitar, consulta al asignar. Borrado en cascada con la cuenta; al desvincularse el coach pierde acceso inmediato.
 
 ## 5. Lo que necesita al abogado (consulta para copiar y pegar)
 **Consulta: mensajes en los dos sentidos, lesiones, seguimiento y restricciones médicas**
@@ -36,12 +36,15 @@ Contexto: hoy el coach solo ve «Reportó dolor» sin detalle y solo el coach es
 2. Condición, lesión y dolor por ejercicio: ¿qué autorización específica y texto literal se necesitan para guardarlos y mostrarlos al coach? Hoy la decisión fue «sin detalle»; ¿qué se debe actualizar?
 3. Texto literal del botón por ejercicio («Me dolió») y del formulario de lesión; ¿qué se debe decir sobre que la app no da consejo médico ni sustituye al médico?
 4. Texto literal de la advertencia al coach al asignar un ejercicio con dolor o lesión registrados, sin que parezca consejo médico.
-5. Conservación y borrado: lesiones, notas de seguimiento, historial de dolor y mensajes (al resolverse, al desvincularse, al cerrar la cuenta del asesorado o del coach). ¿Puede cada parte borrar lo suyo?
+5. Conservación y borrado: lesiones, notas de seguimiento, historial de dolor y mensajes (al superarse la lesión, al desvincularse, al cerrar la cuenta del asesorado o del coach). ¿Puede cada parte borrar lo suyo?
 6. Política: categorías de datos, finalidades y conservación nuevas. ¿Es cambio sustancial (re-consentimiento de quienes ya aceptaron) o informativo? ¿Quién debe re-aceptar?
 7. Acuerdo del Coach: obligaciones nuevas sobre lo que recibe (usarlo solo para programar, no reenviarlo, pedir aval médico cuando corresponda, no dar consejo médico, borrar al terminar el vínculo). ¿Exige re-aceptación de los coaches?
 8. Avisos push al coach: ¿alcanza el consentimiento aprobado para los asesorados (texto por capas, v0.2-A11-push) o el coach necesita uno propio? ¿La frase «Tienes un aviso de un asesorado» es adecuada?
 9. Si el asesorado retira la autorización de compartir o se desvincula, ¿qué pasa con lo que el coach ya tiene (lesión, dolor, mensajes)? ¿Plazo para destruir copias?
 10. Responsabilidad: ¿qué advertencia debe verse al coach de que es responsable independiente del uso de esta información?
+
+## 5b. Pregunta adicional para el abogado
+11. Lesión temporal vs. condición médica de por vida: ¿la condición médica exige una autorización o texto distinto de la lesión? ¿Cuánto se conserva una lesión «superada» (¿se borra o queda como historial para el coach?) y qué pasa con una condición cuando termina el vínculo? ¿Qué advertencia debe verse al convertir una lesión en condición médica?
 
 ## 6. Orden de construcción propuesto
 1) Mensajes en los dos sentidos + aviso push al coach. 2) Lesión + seguimiento + estados. 3) Dolor por ejercicio + «Ejercicios a evitar» + recordatorio al asignar. Cada paso con su SQL completo para pegar y sus pruebas; los textos literales se completan al llegar el concepto.
