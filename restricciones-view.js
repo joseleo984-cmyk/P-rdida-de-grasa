@@ -66,10 +66,12 @@
     });
   }
   // Primera vez: el Acuerdo del Coach actualizado (cláusula 17) antes de programar. Devuelve true si lo acepta.
-  function askAgreement() {
+  // opts (opcional): { intro, clause } para pedir el mismo Acuerdo por otra cláusula nueva (p. ej. la del chat).
+  function askAgreement(opts = {}) {
     return new Promise((resolve) => {
       const d = $('#rest-agree-dialog'), t = root.ConsentTexts.get('A7');
-      $('#rest-agree-clause').textContent = t.clauseExclusion || '';
+      $('#rest-agree-intro').textContent = opts.intro || 'Para programar rutinas con las listas de ejercicios a evitar y los reportes de dolor, acepta la versión actualizada del Acuerdo. Esta es la cláusula nueva:';
+      $('#rest-agree-clause').textContent = opts.clause != null ? opts.clause : (t.clauseExclusion || '');
       $('#rest-agree-box').checked = false; $('#rest-agree-err').textContent = '';
       $('#rest-agree-text').textContent = root.ConsentTexts.fill(t.body, {});
       const done = (v) => { if (d.open) d.close(); $('#rest-agree-ok').onclick = null; $('#rest-agree-no').onclick = null; resolve(v); };
@@ -150,6 +152,6 @@
     if ($('#pain-yes')) { $('#pain-yes').addEventListener('click', confirmPain); $('#pain-no').addEventListener('click', () => $('#pain-dialog').close()); }
     if ($('#rest-warn-yes')) { $('#rest-warn-yes').addEventListener('click', () => closeWarn(true)); $('#rest-warn-no').addEventListener('click', () => closeWarn(false)); $('#rest-warn-dialog').addEventListener('cancel', () => closeWarn(false)); }
   }
-  root.RestrView = { confirmAssign, coach: coachSection, syncPainButton };
+  root.RestrView = { confirmAssign, coach: coachSection, syncPainButton, askAgreement };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
 })(window);

@@ -200,6 +200,7 @@
               <p class="small a7-clause-liga hidden" id="acc-a7-clause-liga"></p>
               <p class="small a7-clause-premios hidden" id="acc-a7-clause-premios"></p>
               <p class="small a7-clause-excl hidden" id="acc-a7-clause-excl"></p>
+              <p class="small a7-clause-chat hidden" id="acc-a7-clause-chat"></p>
               <div class="auth-row"><label class="check"><input type="checkbox" name="a7" id="acc-a7"> <span id="acc-a7-text"></span></label><span class="auth-links" id="acc-a7-links"></span></div>
               <div class="auth-row"><label class="check"><input type="checkbox" name="a10" id="acc-a10"> <span id="acc-a10-text"></span></label><span class="auth-links" id="acc-a10-links"></span></div>
             </div>
@@ -835,6 +836,7 @@
         <p class="small a7-clause-liga hidden"></p>
         <p class="small a7-clause-premios hidden"></p>
         <p class="small a7-clause-excl hidden"></p>
+        <p class="small a7-clause-chat hidden"></p>
         <form class="a7-form" novalidate>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a10"> <span class="a10-text"></span></label><span class="auth-links a10-links"></span></div>
@@ -903,6 +905,11 @@
             <h3 id="fcl-title">Lesiones y condiciones</h3>
             <div id="fcl-list"></div>
             <p id="fcl-note" class="small muted"></p>
+          </section>
+          <section id="fc-chat" class="card pc-only hidden" aria-labelledby="fcc-title">
+            <h3 id="fcc-title">Chat</h3>
+            <p class="small muted">Mensajes de texto con este asesorado. Son confidenciales: no los captures ni los compartas.</p>
+            <button type="button" class="btn btn-ghost" id="fcc-open">Abrir chat</button> <span class="small" id="fcc-n" role="status"></span>
           </section>
           <section id="fc-restr" class="card pc-only hidden" aria-labelledby="fcr-title">
             <h3 id="fcr-title">Restricciones de entrenamiento</h3>
@@ -1037,6 +1044,7 @@
         <p class="small a7-clause-liga hidden"></p>
         <p class="small a7-clause-premios hidden"></p>
         <p class="small a7-clause-excl hidden"></p>
+        <p class="small a7-clause-chat hidden"></p>
         <form class="a7-form" novalidate>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a7"> <span class="a7-text"></span></label><span class="auth-links a7-links"></span></div>
           <div class="auth-row"><label class="check"><input type="checkbox" name="a10"> <span class="a10-text"></span></label><span class="auth-links a10-links"></span></div>
@@ -1441,7 +1449,8 @@
         <li><button type="button" class="more-row" id="row-copia"><span class="more-text"><strong>Descargar una copia</strong><span class="more-sub">Guarda tus datos en un archivo</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-instalar" data-install-guide><span class="more-text"><strong>Cómo instalar la app</strong><span class="more-sub">Ponla en la pantalla de inicio de tu teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
         <li><button type="button" class="more-row" id="row-ayuda"><span class="more-text"><strong>Ayuda</strong><span class="more-sub">Respuestas a las dudas más comunes</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
-                <li class="pc-only needs-link hidden"><button type="button" class="more-row" id="row-lesiones"><span class="more-text"><strong>Mis lesiones y condiciones</strong><span class="more-sub">Cuéntale a tu coach qué cuidar al entrenar</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button></li>
+                <li class="pc-only needs-link hidden" id="row-chat-li"><button type="button" class="more-row" id="row-chat"><span class="more-text"><strong>Chat con tu coach</strong><span class="more-sub" id="row-chat-sub">Escríbele a tu coach y recibe su respuesta</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button></li>
+<li class="pc-only needs-link hidden"><button type="button" class="more-row" id="row-lesiones"><span class="more-text"><strong>Mis lesiones y condiciones</strong><span class="more-sub">Cuéntale a tu coach qué cuidar al entrenar</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button></li>
 <li class="pc-only needs-avisos hidden"><button type="button" class="more-row" id="row-avisos"><span class="more-text"><strong>Avisos en tu teléfono</strong><span class="more-sub">Mensajes de tu coach y rutinas nuevas</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button></li>
         <li class="pc-only"><button type="button" class="more-row" id="row-tour"><span class="more-text"><strong>Ver el tour otra vez</strong><span class="more-sub">Un recorrido corto por la app</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button></li>
         <li class="needs-login hidden"><button type="button" class="more-row" id="row-salir"><span class="more-text"><strong>Cerrar sesión</strong><span class="more-sub">Salir de tu cuenta en este teléfono</span></span><svg class="row-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></li>
@@ -1709,6 +1718,7 @@
       <p class="small a7-clause xla-clause" id="xla-clause-liga"></p>
       <p class="small a7-clause xla-clause" id="xla-clause-premios"></p>
       <p class="small a7-clause xla-clause" id="xla-clause-excl"></p>
+      <p class="small a7-clause xla-clause" id="xla-clause-chat"></p>
       <details class="xla-more"><summary>Ver el resto del acuerdo</summary><p class="small" id="xla-intro"></p><p class="small a7-clause" id="xla-clause13"></p></details>
       <label class="xl-custody xla-check"><input type="checkbox" id="xla-ok"><span id="xla-body"></span></label>
       <div class="xla-links" id="xla-links"></div>
@@ -1745,6 +1755,7 @@
       <p id="lga-c15" class="small a7-clause"></p>
       <p id="lga-c16" class="small a7-clause"></p>
       <p id="lga-c17" class="small a7-clause"></p>
+      <p id="lga-c18" class="small a7-clause"></p>
       <label class="check"><input type="checkbox" id="lga-ok"> <span id="lga-body"></span></label>
       <p id="lga-error" class="acc-error hidden" role="alert"></p>
       <div class="row-actions a8-actions">
@@ -1772,6 +1783,26 @@
     </div>
   </dialog>
 
+  <!-- Chat asesorado ⇄ coach (v1.22, concepto 14): aviso LITERAL del abogado, rellenado desde chat.js. -->
+  <dialog id="chat-aviso-dialog" class="sheet" aria-labelledby="chat-aviso-title">
+    <h2 id="chat-aviso-title" tabindex="-1"></h2>
+    <p id="chat-aviso-body"></p>
+    <button type="button" class="btn btn-tall" id="chat-aviso-ok"></button>
+  </dialog>
+  <dialog id="chat-dialog" class="sheet sheet-tall" aria-labelledby="chat-title">
+    <div class="sheet-head"><h2 id="chat-title" tabindex="-1">Chat con tu coach</h2><button type="button" class="btn btn-ghost" data-chat-close>Cerrar</button></div>
+    <div id="chat-scroll" class="chat-scroll">
+      <p id="chat-empty" class="small muted">Aún no hay mensajes. Escribe el primero.</p>
+      <ul id="chat-list" class="chat-list" role="log" aria-live="polite" aria-label="Mensajes"></ul>
+    </div>
+    <p id="chat-msg" class="acc-error" role="alert"></p>
+    <form id="chat-form" class="chat-form" novalidate>
+      <label class="sr-only" for="chat-input">Escribe tu mensaje</label>
+      <textarea id="chat-input" rows="2" maxlength="1000" placeholder="Escribe tu mensaje"></textarea>
+      <div class="chat-foot"><span id="chat-count" class="small muted">0/1000</span><button type="submit" class="btn" id="chat-send">Enviar</button></div>
+    </form>
+  </dialog>
+
   <!-- Dolor por ejercicio y restricciones (v1.21, concepto 13): textos LITERALES del abogado, rellenados desde lesiones.js. -->
   <dialog id="pain-dialog" class="sheet" aria-labelledby="pain-title">
     <h2 id="pain-title" tabindex="-1"></h2>
@@ -1788,7 +1819,7 @@
   </dialog>
   <dialog id="rest-agree-dialog" class="sheet sheet-tall" aria-labelledby="rest-agree-title">
     <h2 id="rest-agree-title" tabindex="-1">Acuerdo del Coach actualizado</h2>
-    <p class="small">Para programar rutinas con las listas de ejercicios a evitar y los reportes de dolor, acepta la versión actualizada del Acuerdo. Esta es la cláusula nueva:</p>
+    <p class="small" id="rest-agree-intro"></p>
     <p id="rest-agree-clause" class="small a7-clause"></p>
     <div class="auth-row"><label class="check"><input type="checkbox" id="rest-agree-box"> <span id="rest-agree-text"></span></label></div>
     <p id="rest-agree-err" class="acc-error" role="alert"></p>
@@ -2122,6 +2153,7 @@
   <script src="consent-texts.js"></script>
   <script src="liga.js"></script>
   <script src="lesiones.js"></script>
+  <script src="chat.js"></script>
   <script src="consent-texts-solo.js"></script>
   <script src="pagos.js"></script>
   <script src="medidas.js"></script>
@@ -2163,6 +2195,7 @@
   <script src="push-view.js"></script>
   <script src="lesiones-view.js"></script>
   <script src="restricciones-view.js"></script>
+  <script src="chat-view.js"></script>
   <script src="logros-view.js"></script>
   <script src="admin-view.js"></script>
   <script src="exportar-view.js"></script>

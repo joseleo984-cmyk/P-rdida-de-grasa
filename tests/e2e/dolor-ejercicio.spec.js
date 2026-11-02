@@ -99,6 +99,6 @@ test('coach con el Acuerdo 0.8: al programar se le pide aceptar el Acuerdo actua
   await p.locator('#rest-agree-ok').click();
   expect(await prom).toBe(true);
   const be = await backend(p);
-  expect(be.consentEvents.filter((e) => e.kind === 'coach_agreement').pop().version).toBe('0.9-A7-coach');
+  expect(be.consentEvents.filter((e) => e.kind === 'coach_agreement').pop().version).toBe('1.0-A7-coach');
   expect(errors).toEqual([]);
 });

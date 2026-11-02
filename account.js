@@ -475,6 +475,8 @@
     $('#acc-a7-clause-premios').classList.toggle('hidden', !t.clausePremios);
     $('#acc-a7-clause-excl').textContent = t.clauseExclusion || '';   // concepto 13: cláusula 17 (listas de exclusión)
     $('#acc-a7-clause-excl').classList.toggle('hidden', !t.clauseExclusion);
+    $('#acc-a7-clause-chat').textContent = t.clauseChat || '';   // concepto 14: cláusula 18 (chat)
+    $('#acc-a7-clause-chat').classList.toggle('hidden', !t.clauseChat);
     $('#acc-a7-text').textContent = CT.fill(t.body, {});
     fillLinks($('#acc-a7-links'), t.links);
     const t10 = CT.TEXTS.A10;   // casilla 2 (concepto, punto 2.3): autorización de datos y transmisión internacional (solo producto coach)

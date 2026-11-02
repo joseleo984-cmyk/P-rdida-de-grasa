@@ -88,6 +88,10 @@
     // la 0.8 pasa EXACTA a A7_PAST. Quien tiene la 0.4–0.8 sigue usando el resto de la app; esta se pide solo para ver el historial de dolor y editar la lista «a evitar».
     CT.A7_PAST[CT.version('A7')] = CT.fullText('A7');
     CT.TEXTS.A7 = { ...CT.TEXTS.A7, version: '0.9-A7-coach', clauseExclusion: (root.Lesiones || require('./lesiones.js')).TEXTS.clausulaExclusion };
+    // Concepto 14 (2/11/2026, punto 5): «Uso del chat y confidencialidad de las comunicaciones», LITERAL, para el Acuerdo del Coach. Versión 1.0-A7-coach
+    // (cláusulas 13 a 17 + esta, numerada 18); la 0.9 pasa EXACTA a A7_PAST. El coach la acepta antes de leer o responder el chat; el asesorado NO re-acepta.
+    CT.A7_PAST[CT.version('A7')] = CT.fullText('A7');
+    CT.TEXTS.A7 = { ...CT.TEXTS.A7, version: '1.0-A7-coach', clauseChat: (root.Chat || require('./chat.js')).TEXTS.clausula };
     // A13: consentimiento contextual del reporte de dolor por ejercicio (concepto 13, punto 2): el modal LITERAL de la primera vez; tipo `pain_report`.
     CT.TEXTS.A13 = { version: '0.1-A13-dolor', kinds: ['pain_report'], body: (root.Lesiones || require('./lesiones.js')).fullText('dolor'), links: [{ label: 'Política de datos', href: POLICY }] };
     // A11: avisos push. Consentimiento «justo a tiempo» (concepto del 1/11/2026) y, por el concepto de información POR CAPAS (2/11/2026), el modal lleva el resumen
@@ -103,16 +107,18 @@
     // A9: consentimiento de la liga (concepto 7, punto 4), LITERAL. Lo registra la app con la huella del texto completo (título + texto + casilla).
     CT.TEXTS.A9 = { version: '0.1-A9-liga', kinds: ['liga'], body: LG.CONSENT.join('\n'), title: LG.TITLE, box: LG.BOX, links: [{ label: 'Política de datos', href: POLICY }] };
     // Versiones del acuerdo que siguen valiendo para el resto de la app (sin re-aceptación forzada) y las que valen para exportar (traen la cláusula 14).
-    CT.A7_STILL_VALID = ['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach'];
-    CT.A7_EXPORT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach'];
-    CT.A7_LIGA_VERSIONS = ['0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach'];
-    CT.A7_RESTRICTIONS_VERSIONS = ['0.9-A7-coach'];
+    CT.A7_STILL_VALID = ['0.4-A7-coach', '0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach', '1.0-A7-coach'];
+    CT.A7_EXPORT_VERSIONS = ['0.5-A7-coach', '0.6-A7-coach', '0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach', '1.0-A7-coach'];
+    CT.A7_LIGA_VERSIONS = ['0.7-A7-coach', '0.8-A7-coach', '0.9-A7-coach', '1.0-A7-coach'];
+    CT.A7_RESTRICTIONS_VERSIONS = ['0.9-A7-coach', '1.0-A7-coach'];
+    CT.A7_CHAT_VERSIONS = ['1.0-A7-coach'];
     // Autorización de datos del coach (A10): vigente si está concedida con la versión actual.
     CT.coachDataOK = (meta) => !!(meta && meta.consents && meta.consents.coach_data && meta.consents.coach_data.granted === true && meta.consents.coach_data.version === CT.version('A10'));
     const a7 = (meta) => (meta && meta.consents && meta.consents.coach_agreement) || null;
     CT.coachAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_STILL_VALID.includes(c.version)); };
     CT.ligaAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_LIGA_VERSIONS.includes(c.version)); };
     CT.restrictionsAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_RESTRICTIONS_VERSIONS.includes(c.version)); };
+    CT.chatAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_CHAT_VERSIONS.includes(c.version)); };
     CT.exportAgreementOK = (meta) => { const c = a7(meta); return !!(c && c.granted === true && CT.A7_EXPORT_VERSIONS.includes(c.version)); };
   }
 
