@@ -2097,7 +2097,7 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 .rec-lunes-list li > span { overflow-wrap: anywhere; }
 
 /* Pedido adicional: bienvenida e inicio del coach */
-.cw { text-align: center; display: grid; gap: 14px; padding: 24px 16px; }
+.cw-card { text-align: center; display: grid; gap: 14px; padding: 24px 16px; }
 .cw-logo { width: 64px; height: 42px; margin: 0 auto; }
 .cw-legend { list-style: none; margin: 0; padding: 12px; display: grid; gap: 8px; text-align: left; border: 1px solid var(--line); border-radius: 12px; }
 .cw-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
@@ -2110,3 +2110,15 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 .ci-list { list-style: none; margin: 0; padding: 0; }
 .ci-list li { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .ci-pill { font-size: .75rem; font-weight: 600; }
+
+/* Tour de bienvenida: la luz sobre el botón real */
+.tour { position: fixed; inset: 0; z-index: 1000; }
+.tour-light { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .66); outline: 3px solid var(--accent, #4ee05a); pointer-events: none; transition: all .2s ease; }
+.tour-card { position: fixed; left: 12px; right: 12px; max-width: 520px; margin: 0 auto; background: var(--card, var(--bg, #fff)); color: var(--fg, inherit); border: 1px solid var(--line, #ccc); border-radius: 18px; padding: 16px; display: grid; gap: 8px; box-shadow: 0 8px 30px rgba(0, 0, 0, .35); }
+.tour-card.tour-bottom { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+.tour-card.tour-top { top: calc(12px + env(safe-area-inset-top, 0px)); }
+.tour-card h2 { margin: 0; font-size: 1.25rem; }
+.tour-card p { margin: 0; }
+.tour-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.tour-btns .btn[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .tour-light { transition: none; } }

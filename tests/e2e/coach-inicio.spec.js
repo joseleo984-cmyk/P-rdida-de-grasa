@@ -2,7 +2,7 @@
 const { test, expect } = require('@playwright/test');
 const H = require('./ux1-helpers');
 
-test('coach: bienvenida una sola vez y resumen «Hoy, escríbele a N personas» sin peso ni fotos', async ({ browser }, testInfo) => {
+test('coach: resumen «Hoy, escríbele a N personas» sin peso ni fotos', async ({ browser }, testInfo) => {
   const days = (offs) => offs.map((n) => H.hab(n));
   const CLIENTS = [
     { email: 'ana@c.co', name: 'Ana Martínez', paidDays: 20, habitDays: days([-6, -5, -4, -3, -2, -1, 0]) },
@@ -10,17 +10,7 @@ test('coach: bienvenida una sola vez y resumen «Hoy, escríbele a N personas» 
     { email: 'carla@c.co', name: 'Carla Soto', paidDays: 20, habitDays: days([-12]) },
   ];
   const { p, errors } = await H.coachApp(browser, testInfo, CLIENTS);
-  await p.evaluate(() => localStorage.removeItem('perdida-grasa:coachBienvenida'));
-  await p.reload(); await H.ready(p);
   await p.locator('#tab-coach').click();
-  // Bienvenida: sin casillas, la lista aún no se ve
-  await expect(p.locator('#coach-welcome')).toBeVisible();
-  await expect(p.locator('#cw-title')).toHaveText('Bienvenido, coach.');
-  await expect(p.locator('#coach-welcome input[type=checkbox]')).toHaveCount(0);
-  await expect(p.locator('#coach-list-view')).toBeHidden();
-  await p.locator('#btn-cw-start').click();
-  await expect(p.locator('#coach-welcome')).toBeHidden();
-  await expect(p.locator('#coach-list-view')).toBeVisible();
   // Inicio con resumen
   await expect(p.locator('#coach-inicio')).toBeVisible();
   await expect(p.locator('#ci-hoy')).toHaveText('Hoy, escríbele a 2 personas');
@@ -36,10 +26,30 @@ test('coach: bienvenida una sola vez y resumen «Hoy, escríbele a N personas» 
   // «Escribirle» abre la ficha
   await rows.first().getByRole('button', { name: /Escribirle/ }).click();
   await expect(p.locator('#coach-detail-view')).toBeVisible();
-  // La bienvenida no vuelve
-  await p.reload(); await H.ready(p);
-  await p.locator('#tab-coach').click();
+  expect(errors).toEqual([]);
+});
+
+test('bienvenida: es la PRIMERA pantalla (antes de aceptar nada), sin casillas, una sola vez, y no sale con enlace de invitación', async ({ browser }, testInfo) => {
+  const { p, errors } = await H.phone(browser, testInfo);
+  await p.goto('index.html');
+  await H.ready(p).catch(() => {});
+  await p.evaluate(() => localStorage.removeItem('perdida-grasa:coachBienvenida'));
+  await p.reload();
+  await expect(p.locator('#coach-welcome')).toBeVisible();
+  await expect(p.locator('#cw-title')).toHaveText('Bienvenido, coach.');
+  await expect(p.locator('#coach-welcome input[type=checkbox]')).toHaveCount(0);
+  await expect(p.locator('#solo')).toBeHidden();      // antes de «Antes de empezar»
+  await H.layout(p);
+  await p.locator('#btn-cw-start').click();
   await expect(p.locator('#coach-welcome')).toBeHidden();
-  await expect(p.locator('#coach-list-view')).toBeVisible();
+  await expect(p.locator('#solo')).toBeVisible();     // ahora sí, la aceptación (casillas sin marcar)
+  await p.reload();
+  await expect(p.locator('#coach-welcome')).toBeHidden();   // una sola vez
+  await expect(p.locator('#solo')).toBeVisible();
+  // Con el enlace de un coach (?c=CODIGO) no se muestra
+  await p.evaluate(() => localStorage.removeItem('perdida-grasa:coachBienvenida'));
+  await p.goto('index.html?c=ABCD2345');
+  await expect(p.locator('#solo')).toBeVisible();
+  await expect(p.locator('#coach-welcome')).toBeHidden();
   expect(errors).toEqual([]);
 });
