@@ -40,3 +40,15 @@ Sí es viable y barato. Propuesta para Dev (aprobar alcance con José antes de c
 - **Reglas de texto:** sin promesas de resultados de salud, sin ranking por peso/kg/cm, sin nombrar funciones «próximamente». Textos legales no se tocan.
 - **Pruebas:** E2E del primer arranque (aparece), «Saltar» (no vuelve), reabrir desde Más, y que no salga sobre legales ni pausa. Subir la caché del `sw.js`.
 - **DECISIÓN (José, 2026-11-01):** el tour va **sobre la pantalla real**: se oscurece la app y una luz resalta el botón verdadero (`#dia-agua`, `#tab-comidas`, `#tab-entrenar`, `#tab-registro`, `#tab-mas`; coach: `#tab-coach`, `#tab-invitar`, `#tab-rutinas`, chip Pagó). Las ilustraciones genéricas no sirven porque no se parecen a la app. Para que no se rompa si cambia una pantalla, la E2E recorre cada paso y falla si el elemento no existe. Maqueta aprobada para revisar: `equipo/instructivos/tour-prototipo.html` (capturas reales de la copia Demo).
+
+## F. Bienvenida del asesorado (hallazgo de José al probar con un usuario, 2026-11-02)
+**Lo que ve hoy el asesorado:** pide el correo → llega el código de 6 dígitos (por Brevo; **no hay contraseña**: `index.html` lo dice en `acc-email-help`) → su primera pantalla es **«Mis datos y mis permisos»**, sin ninguna bienvenida. José: «no es agradable».
+**Lo que hay hoy:** solo existe bienvenida para el **coach** (`index.html` `cw-title` «Bienvenido, coach.», `app.js` `coachBienvenida`, una vez por teléfono, sin casillas). El asesorado no tiene equivalente.
+**Pedido para Dev:**
+1. **Pantalla «¡Hola, [nombre]! Bienvenido»** como PRIMERA pantalla del asesorado, antes de «Mis datos y mis permisos». Una vez por teléfono, sin casillas (las autorizaciones no cambian ni se saltan). Con el nombre del coach si vino por invitación («Te invitó [coach]»).
+2. Texto corto, tres ideas: «Esta app es tu cuaderno del día», «Tú decides qué ve tu coach», «Ahora te explicamos tus permisos, es rápido». Botón grande «Empezar». Sin promesas de salud ni ranking.
+3. Después de las autorizaciones, **llevarlo a Inicio** (no dejarlo en permisos) y lanzar el **tour** (sección E).
+4. Revisar el encabezado de «Mis datos y mis permisos» para que no sea la primera impresión: título amable («Antes de empezar, tú decides») y un resumen en una línea. Los textos legales A1–A8 no se tocan.
+5. Revisar la pantalla del correo: el campo dice «correo»; añadir el aviso «Te llega un código de 6 números, no hay contraseña» (hoy está pequeño y José lo describió como «contraseña enviada»).
+6. E2E: primer arranque de asesorado muestra bienvenida → permisos → Inicio; segundo arranque no la repite; con enlace de invitación muestra el nombre del coach. Subir la caché del `sw.js`.
+Orden sugerido: F (bienvenida) → E (tour), porque ambos son la «primera experiencia» y se prueban juntos en iPhone.
