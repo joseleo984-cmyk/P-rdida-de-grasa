@@ -39,3 +39,10 @@ test('avisos push · la clave pública (base64 url) se convierte a bytes', () =>
   const bytes = PV.b64u('AQID_-8');
   assert.deepStrictEqual([...bytes], [1, 2, 3, 255, 239]);
 });
+
+test('avisos push · el service worker suma un número al ícono por cada aviso (solo un entero, sin contenido)', () => {
+  const sw = read('sw.js');
+  assert.match(sw, /async function bumpBadge/);
+  assert.match(sw.slice(sw.indexOf('async function bumpBadge'), sw.indexOf("self.addEventListener('notificationclick'")), /setAppBadge\(n\)/);
+  assert.match(sw, /Promise\.all\(\[self\.registration\.showNotification[\s\S]*bumpBadge\(\)\]\)/);
+});
