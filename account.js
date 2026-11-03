@@ -580,7 +580,11 @@
     if (note) $('#acc-done-text').textContent += ' ' + note;
     step('done');
   }
-  $('#btn-acc-done').addEventListener('click', () => { closeScreen(); toast('Listo, ya entraste'); });
+  $('#btn-acc-done').addEventListener('click', () => {
+    closeScreen(); toast('Listo, ya entraste');
+    // Primera experiencia: el asesorado aterriza en Inicio (no en «Más» ni en permisos); el coach conserva su vista.
+    const home = $('#tab-panel'); if (home && !((readMeta().roles || []).includes('coach'))) home.click();
+  });
 
   // ---------- Autorizaciones (A1–A8) → servidor ----------
   // Cada decisión se guarda primero en el teléfono (meta.consents + cola) y se envía a core.consent_events cuando hay

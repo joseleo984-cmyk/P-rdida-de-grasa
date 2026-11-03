@@ -72,6 +72,17 @@
         <ul class="cw-legend" aria-hidden="true"><li><i class="cw-dot cw-g"></i> Constantes esta semana</li><li><i class="cw-dot cw-y"></i> Se están apagando</li><li><i class="cw-dot cw-n"></i> Sin registrar</li></ul>
         <button type="button" class="btn btn-tall" id="btn-cw-start">Empezar</button>
       </div></section>
+      <section id="client-welcome" class="consent cw hidden" aria-labelledby="clw-title" data-testid="client-welcome">
+        <div class="card cw-card"><svg class="cw-logo" viewBox="0 0 80 52" aria-hidden="true"><path d="M26 10c-9 0-16 7-16 16s7 16 16 16c8 0 12-6 18-16s10-16 18-16c9 0 16 7 16 16" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round"/><path d="M52 28l8 8 14-17" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h2 id="clw-title" tabindex="-1">¡Hola! Te damos la bienvenida.</h2>
+        <p class="muted">Tu coach te invitó a esta app para acompañar tu constancia, día a día.</p>
+        <ul class="clw-ideas">
+          <li>Esta app es tu cuaderno del día.</li>
+          <li>Tú decides qué ve tu coach.</li>
+          <li>Ahora te explicamos tus permisos: es rápido.</li>
+        </ul>
+        <button type="button" class="btn btn-tall" id="btn-clw-start">Empezar</button>
+      </div></section>
 
   <!-- Sprint 11 (soloNube, SOLO copia de pruebas): UNA pantalla de aceptación. Reemplaza a la pantalla legal local (#consent) y a las
        casillas A1/A2 y A3/A4 del paso del correo. Marca visible: borrador de prueba, pendiente del abogado. -->
@@ -114,7 +125,7 @@
         <form id="form-acc-email" novalidate>
           <label class="acc-label" for="acc-email">Tu correo</label>
           <input type="email" id="acc-email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" required maxlength="254" aria-describedby="acc-email-help acc-email-error">
-          <p id="acc-email-help" class="small muted">Te enviamos un código de 6 números a tu correo. No necesitas contraseña.</p>
+          <p id="acc-email-help" class="small acc-help-strong">Te enviamos un código de 6 números a tu correo. No necesitas contraseña.</p>
           <div id="acc-name-box">
             <label class="acc-label" for="acc-name">Tu nombre</label>
             <input type="text" id="acc-name" name="name" autocomplete="given-name" maxlength="40" aria-describedby="acc-name-help">

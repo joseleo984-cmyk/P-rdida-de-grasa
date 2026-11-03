@@ -2164,3 +2164,7 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 .chat-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
 #fc-chat .btn { margin-right: 8px; }
 .push-time-pick select { min-width: 5.5rem; }
+
+/* Bienvenida del asesorado y aviso del código por correo */
+.clw-ideas { text-align: left; margin: 12px auto 18px; padding-left: 20px; max-width: 24rem; line-height: 1.5; }
+.acc-help-strong { color: var(--text); font-size: 1rem; font-weight: 600; }
