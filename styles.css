@@ -2163,3 +2163,4 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 .chat-form textarea { box-sizing: border-box; width: 100%; max-width: 100%; }
 .chat-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
 #fc-chat .btn { margin-right: 8px; }
+.push-time-pick select { min-width: 5.5rem; }

@@ -1881,7 +1881,8 @@
       <label class="check push-client"><input type="checkbox" id="push-routines"> <span>Actualizaciones de rutinas</span></label>
       <label class="check push-coach-only"><input type="checkbox" id="push-alerts"> <span>Avisos de asesorados</span></label>
       <label class="check push-client"><input type="checkbox" id="push-reminder"> <span>Recordatorio diario</span></label>
-      <label class="push-client push-time" id="push-time-row" hidden>Hora del recordatorio (Colombia) <input type="time" id="push-time" value="20:00"></label>
+      <label class="push-client push-time" id="push-time-row" hidden>Hora del recordatorio (Colombia)
+        <span class="push-time-pick"><select id="push-hour" aria-label="Hora"></select> <span aria-hidden="true">:</span> <select id="push-min" aria-label="Minutos"></select></span></label>
       <p class="small muted push-note"></p>
       <button type="button" class="btn btn-ghost btn-tall" id="push-off">Desactivar avisos</button>
       <button type="button" class="btn btn-tall" data-push-close>Cerrar</button>

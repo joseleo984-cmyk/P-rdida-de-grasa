@@ -60,7 +60,9 @@ test('avisos: el texto del abogado sale solo al activar, «Ahora no» no guarda 
   await expect(p.locator('#push-time-row')).toBeHidden();
   await p.locator('#push-reminder').check();
   await expect(p.locator('#push-time-row')).toBeVisible();
-  await p.locator('#push-time').fill('07:30');
+  await p.locator('#push-hour').selectOption('07');
+  await p.locator('#push-min').selectOption('30');
+  expect(await p.locator('#push-hour option').count()).toBe(24);   // salen TODAS las horas
   await expect.poll(async () => Object.values((await pushState(p)).prefs)[0]).toEqual({ coachMsgs: false, routines: true, alerts: true, reminder: true, reminderAt: '07:30' });
   // desactivar: se borra el dispositivo y el consentimiento queda en «no»
   await p.locator('#push-off').click();
