@@ -289,8 +289,11 @@
     else if (b.id === 'row-salir') { goTo('perfil', 'datos', b.id); $('#btn-account-logout').click(); const f = $('#form-logout'); if (f && f.scrollIntoView) f.scrollIntoView({ block: 'center' }); }
   });
   document.addEventListener('pg:account-changed', (ev) => {
+    const wasSignedIn = navAcct.signedIn;
     navAcct = { signedIn: !!(ev.detail && ev.detail.signedIn), isCoach: !!(ev.detail && ev.detail.isCoach) };
     applyNav(navAcct.isCoach);
+    // Al entrar (correo + código) el asesorado empieza en Inicio. Antes quedaba donde dejó la app: al salir desde «Más → Cerrar sesión» eso era «Mis datos y permisos».
+    if (navAcct.signedIn && !wasSignedIn && !navAcct.isCoach && !navAdmin) show('panel');
     renderMas();
   });
 
