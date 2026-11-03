@@ -52,11 +52,26 @@
     return true;
   }
 
+  // Hora del recordatorio: dos listas (hora 0–23 y minutos de 5 en 5) en lugar del selector del teléfono, que en algunos equipos se salta horas.
+  const pad = (n) => String(n).padStart(2, '0');
+  const hourLabel = (h) => `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? ' a. m.' : ' p. m.'} (${pad(h)})`;
+  function buildTime() {
+    const hs = $('#push-hour'), ms = $('#push-min');
+    if (hs.options.length) return;
+    for (let h = 0; h < 24; h++) hs.add(new Option(hourLabel(h), pad(h)));
+    for (let m = 0; m < 60; m += 5) ms.add(new Option(pad(m), pad(m)));
+  }
+  function setTime(v) {
+    buildTime();
+    const [h, m] = String(v).split(':'), mm = Math.round(Number(m) / 5) * 5;
+    $('#push-hour').value = pad(Number(h)); $('#push-min').value = pad(mm === 60 ? 55 : mm);
+  }
+  const getTime = () => `${$('#push-hour').value}:${$('#push-min').value}`;
   // Coach: solo «Avisos de asesorados»; asesorado: mensajes del coach y rutinas.
   const isCoach = () => { const m = root.PGAccount && root.PGAccount.meta && root.PGAccount.meta(); return !!(m && (m.roles || []).includes('coach')); };
   function fillPrefs(s) {
     $('#push-coach').checked = s.coachMsgs; $('#push-routines').checked = s.routines; $('#push-alerts').checked = s.alerts !== false;
-    $('#push-reminder').checked = s.reminder === true; $('#push-time').value = s.reminderAt || '20:00'; $('#push-time-row').hidden = !(s.reminder === true) || isCoach();
+    $('#push-reminder').checked = s.reminder === true; setTime(s.reminderAt || '20:00'); $('#push-time-row').hidden = !(s.reminder === true) || isCoach();
     for (const e of document.querySelectorAll('.push-client')) e.classList.toggle('hidden', isCoach());
     for (const e of document.querySelectorAll('.push-coach-only')) e.classList.toggle('hidden', !isCoach());
   }
@@ -115,7 +130,7 @@
   }
 
   async function savePrefs() {
-    try { await remote().setPrefs({ coachMsgs: $('#push-coach').checked, routines: $('#push-routines').checked, alerts: $('#push-alerts').checked, reminder: $('#push-reminder').checked, reminderAt: $('#push-time').value }); $('#push-time-row').hidden = !$('#push-reminder').checked; say('Guardado.'); }
+    try { await remote().setPrefs({ coachMsgs: $('#push-coach').checked, routines: $('#push-routines').checked, alerts: $('#push-alerts').checked, reminder: $('#push-reminder').checked, reminderAt: getTime() }); $('#push-time-row').hidden = !$('#push-reminder').checked; say('Guardado.'); }
     catch { say('No pudimos guardar el cambio. Revisa tu conexión.'); }
   }
 
@@ -126,7 +141,7 @@
     $('#push-yes').addEventListener('click', activate);
     $('#push-no').addEventListener('click', () => $('#push-dialog').close());
     $('#push-off').addEventListener('click', deactivate);
-    for (const id of ['#push-coach', '#push-routines', '#push-alerts', '#push-reminder', '#push-time']) $(id).addEventListener('change', savePrefs);
+    for (const id of ['#push-coach', '#push-routines', '#push-alerts', '#push-reminder', '#push-hour', '#push-min']) $(id).addEventListener('change', savePrefs);
     for (const b of document.querySelectorAll('#push-dialog [data-push-close]')) b.addEventListener('click', () => $('#push-dialog').close());
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
