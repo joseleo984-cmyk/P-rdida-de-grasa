@@ -4,14 +4,15 @@ const B = require('../rutinas-base.js');
 const R = require('../rutinas.js');
 
 test('rutinas de ejemplo: todas pasan la misma validación que una rutina del coach', () => {
-  assert.ok(B.STARTERS.length >= 5); assert.ok(B.PENDING.length <= R.LIMITS.sets);
+  assert.ok(B.STARTERS.length >= 5);
   for (const s of B.STARTERS) { const v = R.validate(s); assert.ok(v.ok, s.title + ': ' + JSON.stringify(v.errors)); }
   const titles = B.STARTERS.map((s) => s.title); assert.strictEqual(new Set(titles).size, titles.length, 'sin títulos repetidos');
 });
 
-test('rutinas de ejemplo: la plataforma NO prescribe (sin series, repeticiones, peso, descanso ni notas) y sin kg/kcal/promesas', () => {
+test('rutinas de ejemplo: series y repeticiones de REFERENCIA (sin peso, descanso ni notas) y sin kg/kcal/promesas', () => {
   for (const s of B.STARTERS) for (const d of s.days) for (const e of d.exercises) {
-    assert.deepStrictEqual([e.sets, e.note, e.gif], [B.PENDING, '', ''], e.name);   // el único texto en «series y repeticiones» es el aviso «por definir»
+    assert.deepStrictEqual([e.note, e.gif], ['', ''], e.name);
+    const p = R.parseSets(e.sets); assert.ok(p && p.series >= 1 && p.reps && !p.weight && !p.rest, `${e.name}: ${e.sets} debe ser series×repeticiones sin peso ni descanso`);
     assert.ok(!('series' in e || 'reps' in e || 'weight' in e || 'rest' in e));
   }
   assert.doesNotMatch(JSON.stringify(B), /\bkg\b|kcal|\bcm\b|peso corporal|grasa|adelgaz|quema|resultado/i);

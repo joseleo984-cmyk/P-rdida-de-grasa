@@ -1,7 +1,6 @@
 // Ejercicios y rutinas de EJEMPLO que el coach puede cargar y editar (Etapa 2 «App para coaches»).
-// Regla de producto: la plataforma NO prescribe. Por eso el catálogo trae solo NOMBRES de ejercicios y las rutinas de ejemplo solo traen la estructura
-// (días y ejercicios): sin series, repeticiones, peso ni descanso. Eso lo escribe el coach. La rutina exige un texto en «series y repeticiones», así que cada ejercicio
-// lleva el aviso neutro «Por definir con tu coach» hasta que el coach lo cambie. Sin imágenes ni videos (los suben los coaches, que responden por ellos).
+// Decisión de José (3/11/2026): las rutinas de ejemplo traen series y repeticiones DE REFERENCIA (por ejemplo «3×10-12»), editables. Nunca traen peso ni
+// descanso ni notas, ni imágenes o videos. El coach las ajusta a cada persona y responde por lo que asigna (cláusulas 13 y 17 del Acuerdo). Pendiente de confirmar con el abogado. Sin imágenes ni videos (los suben los coaches, que responden por ellos).
 (function (root) {
   'use strict';
   const CATALOG = [
@@ -13,8 +12,11 @@
     { group: 'Abdomen y core', items: ['Plancha', 'Plancha lateral', 'Elevación de piernas', 'Crunch abdominal', 'Bird dog'] },
     { group: 'Cardio y movilidad', items: ['Caminata', 'Trote suave', 'Bicicleta', 'Remo en máquina', 'Saltar la cuerda', 'Movilidad de cadera', 'Movilidad de hombros', 'Estiramiento de piernas'] },
   ];
-  const PENDING = 'Por definir con tu coach';
-  const day = (title, names) => ({ title, exercises: names.map((name) => ({ name, sets: PENDING, note: '', gif: '' })) });
+  // Referencia por ejercicio (series×repeticiones). Lo no listado usa la general de abajo.
+  const DOSE = { 'Plancha': '3×30 s', 'Plancha lateral': '3×30 s', 'Bird dog': '3×10', 'Caminata': '1×20 min', 'Trote suave': '1×15 min', 'Bicicleta': '1×20 min', 'Movilidad de cadera': '2×10', 'Movilidad de hombros': '2×10', 'Estiramiento de piernas': '2×30 s',
+    'Sentadilla': '3×8-10', 'Press de banca': '3×8-10', 'Peso muerto rumano': '3×8-10', 'Press militar': '3×8-10', 'Remo con barra': '3×8-10', 'Dominadas': '3×6-8', 'Elevación de talones': '3×12-15', 'Crunch abdominal': '3×15', 'Elevación de piernas': '3×12' };
+  const DEFAULT_DOSE = '3×10-12';
+  const day = (title, names) => ({ title, exercises: names.map((name) => ({ name, sets: DOSE[name] || DEFAULT_DOSE, note: '', gif: '' })) });
   const STARTERS = [
     { title: 'Cuerpo completo – 3 días', days: [
       day('Día 1 – Cuerpo completo A', ['Sentadilla', 'Press de banca', 'Remo con mancuerna', 'Plancha']),
@@ -38,6 +40,6 @@
       day('Día 1 – Caminata', ['Caminata']), day('Día 2 – Bicicleta', ['Bicicleta']), day('Día 3 – Trote suave', ['Trote suave'])] },
   ];
   const names = () => CATALOG.flatMap((g) => g.items);
-  const api = { CATALOG, STARTERS, PENDING, names };
+  const api = { CATALOG, STARTERS, DOSE, DEFAULT_DOSE, names };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.RutinasBase = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1114,9 +1114,9 @@
     const have = new Set(lib.map((t) => t.title.toLowerCase()));
     const todo = RutinasBase.STARTERS.filter((s) => !have.has(s.title.toLowerCase())).slice(0, Math.max(0, R.LIMITS.templates - lib.length));
     if (!todo.length) { toast('Ya tienes las rutinas de ejemplo (o tu biblioteca está llena)'); return; }
-    if (!confirm(`Se agregarán ${todo.length} rutinas de ejemplo a tu biblioteca. Traen los días y los ejercicios; las series y repeticiones las defines tú («Por definir con tu coach» hasta que las cambies). ¿Cargarlas?`)) return;
+    if (!confirm(`Se agregarán ${todo.length} rutinas de ejemplo a tu biblioteca. Traen días, ejercicios y series y repeticiones de referencia. Ajústalas a cada persona antes de asignarlas. ¿Cargarlas?`)) return;
     const b = $('#btn-rl-starters'); b.disabled = true;
-    try { for (const s of todo) await A.remote.coach.saveTemplate(null, s); toast(`${todo.length} rutinas de ejemplo cargadas. Edítalas antes de asignarlas.`); await loadLibrary({ keep: true }); }
+    try { for (const s of todo) await A.remote.coach.saveTemplate(null, s); toast(`${todo.length} rutinas de ejemplo cargadas. Ajústalas antes de asignarlas.`); await loadLibrary({ keep: true }); }
     catch (err) { toast(errText(err), true); await loadLibrary({ keep: true }); }
     finally { b.disabled = false; }
   }
