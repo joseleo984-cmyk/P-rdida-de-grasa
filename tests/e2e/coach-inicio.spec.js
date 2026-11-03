@@ -29,7 +29,7 @@ test('coach: resumen «Hoy, escríbele a N personas» sin peso ni fotos', async 
   expect(errors).toEqual([]);
 });
 
-test('bienvenida: es la PRIMERA pantalla (antes de aceptar nada), sin casillas, una sola vez, y no sale con enlace de invitación', async ({ browser }, testInfo) => {
+test('bienvenida: es la PRIMERA pantalla (antes de aceptar nada), sin casillas, una sola vez, y con enlace de invitación sale la del asesorado', async ({ browser }, testInfo) => {
   const { p, errors } = await H.phone(browser, testInfo);
   await p.goto('index.html');
   await H.ready(p).catch(() => {});
@@ -49,7 +49,7 @@ test('bienvenida: es la PRIMERA pantalla (antes de aceptar nada), sin casillas, 
   // Con el enlace de un coach (?c=CODIGO) no se muestra
   await p.evaluate(() => localStorage.removeItem('perdida-grasa:coachBienvenida'));
   await p.goto('index.html?c=ABCD2345');
-  await expect(p.locator('#solo')).toBeVisible();
-  await expect(p.locator('#coach-welcome')).toBeHidden();
+  await expect(p.locator('#coach-welcome')).toBeHidden();   // con invitación sale la bienvenida DEL ASESORADO (asesorado-bienvenida.spec.js)
+  await expect(p.locator('#client-welcome')).toBeVisible();
   expect(errors).toEqual([]);
 });
