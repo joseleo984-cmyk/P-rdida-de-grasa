@@ -43,3 +43,16 @@ test('«Ir a la app» deja al asesorado en Inicio aunque estuviera en Más', asy
   await expect(p.locator('#tab-panel')).toHaveClass(/\bon\b/);
   expect(errors).toEqual([]);
 });
+
+test('al volver a entrar después de «Cerrar sesión» desde Más, el asesorado cae en Inicio (no en «Mis datos y permisos»)', async ({ browser }, testInfo) => {
+  const { p, errors } = await H.clientApp(browser, testInfo);
+  await p.locator('#tab-mas').click();
+  await p.locator('#row-salir').click();            // deja la pantalla en «Mis datos y permisos»
+  await expect(p.locator('#view-perfil')).toHaveClass(/\bactive\b/);
+  // se vuelve a entrar con la cuenta (el servidor falso conserva la sesión): el aviso de cuenta dispara la entrada
+  await p.evaluate(() => document.dispatchEvent(new CustomEvent('pg:account-changed', { detail: { signedIn: false, isCoach: false } })));
+  await p.evaluate(() => document.dispatchEvent(new CustomEvent('pg:account-changed', { detail: { signedIn: true, isCoach: false } })));
+  await expect(p.locator('#view-panel')).toHaveClass(/\bactive\b/);
+  await expect(p.locator('#tab-panel')).toHaveClass(/\bon\b/);
+  expect(errors).toEqual([]);
+});
