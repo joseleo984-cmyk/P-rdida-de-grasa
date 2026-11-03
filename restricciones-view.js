@@ -26,11 +26,13 @@
   async function sendPain(name) {
     await A().remote.client.reportExercisePain({ exercise: name, day: todayIso(), version: L.TEXTS.dolor.version, textHash: await sha(L.fullText('dolor')) });
     say('Anotado. Tu coach podrá verlo.');
+    showChatButton(true);   // atajo: contarle más por el chat sin salir de aquí
   }
+  function showChatButton(on) { const b = $('#paso-pain-chat'); if (b) b.classList.toggle('hidden', !(on && root.ChatView)); }
   async function onPain() {
     const name = ($('#paso-name') && $('#paso-name').textContent || '').trim();
     if (!name) return;
-    say('');
+    say(''); showChatButton(false);
     if (hasPainConsent()) { try { await sendPain(name); } catch { say('No pudimos guardar el reporte. Revisa tu conexión.'); } return; }
     const d = $('#pain-dialog'), t = L.TEXTS.dolor;
     $('#pain-title').textContent = t.title; $('#pain-body').textContent = t.body; $('#pain-yes').textContent = t.buttons.yes; $('#pain-no').textContent = t.buttons.no;
@@ -148,6 +150,7 @@
 
   function wire() {
     const pb = painButton();
+    const cb = $('#paso-pain-chat'); if (cb) cb.addEventListener('click', () => root.ChatView && root.ChatView.openClient());
     if (pb) { pb.addEventListener('click', onPain); document.addEventListener('pg:account-changed', syncPainButton); document.addEventListener('pg:account-ready', syncPainButton); syncPainButton(); }
     if ($('#pain-yes')) { $('#pain-yes').addEventListener('click', confirmPain); $('#pain-no').addEventListener('click', () => $('#pain-dialog').close()); }
     if ($('#rest-warn-yes')) { $('#rest-warn-yes').addEventListener('click', () => closeWarn(true)); $('#rest-warn-no').addEventListener('click', () => closeWarn(false)); $('#rest-warn-dialog').addEventListener('cancel', () => closeWarn(false)); }

@@ -95,3 +95,16 @@ test('el coach pierde el chat al desvincularse el asesorado', async ({ browser }
   });
   expect(r).toBe('forbidden');
 });
+
+test('al reportar dolor aparece «Escribirle a mi coach» y abre el chat directo (con el aviso la primera vez)', async ({ browser }, testInfo) => {
+  const { p, errors } = await H.clientApp(browser, testInfo);
+  await p.evaluate(() => { document.querySelector('#paso-name').textContent = 'Remo'; document.querySelector('#paso-pain').click(); });
+  await p.locator('#pain-yes').click();
+  await expect(p.locator('#paso-pain-status')).toHaveText('Anotado. Tu coach podrá verlo.');
+  expect(await p.evaluate(() => document.querySelector('#paso-pain-chat').classList.contains('hidden'))).toBe(false);   // el paso a paso no está abierto en la prueba: se toca por código
+  await p.evaluate(() => document.querySelector('#paso-pain-chat').click());
+  await expect(p.locator('#chat-aviso-dialog')).toBeVisible();
+  await p.locator('#chat-aviso-ok').click();
+  await expect(p.locator('#chat-dialog')).toBeVisible();
+  expect(errors).toEqual([]);
+});
