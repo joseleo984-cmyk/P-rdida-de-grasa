@@ -22,6 +22,8 @@
     const same = d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
     return same ? `hoy ${hm}` : `${d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} ${hm}`;
   }
-  const api = { TEXTS, MAX, fullText, clean, stamp };
+  // Número sobre el ícono de la app: mensajes del chat sin leer (suma de todas las conversaciones). Solo un entero, nunca contenido.
+  const badgeCount = (list) => Math.min(99, (Array.isArray(list) ? list : []).reduce((a, x) => a + (Number(x && x.n) > 0 ? Number(x.n) : 0), 0));
+  const api = { TEXTS, MAX, fullText, clean, stamp, badgeCount };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Chat = api;
 })(typeof window !== 'undefined' ? window : globalThis);

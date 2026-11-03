@@ -115,12 +115,25 @@
   }
 
   // ---------------- Contadores ----------------
+  // Número sobre el ícono (Badging API; en iPhone solo con la app instalada y los avisos permitidos). Se guarda también para que el service worker
+  // sume uno por cada aviso que llegue con la app cerrada; al abrir la app vuelve al número real de mensajes sin leer.
+  async function paintAppBadge(n) {
+    try {
+      if (navigator.setAppBadge) { if (n > 0) await navigator.setAppBadge(n); else await navigator.clearAppBadge(); }
+      if (root.caches && root.PGNS) { const c = await root.caches.open('badge-' + root.PGNS.cachePrefix()); await c.put('./__badge', new Response(String(n))); }
+    } catch { /* sin soporte: no pasa nada */ }
+  }
   async function updateBadges() {
-    const sub = $('#row-chat-sub'); if (!sub || !api()) return;
-    const m = meta();
-    $('#row-chat-li').classList.toggle('hidden', !(m.userId && m.link && !isCoach()));
-    if (!(m.userId && m.link && !isCoach())) return;
-    try { const n = (await api().unread()).reduce((a, x) => a + x.n, 0); sub.textContent = n ? `${n} mensaje${n > 1 ? 's' : ''} sin leer` : 'Escríbele a tu coach y recibe su respuesta'; } catch { /* sin conexión: queda el texto de siempre */ }
+    if (!api()) return;
+    const m = meta(), isClient = !!(m.userId && m.link && !isCoach());
+    const li = $('#row-chat-li'); if (li) li.classList.toggle('hidden', !isClient);
+    if (!m.userId) { paintAppBadge(0); return; }
+    try {
+      const n = C.badgeCount(await api().unread());
+      paintAppBadge(n);
+      const sub = $('#row-chat-sub');
+      if (isClient && sub) sub.textContent = n ? `${n} mensaje${n > 1 ? 's' : ''} sin leer` : 'Escríbele a tu coach y recibe su respuesta';
+    } catch { /* sin conexión: queda como estaba */ }
   }
 
   function wire() {
@@ -132,7 +145,7 @@
     for (const b of document.querySelectorAll('#chat-dialog [data-chat-close]')) b.addEventListener('click', closeDialog);
     $('#chat-dialog').addEventListener('cancel', () => { stopPolling(); });
     document.addEventListener('pg:account-changed', updateBadges); document.addEventListener('pg:account-ready', updateBadges);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(); updateBadges(); } });
     updateBadges();
   }
   root.ChatView = { coach: coachSection, updateBadges, openClient };

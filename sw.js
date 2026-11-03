@@ -2,7 +2,7 @@
 // Cada entorno (raíz / pruebas) tiene su propia caché: config.js + ns.js deciden el nombre (ver ns.js).
 self.window = self;
 importScripts('config.js', 'ns.js');
-const CACHE = PGNS.cacheName(72);
+const CACHE = PGNS.cacheName(73);
 const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'consent-texts.js', 'liga.js', 'ayuda.js', 'tour.js', 'push-view.js', 'lesiones.js', 'lesiones-view.js', 'chat.js', 'restricciones-view.js', 'chat-view.js', 'producto.js', 'consent-texts-solo.js', 'pagos.js', 'medidas.js', 'habitos.js', 'constancia.js', 'logros.js', 'puntos.js', 'platos.js', 'rutinas.js', 'paso.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'exportar.js', 'estado-cliente.js', 'inicio-view.js', 'piloto.js', 'photos.js', 'etapa2.js', 'app.js', 'config.js', 'ns.js', 'vendor/supabase-2.117.2.js', 'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'rutinas-view.js', 'etapa2-view.js', 'analitica.js', 'admin.js', 'analitica-view.js', 'puntos-view.js', 'liga-view.js', 'logros-view.js', 'admin-view.js', 'exportar-view.js', 'aviso-politica.js', 'manifest.webmanifest', 'icon.svg', 'fonts/BricolageGrotesque-Bold.ttf', 'legal/terminos.html', 'legal/privacidad.html', 'legal/VERSIONS.json'];
 
 self.addEventListener('install', (e) => {
@@ -47,8 +47,17 @@ self.addEventListener('push', (e) => {
   let kind = '';
   try { kind = (e.data && e.data.json() && e.data.json().kind) || ''; } catch { /* sin datos */ }
   const t = PUSH_TEXT[kind] || { title: 'Aviso', body: 'Tienes un aviso nuevo' };
-  e.waitUntil(self.registration.showNotification(t.title, { body: t.body, tag: 'pg-' + (PUSH_TEXT[kind] ? kind : 'aviso'), renotify: false }));
+  e.waitUntil(Promise.all([self.registration.showNotification(t.title, { body: t.body, tag: 'pg-' + (PUSH_TEXT[kind] ? kind : 'aviso'), renotify: false }), bumpBadge()]));
 });
+// Número sobre el ícono: cada aviso con la app cerrada suma uno (solo un entero; al abrir la app vuelve al número real de mensajes sin leer).
+async function bumpBadge() {
+  try {
+    const c = await caches.open('badge-' + PGNS.cachePrefix()), r = await c.match('./__badge');
+    const n = Math.min(99, (r ? parseInt(await r.text(), 10) || 0 : 0) + 1);
+    await c.put('./__badge', new Response(String(n)));
+    if (self.navigator && self.navigator.setAppBadge) await self.navigator.setAppBadge(n);
+  } catch { /* sin soporte */ }
+}
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {

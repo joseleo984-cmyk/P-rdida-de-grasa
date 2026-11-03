@@ -21,3 +21,10 @@ test('chat: el aviso no menciona palabras vetadas en avisos push y el texto comp
   assert.strictEqual(C.fullText(), C.TEXTS.aviso.title + '\n' + C.TEXTS.aviso.body);
   assert.strictEqual(C.MAX, 1000);
 });
+
+test('chat: badgeCount suma los sin leer, ignora basura y topa en 99', () => {
+  assert.strictEqual(C.badgeCount([{ clientId: 'a', n: 2 }, { clientId: 'b', n: 3 }]), 5);
+  assert.strictEqual(C.badgeCount([{ n: -4 }, { n: 'x' }, null]), 0);
+  assert.strictEqual(C.badgeCount(null), 0);
+  assert.strictEqual(C.badgeCount([{ n: 500 }]), 99);
+});

@@ -108,3 +108,21 @@ test('al reportar dolor aparece «Escribirle a mi coach» y abre el chat directo
   await expect(p.locator('#chat-dialog')).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('insignia numérica: el ícono muestra los mensajes sin leer y se limpia al leerlos', async ({ browser }, testInfo) => {
+  const { p } = await H.clientApp(browser, testInfo);
+  await p.evaluate(() => { window.__badge = []; navigator.setAppBadge = async (n) => { window.__badge.push(n); }; navigator.clearAppBadge = async () => { window.__badge.push(0); }; });
+  await p.evaluate(() => {
+    const be = window.__pgFakeBackend, ana = Object.values(be.users).find((u) => u.email === 'ana@c.co'), l = be.links.find((x) => x.clientId === ana.id);
+    for (const i of [1, 2]) be.chatMessages.push({ id: `00000000-0000-4000-8000-00000000099${i}`, clientId: ana.id, coachId: l.coachId, sender: 'coach', body: 'hola ' + i, createdAt: be._serverStamp(), readAt: null });
+    be._persist(); return ChatView.updateBadges();
+  });
+  await expect.poll(() => p.evaluate(() => window.__badge.slice(-1)[0])).toBe(2);
+  await p.locator('#tab-mas').click();
+  await p.locator('#row-chat').click();
+  const ok = p.locator('#chat-aviso-ok');
+  if (await ok.isVisible()) await ok.click();
+  await expect(p.locator('#chat-list .chat-theirs')).toHaveCount(2);
+  await p.locator('#chat-dialog [data-chat-close]').click();
+  await expect.poll(() => p.evaluate(() => window.__badge.slice(-1)[0])).toBe(0);
+});
