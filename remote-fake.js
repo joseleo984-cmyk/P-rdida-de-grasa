@@ -1524,7 +1524,7 @@
 
     // r1 v1.19: avisos push (mismas reglas que el servidor: sin el consentimiento `push` no se guarda el dispositivo; apagar los borra).
     const push = {
-      async state() { const u = await authed(); const p = be.pushPrefs[u.id] || {}; return { consent: be.hasConsent(u.id, 'push'), devices: (be.pushDevices[u.id] || []).length, coachMsgs: p.coachMsgs !== false, routines: p.routines !== false, alerts: p.alerts !== false }; },
+      async state() { const u = await authed(); const p = be.pushPrefs[u.id] || {}; return { consent: be.hasConsent(u.id, 'push'), devices: (be.pushDevices[u.id] || []).length, coachMsgs: p.coachMsgs !== false, routines: p.routines !== false, alerts: p.alerts !== false, reminder: p.reminder === true, reminderAt: p.reminderAt || '20:00' }; },
       async publicKey() { await authed(); if (be.pushMode === 'unavailable') fail('unavailable', 'Los avisos no están disponibles por ahora'); return 'BFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKEKEYFAKE'; },
       async register({ endpoint, p256dh, auth: authKey }) {
         const u = await authed();
@@ -1538,7 +1538,7 @@
       },
       async unregister(endpoint) { const u = await authed(); be.pushDevices[u.id] = (be.pushDevices[u.id] || []).filter((d) => d.endpoint !== endpoint); return done(undefined); },
       async off() { const u = await authed(); be.pushDevices[u.id] = []; return done(undefined); },
-      async setPrefs({ coachMsgs, routines, alerts }) { const u = await authed(); be.pushPrefs[u.id] = { coachMsgs: !!coachMsgs, routines: !!routines, alerts: alerts !== false }; return done(undefined); },
+      async setPrefs({ coachMsgs, routines, alerts, reminder, reminderAt }) { const u = await authed(); be.pushPrefs[u.id] = { coachMsgs: !!coachMsgs, routines: !!routines, alerts: alerts !== false, reminder: reminder === true, reminderAt: /^([01]\d|2[0-3]):[0-5]\d$/.test(String(reminderAt || '')) ? reminderAt : '20:00' }; return done(undefined); },
     };
     // r1 v1.22: chat asesorado ⇄ coach. clientId null = soy el asesorado; con clientId = soy su coach (necesita el Acuerdo 1.0 y vínculo activo).
     const chatOut = (m, me) => ({ id: m.id, mine: (m.sender === 'client' ? m.clientId : m.coachId) === me, body: m.body, createdAt: m.createdAt, readAt: m.readAt });

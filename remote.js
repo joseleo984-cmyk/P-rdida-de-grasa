@@ -840,7 +840,7 @@
 
     // r1 v1.19: avisos push. El servidor guarda solo el identificador técnico del dispositivo y 2 preferencias; la clave pública viene de la función `push-enviar`.
     const push = {
-      async state() { await me(); const s = (await rpc('grasa', 'push_state')) || {}; return { consent: s.consent === true, devices: Number(s.devices) || 0, coachMsgs: s.coach_msgs !== false, routines: s.routines !== false, alerts: s.alerts !== false }; },
+      async state() { await me(); const s = (await rpc('grasa', 'push_state')) || {}; return { consent: s.consent === true, devices: Number(s.devices) || 0, coachMsgs: s.coach_msgs !== false, routines: s.routines !== false, alerts: s.alerts !== false, reminder: s.reminder === true, reminderAt: /^\d{2}:\d{2}$/.test(String(s.reminder_at || '')) ? s.reminder_at : '20:00' }; },
       async publicKey() {
         await me();
         if (offlineNow()) throw new RemoteError('offline', MESSAGES.offline);
@@ -852,7 +852,11 @@
       async register({ endpoint, p256dh, auth: authKey }) { await me(); await rpc('grasa', 'push_register', { p_endpoint: endpoint, p_p256dh: p256dh, p_auth: authKey }); },
       async unregister(endpoint) { await me(); await rpc('grasa', 'push_unregister', { p_endpoint: endpoint }); },
       async off() { await me(); await rpc('grasa', 'push_off'); },
-      async setPrefs({ coachMsgs, routines, alerts }) { await me(); await rpc('grasa', 'push_set_prefs', { p_coach_msgs: !!coachMsgs, p_routines: !!routines, p_alerts: alerts !== false }); },
+      async setPrefs({ coachMsgs, routines, alerts, reminder, reminderAt }) {
+        await me();
+        const at = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(reminderAt || '')) ? reminderAt : '20:00';
+        await rpc('grasa', 'push_set_prefs', { p_coach_msgs: !!coachMsgs, p_routines: !!routines, p_alerts: alerts !== false, p_reminder: reminder === true, p_reminder_at: at });
+      },
     };
 
     // r1 v1.22: chat asesorado ⇄ coach (clientId null = soy el asesorado). El servidor impone vínculo activo, Acuerdo 1.0 del coach y límites.
