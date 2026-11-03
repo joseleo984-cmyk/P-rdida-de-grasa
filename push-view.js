@@ -56,6 +56,7 @@
   const isCoach = () => { const m = root.PGAccount && root.PGAccount.meta && root.PGAccount.meta(); return !!(m && (m.roles || []).includes('coach')); };
   function fillPrefs(s) {
     $('#push-coach').checked = s.coachMsgs; $('#push-routines').checked = s.routines; $('#push-alerts').checked = s.alerts !== false;
+    $('#push-reminder').checked = s.reminder === true; $('#push-time').value = s.reminderAt || '20:00'; $('#push-time-row').hidden = !(s.reminder === true) || isCoach();
     for (const e of document.querySelectorAll('.push-client')) e.classList.toggle('hidden', isCoach());
     for (const e of document.querySelectorAll('.push-coach-only')) e.classList.toggle('hidden', !isCoach());
   }
@@ -114,7 +115,7 @@
   }
 
   async function savePrefs() {
-    try { await remote().setPrefs({ coachMsgs: $('#push-coach').checked, routines: $('#push-routines').checked, alerts: $('#push-alerts').checked }); say('Guardado.'); }
+    try { await remote().setPrefs({ coachMsgs: $('#push-coach').checked, routines: $('#push-routines').checked, alerts: $('#push-alerts').checked, reminder: $('#push-reminder').checked, reminderAt: $('#push-time').value }); $('#push-time-row').hidden = !$('#push-reminder').checked; say('Guardado.'); }
     catch { say('No pudimos guardar el cambio. Revisa tu conexión.'); }
   }
 
@@ -125,7 +126,7 @@
     $('#push-yes').addEventListener('click', activate);
     $('#push-no').addEventListener('click', () => $('#push-dialog').close());
     $('#push-off').addEventListener('click', deactivate);
-    for (const id of ['#push-coach', '#push-routines', '#push-alerts']) $(id).addEventListener('change', savePrefs);
+    for (const id of ['#push-coach', '#push-routines', '#push-alerts', '#push-reminder', '#push-time']) $(id).addEventListener('change', savePrefs);
     for (const b of document.querySelectorAll('#push-dialog [data-push-close]')) b.addEventListener('click', () => $('#push-dialog').close());
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();

@@ -54,7 +54,14 @@ test('avisos: el texto del abogado sale solo al activar, «Ahora no» no guarda 
   // interruptores
   await expect(p.locator('#push-coach')).toBeChecked();
   await p.locator('#push-coach').uncheck();
-  await expect.poll(async () => Object.values((await pushState(p)).prefs)[0]).toEqual({ coachMsgs: false, routines: true, alerts: true });
+  await expect.poll(async () => Object.values((await pushState(p)).prefs)[0]).toEqual({ coachMsgs: false, routines: true, alerts: true, reminder: false, reminderAt: '20:00' });
+  // recordatorio diario: apagado de entrada; al activarlo aparece la hora y se guarda
+  await expect(p.locator('#push-reminder')).not.toBeChecked();
+  await expect(p.locator('#push-time-row')).toBeHidden();
+  await p.locator('#push-reminder').check();
+  await expect(p.locator('#push-time-row')).toBeVisible();
+  await p.locator('#push-time').fill('07:30');
+  await expect.poll(async () => Object.values((await pushState(p)).prefs)[0]).toEqual({ coachMsgs: false, routines: true, alerts: true, reminder: true, reminderAt: '07:30' });
   // desactivar: se borra el dispositivo y el consentimiento queda en «no»
   await p.locator('#push-off').click();
   await expect(p.locator('#push-consent')).toBeVisible();
