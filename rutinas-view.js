@@ -757,7 +757,7 @@
         <input type="text" id="${idOf(i, null, 'title')}" data-f="dtitle" data-d="${i}" maxlength="${L.dayTitle}" autocomplete="off" value="${esc(d.title)}" placeholder="Por ejemplo: Día ${i + 1} – Piernas">
         <ol class="rut-edit-list">${d.exercises.map((e, j) => `<li class="rut-edit-ex"><h3>Ejercicio ${j + 1}</h3>
           <label class="acc-label" for="${idOf(i, j, 'name')}">Nombre del ejercicio</label>
-          <input type="text" id="${idOf(i, j, 'name')}" data-f="name" data-d="${i}" data-e="${j}" maxlength="${L.name}" autocomplete="off" value="${esc(e.name)}" placeholder="Por ejemplo: Press de banca">
+          <input type="text" id="${idOf(i, j, 'name')}" data-f="name" data-d="${i}" data-e="${j}" maxlength="${L.name}" autocomplete="off" list="rut-exercise-names" value="${esc(e.name)}" placeholder="Por ejemplo: Press de banca">
           <fieldset class="rut-edit-sets"><legend>Series, repeticiones, peso y descanso <span class="muted small">(opcional)</span></legend>
             <div class="rut-edit-grid">
               <div><label class="acc-label" for="${idOf(i, j, 'series')}">Series</label>
@@ -1109,6 +1109,17 @@
     }
     renderLib();
   }
+  async function loadStarters() {
+    if (lib === undefined || !window.RutinasBase) return;
+    const have = new Set(lib.map((t) => t.title.toLowerCase()));
+    const todo = RutinasBase.STARTERS.filter((s) => !have.has(s.title.toLowerCase())).slice(0, Math.max(0, R.LIMITS.templates - lib.length));
+    if (!todo.length) { toast('Ya tienes las rutinas de ejemplo (o tu biblioteca está llena)'); return; }
+    if (!confirm(`Se agregarán ${todo.length} rutinas de ejemplo a tu biblioteca. Traen los días y los ejercicios; las series y repeticiones las defines tú («Por definir con tu coach» hasta que las cambies). ¿Cargarlas?`)) return;
+    const b = $('#btn-rl-starters'); b.disabled = true;
+    try { for (const s of todo) await A.remote.coach.saveTemplate(null, s); toast(`${todo.length} rutinas de ejemplo cargadas. Edítalas antes de asignarlas.`); await loadLibrary({ keep: true }); }
+    catch (err) { toast(errText(err), true); await loadLibrary({ keep: true }); }
+    finally { b.disabled = false; }
+  }
   async function onLibAction(ev) {
     const b = ev.target.closest('[data-lact]');
     if (!b) return;
@@ -1225,6 +1236,9 @@
     $('#row-c-rutinas').addEventListener('click', () => loadLibrary());
     $('#tab-rutinas').addEventListener('click', () => { document.querySelector('#rutinas-title').focus(); loadLibrary(); });   // UX Etapa 1: «Rutinas» está en la barra del coach
     $('#btn-rl-new').addEventListener('click', () => { if (lib !== undefined) openEditor({ kind: 'template', routine: null }); });
+    // Rutinas de ejemplo (solo estructura, sin series ni repeticiones) y sugerencias de nombres de ejercicio. Todo editable; se guardan como rutinas propias del coach.
+    const dl = $('#rut-exercise-names'); if (dl && window.RutinasBase && !dl.children.length) for (const n of RutinasBase.names()) dl.append(new Option(n));
+    $('#btn-rl-starters').addEventListener('click', loadStarters);
     $('#rl-list').addEventListener('click', onLibAction);
     $('#btn-rl-daily-clear').addEventListener('click', clearDaily);
     $('#form-asignar').addEventListener('submit', submitAssign);

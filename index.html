@@ -1306,6 +1306,9 @@
       <div class="card">
         <p class="small muted">Crea una rutina una sola vez (por ejemplo «Pecho» o «Piernas») y asígnala a quien quieras. Cada asesorado recibe su propia copia: si después cambias la rutina, las copias ya asignadas no cambian.</p>
         <button type="button" class="btn btn-tall" id="btn-rl-new">＋ Crear una rutina</button>
+        <button type="button" class="btn btn-ghost btn-tall" id="btn-rl-starters">Cargar rutinas de ejemplo</button>
+        <p class="small muted">Son un punto de partida: traen los días y los ejercicios, sin series ni repeticiones. Tú las completas y las cambias como quieras.</p>
+        <datalist id="rut-exercise-names"></datalist>
       </div>
       <p id="rl-status" class="small muted" role="status" aria-live="polite"></p>
       <ul id="rl-list" class="rl-list"></ul>
@@ -2201,6 +2204,7 @@
   <script src="remote.js"></script>
   <script src="account.js"></script>
   <script src="coach-panel.js"></script>
+  <script src="rutinas-base.js"></script>
   <script src="rutinas-view.js"></script>
   <script src="etapa2-view.js"></script>
   <script src="analitica-view.js"></script>
