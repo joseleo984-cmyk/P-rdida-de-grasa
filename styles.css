@@ -2168,3 +2168,10 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 /* Bienvenida del asesorado y aviso del código por correo */
 .clw-ideas { text-align: left; margin: 12px auto 18px; padding-left: 20px; max-width: 24rem; line-height: 1.5; }
 .acc-help-strong { color: var(--text); font-size: 1rem; font-weight: 600; }
+
+/* Fotos de referencia de los ejercicios de ejemplo: dos fotos que se alternan (inicio y final) */
+.rut-photo { position: relative; width: 100%; max-width: 360px; margin: 4px auto 0; border-radius: 12px; overflow: hidden; background: #fff; }
+.rut-photo img { display: block; width: 100%; height: auto; }
+.rut-photo img + img { position: absolute; inset: 0; animation: rut-photo-swap 2s steps(1) infinite; }
+@keyframes rut-photo-swap { 0% { opacity: 0; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .rut-photo img + img { animation: none; } }

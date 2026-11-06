@@ -1,0 +1,3 @@
+Fotos de referencia de ejercicios (inicio y final), reducidas a 360 px.
+Origen: proyecto abierto «free-exercise-db» (https://github.com/yuhonas/free-exercise-db), declarado de dominio público (licencia Unlicense).
+El nombre de cada archivo sale del identificador del ejercicio en ese proyecto. La lista de nombres en español -> foto está en rutinas-base.js (PHOTOS).

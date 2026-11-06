@@ -108,7 +108,7 @@ test('E3/E4 con series del coach: serie hecha → descanso en cuenta regresiva, 
   await expect(p.locator('#paso-timer')).toBeHidden();
   await expect(p.locator('#paso-sets')).toBeHidden();
   await expect(p.locator('#paso-main')).toHaveText('Hecho ›');
-  await expect(p.locator('#paso-media')).toContainText('Tu coach todavía no agregó una demostración');
+  await expect(p.locator('#paso-media img')).toHaveCount(2);   // Plancha trae foto de referencia
   // › salta al siguiente; ‹ vuelve
   await p.locator('#paso-skip').click();
   await expect(p.locator('#paso-name')).toHaveText('Puente de glúteo');
@@ -159,7 +159,7 @@ test('E3 sin video y con solo texto libre: aviso amable, «Hecho ›» sin tempo
   expect(await p.locator('#rutina-cards').innerText()).not.toMatch(/min|minutos/);   // no hay duración
   await p.locator('#rutina-cards .rcard-btn').click();
   await expect(p.locator('#paso-name')).toHaveText('Caminata');
-  await expect(p.locator('#paso-media')).toHaveText('Tu coach todavía no agregó una demostración de este ejercicio. Si tienes dudas de cómo hacerlo, pregúntale.');
+  await expect(p.locator('#paso-media img')).toHaveCount(2);   // Caminata trae foto de referencia
   await expect(p.locator('#paso-free')).toHaveText('20 minutos a ritmo suave');
   await expect(p.locator('#paso-timer')).toBeHidden();
   await expect(p.locator('#paso-main')).toHaveText('Hecho ›');
