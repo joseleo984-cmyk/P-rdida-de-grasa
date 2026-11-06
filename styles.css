@@ -2168,3 +2168,19 @@ body.producto-coach .lg-sheet { background: var(--bg); border-radius: 28px 28px 
 /* Bienvenida del asesorado y aviso del código por correo */
 .clw-ideas { text-align: left; margin: 12px auto 18px; padding-left: 20px; max-width: 24rem; line-height: 1.5; }
 .acc-help-strong { color: var(--text); font-size: 1rem; font-weight: 600; }
+
+/* Calendario de clases (coach) */
+.cal-nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 8px 0; }
+.cal-wd { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+.cal-wd .btn { min-width: 2.6rem; padding: 6px 10px; }
+.cal-grid { width: 100%; border-collapse: separate; border-spacing: 3px; table-layout: fixed; margin: 8px 0; }
+.cal-grid th { font-size: .75rem; color: var(--muted); font-weight: 600; }
+.cal-grid td { padding: 0; }
+.cal-day { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--text); font: inherit; padding: 2px; display: grid; gap: 0; align-content: center; cursor: pointer; }
+.cal-day[aria-pressed="true"] { outline: 2px solid var(--accent); background: var(--accent-soft, rgba(45,212,191,.15)); }
+.cal-day:disabled { opacity: .35; cursor: default; }
+.cal-day .cal-n { font-size: .85rem; }
+.cal-day .cal-t { font-size: .6rem; line-height: 1.1; color: var(--accent); overflow-wrap: anywhere; }
+.cal-day.is-today { border-color: var(--accent); }
+.cal-actions { display: grid; gap: 8px; margin-top: 8px; }
+#fc-cal select { box-sizing: border-box; width: 100%; max-width: 100%; }

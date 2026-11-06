@@ -690,6 +690,24 @@
         return routineOut(await rpc('grasa', 'save_template', { p_id: id || null, p_title: String(routine.title).trim(), p_content: R.toContent(routine) }));
       },
       async deleteTemplate(id) { await me(); await rpc('grasa', 'delete_template', { p_id: id }); },
+      // r1 v1.24: calendario de clases. El asesorado solo ve la de hoy (en su «Rutina de hoy»); aquí el coach programa, quita y lista lo programado.
+      async scheduleSet(clientId, days, templateId) {
+        await me();
+        const list = [...new Set(days || [])];
+        if (!list.length || list.length > 62 || !list.every((d) => DAY_RE.test(String(d)))) throw new RemoteError('invalid', 'Días no válidos');
+        return rpc('grasa', 'schedule_set', { p_client: clientId, p_days: list, p_template: templateId });
+      },
+      async scheduleClear(clientId, days) {
+        await me();
+        const list = [...new Set(days || [])];
+        if (!list.length || list.length > 62 || !list.every((d) => DAY_RE.test(String(d)))) throw new RemoteError('invalid', 'Días no válidos');
+        await rpc('grasa', 'schedule_clear', { p_client: clientId, p_days: list });
+      },
+      async clientSchedule(clientId, from, to) {
+        await me();
+        if (!DAY_RE.test(String(from)) || !DAY_RE.test(String(to))) throw new RemoteError('invalid', 'Fechas no válidas');
+        return rows(await rpc('grasa', 'coach_schedule', { p_client: clientId, p_from: from, p_to: to })).flat().map((x) => ({ day: x.day, title: x.title, templateId: x.template_id || null }));
+      },
       async assignTemplate(templateId, clientIds) {
         await me();
         const ids = Array.isArray(clientIds) ? [...new Set(clientIds)] : [];
