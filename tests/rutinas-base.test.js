@@ -25,3 +25,17 @@ test('catálogo de ejercicios: nombres únicos, dentro del límite y todos los d
   for (const s of B.STARTERS) for (const d of s.days) for (const e of d.exercises) assert.ok(all.includes(e.name), 'falta en el catálogo: ' + e.name);
   assert.ok(B.STARTERS.length <= R.LIMITS.templates);
 });
+
+test('fotos de referencia: cada nombre mapeado tiene sus dos fotos y es del catálogo', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const RB = require('../rutinas-base.js');
+  const all = new Set(RB.names());
+  for (const [name, slug] of Object.entries(RB.PHOTOS)) {
+    assert.ok(all.has(name), 'no está en el catálogo: ' + name);
+    for (const n of [0, 1]) assert.ok(fs.existsSync(path.join(__dirname, '..', 'ejercicios', `${slug}-${n}.jpg`)), `falta ${slug}-${n}.jpg`);
+  }
+  assert.equal(RB.photoOf('  sentadilla '), RB.PHOTOS['Sentadilla']);
+  assert.equal(RB.photoOf('Elevacion de talones'), RB.PHOTOS['Elevación de talones']);
+  assert.equal(RB.photoOf('Ejercicio inventado'), '');
+});

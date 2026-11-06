@@ -1,6 +1,6 @@
 // Ejercicios y rutinas de EJEMPLO que el coach puede cargar y editar (Etapa 2 «App para coaches»).
 // Decisión de José (3/11/2026): las rutinas de ejemplo traen series y repeticiones DE REFERENCIA (por ejemplo «3×10-12»), editables. Nunca traen peso ni
-// descanso ni notas, ni imágenes o videos. El coach las ajusta a cada persona y responde por lo que asigna (cláusulas 13 y 17 del Acuerdo). Pendiente de confirmar con el abogado. Sin imágenes ni videos (los suben los coaches, que responden por ellos).
+// descanso ni notas, ni videos propios. El coach las ajusta a cada persona y responde por lo que asigna (cláusulas 13 y 17 del Acuerdo). Pendiente de confirmar con el abogado.
 (function (root) {
   'use strict';
   const CATALOG = [
@@ -39,7 +39,13 @@
     { title: 'Cardio suave – 3 días', days: [
       day('Día 1 – Caminata', ['Caminata']), day('Día 2 – Bicicleta', ['Bicicleta']), day('Día 3 – Trote suave', ['Trote suave'])] },
   ];
+  // Fotos de referencia (inicio y final) de ejercicios de la lista: carpeta ejercicios/, tomadas de «free-exercise-db» (dominio público, licencia Unlicense).
+  // Se muestran solo si el coach no puso su propia animación o video.
+  const PHOTOS = {"Sentadilla": "barbell-full-squat", "Sentadilla goblet": "goblet-squat", "Prensa de pierna": "leg-press", "Zancadas": "dumbbell-lunges", "Peso muerto rumano": "romanian-deadlift", "Puente de glúteos": "barbell-glute-bridge", "Hip thrust": "barbell-hip-thrust", "Extensión de cuádriceps": "leg-extensions", "Curl femoral": "lying-leg-curls", "Elevación de talones": "standing-calf-raises", "Press de banca": "barbell-bench-press-medium-grip", "Press inclinado con mancuernas": "incline-dumbbell-press", "Press con mancuernas": "dumbbell-bench-press", "Aperturas con mancuernas": "dumbbell-flyes", "Flexiones de brazos": "pushups", "Fondos en paralelas": "dips-chest-version", "Jalón al pecho": "wide-grip-lat-pulldown", "Remo con barra": "bent-over-barbell-row", "Remo con mancuerna": "one-arm-dumbbell-row", "Remo en polea baja": "seated-cable-rows", "Dominadas": "pullups", "Face pull": "face-pull", "Press militar": "standing-military-press", "Elevaciones laterales": "side-lateral-raise", "Elevaciones frontales": "front-dumbbell-raise", "Vuelos posteriores": "reverse-flyes", "Curl de bíceps con barra": "barbell-curl", "Curl martillo": "hammer-curls", "Extensión de tríceps en polea": "triceps-pushdown", "Press francés": "ez-bar-skullcrusher", "Fondos en banco": "bench-dips", "Plancha": "plank", "Plancha lateral": "side-bridge", "Elevación de piernas": "flat-bench-lying-leg-raise", "Crunch abdominal": "crunches", "Caminata": "walking-treadmill", "Trote suave": "jogging-treadmill", "Bicicleta": "bicycling-stationary", "Remo en máquina": "rowing-stationary", "Saltar la cuerda": "rope-jumping", "Movilidad de cadera": "standing-hip-circles", "Movilidad de hombros": "arm-circles", "Estiramiento de piernas": "hamstring-stretch"};
+  const norm = (x) => String(x || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const PHOTO_BY_NORM = Object.fromEntries(Object.entries(PHOTOS).map(([k, v]) => [norm(k), v]));
+  const photoOf = (name) => PHOTO_BY_NORM[norm(name)] || '';
   const names = () => CATALOG.flatMap((g) => g.items);
-  const api = { CATALOG, STARTERS, DOSE, DEFAULT_DOSE, names };
+  const api = { CATALOG, STARTERS, DOSE, DEFAULT_DOSE, PHOTOS, photoOf, names };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.RutinasBase = api;
 })(typeof window !== 'undefined' ? window : globalThis);

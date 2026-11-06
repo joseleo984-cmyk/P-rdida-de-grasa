@@ -109,6 +109,21 @@
     });
   }
 
+  // Fotos de referencia: se crean al abrir el ejercicio y se sueltan al cerrarlo.
+  function photoBox(slug, name) {
+    const box = document.createElement('div');
+    box.className = 'rut-photo';
+    for (const [n, what] of [[0, 'inicial'], [1, 'final']]) {
+      const im = new Image();
+      im.src = `ejercicios/${slug}-${n}.jpg`; im.alt = `Posición ${what} de ${name}`;
+      box.append(im);
+    }
+    return box;
+  }
+  function togglePhoto(el) {
+    const slot = el.querySelector('.rut-photo-slot');
+    if (slot) slot.replaceChildren(...(el.open && el.dataset.photo ? [photoBox(el.dataset.photo, el.dataset.name)] : []));
+  }
   function freeGif(el) {
     if (el._url) URL.revokeObjectURL(el._url);
     el._url = null;
@@ -197,11 +212,12 @@
   function exerciseHTML(e, coachId) {
     const line = R.setsLine(e);   // estilo v2: «4 series · 12 repeticiones · 12 kg · descanso 90 s», o el texto libre del coach tal cual
     const head = `<span class="rut-ex-text"><span class="rut-ex-name">${esc(e.name)}</span><span class="rut-ex-sets">${esc(line)}</span></span><span class="rut-ex-how">Cómo se hace ›</span>`;
-    const none = !e.gif && !e.note;
+    const photo = !e.gif && window.RutinasBase ? RutinasBase.photoOf(e.name) : '';
+    const none = !e.gif && !e.note && !photo;
     const key = `${coachId}|${e.name}`;
     return `<li class="rut-exrow"><button type="button" class="rut-check" data-check="${esc(key)}" aria-pressed="${checked(key)}" aria-label="Marcar «${esc(e.name)}» como hecho"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <details class="rut-ex" data-gif="${esc(e.gif)}" data-name="${esc(e.name)}" data-coach="${esc(coachId)}"><summary aria-label="${esc(e.name)}, ${esc(line)}. Cómo se hace">${head}</summary>
-      <div class="rut-ex-body">${e.note ? `<p class="rut-note">${esc(e.note)}</p>` : ''}${e.gif ? '<div class="rut-gif" role="status" aria-live="polite"></div>' : ''}${none ? '<p class="rut-note muted">Tu coach todavía no agregó una demostración de este ejercicio. Si tienes dudas de cómo hacerlo, pregúntale.</p>' : ''}</div></details></li>`;
+      <details class="rut-ex" data-photo="${esc(photo)}" data-gif="${esc(e.gif)}" data-name="${esc(e.name)}" data-coach="${esc(coachId)}"><summary aria-label="${esc(e.name)}, ${esc(line)}. Cómo se hace">${head}</summary>
+      <div class="rut-ex-body">${e.note ? `<p class="rut-note">${esc(e.note)}</p>` : ''}${e.gif ? '<div class="rut-gif" role="status" aria-live="polite"></div>' : ''}${photo ? '<div class="rut-photo-slot"></div><p class="rut-note muted small">Foto de referencia. Si tienes dudas de cómo hacerlo, pregúntale a tu coach.</p>' : ''}${none ? '<p class="rut-note muted">Tu coach todavía no agregó una demostración de este ejercicio. Si tienes dudas de cómo hacerlo, pregúntale.</p>' : ''}</div></details></li>`;
   }
   // Ejercicios marcados como hechos HOY (solo en este teléfono; no se sincroniza y no sustituye al «Ya entrené»).
   const CHECKS_KEY = (window.PGNS && PGNS.key ? PGNS.key('rutina-hechos') : 'perdida-grasa:rutina-hechos');
@@ -412,7 +428,14 @@
     px.url = null;
     dropMedia(slot);
     const tok = (px.tok = (px.tok || 0) + 1);
-    $('#paso-stage').classList.toggle('no-media', !s.gif);
+    $('#paso-stage').classList.toggle('no-media', !s.gif && !(window.RutinasBase && RutinasBase.photoOf(s.name)));
+    const photo = !s.gif && window.RutinasBase ? RutinasBase.photoOf(s.name) : '';
+    if (photo) {
+      lbl.textContent = 'Foto de referencia';
+      const box = photoBox(photo, s.name);
+      slot.replaceChildren(box);
+      return;
+    }
     if (!s.gif) {
       lbl.textContent = '';
       const p = document.createElement('p');
@@ -709,6 +732,7 @@
     body.addEventListener('toggle', (ev) => {   // 'toggle' no sube por el árbol: se escucha en la captura
       const el = ev.target;
       if (!el.classList || !el.classList.contains('rut-ex')) return;
+      togglePhoto(el);
       if (el.open) { markSeen(el.dataset.name); loadGif(el); } else freeGif(el);
     }, true);
     body.addEventListener('click', (ev) => {
