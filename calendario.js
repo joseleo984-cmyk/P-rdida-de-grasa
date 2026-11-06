@@ -33,6 +33,21 @@
   const monthRange = (y, m0) => ({ from: key(y, m0, 1), to: key(y, m0, daysIn(y, m0)) });
   const chunk = (arr, n = MAX_DAYS) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
   const short = (t, n = 9) => { const s = String(t || '').trim(); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
-  const api = { MAX_DAYS, BACK, AHEAD, key, parse, daysIn, addDays, weekday, WD, WD_NAMES, MONTHS, monthLabel, addMonths, monthGrid, daysOfWeekday, canSchedule, monthRange, chunk, short };
+  // «Repetir las 4 semanas anteriores»: cada día del mes mostrado copia la clase que había 28 días antes (mismo día de la semana). `list` = lo programado
+  // ({ day, templateId, title }). Solo copia a días permitidos; las clases sin plantilla (la rutina se borró) no se pueden copiar y se cuentan aparte.
+  function repeatPlan(list, y, m0, today) {
+    const by = new Map(); for (const x of list || []) by.set(x.day, x);
+    const plan = new Map(); let days = 0, lost = 0, replace = 0;
+    for (let d = 1; d <= daysIn(y, m0); d++) {
+      const k = key(y, m0, d); if (!canSchedule(k, today)) continue;
+      const src = by.get(addDays(k, -28)); if (!src) continue;
+      if (!src.templateId) { lost++; continue; }
+      if (!plan.has(src.templateId)) plan.set(src.templateId, { title: src.title, days: [] });
+      plan.get(src.templateId).days.push(k); days++;
+      if (by.has(k)) replace++;
+    }
+    return { plan, days, lost, replace };
+  }
+  const api = { repeatPlan, MAX_DAYS, BACK, AHEAD, key, parse, daysIn, addDays, weekday, WD, WD_NAMES, MONTHS, monthLabel, addMonths, monthGrid, daysOfWeekday, canSchedule, monthRange, chunk, short };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Calendario = api;
 })(typeof window !== 'undefined' ? window : globalThis);

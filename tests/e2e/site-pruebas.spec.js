@@ -104,7 +104,7 @@ test('(d) los service workers de la raíz y de pruebas conviven sin borrarse las
   await open(page, site.base + '/');
   await page.waitForTimeout(500);
   const keys = (await page.evaluate(() => caches.keys())).filter((k) => !k.startsWith('badge-'));   // el número del ícono vive en su propia caché
-  expect(keys.sort()).toEqual(['perdida-grasa-demo-v79', 'perdida-grasa-pruebas-v79', 'perdida-grasa-v79']);
+  expect(keys.sort()).toEqual(['perdida-grasa-demo-v80', 'perdida-grasa-pruebas-v80', 'perdida-grasa-v80']);
   for (const k of keys) expect(await page.evaluate(async (k) => (await (await caches.open(k)).keys()).length, k)).toBeGreaterThan(5);
-  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v79')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
+  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v80')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
 });

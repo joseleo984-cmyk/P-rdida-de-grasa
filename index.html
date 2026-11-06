@@ -930,7 +930,7 @@
             <table id="cal-grid" class="cal-grid" aria-label="Días del mes"></table>
             <label class="acc-label" for="cal-tpl">Clase (de tus rutinas)</label>
             <select id="cal-tpl"></select>
-            <div class="cal-actions"><button type="button" class="btn" id="cal-set">Programar en los días elegidos</button><button type="button" class="btn btn-ghost" id="cal-clear">Quitar de los días elegidos</button></div>
+            <div class="cal-actions"><button type="button" class="btn" id="cal-set">Programar en los días elegidos</button><button type="button" class="btn btn-ghost" id="cal-clear">Quitar de los días elegidos</button><button type="button" class="btn btn-ghost" id="cal-repeat">Repetir las 4 semanas anteriores en este mes</button></div>
             <p id="cal-msg" class="small" role="status" aria-live="polite"></p>
           </section>
           <section id="fc-restr" class="card pc-only hidden" aria-labelledby="fcr-title">
@@ -1907,7 +1907,8 @@
       <label class="check push-coach-only"><input type="checkbox" id="push-alerts"> <span>Avisos de asesorados</span></label>
       <label class="check push-client"><input type="checkbox" id="push-reminder"> <span>Recordatorio diario</span></label>
       <label class="push-client push-time" id="push-time-row" hidden>Hora del recordatorio (Colombia)
-        <span class="push-time-pick"><select id="push-hour" aria-label="Hora"></select> <span aria-hidden="true">:</span> <select id="push-min" aria-label="Minutos"></select></span></label>
+        <span class="push-time-pick"><select id="push-hour" aria-label="Hora"></select> <span aria-hidden="true">:</span> <select id="push-min" aria-label="Minutos"></select></span>
+        <span class="small muted">Si ese día tu coach programó una clase, el aviso dice «Tienes clase hoy».</span></label>
       <p class="small muted push-note"></p>
       <button type="button" class="btn btn-ghost btn-tall" id="push-off">Desactivar avisos</button>
       <button type="button" class="btn btn-tall" data-push-close>Cerrar</button>
