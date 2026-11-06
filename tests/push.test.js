@@ -28,7 +28,9 @@ test('avisos push · las frases del teléfono (sw.js) son neutrales: sin datos d
   const block = sw.slice(sw.indexOf('const PUSH_TEXT'), sw.indexOf("self.addEventListener('push'"));
   assert.match(block, /Tienes un mensaje nuevo de tu coach/);
   assert.match(block, /reminder: \{ title: 'Recordatorio', body: 'Es hora de registrar tu día' \}/);
+  assert.match(block, /class_today: \{ title: 'Clase de hoy', body: 'Tienes clase hoy' \}/);
   assert.ok(read('supabase/functions/_shared/push.mjs').includes("'reminder'"), 'la función de envío conoce el tipo reminder');
+  for (const f of ['supabase/functions/_shared/push.mjs', 'supabase/functions/push-enviar/pegar-en-el-panel.ts']) assert.ok(read(f).includes("'class_today'"), f + ' conoce class_today');
   assert.doesNotMatch(block, /\b(kg|kcal|cm|peso|medidas?|calor[ií]as?|comidas?|grasa|dieta|obesidad|d[eé]ficit|ansiedad|pag[oó]|mensualidad|cobro)\b/i);
   // el servidor manda solo el TIPO: ninguna columna ni función de la cola lleva texto
   const sql = read('supabase/migrations/20261106120000_r1_push.sql');

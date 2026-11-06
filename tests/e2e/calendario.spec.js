@@ -49,3 +49,26 @@ test('asesorado: solo ve la clase programada para HOY (no las de otros días)', 
   await expect(p.locator('#view-rutina')).not.toContainText('Remo');
   expect(errors).toEqual([]);
 });
+
+test('coach: «Repetir las 4 semanas anteriores» copia al mes que se ve y avisa cuando no hay nada que repetir', async ({ browser }, testInfo) => {
+  const { p, errors } = await H.coachApp(browser, testInfo, [{ email: 'ana@c.co', name: 'Ana Martínez', paidDays: 20, habitDays: [H.hab(-1)] }]);
+  await p.evaluate(async (s) => { await PGAccount.remote.coach.saveTemplate(null, s); }, B.STARTERS[3]);
+  await p.locator('#tab-coach').click();
+  await p.locator('#coach-clients .cli-main').first().click();
+  await expect(p.locator('#fc-cal')).toBeVisible();
+  await H.layout(p, '#fc-cal button, #fc-cal select');
+  await p.locator('#cal-repeat').click();
+  await expect(p.locator('#cal-msg')).toContainText('No hay clases en las 4 semanas anteriores');
+  // programa todos los lunes de este mes, pasa al mes siguiente y repite: llegan las clases de 28 días antes
+  await p.locator('#cal-wd button').first().click();
+  await p.locator('#cal-set').click();
+  await expect(p.locator('#cal-msg')).toContainText('Programaste');
+  const before = Object.keys((await H.backend(p)).classSchedule).length;
+  await p.locator('#cal-next').click();
+  await expect(p.locator('#cal-grid .cal-t')).toHaveCount(0);
+  await p.locator('#cal-repeat').click();
+  await expect(p.locator('#cal-msg')).toContainText('repetiste las clases de las 4 semanas anteriores');
+  expect(Object.keys((await H.backend(p)).classSchedule).length).toBeGreaterThan(before);
+  await expect(p.locator('#cal-grid .cal-t').first()).toBeVisible();
+  expect(errors).toEqual([]);
+});

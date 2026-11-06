@@ -58,6 +58,7 @@
     }
     $('#cal-set').disabled = !(st.tpls || []).length || !st.sel.size;
     $('#cal-clear').disabled = ![...st.sel].some((k) => st.sched.has(k));
+    $('#cal-repeat').disabled = !(st.tpls || []).length;
     if (!(st.tpls || []).length) say('Primero crea una rutina en Mis rutinas (o carga las de ejemplo) para poder programarla.');
   }
 
@@ -99,6 +100,29 @@
     finally { render(); }
   }
 
+  // Repite las 4 semanas anteriores: lee 28 días antes del mes (hasta 62 días en total), agrupa por rutina y programa cada grupo. Reemplaza lo que ya haya en esos días.
+  async function onRepeat() {
+    if (!st) return;
+    const t = todayKey(), { from, to } = C.monthRange(st.y, st.m0);
+    const b = $('#cal-repeat'); b.disabled = true; say('');
+    try {
+      const list = await A().remote.coach.clientSchedule(st.id, C.addDays(from, -28), to);
+      const r = C.repeatPlan(list, st.y, st.m0, t);
+      if (!r.days) { say(r.lost ? 'Esas clases venían de una rutina que ya borraste, no se pueden repetir.' : 'No hay clases en las 4 semanas anteriores para repetir.'); return; }
+      const nRep = r.replace;
+      if (!confirm(`Se programarán ${r.days} ${r.days === 1 ? 'clase' : 'clases'} en ${C.monthLabel(st.y, st.m0)}, copiando las de 4 semanas antes.${nRep ? ` Se reemplazan ${nRep} que ya tenías.` : ''} ¿Seguir?`)) return;
+      for (const [id, g] of r.plan) {
+        const tpl = (st.tpls || []).find((x) => x.id === id);
+        if (!tpl) continue;
+        if (root.RestrView && !(await root.RestrView.confirmAssign([{ id: st.id, name: st.name || 'Asesorado' }], tpl))) continue;
+        for (const part of C.chunk(g.days)) await A().remote.coach.scheduleSet(st.id, part, id);
+      }
+      st.sel.clear(); say(`Listo: repetiste las clases de las 4 semanas anteriores${r.lost ? ` (${r.lost} no se pudieron copiar porque su rutina ya no existe)` : ''}.`);
+      await loadMonth();
+    } catch (e) { say(errText(e)); }
+    finally { render(); }
+  }
+
   async function coach(clientId, name) {
     const box = $('#fc-cal'); if (!box || !A()) return;
     const d = new Date();
@@ -112,7 +136,7 @@
 
   function wire() {
     if (!$('#cal-set')) return;
-    $('#cal-set').addEventListener('click', onSet); $('#cal-clear').addEventListener('click', onClear);
+    $('#cal-set').addEventListener('click', onSet); $('#cal-repeat').addEventListener('click', onRepeat); $('#cal-clear').addEventListener('click', onClear);
     $('#cal-prev').addEventListener('click', () => move(-1)); $('#cal-next').addEventListener('click', () => move(1));
   }
   root.CalView = { coach };
