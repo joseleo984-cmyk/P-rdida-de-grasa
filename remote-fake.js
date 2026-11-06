@@ -113,6 +113,7 @@
       this.exercisePain = [];   // v1.21: dolor por ejercicio { clientId, key, name, day, version, textHash }
       this.avoidList = [];      // v1.21: ejercicios a evitar { coachId, clientId, key, name }
       this.injuries = [];       // v1.20: lesiones y condiciones médicas { id, clientId, kind, area, description, status, onset, version, textHash, convertedAt, createdAt, updatedAt, notes[] }
+      this.classSchedule = {};  // v1.24: calendario de clases, `${coachId}|${clientId}|${día}` → { coachId, clientId, day, templateId, title, days, createdAt }
       this.chatMessages = [];   // v1.22: chat { id, clientId, coachId, sender: 'client'|'coach', body, createdAt, readAt }
       this.pushDevices = {};    // v1.19: avisos push, userId → [{ endpoint, p256dh, auth }] (solo pruebas; el servidor real guarda lo mismo)
       this.pushPrefs = {};      // v1.19: userId → { coachMsgs, routines }
@@ -324,13 +325,13 @@
 
     // --- Serialización para E2E (los blobs no se guardan) ---
     toJSON() {
-      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, exercisePain, avoidList, chatMessages, _tick } = this;
-      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, exercisePain, avoidList, chatMessages, tick: _tick };
+      const { users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, exercisePain, avoidList, chatMessages, classSchedule, _tick } = this;
+      return { v: 1, users, otps, sent, appAccess, profiles, coaches, links, inviteAttempts, records, photos, comments, consentEvents, consentArchive, photoViews, agreementCopies, revoked, gifs, routines, templates, daily, healthAnswers, painReports, linkPauses, challenges, panelDays, notices, coachEvents, exports, points, teamGoals, pushDevices, pushPrefs, injuries, pushOutbox, exercisePain, avoidList, chatMessages, classSchedule, tick: _tick };
     }
     static fromJSON(json, opts = {}) {
       const b = new FakeBackend(opts);
       if (json && json.v === 1) {
-        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'pushDevices', 'pushPrefs', 'injuries', 'pushOutbox', 'exercisePain', 'avoidList', 'chatMessages', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports', 'points', 'teamGoals']) {
+        for (const k of ['users', 'otps', 'sent', 'appAccess', 'profiles', 'coaches', 'links', 'inviteAttempts', 'records', 'photos', 'comments', 'consentEvents', 'consentArchive', 'photoViews', 'agreementCopies', 'revoked', 'gifs', 'routines', 'templates', 'daily', 'healthAnswers', 'painReports', 'linkPauses', 'pushDevices', 'pushPrefs', 'injuries', 'pushOutbox', 'exercisePain', 'avoidList', 'chatMessages', 'classSchedule', 'challenges', 'panelDays', 'notices', 'coachEvents', 'exports', 'points', 'teamGoals']) {
           if (json[k] !== undefined) b[k] = clone(json[k]);
         }
         b._tick = Number(json.tick) || 0;
@@ -486,6 +487,7 @@
         be.injuries = be.injuries.filter((i) => i.clientId !== u.id);   // v1.20: en cascada con la cuenta
         be.exercisePain = be.exercisePain.filter((x) => x.clientId !== u.id); be.avoidList = be.avoidList.filter((x) => x.clientId !== u.id && x.coachId !== u.id);
         be.chatMessages = be.chatMessages.filter((m) => m.clientId !== u.id && m.coachId !== u.id);   // v1.22: el chat se borra con la cuenta
+        for (const k of Object.keys(be.classSchedule)) if (be.classSchedule[k].coachId === u.id || be.classSchedule[k].clientId === u.id) delete be.classSchedule[k];   // v1.24: el calendario también
         delete be.pushDevices[u.id]; delete be.pushPrefs[u.id];   // v1.19: el identificador del dispositivo se destruye con la cuenta
         for (const k of Object.keys(be.teamGoals)) if (k.startsWith(u.id + '|')) delete be.teamGoals[k];
         // Sprint 6: antes de borrar, copia mínima y seudonimizada (sin uuid, correo ni nombre), como core.delete_my_account().
@@ -726,7 +728,10 @@
         const u = await authed();
         if (!/^\d{4}-\d{2}-\d{2}$/.test(String(today))) fail('invalid', 'Fecha no válida');
         const l = be.activeLink(u.id);
-        const d = l && be.coaches[l.coachId] && be.coaches[l.coachId].active ? be.daily[l.coachId] : null;
+        const ok = l && be.coaches[l.coachId] && be.coaches[l.coachId].active;
+        const sch = ok ? be.classSchedule[`${l.coachId}|${u.id}|${today}`] : null;   // v1.24: la clase programada para HOY manda sobre la publicada para todos
+        if (sch) return dailyOut({ coachId: sch.coachId, templateId: sch.templateId, title: sch.title, days: sch.days, day: sch.day, publishedAt: sch.createdAt });
+        const d = ok ? be.daily[l.coachId] : null;
         return d && d.day === String(today) ? dailyOut(d) : null;
       },
       async gifBlob(coachId, gifId) {
@@ -1120,6 +1125,30 @@
           Object.assign(t, c, { updatedAt: now });
         }
         return done(routineOut(t));
+      },
+      // r1 v1.24: calendario de clases (el asesorado solo ve la de hoy, vía myDaily).
+      async scheduleSet(clientId, days, templateId) {
+        const u = await asCoach();
+        activeLinkCoach(u.id, clientId);
+        const list = [...new Set(days || [])];
+        if (!list.length || list.length > 62 || !list.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d)))) invalid('bad_days');
+        const t = be.templates[templateId];
+        if (!t || t.coachId !== u.id) fail('not_found', 'Rutina no encontrada');
+        const today = Date.parse(be.todayBogota() + 'T00:00:00Z');
+        for (const d of list) { const diff = (Date.parse(d + 'T00:00:00Z') - today) / 86400000; if (!(diff >= -1 && diff <= 120)) invalid('bad_day'); }
+        for (const d of list) be.classSchedule[`${u.id}|${clientId}|${d}`] = { coachId: u.id, clientId, day: d, templateId: t.id, title: t.title, days: clone(t.days), createdAt: iso(be.clock.now()) };
+        return done({ days: list.length });
+      },
+      async scheduleClear(clientId, days) {
+        const u = await asCoach({ agreement: false });
+        for (const d of days || []) delete be.classSchedule[`${u.id}|${clientId}|${d}`];
+        return done(undefined);
+      },
+      async clientSchedule(clientId, from, to) {
+        const u = await asCoach();
+        activeLinkCoach(u.id, clientId);
+        return Object.values(be.classSchedule).filter((s) => s.coachId === u.id && s.clientId === clientId && s.day >= from && s.day <= to)
+          .sort((a, b) => (a.day < b.day ? -1 : 1)).map((s) => ({ day: s.day, title: s.title, templateId: s.templateId }));
       },
       async deleteTemplate(id) {
         const u = await asCoach({ agreement: false });

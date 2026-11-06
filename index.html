@@ -922,6 +922,17 @@
             <p class="small muted">Mensajes de texto con este asesorado. Son confidenciales: no los captures ni los compartas.</p>
             <button type="button" class="btn btn-ghost" id="fcc-open">Abrir chat</button> <span class="small" id="fcc-n" role="status"></span>
           </section>
+          <section id="fc-cal" class="card pc-only hidden" aria-labelledby="fcal-title">
+            <h3 id="fcal-title">Calendario de clases</h3>
+            <p class="small muted">Programa las clases del mes. Tu asesorado solo ve la clase de cada día, cuando llega ese día.</p>
+            <div class="cal-nav"><button type="button" class="btn btn-ghost" id="cal-prev" aria-label="Mes anterior">‹</button><strong id="cal-month" role="status" aria-live="polite"></strong><button type="button" class="btn btn-ghost" id="cal-next" aria-label="Mes siguiente">›</button></div>
+            <div id="cal-wd" class="cal-wd" role="group" aria-label="Elegir todos los días de la semana"></div>
+            <table id="cal-grid" class="cal-grid" aria-label="Días del mes"></table>
+            <label class="acc-label" for="cal-tpl">Clase (de tus rutinas)</label>
+            <select id="cal-tpl"></select>
+            <div class="cal-actions"><button type="button" class="btn" id="cal-set">Programar en los días elegidos</button><button type="button" class="btn btn-ghost" id="cal-clear">Quitar de los días elegidos</button></div>
+            <p id="cal-msg" class="small" role="status" aria-live="polite"></p>
+          </section>
           <section id="fc-restr" class="card pc-only hidden" aria-labelledby="fcr-title">
             <h3 id="fcr-title">Restricciones de entrenamiento</h3>
             <div id="fcr-body"></div>
@@ -2206,6 +2217,8 @@
   <script src="coach-panel.js"></script>
   <script src="rutinas-base.js"></script>
   <script src="rutinas-view.js"></script>
+  <script src="calendario.js"></script>
+  <script src="calendario-view.js"></script>
   <script src="etapa2-view.js"></script>
   <script src="analitica-view.js"></script>
   <script src="puntos-view.js"></script>
