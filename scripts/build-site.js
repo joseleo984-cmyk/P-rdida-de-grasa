@@ -68,8 +68,8 @@ if (!html.includes('<meta charset="utf-8">')) die('index.html sin <meta charset>
 html = html.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n  <meta name="robots" content="noindex,nofollow">');
 fs.writeFileSync(path.join(P, 'index.html'), html);
 const manifest = JSON.parse(read('manifest.webmanifest'));
-manifest.name = 'Pérdida de Grasa (pruebas)';
-manifest.short_name = 'Grasa (pruebas)';
+manifest.name = 'En forma (pruebas)';
+manifest.short_name = 'En forma (pruebas)';
 manifest.start_url = './';
 manifest.scope = './';
 fs.writeFileSync(path.join(P, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2) + '\n');
@@ -93,15 +93,15 @@ if (!dhtml.includes('<meta charset="utf-8">') || !dhtml.includes('<link rel="sty
 dhtml = dhtml.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n  <meta name="robots" content="noindex,nofollow">')
   .replace('<link rel="stylesheet" href="styles.css">', '<link rel="stylesheet" href="styles.css">\n  <link rel="stylesheet" href="demo.css">')
   .replace('<script src="remote.js"></script>', '<script src="remote.js"></script>\n' + DEMO_FILES.filter((f) => f.endsWith('.js')).map((f) => `  <script src="${f}"></script>`).join('\n'))
-  .replace('<title>Pérdida de Grasa</title>', '<title>Pérdida de Grasa (demo)</title>');
+  .replace('<title>En forma</title>', '<title>En forma (demo)</title>');
 fs.writeFileSync(path.join(DM, 'index.html'), dhtml);
 let dsw = fs.readFileSync(path.join(DM, 'sw.js'), 'utf8');
 if (!dsw.includes('const ASSETS = [')) die('no se encontró ASSETS en sw.js');
 dsw = dsw.replace('const ASSETS = [', `const ASSETS = [${DEMO_FILES.map((f) => `'${f}'`).join(', ')}, `);
 fs.writeFileSync(path.join(DM, 'sw.js'), dsw);
 const dman = JSON.parse(read('manifest.webmanifest'));
-dman.name = 'Pérdida de Grasa (demo)';
-dman.short_name = 'Grasa (demo)';
+dman.name = 'En forma (demo)';
+dman.short_name = 'En forma (demo)';
 dman.start_url = './';
 dman.scope = './';
 fs.writeFileSync(path.join(DM, 'manifest.webmanifest'), JSON.stringify(dman, null, 2) + '\n');

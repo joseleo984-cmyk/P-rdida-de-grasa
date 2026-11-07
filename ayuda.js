@@ -5,7 +5,7 @@
   'use strict';
   const SUPPORT_PHONE = '573128876125';          // 3128876125 (Colombia)
   const SUPPORT_SHOW = '312 887 6125';
-  const SUPPORT_MESSAGE = 'Hola, necesito ayuda con la app Pérdida de Grasa.';   // fijo: nunca lleva datos de salud ni de la persona
+  const SUPPORT_MESSAGE = 'Hola, necesito ayuda con la app En forma.';   // fijo: nunca lleva datos de salud ni de la persona
   const supportUrl = () => 'https://wa.me/' + SUPPORT_PHONE + '?text=' + encodeURIComponent(SUPPORT_MESSAGE);
 
   const COACH = [

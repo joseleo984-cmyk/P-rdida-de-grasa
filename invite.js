@@ -22,7 +22,7 @@
   function inviteMessage({ clientName, businessName, link }) {
     const who = cleanName(clientName);
     const biz = cleanName(businessName) || 'tu coach';
-    return `${who ? `Hola ${who}` : 'Hola'}, soy ${biz}. Te invito a seguir tu progreso conmigo en Pérdida de Grasa. Toca este enlace y listo: ${link}`;
+    return `${who ? `Hola ${who}` : 'Hola'}, soy ${biz}. Te invito a seguir tu progreso conmigo en la app En forma. Toca este enlace y listo: ${link}`;
   }
   const whatsappUrl = (message) => 'https://wa.me/?text=' + encodeURIComponent(message);
 

@@ -24,6 +24,6 @@ test('ayuda: buscador sin acentos ni mayúsculas; todas las palabras; sin texto 
 
 test('ayuda: soporte por WhatsApp con mensaje fijo, sin datos de salud', () => {
   assert.strictEqual(A.SUPPORT_PHONE, '573128876125');
-  assert.strictEqual(A.supportUrl(), 'https://wa.me/573128876125?text=' + encodeURIComponent('Hola, necesito ayuda con la app Pérdida de Grasa.'));
+  assert.strictEqual(A.supportUrl(), 'https://wa.me/573128876125?text=' + encodeURIComponent('Hola, necesito ayuda con la app En forma.'));
   assert.doesNotMatch(A.SUPPORT_MESSAGE, /peso|kg|kcal|salud|dolor/i);
 });

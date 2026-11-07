@@ -435,7 +435,7 @@
     const p = inviteParts();
     if (!p || !window.QR) return;
     let svg;
-    try { svg = QR.svg(p.link, { label: 'Código QR de tu invitación a Pérdida de Grasa. Tu cliente lo escanea con la cámara del teléfono.' }); } catch { toast('No se pudo crear el QR', true); return; }
+    try { svg = QR.svg(p.link, { label: 'Código QR de tu invitación a En forma. Tu cliente lo escanea con la cámara del teléfono.' }); } catch { toast('No se pudo crear el QR', true); return; }
     $('#qr-box').innerHTML = svg; // SVG generado por qr.js: solo números y una etiqueta escapada, nada que escribió una persona
     $('#qr-code').textContent = Invite.normalizeCode((A.meta().coach || {}).inviteCode);
     qrOpener = document.activeElement;

@@ -1,4 +1,4 @@
-# Pérdida de Grasa
+# En forma
 
 App web (instalable en el móvil como PWA) para llevar el seguimiento de un proceso de pérdida de grasa.
 Sin dependencias ni servidor: todos los datos se guardan en el propio dispositivo (`localStorage`).
