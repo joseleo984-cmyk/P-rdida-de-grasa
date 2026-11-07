@@ -3084,7 +3084,7 @@
     document.addEventListener('visibilitychange', () => { if (document.hidden && pending) reloadNow(); });
     navigator.serviceWorker.register('sw.js').then((reg) => {
       // Una app que estuvo guardada en segundo plano busca versión nueva al volver a abrirse
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+      if (reg && typeof reg.update === 'function') document.addEventListener('visibilitychange', () => { if (!document.hidden) Promise.resolve(reg.update()).catch(() => {}); });
     }).catch(() => {});
   }
 })();
