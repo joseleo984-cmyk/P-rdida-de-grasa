@@ -119,7 +119,7 @@ test('demo: /demo/ no lleva claves ni URLs de Supabase ni captcha, usa env demo 
   assert.strictEqual(m.scope, './');
   // El sw de la raíz y el de pruebas no precachean nada de la demo
   assert.ok(!/demo/.test(read('sw.js')) && !/demo/.test(read('pruebas/sw.js')));
-  assert.ok(/cacheName\(81\)/.test(read('demo/sw.js')));
+  assert.ok(/cacheName\(82\)/.test(read('demo/sw.js')));
   // Insignias v4 (logros): los dos archivos se publican y se precachean en los tres sitios (funcionan sin conexión).
   for (const pre of ['', 'pruebas/', 'demo/']) for (const f of ['logros.js', 'logros-view.js']) {
     assert.ok(fs.existsSync(path.join(dir, pre + f)), pre + f);
@@ -145,4 +145,17 @@ test('service worker: pregunta al servidor si cada archivo cambió (no usa la co
   assert.ok(/fetch\(e\.request, \{ cache: 'no-cache' \}\)/.test(read('sw.js')));
   const app = read('app.js');
   assert.ok(/addEventListener\('controllerchange'/.test(app) && /reg\.update\(\)/.test(app));
+});
+
+test('íconos: el iPhone usa un PNG (apple-touch-icon) y el manifiesto trae PNG de 192 y 512; todo viaja al sitio y a la caché', () => {
+  const html = read('index.html'), man = JSON.parse(read('manifest.webmanifest')), sw = read('sw.js');
+  assert.ok(/rel="apple-touch-icon" href="apple-touch-icon\.png"/.test(html));
+  for (const f of ['apple-touch-icon.png', 'icon-192.png', 'icon-512.png']) {
+    assert.ok(fs.existsSync(path.join(dir, f)), 'falta ' + f + ' en el sitio');
+    assert.ok(sw.includes(`'${f}'`), f + ' no está en la caché del service worker');
+  }
+  const png = (f) => { const b = fs.readFileSync(path.join(dir, f)); return { sig: b.slice(1, 4).toString(), w: b.readUInt32BE(16), h: b.readUInt32BE(20) }; };
+  assert.deepStrictEqual(png('apple-touch-icon.png'), { sig: 'PNG', w: 180, h: 180 });
+  assert.deepStrictEqual(png('icon-512.png'), { sig: 'PNG', w: 512, h: 512 });
+  assert.ok(man.icons.some((i) => i.src === 'icon-192.png' && i.sizes === '192x192') && man.icons.some((i) => i.src === 'icon-512.png' && i.sizes === '512x512'));
 });
