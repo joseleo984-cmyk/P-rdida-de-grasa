@@ -2,7 +2,7 @@
 // Cada entorno (raíz / pruebas) tiene su propia caché: config.js + ns.js deciden el nombre (ver ns.js).
 self.window = self;
 importScripts('config.js', 'ns.js');
-const CACHE = PGNS.cacheName(80);
+const CACHE = PGNS.cacheName(81);
 const ASSETS = ['./', 'index.html', 'styles.css', 'calc.js', 'schema.js', 'consent-texts.js', 'liga.js', 'ayuda.js', 'tour.js', 'push-view.js', 'lesiones.js', 'lesiones-view.js', 'chat.js', 'restricciones-view.js', 'chat-view.js', 'producto.js', 'consent-texts-solo.js', 'pagos.js', 'medidas.js', 'habitos.js', 'constancia.js', 'logros.js', 'puntos.js', 'platos.js', 'rutinas.js', 'paso.js', 'sync.js', 'cloud-view.js', 'acuerdo-view.js', 'invite.js', 'qr.js', 'install-guide.js', 'coach.js', 'exportar.js', 'estado-cliente.js', 'inicio-view.js', 'piloto.js', 'photos.js', 'etapa2.js', 'app.js', 'config.js', 'ns.js', 'vendor/supabase-2.117.2.js', 'captcha.js', 'remote.js', 'account.js', 'coach-panel.js', 'rutinas-base.js', 'rutinas-view.js', 'calendario.js', 'calendario-view.js', 'etapa2-view.js', 'analitica.js', 'admin.js', 'analitica-view.js', 'puntos-view.js', 'liga-view.js', 'logros-view.js', 'admin-view.js', 'exportar-view.js', 'aviso-politica.js', 'manifest.webmanifest', 'icon.svg', 'fonts/BricolageGrotesque-Bold.ttf', 'legal/terminos.html', 'legal/privacidad.html', 'legal/VERSIONS.json'];
 
 self.addEventListener('install', (e) => {
@@ -17,14 +17,15 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Red primero (para recibir actualizaciones), cache como respaldo.
+// Red primero (para recibir actualizaciones), cache como respaldo. `cache: 'no-cache'` pregunta al servidor si el archivo cambió (si no cambió, responde 304 sin
+// bajarlo): así no se usa la copia que GitHub Pages deja guardada unos 10 minutos y la versión nueva se ve en la primera apertura.
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   // R1: nunca cachear llamadas a otros orígenes (p. ej. *.supabase.co o challenges.cloudflare.com del captcha, Sprint 9);
   // solo los archivos de la propia app.
   if (new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-cache' })
       .then((res) => {
         // Solo respuestas correctas: un 404/500 no debe quedar en la caché y servirse sin conexión (QA S3-2 O2).
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }

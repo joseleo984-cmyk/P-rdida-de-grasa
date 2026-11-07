@@ -119,7 +119,7 @@ test('demo: /demo/ no lleva claves ni URLs de Supabase ni captcha, usa env demo 
   assert.strictEqual(m.scope, './');
   // El sw de la raíz y el de pruebas no precachean nada de la demo
   assert.ok(!/demo/.test(read('sw.js')) && !/demo/.test(read('pruebas/sw.js')));
-  assert.ok(/cacheName\(80\)/.test(read('demo/sw.js')));
+  assert.ok(/cacheName\(81\)/.test(read('demo/sw.js')));
   // Insignias v4 (logros): los dos archivos se publican y se precachean en los tres sitios (funcionan sin conexión).
   for (const pre of ['', 'pruebas/', 'demo/']) for (const f of ['logros.js', 'logros-view.js']) {
     assert.ok(fs.existsSync(path.join(dir, pre + f)), pre + f);
@@ -139,4 +139,10 @@ test('PGNS: sin env los nombres son los de siempre; con env llevan sufijo', () =
   const d = create({ env: 'demo' });
   assert.deepStrictEqual([d.key('v1'), d.dbName(), d.cacheName(47), d.isTest], ['perdida-grasa-demo:v1', 'perdida-grasa-demo', 'perdida-grasa-demo-v47', false]);
   assert.ok(!d.cacheName(1).startsWith(p.cachePrefix()) && !d.cacheName(1).startsWith(t.cachePrefix()) && !t.cacheName(1).startsWith(d.cachePrefix()));
+});
+
+test('service worker: pregunta al servidor si cada archivo cambió (no usa la copia de 10 minutos de GitHub Pages) y la app se recarga al tomar el control uno nuevo', () => {
+  assert.ok(/fetch\(e\.request, \{ cache: 'no-cache' \}\)/.test(read('sw.js')));
+  const app = read('app.js');
+  assert.ok(/addEventListener\('controllerchange'/.test(app) && /reg\.update\(\)/.test(app));
 });

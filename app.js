@@ -3066,6 +3066,25 @@
   })();
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // Versión nueva sin abrir y cerrar dos veces: cuando el service worker nuevo toma el control, se recarga la app una sola vez. Si la persona está escribiendo o tiene
+    // una ventana abierta, espera a que salga de la app (para no perder lo que está haciendo). No recarga en la primera instalación.
+    const oldScript = navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : '';
+    let reloaded = false, pending = false;
+    const busy = () => {
+      const f = document.activeElement;
+      return !!document.querySelector('dialog[open]') || !!(f && /^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName) && f.type !== 'checkbox' && f.type !== 'radio' && f.type !== 'button');
+    };
+    const reloadNow = () => { if (reloaded) return; reloaded = true; location.reload(); };
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      // Solo cuando el que toma el control es el MISMO sw.js (una actualización), no otro de otra carpeta (raíz / pruebas / demo)
+      const now = navigator.serviceWorker.controller;
+      if (!oldScript || reloaded || !now || now.scriptURL !== oldScript) return;
+      if (busy()) pending = true; else reloadNow();
+    });
+    document.addEventListener('visibilitychange', () => { if (document.hidden && pending) reloadNow(); });
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      // Una app que estuvo guardada en segundo plano busca versión nueva al volver a abrirse
+      if (reg && typeof reg.update === 'function') document.addEventListener('visibilitychange', () => { if (!document.hidden) Promise.resolve(reg.update()).catch(() => {}); });
+    }).catch(() => {});
   }
 })();
