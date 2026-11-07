@@ -1,5 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="112" fill="#0f766e"/>
-  <polyline points="96,170 200,250 280,220 416,350" fill="none" stroke="#fff" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
-  <polygon points="430,300 430,372 358,372" fill="#fff"/>
+  <g transform="translate(76 130) scale(4.35)">
+    <path d="M26 10c-9 0-16 7-16 16s7 16 16 16c8 0 12-6 18-16s10-16 18-16c9 0 16 7 16 16" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+    <path d="M52 28l8 8 14-17" fill="none" stroke="#99f6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 </svg>

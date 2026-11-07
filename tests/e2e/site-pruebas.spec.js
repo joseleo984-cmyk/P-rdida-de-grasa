@@ -104,9 +104,9 @@ test('(d) los service workers de la raíz y de pruebas conviven sin borrarse las
   await open(page, site.base + '/');
   await page.waitForTimeout(500);
   const keys = (await page.evaluate(() => caches.keys())).filter((k) => !k.startsWith('badge-'));   // el número del ícono vive en su propia caché
-  expect(keys.sort()).toEqual(['perdida-grasa-demo-v81', 'perdida-grasa-pruebas-v81', 'perdida-grasa-v81']);
+  expect(keys.sort()).toEqual(['perdida-grasa-demo-v82', 'perdida-grasa-pruebas-v82', 'perdida-grasa-v82']);
   for (const k of keys) expect(await page.evaluate(async (k) => (await (await caches.open(k)).keys()).length, k)).toBeGreaterThan(5);
-  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v81')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
+  expect(await page.evaluate(async () => (await (await caches.open('perdida-grasa-pruebas-v82')).keys()).some((r) => r.url.includes('/pruebas/app.js')))).toBe(true);
 });
 
 test('(e) una versión nueva se muestra sin abrir y cerrar dos veces: al tomar el control el service worker nuevo, la app se recarga una vez; si hay una ventana abierta, espera', async ({ page, site }) => {
