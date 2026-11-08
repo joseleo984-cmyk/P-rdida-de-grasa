@@ -168,7 +168,7 @@
     if (keep) return;
     const c = g.querySelector('.demo-card');
     c.innerHTML = '';
-    const h = document.createElement('h2'); h.id = 'demo-gate-title'; h.tabIndex = -1; h.textContent = 'Pérdida de Grasa — Demo';
+    const h = document.createElement('h2'); h.id = 'demo-gate-title'; h.tabIndex = -1; h.textContent = 'En forma — Demo';
     const p = document.createElement('p'); p.textContent = 'Mira cómo luce la app llena de datos de ejemplo. Todo es inventado y nada se guarda en ningún servidor.';
     c.append(h, p);
     if (error) { const e = document.createElement('p'); e.className = 'acc-error'; e.setAttribute('role', 'alert'); e.textContent = error; c.append(e); }

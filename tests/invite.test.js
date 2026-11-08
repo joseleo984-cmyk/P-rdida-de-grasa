@@ -18,7 +18,7 @@ test('enlace: parte del origen y la ruta actuales (raíz y /pruebas/)', () => {
 test('mensaje: con y sin nombre; limpia saltos de línea y límites', () => {
   const link = 'https://x.io/?c=ABC234';
   assert.equal(I.inviteMessage({ clientName: 'Ana', businessName: 'Fit Pro', link }),
-    'Hola Ana, soy Fit Pro. Te invito a seguir tu progreso conmigo en Pérdida de Grasa. Toca este enlace y listo: https://x.io/?c=ABC234');
+    'Hola Ana, soy Fit Pro. Te invito a seguir tu progreso conmigo en la app En forma. Toca este enlace y listo: https://x.io/?c=ABC234');
   assert.match(I.inviteMessage({ clientName: '  ', businessName: 'Fit Pro', link }), /^Hola, soy Fit Pro\./);
   assert.match(I.inviteMessage({ clientName: 'Ana\nLópez\t', businessName: 'Fit', link }), /^Hola Ana López, soy Fit\./);
   assert.equal(I.cleanName('x'.repeat(100)).length, 40);

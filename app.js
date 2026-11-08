@@ -179,7 +179,7 @@
     document.dispatchEvent(new CustomEvent('pg:view', { detail: { view, mode } }));   // UX Etapa 2: etapa2-view.js dibuja sus pantallas
   }
   function topTitle(view, mode) {
-    const t = view === 'perfil' ? PERFIL_TITLES[mode] || 'Mi coach' : TITLE_COACH[view] || 'Pérdida de Grasa';
+    const t = view === 'perfil' ? PERFIL_TITLES[mode] || 'Mi coach' : TITLE_COACH[view] || 'En forma';
     const h = $('#topbar-title');
     const fichaOpen = navCoach && view === 'coach' && !$('#coach-detail-view').classList.contains('hidden');   // la ficha pone su propia barra («‹ Anterior · Nombre · Siguiente ›»)
     if (fichaOpen) { document.dispatchEvent(new CustomEvent('pg:ficha-bar')); return; }

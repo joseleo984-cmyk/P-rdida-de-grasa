@@ -17,10 +17,10 @@ test('coach: mensaje de WhatsApp con vista previa, enlace con el código y copia
   const link = `${origin}?c=${code}`;
   const wa = page.locator('#btn-invite-wa');
   // Sin nombre
-  await expect(page.locator('#invite-preview')).toHaveText(`Hola, soy Fit <b>Ana</b> & Co. Te invito a seguir tu progreso conmigo en Pérdida de Grasa. Toca este enlace y listo: ${link}`);
+  await expect(page.locator('#invite-preview')).toHaveText(`Hola, soy Fit <b>Ana</b> & Co. Te invito a seguir tu progreso conmigo en la app En forma. Toca este enlace y listo: ${link}`);
   // Con nombre (con HTML: se muestra como texto, no se interpreta)
   await page.locator('#invite-name').fill('Luis <i>& Ro</i>');
-  const msg = `Hola Luis <i>& Ro</i>, soy Fit <b>Ana</b> & Co. Te invito a seguir tu progreso conmigo en Pérdida de Grasa. Toca este enlace y listo: ${link}`;
+  const msg = `Hola Luis <i>& Ro</i>, soy Fit <b>Ana</b> & Co. Te invito a seguir tu progreso conmigo en la app En forma. Toca este enlace y listo: ${link}`;
   await expect(page.locator('#invite-preview')).toHaveText(msg);
   await expect(page.locator('#invite-preview i, #invite-preview b')).toHaveCount(0);
   const href = await wa.getAttribute('href');

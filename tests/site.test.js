@@ -61,7 +61,7 @@ test('/pruebas/ lleva la URL correcta, la clave publicable, env pruebas, noindex
   assert.match(read('pruebas/index.html'), /<meta name="robots" content="noindex,nofollow">/);
   assert.ok(!read('index.html').includes('noindex'));
   const m = JSON.parse(read('pruebas/manifest.webmanifest'));
-  assert.strictEqual(m.name, 'Pérdida de Grasa (pruebas)');
+  assert.strictEqual(m.name, 'En forma (pruebas)');
   assert.strictEqual(m.start_url, './');
   assert.strictEqual(m.scope, './');
   assert.match(read('robots.txt'), /Disallow: \/P-rdida-de-grasa\/pruebas\//);
@@ -115,11 +115,11 @@ test('demo: /demo/ no lleva claves ni URLs de Supabase ni captcha, usa env demo 
   for (const f of DEMO_FILES) { assert.ok(fs.existsSync(path.join(dir, 'demo', f)), f); assert.ok(read('demo/sw.js').includes(`'${f}'`), 'sw de la demo sin ' + f); }
   assert.ok(html.indexOf('remote.js') < html.indexOf('remote-fake.js') && html.indexOf('demo.js') < html.indexOf('account.js'), 'demo.js debe cargar antes de account.js');
   const m = JSON.parse(read('demo/manifest.webmanifest'));
-  assert.strictEqual(m.name, 'Pérdida de Grasa (demo)');
+  assert.strictEqual(m.name, 'En forma (demo)');
   assert.strictEqual(m.scope, './');
   // El sw de la raíz y el de pruebas no precachean nada de la demo
   assert.ok(!/demo/.test(read('sw.js')) && !/demo/.test(read('pruebas/sw.js')));
-  assert.ok(/cacheName\(82\)/.test(read('demo/sw.js')));
+  assert.ok(/cacheName\(83\)/.test(read('demo/sw.js')));
   // Insignias v4 (logros): los dos archivos se publican y se precachean en los tres sitios (funcionan sin conexión).
   for (const pre of ['', 'pruebas/', 'demo/']) for (const f of ['logros.js', 'logros-view.js']) {
     assert.ok(fs.existsSync(path.join(dir, pre + f)), pre + f);
